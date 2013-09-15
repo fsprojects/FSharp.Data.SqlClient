@@ -101,7 +101,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             this.AddExecuteReader(reader, commandType, resultSetType, singleRow)
         commandType
 
-    member this.ExtractParameters(connectionString, commandText) : string list =  
+    member __.ExtractParameters(connectionString, commandText) : string list =  
         [
             use conn = new SqlConnection(connectionString)
             conn.Open()
@@ -142,7 +142,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         | Some clrType ->  clrType
         | None -> failwithf "Cannot map sql engine type %i to CLR type. %s" sqlEngineTypeId detailedMessage
 
-    member internal this.AddExecuteNonQuery commandType = 
+    member internal __.AddExecuteNonQuery commandType = 
         let execute = ProvidedMethod("Execute", [], typeof<Async<unit>>)
         execute.InvokeCode <- fun args ->
             <@@
@@ -196,7 +196,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
     static member internal GetValues0<'Row>(cmd, singleRow) = 
         SqlCommandTypeProvider.GetRows<'Row>(cmd, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow)
 
-    member internal this.AddExecuteReader(columnInfoReader, commandType, resultSetType, singleRow) = 
+    member internal __.AddExecuteReader(columnInfoReader, commandType, resultSetType, singleRow) = 
         let columns = 
             columnInfoReader 
             |> Seq.cast<IDataRecord> 
