@@ -3,6 +3,7 @@
 open Microsoft.FSharp.Core.CompilerServices
 open Samples.FSharp.ProvidedTypes
 open System
+open System.Threading
 open System.Data
 open System.Data.SqlClient
 open System.Reflection
@@ -154,47 +155,56 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             @@>
         commandType.AddMember execute
 
-    static member internal GetRows<'Row>(cmd, rowMapper : Expr, singleRow) = 
-        let commandBehavior = if singleRow then CommandBehavior.SingleRow else CommandBehavior.Default 
-        //Combine with CommandBehavior.SingleResult for single result set ???
-        let getSeqAsyncCode = 
-            <@ 
-                async {
-                    let sqlCommand : SqlCommand = %%Expr.Coerce(cmd, typeof<SqlCommand>)
-                    let! token = Async.CancellationToken
-                    do! sqlCommand.Connection.OpenAsync(token) |> Async.AwaitIAsyncResult |> Async.Ignore
-                    let! reader = 
-                        try 
-                            sqlCommand.ExecuteReaderAsync(commandBehavior, token) |> Async.AwaitTask
-                        with _ ->
-                            sqlCommand.Connection.Close()
-                            reraise()
-                    return 
-                        seq {
-                            try 
-                                while(not token.IsCancellationRequested && reader.Read()) do
-                                    let row = Array.zeroCreate reader.FieldCount
-                                    reader.GetValues row |> ignore
-                                    yield (%%rowMapper : obj[] -> 'Row)  row 
-                            finally 
-                                sqlCommand.Connection.Close()
-                        } |> Seq.cache
-                }
-            @>
+    static member internal GetResult<'Result>(cmd, readerMapper, singleRow) = 
+        let commandBehavior = if singleRow then CommandBehavior.SingleRow  else CommandBehavior.Default 
+        <@@ 
+            async {
+                let sqlCommand : SqlCommand = %%Expr.Coerce(cmd, typeof<SqlCommand>)
+                let! token = Async.CancellationToken
+                do! sqlCommand.Connection.OpenAsync(token) |> Async.AwaitIAsyncResult |> Async.Ignore
+                let! reader = 
+                    try 
+                        sqlCommand.ExecuteReaderAsync(commandBehavior ||| CommandBehavior.CloseConnection ||| CommandBehavior.SingleResult, token) |> Async.AwaitTask
+                    with _ ->
+                        sqlCommand.Connection.Close()
+                        reraise()
+                return (%%readerMapper : SqlDataReader * CancellationToken -> 'Result) (reader, token)
+            }
+        @@>
+
+    static member internal GetSequence<'Row>(cmd, rowMapper, singleRow) = 
+        let readerMapper = 
+            <@@
+                fun(reader : SqlDataReader, token : CancellationToken ) ->
+                    seq {
+                        while(not token.IsCancellationRequested && reader.Read()) do
+                            let row = Array.zeroCreate reader.FieldCount
+                            reader.GetValues row |> ignore
+                            yield (%%rowMapper : obj[] -> 'Row)  row 
+                    } 
+            @@>
+
+        let getSeqAsyncResult = SqlCommandTypeProvider.GetResult<'Row seq>(cmd, readerMapper, singleRow)
 
         if singleRow
         then 
             <@@ 
                 async { 
-                    let! xs = %getSeqAsyncCode
+                    let! xs  = %%getSeqAsyncResult : Async<'Row seq>
                     return Seq.exactlyOne xs
                 }
             @@>
         else
-            upcast getSeqAsyncCode
+            <@@ 
+                async { 
+                    let! xs = %%getSeqAsyncResult : Async<'Row seq>
+                    return Seq.cache xs
+                }
+            @@>
 
-    static member internal GetValues0<'Row>(cmd, singleRow) = 
-        SqlCommandTypeProvider.GetRows<'Row>(cmd, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow)
+
+    static member internal SelectOnlyColumn0<'Row>(cmd, singleRow) = 
+        SqlCommandTypeProvider.GetSequence<'Row>(cmd, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow)
 
     member internal __.AddExecuteReader(columnInfoReader, commandType, resultSetType, singleRow) = 
         let columns = 
@@ -220,7 +230,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             let execute = ProvidedMethod("Execute", [], returnType)
 
             execute.InvokeCode <- fun args -> 
-                let impl = this.GetType().GetMethod("GetValues0", BindingFlags.NonPublic ||| BindingFlags.Static).MakeGenericMethod([| itemType |])
+                let impl = this.GetType().GetMethod("SelectOnlyColumn0", BindingFlags.NonPublic ||| BindingFlags.Static).MakeGenericMethod([| itemType |])
                 impl.Invoke(null, [| args.[0]; singleRow |]) |> unbox
             commandType.AddMember execute
 
@@ -235,8 +245,11 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                         let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
                         Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [Expr.Var values; getTupleType]), tupleType))
                     let getExecuteBody(args : Expr list) = 
-                        let impl = this.GetType().GetMethod("GetRows", BindingFlags.NonPublic ||| BindingFlags.Static).MakeGenericMethod([| tupleType |])
-                        impl.Invoke(null, [| args.[0]; rowMapper; singleRow |]) |> unbox
+                        this.GetType()
+                            .GetMethod("GetSequence", BindingFlags.NonPublic ||| BindingFlags.Static)
+                            .MakeGenericMethod([| tupleType |])
+                            .Invoke(null, [| args.[0]; rowMapper; singleRow |]) 
+                            |> unbox
 
                     let resultType = if singleRow then tupleType else typedefof<_ seq>.MakeGenericType(tupleType)
                     resultType, getExecuteBody
@@ -256,26 +269,22 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
                     commandType.AddMember dtoType
                     let resultType = if singleRow then dtoType :> Type else typedefof<_ seq>.MakeGenericType(dtoType)
-                    let getExecuteBody (args : Expr list) = SqlCommandTypeProvider.GetRows(args.[0], <@ fun(values : obj[]) -> box values @>, singleRow) 
+                    let getExecuteBody (args : Expr list) = 
+                        SqlCommandTypeProvider.GetSequence(args.[0], <@ fun(values : obj[]) -> box values @>, singleRow)
+                         
                     resultType, getExecuteBody
 
                 | ResultSetType.DataTable ->
                     let getExecuteBody(args : Expr list) = 
-                        <@@ 
-                            async {
-                                let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
-                                let! token = Async.CancellationToken
-                                use conn = sqlCommand.Connection
-                                do! conn.OpenAsync(token) |> Async.AwaitIAsyncResult |> Async.Ignore
-                                let! reader = 
-                                    try 
-                                        sqlCommand.ExecuteReaderAsync(token) |> Async.AwaitTask
-                                    with _ ->
-                                        sqlCommand.Connection.Close()
-                                        reraise()
-                                return let result = new DataTable() in result.Load reader; result
-                            }
-                        @@>
+                        let resultBuilder = 
+                            <@ 
+                                fun(reader : SqlDataReader, _ : CancellationToken) -> 
+                                    let x = new DataTable() 
+                                    x.Load reader 
+                                    x
+                            @>
+
+                        SqlCommandTypeProvider.GetResult<DataTable>(args.[0], resultBuilder, singleRow)
 
                     typeof<DataTable>, getExecuteBody
 

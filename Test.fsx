@@ -4,10 +4,10 @@
 open FSharp.NYC.Tutorial
 
 [<Literal>]
-let connectionString="Data Source=.\SQLExpress;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString="Data Source=mitekm-pc2;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 [<Literal>]
-let queryProductsSql = "
+let queryProductsSql = " 
 SELECT TOP (@top) Name AS ProductName, SellStartDate
 FROM Production.Product 
 WHERE SellStartDate > @SellStartDate
