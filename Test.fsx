@@ -28,6 +28,10 @@ type QueryProductDataTable = SqlCommand<queryProductsSql, connectionString, Resu
 let cmd15 = QueryProductDataTable(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 cmd15.Execute() |> Async.RunSynchronously |> DataTableExtensions.AsEnumerable |> Seq.map (fun row -> printfn "Product name: %s. Sells start date %O" (row.Field("ProductName")) row.["SellStartDate"])
 
+type QueryProductTypedDataTable = SqlCommand<queryProductsSql, connectionString, ResultSetType = ResultSetType.TypedDataTable>
+let cmd16 = QueryProductTypedDataTable(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
+cmd16.Execute() |> Async.RunSynchronously |> DataTableExtensions.AsEnumerable |> Seq.map (fun row -> printfn "Product name: %s. Sells start date %O" (row.Field("ProductName")) row.["SellStartDate"])
+
 type QueryPersonInfoSingletone = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultSetType = ResultSetType.DTOs, SingleRow=true>
 let query = new QueryPersonInfoSingletone(PersonId = 2)
 let x = query.Execute() |> Async.RunSynchronously 
