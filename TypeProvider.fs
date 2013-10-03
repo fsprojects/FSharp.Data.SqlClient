@@ -5,6 +5,7 @@ open Samples.FSharp.ProvidedTypes
 open System
 open System.Threading
 open System.Data
+open System.Collections.Generic
 open System.Data.SqlClient
 open System.Reflection
 open Microsoft.FSharp.Quotations
@@ -14,7 +15,9 @@ type ResultSetType =
     | Tuples = 0
     | DTOs = 1
     | DataTable = 3
-    | TypedDataTable = 4
+
+type TypedDataTable() = 
+    inherit TypedTableBase<DataRow>() 
 
 [<TypeProvider>]
 type public SqlCommandTypeProvider(config : TypeProviderConfig) as this = 
@@ -202,15 +205,17 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 }
             @@>
 
-//    static member GetTypedDataTable<'Row when 'Row :> DataRow>(reader : SqlDataReader, _ : CancellationToken) = 
-//        <@@
-//            let x = new TypedTableBase<'Row>() 
-//            x.Load reader 
-//            x
-//        @@>
-
     static member internal SelectOnlyColumn0<'Row>(cmd, singleRow) = 
         SqlCommandTypeProvider.GetSequence<'Row>(cmd, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow)
+
+//    static member internal GetTypedDataTable(reader : SqlDataReader, _ : CancellationToken) : TypedTableBase<DataRow> = 
+//        let dataTable = {
+//            new TypedTableBase<DataRow>() with
+//                member __.GetRowType() = typeof<DataRow>
+//        }
+//
+//        dataTable.Load reader 
+//        dataTable
 
     member internal __.AddExecuteReader(columnInfoReader, commandType, resultSetType, singleRow) = 
         let columns = 
@@ -281,55 +286,21 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     resultType, getExecuteBody
 
                 | ResultSetType.DataTable ->
-                    let getExecuteBody(args : Expr list) = 
-                        let resultBuilder = 
-                            <@ 
-                                fun(reader : SqlDataReader, _ : CancellationToken) -> 
-                                    let x = new DataTable() 
-                                    x.Load reader 
-                                    x
-                            @>
-
-                        SqlCommandTypeProvider.GetResult<DataTable>(args.[0], resultBuilder, singleRow)
-
-                    typeof<DataTable>, getExecuteBody
-
-                | ResultSetType.TypedDataTable ->
-                    let rowType = ProvidedTypeDefinition("Row", baseType = Some typeof<DataRow>, HideObjectMethods = true)
-                    for name, propertyTypeName, columnOrdinal  in columns do
-                        if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." columnOrdinal
-                        let property = ProvidedProperty(name, propertyType = Type.GetType propertyTypeName) 
-                        property.GetterCode <- fun args -> 
-                            <@@ 
-                                let row : DataRow = %%Expr.Coerce(args.[0], typeof<DataRow>)
-                                row.[columnOrdinal - 1]
-                            @@>
-
-                        rowType.AddMember property
-
-                    commandType.AddMember rowType
-
-                    let baseType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ TypedTableBase>, [ rowType ])
-                    let typedDataTableType = ProvidedTypeDefinition("TypedDataTable", Some baseType)
-                    let ctor = ProvidedConstructor([])
-                    let baseCtor = typedefof<_ TypedTableBase>.GetConstructor(BindingFlags.Instance ||| BindingFlags.NonPublic, null, [||], null)
-                    ctor.InvokeCode <- fun _ -> Expr.Coerce(Expr.NewObject(baseCtor, []), typeof<DataTable>)
-                    typedDataTableType.AddMember ctor
-
-                    commandType.AddMember typedDataTableType
+                    let resultType = ProvidedTypeDefinition("TypedDataTable", Some typeof<TypedDataTable>)
+                    commandType.AddMember resultType
 
                     let getExecuteBody(args : Expr list) = 
                         let resultBuilder = 
                             <@ 
                                 fun(reader : SqlDataReader, _ : CancellationToken) -> 
-                                    let x : DataTable = %%Expr.Coerce(Expr.NewObject(ctor, []), typeof<DataTable>)
+                                    let x = new TypedDataTable() 
                                     x.Load reader 
                                     x
                             @>
 
-                        SqlCommandTypeProvider.GetResult<DataTable>(args.[0], resultBuilder, singleRow)
+                        SqlCommandTypeProvider.GetResult<TypedDataTable>(args.[0], resultBuilder, singleRow)
 
-                    upcast typedDataTableType, getExecuteBody
+                    upcast resultType, getExecuteBody
 
                 | _ -> failwith "Unexpected"
                     
