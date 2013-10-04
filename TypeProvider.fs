@@ -8,6 +8,7 @@ open System.Data
 open System.Collections.Generic
 open System.Data.SqlClient
 open System.Reflection
+open System.IO
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
 
@@ -52,10 +53,12 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         providerType.DefineStaticParameters(
             parameters = [ 
                 ProvidedStaticParameter("CommandText", typeof<string>) 
-                ProvidedStaticParameter("ConnectionString", typeof<string>) 
+                ProvidedStaticParameter("ConnectionString", typeof<string>, "") 
+                ProvidedStaticParameter("ConnectionStringName", typeof<string>, "") 
                 ProvidedStaticParameter("ResultSetType", typeof<ResultSetType>, ResultSetType.Tuples) 
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false) 
-                ProvidedStaticParameter("ConnectionStringName", typeof<string>) 
+                ProvidedStaticParameter("ConfigFile", typeof<string>, "app.config") 
+                ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
             instantiationFunction = this.CreateType
         )
@@ -64,10 +67,13 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
     member internal this.CreateType typeName parameters = 
         let commandText : string = unbox parameters.[0] 
         let connectionString : string = unbox parameters.[1] 
-        let resultSetType : ResultSetType = unbox parameters.[2] 
-        let singleRow : bool = unbox parameters.[3] 
-        let connectionStringName : string = unbox parameters.[4] 
-
+        let connectionStringName : string = unbox parameters.[2] 
+        let resultSetType : ResultSetType = unbox parameters.[3] 
+        let singleRow : bool = unbox parameters.[4] 
+        let configFile : string = unbox parameters.[5] 
+        let dataDirectory : string = unbox parameters.[6] 
+        
+        let connectionString =  ConnectionString.resolve (config.ResolutionFolder) connectionString connectionStringName configFile dataDirectory
         this.CheckMinimalVersion connectionString
         this.LoadDataTypesMap connectionString
 
@@ -126,7 +132,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         else
             this.AddExecuteReader(reader, commandType, resultSetType, singleRow)
         commandType
-
+    
     member __.ExtractParameters(connectionString, commandText) : string list =  
         [
             use conn = new SqlConnection(connectionString)
