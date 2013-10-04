@@ -32,6 +32,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConnectionString", typeof<string>) 
                 ProvidedStaticParameter("ResultSetType", typeof<ResultSetType>, ResultSetType.Tuples) 
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false) 
+                ProvidedStaticParameter("ConnectionStringName", typeof<string>) 
             ],             
             instantiationFunction = this.CreateType
         )
@@ -42,6 +43,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         let connectionString : string = unbox parameters.[1] 
         let resultSetType : ResultSetType = unbox parameters.[2] 
         let singleRow : bool = unbox parameters.[3] 
+        let connectionStringName : string = unbox parameters.[4] 
 
         this.CheckMinimalVersion connectionString
         this.LoadDataTypesMap connectionString

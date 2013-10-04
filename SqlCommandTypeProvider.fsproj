@@ -51,6 +51,9 @@
     <Compile Include="ProvidedTypes-head.fs" />
     <Compile Include="TypeProvider.fs" />
     <None Include="Test.fsx" />
+    <None Include="ConnectionStringNameTest.fsx" />
+    <None Include="test.bat" />
+    <None Include="App.config" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
