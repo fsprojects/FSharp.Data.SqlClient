@@ -18,14 +18,14 @@ type ResultSetType =
 
 [<Sealed>]
 type DataTable<'T when 'T :> DataRow>() = 
-    //inherit DataTable() 
-    inherit TypedTableBase<'T>() 
+    inherit DataTable() 
+    //inherit TypedTableBase<'T>() 
 
     member this.Item index : 'T = downcast this.Rows.[index] 
 
     interface ICollection<'T> with
-//        member this.GetEnumerator() = this.Rows.GetEnumerator()
-//        member this.GetEnumerator() : IEnumerator<'T> = (Seq.cast<'T> this.Rows).GetEnumerator() 
+        member this.GetEnumerator() = this.Rows.GetEnumerator()
+        member this.GetEnumerator() : IEnumerator<'T> = (Seq.cast<'T> this.Rows).GetEnumerator() 
         member this.Count = this.Rows.Count
         member this.IsReadOnly = this.Rows.IsReadOnly
         member this.Add row = this.Rows.Add row
@@ -289,7 +289,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     resultType, getExecuteBody
 
                 | ResultSetType.DTOs -> 
-                    let dtoType = ProvidedTypeDefinition("Row", baseType = Some typeof<obj>, HideObjectMethods = true)
+                    let rowType = ProvidedTypeDefinition("Row", baseType = Some typeof<obj>, HideObjectMethods = true)
                     for name, propertyTypeName, columnOrdinal  in columns do
                         if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." columnOrdinal
                         let property = ProvidedProperty(name, propertyType = Type.GetType propertyTypeName) 
@@ -299,10 +299,10 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                                 values.[columnOrdinal - 1]
                             @@>
 
-                        dtoType.AddMember property
+                        rowType.AddMember property
 
-                    commandType.AddMember dtoType
-                    let resultType = if singleRow then dtoType :> Type else typedefof<_ seq>.MakeGenericType(dtoType)
+                    commandType.AddMember rowType
+                    let resultType = if singleRow then rowType :> Type else typedefof<_ seq>.MakeGenericType(rowType)
                     let getExecuteBody (args : Expr list) = 
                         SqlCommandTypeProvider.GetSequence(args.[0], <@ fun(values : obj[]) -> box values @>, singleRow)
                          
@@ -311,6 +311,13 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 | ResultSetType.DataTable ->
                     //let rowType = typeof<DataRow>
                     let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
+                    for name, propertyTypeName, columnOrdinal  in columns do
+                        if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." columnOrdinal
+                        let property = ProvidedProperty(name, propertyType = Type.GetType propertyTypeName) 
+                        property.GetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] @@>
+                        property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- box %%args.[1] @@>
+
+                        rowType.AddMember property
 
                     let resultType = typedefof<_ DataTable>.MakeGenericType rowType 
                     //let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ rowType ])
