@@ -16,8 +16,28 @@ type ResultSetType =
     | DTOs = 1
     | DataTable = 3
 
-type TypedDataTable() = 
-    inherit TypedTableBase<DataRow>() 
+[<Sealed>]
+type DataTable<'T when 'T :> DataRow>() = 
+    //inherit DataTable() 
+    inherit TypedTableBase<'T>() 
+
+    member this.Item index : 'T = downcast this.Rows.[index] 
+
+    interface ICollection<'T> with
+//        member this.GetEnumerator() = this.Rows.GetEnumerator()
+//        member this.GetEnumerator() : IEnumerator<'T> = (Seq.cast<'T> this.Rows).GetEnumerator() 
+        member this.Count = this.Rows.Count
+        member this.IsReadOnly = this.Rows.IsReadOnly
+        member this.Add row = this.Rows.Add row
+        member this.Clear() = this.Rows.Clear()
+        member this.Contains row = this.Rows.Contains row
+        member this.CopyTo(dest, index) = this.Rows.CopyTo(dest, index)
+        member this.Remove row = this.Rows.Remove(row); true
+
+//    later
+//    interface IReadOnlyList<DataRow> with
+//        member this.Item with get index = this.Rows.[index]
+
 
 [<TypeProvider>]
 type public SqlCommandTypeProvider(config : TypeProviderConfig) as this = 
@@ -208,14 +228,15 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
     static member internal SelectOnlyColumn0<'Row>(cmd, singleRow) = 
         SqlCommandTypeProvider.GetSequence<'Row>(cmd, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow)
 
-//    static member internal GetTypedDataTable(reader : SqlDataReader, _ : CancellationToken) : TypedTableBase<DataRow> = 
-//        let dataTable = {
-//            new TypedTableBase<DataRow>() with
-//                member __.GetRowType() = typeof<DataRow>
-//        }
-//
-//        dataTable.Load reader 
-//        dataTable
+    static member internal GetTypedDataTable<'T when 'T :> DataRow>(cmd, singleRow)  = 
+        let resultBuilder = 
+            <@@
+                fun(reader : SqlDataReader, _ : CancellationToken) -> 
+                    let x = new DataTable<'T>() 
+                    x.Load reader 
+                    x
+            @@>
+        SqlCommandTypeProvider.GetResult<DataTable<'T>>(cmd, resultBuilder, singleRow)
 
     member internal __.AddExecuteReader(columnInfoReader, commandType, resultSetType, singleRow) = 
         let columns = 
@@ -286,21 +307,19 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     resultType, getExecuteBody
 
                 | ResultSetType.DataTable ->
-                    let resultType = ProvidedTypeDefinition("TypedDataTable", Some typeof<TypedDataTable>)
-                    commandType.AddMember resultType
+                    //let rowType = typeof<DataRow>
+                    let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
+
+                    let resultType = typedefof<_ DataTable>.MakeGenericType rowType 
+                    //let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ rowType ])
+                    commandType.AddMembers [ rowType :> Type; resultType ]
 
                     let getExecuteBody(args : Expr list) = 
-                        let resultBuilder = 
-                            <@ 
-                                fun(reader : SqlDataReader, _ : CancellationToken) -> 
-                                    let x = new TypedDataTable() 
-                                    x.Load reader 
-                                    x
-                            @>
+                        let impl = this.GetType().GetMethod("GetTypedDataTable", BindingFlags.NonPublic ||| BindingFlags.Static).MakeGenericMethod([| typeof<DataRow> |])
+//                        let impl = ProvidedTypeBuilder.MakeGenericMethod(this.GetType().GetMethod("GetTypedDataTable", BindingFlags.NonPublic ||| BindingFlags.Static), [ rowType :> Type ])
+                        impl.Invoke(null, [| args.[0]; singleRow |]) |> unbox
 
-                        SqlCommandTypeProvider.GetResult<TypedDataTable>(args.[0], resultBuilder, singleRow)
-
-                    upcast resultType, getExecuteBody
+                    resultType, getExecuteBody
 
                 | _ -> failwith "Unexpected"
                     
