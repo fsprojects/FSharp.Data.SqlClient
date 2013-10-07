@@ -3,6 +3,7 @@
 open Microsoft.FSharp.Core.CompilerServices
 open Samples.FSharp.ProvidedTypes
 open System
+open System.Configuration
 open System.Threading
 open System.Data
 open System.Collections.Generic
@@ -72,8 +73,9 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         let singleRow : bool = unbox parameters.[4] 
         let configFile : string = unbox parameters.[5] 
         let dataDirectory : string = unbox parameters.[6] 
-        
-        let connectionString =  ConnectionString.resolve (config.ResolutionFolder) connectionString connectionStringName configFile dataDirectory
+        let resolutionFolder = config.ResolutionFolder
+
+        let connectionString =  ConnectionString.resolve (config.ResolutionFolder) connectionString connectionStringName configFile
         this.CheckMinimalVersion connectionString
         this.LoadDataTypesMap connectionString
 
@@ -85,6 +87,9 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             parameters = [],
             InvokeCode = fun _ -> 
                 <@@ 
+                    let connectionString = ConnectionString.resolve resolutionFolder connectionString connectionStringName configFile
+                    if dataDirectory <> ""
+                    then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
                     let this = new SqlCommand(commandText, new SqlConnection(connectionString)) 
                     for x in parameters do
                         let xs = x.Split(',') 
