@@ -1,9 +1,8 @@
 ﻿printfn "load provider"
 
-#r "../bin/Debug/Library.dll"
 #r "../bin/Debug/SqlCommandTypeProvider.dll"
 
-open FSharp.NYC.Tutorial
+open FSharp.Data.SqlClient
 
 [<Literal>]
 let queryProductsSql = " 

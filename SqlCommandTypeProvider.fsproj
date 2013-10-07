@@ -11,6 +11,7 @@
     <AssemblyName>SqlCommandTypeProvider</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <Name>SqlCommandTypeProvider</Name>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -51,16 +52,11 @@
   <ItemGroup>
     <Compile Include="ProvidedTypes-head.fsi" />
     <Compile Include="ProvidedTypes-head.fs" />
+    <Compile Include="ConnectionString.fs" />
+    <Compile Include="SqlCommand.fs" />
     <Compile Include="TypeProvider.fs" />
-    <None Include="Test.fsx" />
+    <Compile Include="AssemblyInfo.fs" />
     <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="Library\Library.fsproj">
-      <Name>Library</Name>
-      <Project>{e9df80b8-441b-4802-919e-4a7f9efc4296}</Project>
-      <Private>True</Private>
-    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>

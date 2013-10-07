@@ -1,9 +1,8 @@
-﻿module FSharp.NYC.Tutorial.Test
+﻿module  FSharp.Data.SqlClient.Test
 
 open Xunit
 open FsUnit
 open System.Configuration
-open FSharp.NYC.Tutorial
 
 [<Fact>]
 let ``Connection string provided`` () = ConnectionString.resolve "" "foo" "" "" |> should equal "foo"
