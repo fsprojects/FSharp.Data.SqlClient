@@ -21,7 +21,6 @@ type ResultSetType =
 [<Sealed>]
 type DataTable<'T when 'T :> DataRow>() = 
     inherit DataTable() 
-    //inherit TypedTableBase<'T>() 
 
     member this.Item index : 'T = downcast this.Rows.[index] 
 
@@ -40,6 +39,11 @@ type DataTable<'T when 'T :> DataRow>() =
 //    interface IReadOnlyList<DataRow> with
 //        member this.Item with get index = this.Rows.[index]
 
+type DataTypeMapping = {
+    SqlEngineTypeId : int
+    SqlDbTypeId : int
+    ClrTypeName : string
+}
 
 [<TypeProvider>]
 type public SqlCommandTypeProvider(config : TypeProviderConfig) as this = 
@@ -50,18 +54,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
     let nameSpace = this.GetType().Namespace
     let assembly = Assembly.GetExecutingAssembly()
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommand", Some typeof<obj>, HideObjectMethods = true)
-    let sqlEngineTypeToClrMap = ref Map.empty
-
-    do
-        AppDomain.CurrentDomain.add_AssemblyResolve(fun _ args ->
-            let name = AssemblyName(args.Name)
-            let existingAssembly = 
-                AppDomain.CurrentDomain.GetAssemblies()
-                |> Seq.tryFind(fun a -> AssemblyName.ReferenceMatchesDefinition(name, a.GetName()))
-            match existingAssembly with
-            | Some a -> a
-            | None -> null
-        )
+    let dataTypeMappings = ref List.empty
 
     do 
         providerType.DefineStaticParameters(
@@ -69,6 +62,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("CommandText", typeof<string>) 
                 ProvidedStaticParameter("ConnectionString", typeof<string>, "") 
                 ProvidedStaticParameter("ConnectionStringName", typeof<string>, "") 
+                ProvidedStaticParameter("CommandType", typeof<CommandType>, CommandType.Text) 
                 ProvidedStaticParameter("ResultSetType", typeof<ResultSetType>, ResultSetType.Tuples) 
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false) 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "app.config") 
@@ -82,60 +76,73 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         let commandText : string = unbox parameters.[0] 
         let connectionStringProvided : string = unbox parameters.[1] 
         let connectionStringName : string = unbox parameters.[2] 
-        let resultSetType : ResultSetType = unbox parameters.[3] 
-        let singleRow : bool = unbox parameters.[4] 
-        let configFile : string = unbox parameters.[5] 
-        let dataDirectory : string = unbox parameters.[6] 
-        
+        let commandType : CommandType = unbox parameters.[3] 
+        let resultSetType : ResultSetType = unbox parameters.[4] 
+        let singleRow : bool = unbox parameters.[5] 
+        let configFile : string = unbox parameters.[6] 
+        let dataDirectory : string = unbox parameters.[7] 
+
         let resolutionFolder = config.ResolutionFolder
         let connectionString =  ConnectionString.resolve resolutionFolder connectionStringProvided connectionStringName configFile
-        
         this.CheckMinimalVersion connectionString
         this.LoadDataTypesMap connectionString
 
-        let commandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
+        let isStoredProcedure = commandType = CommandType.StoredProcedure
 
-        let parameters = this.ExtractParameters(connectionString, commandText)
+        let parameters = this.ExtractParameters(connectionString, commandText, isStoredProcedure)
+
+        let genCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
 
         ProvidedConstructor(
             parameters = [],
             InvokeCode = fun _ -> 
                 <@@ 
-                    let connectionString = ConnectionString.resolve resolutionFolder connectionStringProvided connectionStringName configFile
-                    if dataDirectory <> ""
-                    then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
+                    let connectionString = ConnectionString.resolve resolutionFolder connectionString connectionStringName configFile
+
+                    do
+                        if dataDirectory <> ""
+                        then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
+
                     let this = new SqlCommand(commandText, new SqlConnection(connectionString)) 
                     for x in parameters do
                         let xs = x.Split(',') 
-                        let paramName, sqlEngineTypeName = xs.[0], xs.[2]
-                        let sqlEngineTypeNameWithoutSize = 
-                            let openParentPos = sqlEngineTypeName.IndexOf('(')
-                            if openParentPos = -1 then sqlEngineTypeName else sqlEngineTypeName.Substring(0, openParentPos)
-                        let dbType = Enum.Parse(typeof<SqlDbType>, sqlEngineTypeNameWithoutSize, ignoreCase = true) |> unbox
-                        this.Parameters.Add(paramName, dbType) |> ignore
+                        let paramName = xs.[0]
+                        let sqlDbType = xs.[2] |> int |> enum
+                        let direction = Enum.Parse(typeof<ParameterDirection>, xs.[3]) 
+                        let p = SqlParameter(paramName, sqlDbType, Direction = unbox direction)
+                        this.Parameters.Add p |> ignore
                     this
                 @@>
         ) 
-        |> commandType.AddMember 
+        |> genCommandType.AddMember 
 
-        commandType.AddMembersDelayed <| fun() -> 
+        genCommandType.AddMembersDelayed <| fun() -> 
             parameters
             |> List.map (fun x -> 
-                let paramName, clrTypeName = let xs = x.Split(',') in xs.[0], xs.[1]
+                let paramName, clrTypeName, direction = 
+                    let xs = x.Split(',') 
+                    let success, direction = Enum.TryParse xs.[3]
+                    assert success
+                    xs.[0], xs.[1], direction
+
                 assert (paramName.StartsWith "@")
 
                 let prop = ProvidedProperty(propertyName = paramName.Substring 1, propertyType = Type.GetType clrTypeName)
-                prop.GetterCode <- fun args -> 
-                    <@@ 
-                        let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
-                        sqlCommand.Parameters.[paramName].Value
-                    @@>
+                if direction = ParameterDirection.Output || direction = ParameterDirection.InputOutput || direction = ParameterDirection.ReturnValue
+                then 
+                    prop.GetterCode <- fun args -> 
+                        <@@ 
+                            let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
+                            sqlCommand.Parameters.[paramName].Value
+                        @@>
 
-                prop.SetterCode <- fun args -> 
-                    <@@ 
-                        let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
-                        sqlCommand.Parameters.[paramName].Value <- %%Expr.Coerce(args.[1], typeof<obj>)
-                    @@>
+                if direction = ParameterDirection.Input
+                then 
+                    prop.SetterCode <- fun args -> 
+                        <@@ 
+                            let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
+                            sqlCommand.Parameters.[paramName].Value <- %%Expr.Coerce(args.[1], typeof<obj>)
+                        @@>
 
                 prop
             )
@@ -147,24 +154,41 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         use reader = cmd.ExecuteReader()
         if not reader.HasRows
         then 
-            this.AddExecuteNonQuery commandType
+            this.AddExecuteNonQuery genCommandType
         else
-            this.AddExecuteReader(reader, commandType, resultSetType, singleRow)
-        commandType
+            this.AddExecuteReader(reader, genCommandType, resultSetType, singleRow)
+
+        genCommandType
     
-    member __.ExtractParameters(connectionString, commandText) : string list =  
+    member __.ExtractParameters(connectionString, commandText, isStoredProcedure) : string list =  
         [
             use conn = new SqlConnection(connectionString)
             conn.Open()
 
-            use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", conn, CommandType = CommandType.StoredProcedure)
-            cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
-            use reader = cmd.ExecuteReader()
-            while(reader.Read()) do
-                let paramName = string reader.["name"]
-                let clrTypeName = this.MapSqlEngineTypeToClr(sqlEngineTypeId = unbox<int> reader.["suggested_system_type_id"], detailedMessage = " Parameter name:" + paramName)
-                let dbTypeName = string reader.["suggested_system_type_name"]
-                yield sprintf "%s,%s,%s" paramName clrTypeName dbTypeName
+            if isStoredProcedure
+            then
+                //quick solution for now. Maybe better to use conn.GetSchema("ProcedureParameters")
+                use cmd = new SqlCommand(commandText, conn, CommandType = CommandType.StoredProcedure)
+                SqlCommandBuilder.DeriveParameters cmd
+                for p in cmd.Parameters do
+                    let mapping = !dataTypeMappings |> List.find (fun x -> p.SqlDbType = enum(x.SqlDbTypeId))
+                    yield sprintf "%s,%s,%i,%O" p.ParameterName mapping.ClrTypeName mapping.SqlDbTypeId p.Direction 
+            else
+                use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", conn, CommandType = CommandType.StoredProcedure)
+                cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
+                use reader = cmd.ExecuteReader()
+                while(reader.Read()) do
+                    let paramName = string reader.["name"]
+                    let sqlEngineTypeId = unbox<int> reader.["suggested_system_type_id"]
+                    let clrTypeName, sqlDbTypeId = this.MapSqlEngineType(sqlEngineTypeId, detailedMessage = " Parameter name:" + paramName)
+                    let direction = 
+                        let output = unbox reader.["suggested_is_output"]
+                        let input = unbox reader.["suggested_is_input"]
+                        if output && input then ParameterDirection.InputOutput
+                        elif output then ParameterDirection.Output
+                        else ParameterDirection.Input
+
+                    yield sprintf "%s,%s,%i,%O" paramName clrTypeName sqlDbTypeId direction
         ]
 
     member __.CheckMinimalVersion connectionString = 
@@ -174,24 +198,27 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         if int majorVersion < 11 then failwithf "Minimal supported major version is 11. Currently used: %s" conn.ServerVersion
 
     member __.LoadDataTypesMap connectionString = 
-        if sqlEngineTypeToClrMap.Value.IsEmpty
+        if List.isEmpty !dataTypeMappings
         then
             use conn = new SqlConnection(connectionString)
             conn.Open()
-            sqlEngineTypeToClrMap := query {
+            dataTypeMappings := query {
                 let getSysTypes = new SqlCommand("SELECT * FROM sys.types", conn)
                 for x in conn.GetSchema("DataTypes").AsEnumerable() do
                 join y in (getSysTypes.ExecuteReader(CommandBehavior.CloseConnection) |> Seq.cast<IDataRecord>) on 
                     (x.Field("TypeName") = string y.["name"])
-                let system_type_id = y.["system_type_id"] |> unbox<byte> |> int 
-                select(system_type_id, x.Field<string>("DataType"))
+                select { 
+                    SqlEngineTypeId = y.["system_type_id"] |> unbox<byte> |> int
+                    SqlDbTypeId = x.Field("ProviderDbType")
+                    ClrTypeName = x.Field("DataType")
+                }
             }
-            |> Map.ofSeq
+            |> Seq.toList
 
-    member __.MapSqlEngineTypeToClr(sqlEngineTypeId, detailedMessage) = 
-        match !sqlEngineTypeToClrMap |> Map.tryFind sqlEngineTypeId with
-        | Some clrType ->  clrType
-        | None -> failwithf "Cannot map sql engine type %i to CLR type. %s" sqlEngineTypeId detailedMessage
+    member __.MapSqlEngineType(sqlEngineTypeId, detailedMessage) = 
+        match !dataTypeMappings |> List.tryFind (fun x -> x.SqlEngineTypeId = sqlEngineTypeId) with
+        | Some x -> x.ClrTypeName, x.SqlDbTypeId
+        | None -> failwithf "Cannot map sql engine type %i to CLR/SqlDbType type. %s" sqlEngineTypeId detailedMessage
 
     member internal __.AddExecuteNonQuery commandType = 
         let execute = ProvidedMethod("Execute", [], typeof<Async<unit>>)
@@ -283,9 +310,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             |> Seq.cast<IDataRecord> 
             |> Seq.map (fun x -> 
                 let columnName = string x.["name"]
-                columnName, 
-                this.MapSqlEngineTypeToClr(sqlEngineTypeId = unbox x.["system_type_id"], detailedMessage = " Column name:" + columnName),
-                unbox<int> x.["column_ordinal"]
+                let clrTypeName = this.MapSqlEngineType(sqlEngineTypeId = unbox x.["system_type_id"], detailedMessage = " Column name:" + columnName) |> fst
+                columnName, clrTypeName, unbox<int> x.["column_ordinal"]
             ) 
             |> Seq.toList
 

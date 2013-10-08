@@ -2,6 +2,7 @@
 #r "bin/Debug/SqlCommandTypeProvider.dll"
 
 open FSharp.Data.SqlClient
+open System.Data
 
 [<Literal>]
 let connectionString="Data Source=mitekm-pc2;Initial Catalog=AdventureWorks2012;Integrated Security=True"
@@ -42,3 +43,9 @@ let getSrvTime = new GetServerTime(IsUtc = true)
 getSrvTime.Execute() |> Async.RunSynchronously |> printfn "%A"
 getSrvTime.IsUtc <- false
 getSrvTime.Execute() |> Async.RunSynchronously |> printfn "%A"
+
+type UpdateEmplInfoCommandSp = SqlCommand<"HumanResources.uspUpdateEmployeePersonalInfo", connectionString, CommandType = CommandType.StoredProcedure>
+let cmdSp = new UpdateEmplInfoCommandSp(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F")
+cmdSp.Execute() |> Async.RunSynchronously
+
+

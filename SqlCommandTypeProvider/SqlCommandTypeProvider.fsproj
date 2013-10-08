@@ -24,7 +24,7 @@
     <DocumentationFile>bin\Debug\SqlCommandTypeProvider.XML</DocumentationFile>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\devenv.exe</StartProgram>
-    <StartArguments>..\..\..\SqlCommandTypeProvider.sln</StartArguments>
+    <StartArguments>..\..\..\SqlCommandTypeProvider.Tests.sln</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -57,6 +57,7 @@
     <Compile Include="TypeProvider.fs" />
     <Compile Include="AssemblyInfo.fs" />
     <None Include="App.config" />
+    <None Include="Scripts\Ado.fsx" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
