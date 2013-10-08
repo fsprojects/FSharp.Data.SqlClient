@@ -104,6 +104,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                         then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
 
                     let this = new SqlCommand(commandText, new SqlConnection(connectionString)) 
+                    this.CommandType <- commandType
                     for x in parameters do
                         let xs = x.Split(',') 
                         let paramName = xs.[0]
