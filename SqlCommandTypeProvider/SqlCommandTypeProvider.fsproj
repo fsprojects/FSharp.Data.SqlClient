@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>SqlCommandTypeProvider</RootNamespace>
     <AssemblyName>SqlCommandTypeProvider</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <Name>SqlCommandTypeProvider</Name>
     <TargetFrameworkProfile />
   </PropertyGroup>
