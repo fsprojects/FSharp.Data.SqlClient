@@ -155,7 +155,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         use reader = cmd.ExecuteReader()
         if not reader.HasRows
         then 
-            this.AddExecuteNonQuery genCommandType
+            this.AddExecuteNonQuery(genCommandType, connectionString)
         else
             this.AddExecuteReader(reader, genCommandType, resultSetType, singleRow)
 
@@ -221,15 +221,16 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         | Some x -> x.ClrTypeName, x.SqlDbTypeId
         | None -> failwithf "Cannot map sql engine type %i to CLR/SqlDbType type. %s" sqlEngineTypeId detailedMessage
 
-    member internal __.AddExecuteNonQuery commandType = 
+    member internal __.AddExecuteNonQuery(commandType, connectionString) = 
         let execute = ProvidedMethod("Execute", [], typeof<Async<unit>>)
         execute.InvokeCode <- fun args ->
             <@@
                 async {
                     let sqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>) : SqlCommand
                     //open connection async on .NET 4.5
-                    use conn = sqlCommand.Connection
+                    use conn = new SqlConnection(connectionString)
                     conn.Open()
+                    sqlCommand.Connection <- conn
                     return! sqlCommand.AsyncExecuteNonQuery() 
                 }
             @@>
@@ -255,7 +256,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         let commandBehavior = if singleRow then CommandBehavior.SingleRow  else CommandBehavior.Default 
         <@@ 
             async {
-                let sqlCommand : SqlCommand = %%Expr.Coerce(cmd, typeof<SqlCommand>)
                 let! token = Async.CancellationToken
                 let! (reader : SqlDataReader) = %%SqlCommandTypeProvider.GetDataReader(cmd, singleRow)
                 return seq {
@@ -265,7 +265,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                             reader.GetValues row |> ignore
                             yield row  
                     finally
-                        sqlCommand.Connection.Close()
+                        reader.Close()
                 } |> Seq.cache
             }
         @@>
@@ -277,7 +277,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     let! (rows : seq<obj[]>) = %%SqlCommandTypeProvider.GetRows(cmd, singleRow)
                     return Seq.map (%%rowMapper : obj[] -> 'Row) rows
                 }
-                
             @@>
 
         if singleRow
@@ -298,7 +297,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
     static member internal GetTypedDataTable<'T when 'T :> DataRow>(cmd, singleRow)  = 
         <@@
             async {
-                let! (reader : SqlDataReader) = %%SqlCommandTypeProvider.GetDataReader(cmd, singleRow)
+                use! reader = %%SqlCommandTypeProvider.GetDataReader(cmd, singleRow) : Async<SqlDataReader >
                 let table = new DataTable<'T>() 
                 table.Load reader
                 return table
