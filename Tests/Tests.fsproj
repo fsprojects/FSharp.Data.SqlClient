@@ -67,7 +67,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SqlCommandTypeProvider.fsproj">
+    <ProjectReference Include="..\SqlCommandTypeProvider\SqlCommandTypeProvider.fsproj">
       <Name>SqlCommandTypeProvider</Name>
       <Project>{8974ce2e-79b4-4887-859a-b853c2624138}</Project>
       <Private>True</Private>
