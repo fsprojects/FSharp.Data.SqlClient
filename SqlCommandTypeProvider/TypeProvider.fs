@@ -80,15 +80,16 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
     member internal this.CreateType typeName parameters = 
         let commandText : string = unbox parameters.[0] 
-        let connectionString : string = unbox parameters.[1] 
+        let connectionStringProvided : string = unbox parameters.[1] 
         let connectionStringName : string = unbox parameters.[2] 
         let resultSetType : ResultSetType = unbox parameters.[3] 
         let singleRow : bool = unbox parameters.[4] 
         let configFile : string = unbox parameters.[5] 
         let dataDirectory : string = unbox parameters.[6] 
+        
         let resolutionFolder = config.ResolutionFolder
-
-        let connectionString =  ConnectionString.resolve (config.ResolutionFolder) connectionString connectionStringName configFile
+        let connectionString =  ConnectionString.resolve resolutionFolder connectionStringProvided connectionStringName configFile
+        
         this.CheckMinimalVersion connectionString
         this.LoadDataTypesMap connectionString
 
@@ -100,7 +101,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             parameters = [],
             InvokeCode = fun _ -> 
                 <@@ 
-                    let connectionString = ConnectionString.resolve resolutionFolder connectionString connectionStringName configFile
+                    let connectionString = ConnectionString.resolve resolutionFolder connectionStringProvided connectionStringName configFile
                     if dataDirectory <> ""
                     then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
                     let this = new SqlCommand(commandText, new SqlConnection(connectionString)) 
