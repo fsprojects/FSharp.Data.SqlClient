@@ -125,11 +125,11 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
         conn.Open()
         use reader = cmd.ExecuteReader()
-        if not reader.HasRows
+        if reader.HasRows
         then 
-            this.AddExecuteNonQuery(genCommandType, connectionString)
-        else
             this.AddExecuteReader(reader, genCommandType, resultSetType, singleRow)
+        else
+            this.AddExecuteNonQuery(genCommandType, connectionString)
 
         genCommandType
     
