@@ -1,16 +1,14 @@
 ﻿namespace FSharp.Data.SqlClient
 
-open Microsoft.FSharp.Core.CompilerServices
-open Samples.FSharp.ProvidedTypes
 open System
-open System.Configuration
-open System.Threading
 open System.Data
 open System.Data.SqlClient
 open System.Reflection
-open System.IO
+
+open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
+open Samples.FSharp.ProvidedTypes
 
 type ResultSetType =
     | Tuples = 0
@@ -321,7 +319,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     resultType, getExecuteBody
 
                 | ResultSetType.DataTable ->
-                    //let rowType = typeof<DataRow>
                     let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
                     for name, propertyTypeName, columnOrdinal  in columns do
                         if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." columnOrdinal
@@ -332,12 +329,10 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                         rowType.AddMember property
 
                     let resultType = typedefof<_ DataTable>.MakeGenericType rowType 
-                    //let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ rowType ])
                     commandType.AddMembers [ rowType :> Type; resultType ]
 
                     let getExecuteBody(args : Expr list) = 
                         let impl = this.GetType().GetMethod("GetTypedDataTable", BindingFlags.NonPublic ||| BindingFlags.Static).MakeGenericMethod([| typeof<DataRow> |])
-//                        let impl = ProvidedTypeBuilder.MakeGenericMethod(this.GetType().GetMethod("GetTypedDataTable", BindingFlags.NonPublic ||| BindingFlags.Static), [ rowType :> Type ])
                         impl.Invoke(null, [| args.[0]; singleRow |]) |> unbox
 
                     resultType, getExecuteBody
