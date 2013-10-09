@@ -1,4 +1,4 @@
-﻿namespace  FSharp.Data.SqlClient
+﻿namespace FSharp.Data.SqlClient
 
 open Microsoft.FSharp.Core.CompilerServices
 open Samples.FSharp.ProvidedTypes
@@ -6,7 +6,6 @@ open System
 open System.Configuration
 open System.Threading
 open System.Data
-open System.Collections.Generic
 open System.Data.SqlClient
 open System.Reflection
 open System.IO
@@ -18,33 +17,6 @@ type ResultSetType =
     | Records = 1
     | DataTable = 3
 
-[<Sealed>]
-type DataTable<'T when 'T :> DataRow>() = 
-    inherit DataTable() 
-
-    member this.Item index : 'T = downcast this.Rows.[index] 
-
-    interface ICollection<'T> with
-        member this.GetEnumerator() = this.Rows.GetEnumerator()
-        member this.GetEnumerator() : IEnumerator<'T> = (Seq.cast<'T> this.Rows).GetEnumerator() 
-        member this.Count = this.Rows.Count
-        member this.IsReadOnly = this.Rows.IsReadOnly
-        member this.Add row = this.Rows.Add row
-        member this.Clear() = this.Rows.Clear()
-        member this.Contains row = this.Rows.Contains row
-        member this.CopyTo(dest, index) = this.Rows.CopyTo(dest, index)
-        member this.Remove row = this.Rows.Remove(row); true
-
-//    later
-//    interface IReadOnlyList<DataRow> with
-//        member this.Item with get index = this.Rows.[index]
-
-type DataTypeMapping = {
-    SqlEngineTypeId : int
-    SqlDbTypeId : int
-    ClrTypeName : string
-}
-
 [<TypeProvider>]
 type public SqlCommandTypeProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces()
@@ -54,7 +26,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
     let nameSpace = this.GetType().Namespace
     let assembly = Assembly.GetExecutingAssembly()
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommand", Some typeof<obj>, HideObjectMethods = true)
-    let dataTypeMappings = ref List.empty
 
     do 
         providerType.DefineStaticParameters(
@@ -83,10 +54,13 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         let dataDirectory : string = unbox parameters.[7] 
 
         let resolutionFolder = config.ResolutionFolder
-        let connectionString =  ConnectionString.resolve resolutionFolder connectionStringProvided connectionStringName configFile
-        this.CheckMinimalVersion connectionString
-        this.LoadDataTypesMap connectionString
+        let connectionString = Configuration.getConnectionString resolutionFolder connectionStringProvided connectionStringName configFile
 
+        using(new SqlConnection(connectionString)) <| fun conn ->
+            conn.Open()
+            conn.CheckVersion()
+            conn.LoadDataTypesMap()
+       
         let isStoredProcedure = commandType = CommandType.StoredProcedure
 
         let parameters = this.ExtractParameters(connectionString, commandText, isStoredProcedure)
@@ -97,7 +71,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             parameters = [],
             InvokeCode = fun _ -> 
                 <@@ 
-                    let connectionString = ConnectionString.resolve resolutionFolder connectionString connectionStringName configFile
+                    let connectionString = Configuration.getConnectionString resolutionFolder connectionString connectionStringName configFile
 
                     do
                         if dataDirectory <> ""
@@ -172,8 +146,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 use cmd = new SqlCommand(commandText, conn, CommandType = CommandType.StoredProcedure)
                 SqlCommandBuilder.DeriveParameters cmd
                 for p in cmd.Parameters do
-                    let mapping = !dataTypeMappings |> List.find (fun x -> p.SqlDbType = enum(x.SqlDbTypeId))
-                    yield sprintf "%s,%s,%i,%O" p.ParameterName mapping.ClrTypeName mapping.SqlDbTypeId p.Direction 
+                    let clrTypeName = findBySqlDbType p.SqlDbType
+                    yield sprintf "%s,%s,%i,%O" p.ParameterName clrTypeName (int p.SqlDbType) p.Direction 
             else
                 use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", conn, CommandType = CommandType.StoredProcedure)
                 cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
@@ -181,45 +155,18 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 while(reader.Read()) do
                     let paramName = string reader.["name"]
                     let sqlEngineTypeId = unbox<int> reader.["suggested_system_type_id"]
-                    let clrTypeName, sqlDbTypeId = this.MapSqlEngineType(sqlEngineTypeId, detailedMessage = " Parameter name:" + paramName)
+                    let detailedMessage = " Parameter name:" + paramName
+                    let clrTypeName, sqlDbTypeId = mapSqlEngineTypeId(sqlEngineTypeId, detailedMessage)
                     let direction = 
                         let output = unbox reader.["suggested_is_output"]
                         let input = unbox reader.["suggested_is_input"]
-                        if output && input then ParameterDirection.InputOutput
+                        if input && output then ParameterDirection.InputOutput
                         elif output then ParameterDirection.Output
                         else ParameterDirection.Input
 
                     yield sprintf "%s,%s,%i,%O" paramName clrTypeName sqlDbTypeId direction
         ]
 
-    member __.CheckMinimalVersion connectionString = 
-        use conn = new SqlConnection(connectionString)
-        conn.Open()
-        let majorVersion = conn.ServerVersion.Split('.').[0]
-        if int majorVersion < 11 then failwithf "Minimal supported major version is 11. Currently used: %s" conn.ServerVersion
-
-    member __.LoadDataTypesMap connectionString = 
-        if List.isEmpty !dataTypeMappings
-        then
-            use conn = new SqlConnection(connectionString)
-            conn.Open()
-            dataTypeMappings := query {
-                let getSysTypes = new SqlCommand("SELECT * FROM sys.types", conn)
-                for x in conn.GetSchema("DataTypes").AsEnumerable() do
-                join y in (getSysTypes.ExecuteReader(CommandBehavior.CloseConnection) |> Seq.cast<IDataRecord>) on 
-                    (x.Field("TypeName") = string y.["name"])
-                select { 
-                    SqlEngineTypeId = y.["system_type_id"] |> unbox<byte> |> int
-                    SqlDbTypeId = x.Field("ProviderDbType")
-                    ClrTypeName = x.Field("DataType")
-                }
-            }
-            |> Seq.toList
-
-    member __.MapSqlEngineType(sqlEngineTypeId, detailedMessage) = 
-        match !dataTypeMappings |> List.tryFind (fun x -> x.SqlEngineTypeId = sqlEngineTypeId) with
-        | Some x -> x.ClrTypeName, x.SqlDbTypeId
-        | None -> failwithf "Cannot map sql engine type %i to CLR/SqlDbType type. %s" sqlEngineTypeId detailedMessage
 
     member internal __.AddExecuteNonQuery(commandType, connectionString) = 
         let execute = ProvidedMethod("Execute", [], typeof<Async<unit>>)
@@ -310,7 +257,9 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             |> Seq.cast<IDataRecord> 
             |> Seq.map (fun x -> 
                 let columnName = string x.["name"]
-                let clrTypeName = this.MapSqlEngineType(sqlEngineTypeId = unbox x.["system_type_id"], detailedMessage = " Column name:" + columnName) |> fst
+                let sqlEngineTypeId = unbox x.["system_type_id"]
+                let detailedMessage = " Column name:" + columnName
+                let clrTypeName = mapSqlEngineTypeId(sqlEngineTypeId, detailedMessage) |> fst
                 columnName, clrTypeName, unbox<int> x.["column_ordinal"]
             ) 
             |> Seq.toList
@@ -397,5 +346,3 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     
             commandType.AddMember <| ProvidedMethod("Execute", [], typedefof<_ Async>.MakeGenericType syncReturnType, InvokeCode = executeMethodBody)
 
-[<assembly:TypeProviderAssembly>]
-do()

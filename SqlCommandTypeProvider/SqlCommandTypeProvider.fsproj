@@ -52,8 +52,9 @@
   <ItemGroup>
     <Compile Include="ProvidedTypes-head.fsi" />
     <Compile Include="ProvidedTypes-head.fs" />
-    <Compile Include="ConnectionString.fs" />
+    <Compile Include="Configuration.fs" />
     <Compile Include="SqlCommand.fs" />
+    <Compile Include="DataTable.fs" />
     <Compile Include="TypeProvider.fs" />
     <Compile Include="AssemblyInfo.fs" />
     <None Include="App.config" />
