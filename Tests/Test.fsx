@@ -5,13 +5,12 @@ open FSharp.Data.SqlClient
 open System.Data
 
 [<Literal>]
-let connectionString="Data Source=mitekm-pc2;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+//let connectionString="Data Source=mitekm-pc2;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 //let connectionString="Server=tcp:ybxsjdodsy.database.windows.net,1433;Database=AdventureWorks2012;User ID=stewie@ybxsjdodsy;Password=Leningrad1;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
-//let connectionString="Server=tcp:lhwp7zue01.database.windows.net,1433;Database=AdventureWorks2012;User ID=jackofshadows@lhwp7zue01;Password=Leningrad1;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
+let connectionString="Server=tcp:lhwp7zue01.database.windows.net,1433;Database=AdventureWorks2012;User ID=jackofshadows@lhwp7zue01;Password=Leningrad1;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
 
-type UpdateEmplInfoCommandSp = SqlCommand<"HumanResources.uspUpdateEmployeePersonalInfo", connectionString, CommandType = CommandType.StoredProcedure>
-let cmdSp = new UpdateEmplInfoCommandSp(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F")
-cmdSp.Execute() |> Async.RunSynchronously
+[<Literal>]
+let queryTableSql = "SELECT ProductId, Name, SellStartDate FROM Production.Product"
 
 [<Literal>]
 let queryProductsSql = " 
@@ -19,6 +18,10 @@ SELECT TOP (@top) Name AS ProductName, SellStartDate
 FROM Production.Product 
 WHERE SellStartDate > @SellStartDate
 "
+
+type UpdateEmplInfoCommandSp = SqlCommand<"HumanResources.uspUpdateEmployeePersonalInfo", connectionString, CommandType = CommandType.StoredProcedure>
+let cmdSp = new UpdateEmplInfoCommandSp(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F")
+cmdSp.Execute() |> Async.RunSynchronously
 
 type QueryProductsAsTuples = SqlCommand<queryProductsSql, connectionString>
 let cmd = QueryProductsAsTuples(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
@@ -32,6 +35,12 @@ type QueryProductDataTable = SqlCommand<queryProductsSql, connectionString, Resu
 let cmd15 = QueryProductDataTable(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let xs = cmd15.Execute() |> Async.RunSynchronously 
 xs |> Seq.map (fun row -> printfn "Product name: %s. Sells start date %O" row.ProductName row.SellStartDate)
+
+type QueryProductUpdateDataTable = SqlCommand<queryTableSql, connectionString, ResultSetType = ResultSetType.DataTable>
+let cmd16 = QueryProductUpdateDataTable()
+let xss = cmd16.Execute() |> Async.RunSynchronously 
+xss.[0].Name <- xss.[0].Name + "1"
+xss.Update()
 
 type QueryPersonInfoSingletone = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultSetType = ResultSetType.Records, SingleRow=true>
 let query = new QueryPersonInfoSingletone(PersonId = 2)

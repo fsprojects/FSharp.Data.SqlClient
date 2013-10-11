@@ -4,7 +4,7 @@ open System
 open System.Configuration
 open System.IO
 
-let resolve resolutionFolder connectionString connectionStringName configFile  =
+let resolve(resolutionFolder, connectionString, connectionStringName, configFile) =
     if connectionString <> "" then connectionString
     else
         if connectionStringName = "" then failwithf "Either ConnectionString or ConnectionStringName is required"                 

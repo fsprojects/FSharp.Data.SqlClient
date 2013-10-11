@@ -83,7 +83,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         let dataDirectory : string = unbox parameters.[7] 
 
         let resolutionFolder = config.ResolutionFolder
-        let connectionString =  ConnectionString.resolve resolutionFolder connectionStringProvided connectionStringName configFile
+        let connectionRelated = resolutionFolder,connectionStringProvided,connectionStringName,configFile
+        let connectionString =  ConnectionString.resolve connectionRelated
         this.CheckMinimalVersion connectionString
         this.LoadDataTypesMap connectionString
 
@@ -93,11 +94,12 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
         let genCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
 
+
         ProvidedConstructor(
             parameters = [],
             InvokeCode = fun _ -> 
                 <@@ 
-                    let connectionString = ConnectionString.resolve resolutionFolder connectionString connectionStringName configFile
+                    let connectionString = ConnectionString.resolve (resolutionFolder,connectionStringProvided,connectionStringName,configFile)
 
                     do
                         if dataDirectory <> ""
@@ -156,8 +158,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         then 
             this.AddExecuteNonQuery genCommandType
         else
-            this.AddExecuteReader(reader, genCommandType, resultSetType, singleRow)
-
+            this.AddExecuteReader(reader, genCommandType, resultSetType, singleRow, connectionRelated, commandText)
+       
         genCommandType
     
     member __.ExtractParameters(connectionString, commandText, isStoredProcedure) : string list =  
@@ -268,7 +270,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 } |> Seq.cache
             }
         @@>
-
+        
     static member internal GetTypedSequence<'Row>(cmd, rowMapper, singleRow) = 
         let getTypedSeqAsync = 
             <@@
@@ -304,7 +306,25 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             }
         @@>
 
-    member internal __.AddExecuteReader(columnInfoReader, commandType, resultSetType, singleRow) = 
+    static member internal Update connectionRelated commandText = 
+        let (resolutionFolder,connectionStringProvided,connectionStringName,configFile) = connectionRelated
+        let result = ProvidedMethod("Update", [], typeof<int>) 
+        result.InvokeCode <- fun args ->
+            <@@
+                let connectionString =  ConnectionString.resolve (resolutionFolder,connectionStringProvided,connectionStringName,configFile)
+                let table = %%Expr.Coerce(args.[0], typeof<DataTable>) : DataTable
+                let adapter = new SqlDataAdapter(commandText, connectionString)
+                let builder = new SqlCommandBuilder(adapter)
+                adapter.InsertCommand <- builder.GetInsertCommand()
+                adapter.DeleteCommand <- builder.GetDeleteCommand()
+                adapter.UpdateCommand <- builder.GetUpdateCommand()
+                adapter.Update table
+            @@>
+        result
+
+
+
+    member internal __.AddExecuteReader(columnInfoReader, commandType, resultSetType, singleRow, connectionRelated, commandText) = 
         let columns = 
             columnInfoReader 
             |> Seq.cast<IDataRecord> 
@@ -372,26 +392,26 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     resultType, getExecuteBody
 
                 | ResultSetType.DataTable ->
-                    //let rowType = typeof<DataRow>
                     let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
                     for name, propertyTypeName, columnOrdinal  in columns do
                         if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." columnOrdinal
-                        let property = ProvidedProperty(name, propertyType = Type.GetType propertyTypeName) 
+                        let propertyType = Type.GetType propertyTypeName
+                        let property = ProvidedProperty(name, propertyType) 
                         property.GetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] @@>
-                        property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- box %%args.[1] @@>
+                        property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1],  typeof<obj>) @@>
 
                         rowType.AddMember property
 
-                    let resultType = typedefof<_ DataTable>.MakeGenericType rowType 
-                    //let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ rowType ])
-                    commandType.AddMembers [ rowType :> Type; resultType ]
+                    let resultType = ProvidedTypeDefinition("Table", typedefof<_ DataTable>.MakeGenericType rowType |> Some ) 
+                    
+                    SqlCommandTypeProvider.Update connectionRelated commandText |> resultType.AddMember 
+                    commandType.AddMembers [ rowType :> Type; resultType :> Type ]
 
                     let getExecuteBody(args : Expr list) = 
                         let impl = this.GetType().GetMethod("GetTypedDataTable", BindingFlags.NonPublic ||| BindingFlags.Static).MakeGenericMethod([| typeof<DataRow> |])
-//                        let impl = ProvidedTypeBuilder.MakeGenericMethod(this.GetType().GetMethod("GetTypedDataTable", BindingFlags.NonPublic ||| BindingFlags.Static), [ rowType :> Type ])
                         impl.Invoke(null, [| args.[0]; singleRow |]) |> unbox
 
-                    resultType, getExecuteBody
+                    resultType :> Type, getExecuteBody
 
                 | _ -> failwith "Unexpected"
                     
