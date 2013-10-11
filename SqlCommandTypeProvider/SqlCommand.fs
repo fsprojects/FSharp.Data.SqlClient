@@ -10,7 +10,7 @@ type SqlCommand with
         Async.FromBeginEnd((fun(callback, state) -> this.BeginExecuteReader(callback, state, behavior)), this.EndExecuteReader)
 
     member this.AsyncExecuteNonQuery() =
-        Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) |> Async.Ignore 
+        Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) 
 
 let private dataTypeMappings = ref List.empty
 

@@ -102,7 +102,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
                 assert (paramName.StartsWith "@")
 
-                let prop = ProvidedProperty(propertyName = paramName.Substring 1, propertyType = Type.GetType clrTypeName)
+                let propertyName = if direction = ParameterDirection.ReturnValue then "SpReturnValue" else paramName.Substring 1
+                let prop = ProvidedProperty(propertyName, propertyType = Type.GetType clrTypeName)
                 if direction = ParameterDirection.Output || direction = ParameterDirection.InputOutput || direction = ParameterDirection.ReturnValue
                 then 
                     prop.GetterCode <- fun args -> 
@@ -169,7 +170,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
 
     member internal __.AddExecuteNonQuery(commandType, connectionString) = 
-        let execute = ProvidedMethod("Execute", [], typeof<Async<unit>>)
+        let execute = ProvidedMethod("Execute", [], typeof<Async<int>>)
         execute.InvokeCode <- fun args ->
             <@@
                 async {

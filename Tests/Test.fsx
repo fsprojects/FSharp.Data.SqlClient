@@ -44,7 +44,7 @@ printfn "Person info: Id - %i, FirstName - %s, LastName - %s, JobTitle - %s, Bus
 
 type UpdateEmplInfoCommand = SqlCommand<"EXEC HumanResources.uspUpdateEmployeePersonalInfo @BusinessEntityID, @NationalIDNumber, @BirthDate, @MaritalStatus, @Gender", connectionString>
 let cmd2 = new UpdateEmplInfoCommand(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F")
-cmd2.Execute() |> Async.RunSynchronously
+cmd2.Execute() |> Async.RunSynchronously 
 
 type GetServerTime = SqlCommand<"IF @IsUtc = CAST(1 AS BIT) SELECT GETUTCDATE() ELSE SELECT GETDATE()", connectionString, SingleRow=true>
 let getSrvTime = new GetServerTime(IsUtc = true)
@@ -55,5 +55,10 @@ getSrvTime.Execute() |> Async.RunSynchronously |> printfn "%A"
 type UpdateEmplInfoCommandSp = SqlCommand<"HumanResources.uspUpdateEmployeePersonalInfo", connectionString, CommandType = CommandType.StoredProcedure>
 let cmdSp = new UpdateEmplInfoCommandSp(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F")
 cmdSp.Execute() |> Async.RunSynchronously
-cmdSp.RETURN_VALUE
+cmdSp.SpReturnValue
+
+type nonQuery = SqlCommand<"PRINT 'Foo Bar'", connectionString, CommandType = CommandType.Text>
+let cmdNonquery = new UpdateEmplInfoCommandSp()
+cmdNonquery.Execute() |> Async.RunSynchronously
+cmdNonquery.SpReturnValue
 
