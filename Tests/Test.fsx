@@ -18,11 +18,6 @@ SELECT TOP (@top) Name AS ProductName, SellStartDate
 FROM Production.Product 
 WHERE SellStartDate > @SellStartDate
 "
-
-type UpdateEmplInfoCommandSp = SqlCommand<"HumanResources.uspUpdateEmployeePersonalInfo", connectionString, CommandType = CommandType.StoredProcedure>
-let cmdSp = new UpdateEmplInfoCommandSp(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F")
-cmdSp.Execute() |> Async.RunSynchronously
-
 type QueryProductsAsTuples = SqlCommand<queryProductsSql, connectionString>
 let cmd = QueryProductsAsTuples(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 cmd.Execute() |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate) -> printfn "Product name: %s. Sells start date %A" productName sellStartDate)
@@ -56,4 +51,9 @@ let getSrvTime = new GetServerTime(IsUtc = true)
 getSrvTime.Execute() |> Async.RunSynchronously |> printfn "%A"
 getSrvTime.IsUtc <- false
 getSrvTime.Execute() |> Async.RunSynchronously |> printfn "%A"
+
+type UpdateEmplInfoCommandSp = SqlCommand<"HumanResources.uspUpdateEmployeePersonalInfo", connectionString, CommandType = CommandType.StoredProcedure>
+let cmdSp = new UpdateEmplInfoCommandSp(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F")
+cmdSp.Execute() |> Async.RunSynchronously
+cmdSp.RETURN_VALUE
 

@@ -4,7 +4,8 @@ open System
 open System.Data
 open System.Data.SqlClient
 
-let conn = new SqlConnection("Data Source=mitekm-pc2;Initial Catalog=AdventureWorks2012;Integrated Security=True")
+let connectionString = "Data Source=mitekm-pc2;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let conn = new SqlConnection(connectionString)
 conn.Open()
 
 let dataTypes = conn.GetSchema("DataTypes")
@@ -35,8 +36,6 @@ let ps = cmd.Parameters
 //ps.AddWithValue("@MaritalStatus", "S")
 //ps.AddWithValue("@Gender", "F")
 
-
-
 ps.["@BusinessEntityID"].Value <- 2
 ps.["@NationalIDNumber"].Value <- "245797967"
 ps.["@BirthDate"].Value <- System.DateTime(1965, 09, 01)
@@ -44,5 +43,7 @@ ps.["@MaritalStatus"].Value <- "S"
 ps.["@Gender"].Value <- "F"
 
 let recordAffected = cmd.ExecuteNonQuery()
-
+if conn.State = ConnectionState.Open then conn.Open()
+let table = new DataTable() in table.Load <| cmd.ExecuteReader()
+conn.Close()
 
