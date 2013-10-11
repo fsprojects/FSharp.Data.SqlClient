@@ -7,7 +7,7 @@ open System.Data
 [<Literal>]
 //let connectionString="Data Source=mitekm-pc2;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 //let connectionString="Server=tcp:ybxsjdodsy.database.windows.net,1433;Database=AdventureWorks2012;User ID=stewie@ybxsjdodsy;Password=Leningrad1;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
-let connectionString="Server=tcp:lhwp7zue01.database.windows.net,1433;Database=AdventureWorks2012;User ID=jackofshadows@lhwp7zue01;Password=Leningrad1;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
+//let connectionString="Server=tcp:lhwp7zue01.database.windows.net,1433;Database=AdventureWorks2012;User ID=jackofshadows@lhwp7zue01;Password=Leningrad1;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
 
 [<Literal>]
 let queryTableSql = "SELECT ProductId, Name, SellStartDate FROM Production.Product"
@@ -18,6 +18,7 @@ SELECT TOP (@top) Name AS ProductName, SellStartDate
 FROM Production.Product 
 WHERE SellStartDate > @SellStartDate
 "
+
 type QueryProductsAsTuples = SqlCommand<queryProductsSql, connectionString>
 let cmd = QueryProductsAsTuples(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 cmd.Execute() |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate) -> printfn "Product name: %s. Sells start date %A" productName sellStartDate)
@@ -34,6 +35,7 @@ xs |> Seq.map (fun row -> printfn "Product name: %s. Sells start date %O" row.Pr
 type QueryProductUpdateDataTable = SqlCommand<queryTableSql, connectionString, ResultSetType = ResultSetType.DataTable>
 let cmd16 = QueryProductUpdateDataTable()
 let xss = cmd16.Execute() |> Async.RunSynchronously 
+xss |> Seq.map (fun row -> printfn "Product id: %i name: %s" row.ProductId row.Name)
 xss.[0].Name <- xss.[0].Name + "1"
 xss.Update()
 
