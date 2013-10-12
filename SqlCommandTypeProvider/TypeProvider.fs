@@ -4,9 +4,11 @@ open System
 open System.Data
 open System.Data.SqlClient
 open System.Reflection
+open System.Diagnostics
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
+open Microsoft.FSharp.Quotations.Patterns
 open Microsoft.FSharp.Reflection
 open Samples.FSharp.ProvidedTypes
 
@@ -252,7 +254,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             }
         @@>
 
-    static member internal Update connectionRelated commandText = 
+    static member internal Update(connectionRelated, commandText) = 
         let (resolutionFolder,connectionStringProvided,connectionStringName,configFile) = connectionRelated
         let result = ProvidedMethod("Update", [], typeof<int>) 
         result.InvokeCode <- fun args ->
@@ -268,39 +270,26 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             @@>
         result
 
-
-
     member internal __.AddExecuteReader(columnInfoReader, commandType, resultSetType, singleRow, connectionRelated, commandText) = 
-        let columns = 
-            columnInfoReader 
-            |> Seq.cast<IDataRecord> 
-            |> Seq.map (fun x -> 
-                let columnName = string x.["name"]
-                let sqlEngineTypeId = unbox x.["system_type_id"]
+        let columns = [
+            while columnInfoReader.Read() do
+                let columnName = string columnInfoReader.["name"]
+                let sqlEngineTypeId = unbox columnInfoReader.["system_type_id"]
                 let detailedMessage = " Column name:" + columnName
                 let clrTypeName = mapSqlEngineTypeId(sqlEngineTypeId, detailedMessage) |> fst
-                columnName, clrTypeName, unbox<int> x.["column_ordinal"]
-            ) 
-            |> Seq.toList
+                yield columnName, clrTypeName, unbox<int> columnInfoReader.["column_ordinal"]
+        ] 
+            
+        let syncReturnType, executeMethodBody = 
+            if columns.Length = 1
+            then
+                let _, itemTypeName, _ = columns.Head
 
-        if columns.Length = 1
-        then
-            let _, itemTypeName, _ = columns.Head
+                let itemType = Type.GetType itemTypeName
+                let returnType = if singleRow then itemType else typedefof<_ seq>.MakeGenericType itemType 
+                returnType, this.GetExecuteBoby("SelectOnlyColumn0", itemType, singleRow)
 
-            let itemType = Type.GetType itemTypeName
-            let returnType = 
-                let asyncSpecialization = if singleRow then itemType else typedefof<_ seq>.MakeGenericType itemType 
-                typedefof<_ Async>.MakeGenericType asyncSpecialization
-
-            let execute = ProvidedMethod("Execute", [], returnType)
-
-            execute.InvokeCode <- fun args -> 
-                let impl = this.GetType().GetMethod("SelectOnlyColumn0", BindingFlags.NonPublic ||| BindingFlags.Static).MakeGenericMethod([| itemType |])
-                impl.Invoke(null, [| args.[0]; singleRow |]) |> unbox
-            commandType.AddMember execute
-
-        else 
-            let syncReturnType, executeMethodBody = 
+            else 
                 match resultSetType with 
 
                 | ResultSetType.Tuples ->
@@ -309,15 +298,9 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                         let values = Var("values", typeof<obj[]>)
                         let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
                         Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [Expr.Var values; getTupleType]), tupleType))
-                    let getExecuteBody(args : Expr list) = 
-                        this.GetType()
-                            .GetMethod("GetTypedSequence", BindingFlags.NonPublic ||| BindingFlags.Static)
-                            .MakeGenericMethod([| tupleType |])
-                            .Invoke(null, [| args.[0]; rowMapper; singleRow |]) 
-                            |> unbox
 
                     let resultType = if singleRow then tupleType else typedefof<_ seq>.MakeGenericType(tupleType)
-                    resultType, getExecuteBody
+                    resultType, this.GetExecuteBoby("GetTypedSequence", tupleType, rowMapper, singleRow)
 
                 | ResultSetType.Records -> 
                     let rowType = ProvidedTypeDefinition("Row", baseType = Some typeof<obj>, HideObjectMethods = true)
@@ -352,16 +335,22 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
                     let resultType = ProvidedTypeDefinition("Table", typedefof<_ DataTable>.MakeGenericType rowType |> Some ) 
                     
-                    SqlCommandTypeProvider.Update connectionRelated commandText |> resultType.AddMember 
+                    SqlCommandTypeProvider.Update(connectionRelated, commandText) |> resultType.AddMember 
                     commandType.AddMembers [ rowType :> Type; resultType :> Type ]
 
-                    let getExecuteBody(args : Expr list) = 
-                        let impl = this.GetType().GetMethod("GetTypedDataTable", BindingFlags.NonPublic ||| BindingFlags.Static).MakeGenericMethod([| typeof<DataRow> |])
-                        impl.Invoke(null, [| args.[0]; singleRow |]) |> unbox
-
-                    resultType :> Type, getExecuteBody
+                    resultType :> Type, this.GetExecuteBoby("GetTypedDataTable",  typeof<DataRow>, singleRow)
 
                 | _ -> failwith "Unexpected"
                     
-            commandType.AddMember <| ProvidedMethod("Execute", [], typedefof<_ Async>.MakeGenericType syncReturnType, InvokeCode = executeMethodBody)
+        commandType.AddMember <| ProvidedMethod("Execute", [], typedefof<_ Async>.MakeGenericType syncReturnType, InvokeCode = executeMethodBody)
+
+    member internal this.GetExecuteBoby(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
+
+        let impl = 
+            let mi = this.GetType().GetMethod(methodName, BindingFlags.NonPublic ||| BindingFlags.Static)
+            assert(mi <> null)
+            mi.MakeGenericMethod([| specialization |])
+
+        fun(args : Expr list) -> 
+            impl.Invoke(null, [| yield box args.[0]; yield! bodyFactoryArgs |]) |> unbox
 

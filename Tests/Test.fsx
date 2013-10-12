@@ -5,7 +5,7 @@ open FSharp.Data.SqlClient
 open System.Data
 
 [<Literal>]
-//let connectionString="Data Source=mitekm-pc2;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString="Data Source=mitekm-pc2;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 //let connectionString="Server=tcp:ybxsjdodsy.database.windows.net,1433;Database=AdventureWorks2012;User ID=stewie@ybxsjdodsy;Password=Leningrad1;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
 //let connectionString="Server=tcp:lhwp7zue01.database.windows.net,1433;Database=AdventureWorks2012;User ID=jackofshadows@lhwp7zue01;Password=Leningrad1;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
 
@@ -45,7 +45,7 @@ let x = query.Execute() |> Async.RunSynchronously
 printfn "Person info: Id - %i, FirstName - %s, LastName - %s, JobTitle - %s, BusinessEntityType - %s" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
 
 type UpdateEmplInfoCommand = SqlCommand<"EXEC HumanResources.uspUpdateEmployeePersonalInfo @BusinessEntityID, @NationalIDNumber, @BirthDate, @MaritalStatus, @Gender", connectionString>
-let cmd2 = new UpdateEmplInfoCommand(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F")
+let cmd2 = new UpdateEmplInfoCommand(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "M")
 cmd2.Execute() |> Async.RunSynchronously 
 
 type GetServerTime = SqlCommand<"IF @IsUtc = CAST(1 AS BIT) SELECT GETUTCDATE() ELSE SELECT GETDATE()", connectionString, SingleRow=true>
@@ -60,7 +60,6 @@ cmdSp.Execute() |> Async.RunSynchronously
 cmdSp.SpReturnValue
 
 type nonQuery = SqlCommand<"PRINT 'Foo Bar'", connectionString, CommandType = CommandType.Text>
-let cmdNonquery = new UpdateEmplInfoCommandSp()
+let cmdNonquery = new nonQuery()
 cmdNonquery.Execute() |> Async.RunSynchronously
-cmdNonquery.SpReturnValue
 
