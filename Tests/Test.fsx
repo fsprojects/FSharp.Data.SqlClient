@@ -23,23 +23,23 @@ type QueryProductsAsTuples = SqlCommand<queryProductsSql, connectionString>
 let cmd = QueryProductsAsTuples(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 cmd.Execute() |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate) -> printfn "Product name: %s. Sells start date %A" productName sellStartDate)
 
-type QueryProducts = SqlCommand<queryProductsSql, connectionString, ResultSetType = ResultSetType.Records>
+type QueryProducts = SqlCommand<queryProductsSql, connectionString, ReturnType = ReturnType.Records>
 let cmd1 = QueryProducts(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 cmd1.Execute() |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A" x.ProductName x.SellStartDate)
 
-type QueryProductDataTable = SqlCommand<queryProductsSql, connectionString, ResultSetType = ResultSetType.DataTable>
+type QueryProductDataTable = SqlCommand<queryProductsSql, connectionString, ReturnType = ReturnType.DataTable>
 let cmd15 = QueryProductDataTable(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let xs = cmd15.Execute() |> Async.RunSynchronously 
 xs |> Seq.map (fun row -> printfn "Product name: %s. Sells start date %O" row.ProductName row.SellStartDate)
 
-type QueryProductUpdateDataTable = SqlCommand<queryTableSql, connectionString, ResultSetType = ResultSetType.DataTable>
+type QueryProductUpdateDataTable = SqlCommand<queryTableSql, connectionString, ReturnType = ReturnType.DataTable>
 let cmd16 = QueryProductUpdateDataTable()
 let xss = cmd16.Execute() |> Async.RunSynchronously 
 xss |> Seq.map (fun row -> printfn "Product id: %i name: %s" row.ProductId row.Name)
 xss.[0].Name <- xss.[0].Name + "1"
 xss.Update()
 
-type QueryPersonInfoSingletone = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultSetType = ResultSetType.Records, SingleRow=true>
+type QueryPersonInfoSingletone = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ReturnType = ReturnType.Records, SingleRow=true>
 let query = new QueryPersonInfoSingletone(PersonId = 2)
 let x = query.Execute() |> Async.RunSynchronously 
 printfn "Person info: Id - %i, FirstName - %s, LastName - %s, JobTitle - %s, BusinessEntityType - %s" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
