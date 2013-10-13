@@ -4,12 +4,11 @@ open System
 open System.Data
 open System.Data.SqlClient
 open System.Reflection
-open System.Diagnostics
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
-open Microsoft.FSharp.Quotations.Patterns
 open Microsoft.FSharp.Reflection
+
 open Samples.FSharp.ProvidedTypes
 
 type ReturnType =
@@ -68,7 +67,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
         let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
 
-
         ProvidedConstructor(
             parameters = [],
             InvokeCode = fun _ -> 
@@ -93,37 +91,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         ) 
         |> providedCommandType.AddMember 
 
-        providedCommandType.AddMembersDelayed <| fun() -> 
-            parameters
-            |> List.map (fun x -> 
-                let paramName, clrTypeName, direction = 
-                    let xs = x.Split(',') 
-                    let success, direction = Enum.TryParse xs.[3]
-                    assert success
-                    xs.[0], xs.[1], direction
-
-                assert (paramName.StartsWith "@")
-
-                let propertyName = if direction = ParameterDirection.ReturnValue then "SpReturnValue" else paramName.Substring 1
-                let prop = ProvidedProperty(propertyName, propertyType = Type.GetType clrTypeName)
-                if direction = ParameterDirection.Output || direction = ParameterDirection.InputOutput || direction = ParameterDirection.ReturnValue
-                then 
-                    prop.GetterCode <- fun args -> 
-                        <@@ 
-                            let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
-                            sqlCommand.Parameters.[paramName].Value
-                        @@>
-
-                if direction = ParameterDirection.Input
-                then 
-                    prop.SetterCode <- fun args -> 
-                        <@@ 
-                            let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
-                            sqlCommand.Parameters.[paramName].Value <- %%Expr.Coerce(args.[1], typeof<obj>)
-                        @@>
-
-                prop
-            )
+        this.AddPropertiesForParameters(providedCommandType, parameters)
 
         let outputColumns : _ list = this.GetOutputColumns(commandText, connectionString)
         if outputColumns.IsEmpty
@@ -180,6 +148,38 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     yield sprintf "%s,%s,%i,%O" paramName clrTypeName sqlDbTypeId direction
         ]
 
+    member internal __.AddPropertiesForParameters(providedCommandType, parameters) =  
+        providedCommandType.AddMembersDelayed <| fun() -> 
+            parameters
+            |> List.map (fun x -> 
+                let paramName, clrTypeName, direction = 
+                    let xs = x.Split(',') 
+                    let success, direction = Enum.TryParse xs.[3]
+                    assert success
+                    xs.[0], xs.[1], direction
+
+                assert (paramName.StartsWith "@")
+
+                let propertyName = if direction = ParameterDirection.ReturnValue then "SpReturnValue" else paramName.Substring 1
+                let prop = ProvidedProperty(propertyName, propertyType = Type.GetType clrTypeName)
+                if direction = ParameterDirection.Output || direction = ParameterDirection.InputOutput || direction = ParameterDirection.ReturnValue
+                then 
+                    prop.GetterCode <- fun args -> 
+                        <@@ 
+                            let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
+                            sqlCommand.Parameters.[paramName].Value
+                        @@>
+
+                if direction = ParameterDirection.Input
+                then 
+                    prop.SetterCode <- fun args -> 
+                        <@@ 
+                            let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
+                            sqlCommand.Parameters.[paramName].Value <- %%Expr.Coerce(args.[1], typeof<obj>)
+                        @@>
+
+                prop
+            )
 
     member internal __.AddExecuteNonQuery(commandType, connectionString) = 
         let execute = ProvidedMethod("Execute", [], typeof<Async<int>>)
@@ -196,88 +196,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             @@>
         commandType.AddMember execute
 
-    static member internal GetDataReader(cmd, singleRow) = 
-        let commandBehavior = if singleRow then CommandBehavior.SingleRow  else CommandBehavior.Default 
-        <@@ 
-            async {
-                let sqlCommand : SqlCommand = %%Expr.Coerce(cmd, typeof<SqlCommand>)
-                //open connection async on .NET 4.5
-                sqlCommand.Connection.Open()
-                return!
-                    try 
-                        sqlCommand.AsyncExecuteReader(commandBehavior ||| CommandBehavior.CloseConnection ||| CommandBehavior.SingleResult)
-                    with _ ->
-                        sqlCommand.Connection.Close()
-                        reraise()
-            }
-        @@>
-
-    static member internal GetRows(cmd, singleRow) = 
-        <@@ 
-            async {
-                let! token = Async.CancellationToken
-                let! (reader : SqlDataReader) = %%SqlCommandTypeProvider.GetDataReader(cmd, singleRow)
-                return seq {
-                    try 
-                        while(not token.IsCancellationRequested && reader.Read()) do
-                            let row = Array.zeroCreate reader.FieldCount
-                            reader.GetValues row |> ignore
-                            yield row  
-                    finally
-                        reader.Close()
-                } |> Seq.cache
-            }
-        @@>
-
-    static member internal GetTypedSequence<'Row>(cmd, rowMapper, singleRow) = 
-        let getTypedSeqAsync = 
-            <@@
-                async { 
-                    let! (rows : seq<obj[]>) = %%SqlCommandTypeProvider.GetRows(cmd, singleRow)
-                    return Seq.map (%%rowMapper : obj[] -> 'Row) rows
-                }
-            @@>
-
-        if singleRow
-        then 
-            <@@ 
-                async { 
-                    let! xs  = %%getTypedSeqAsync : Async<'Row seq>
-                    return Seq.exactlyOne xs
-                }
-            @@>
-        else
-            getTypedSeqAsync
-            
-
-    static member internal SelectOnlyColumn0<'Row>(cmd, singleRow) = 
-        SqlCommandTypeProvider.GetTypedSequence<'Row>(cmd, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow)
-
-    static member internal GetTypedDataTable<'T when 'T :> DataRow>(cmd, singleRow)  = 
-        <@@
-            async {
-                use! reader = %%SqlCommandTypeProvider.GetDataReader(cmd, singleRow) : Async<SqlDataReader >
-                let table = new DataTable<'T>() 
-                table.Load reader
-                return table
-            }
-        @@>
-
-    member internal __.GetUpdateDataTableBody((resolutionFolder,connectionStringProvided,connectionStringName,configFile), commandText) = 
-        let result = ProvidedMethod("Update", [], typeof<int>) 
-        result.InvokeCode <- fun args ->
-            <@@
-                let connectionString =  Configuration.getConnectionString (resolutionFolder,connectionStringProvided,connectionStringName,configFile)
-                let table = %%Expr.Coerce(args.[0], typeof<DataTable>) : DataTable
-                let adapter = new SqlDataAdapter(commandText, connectionString)
-                let builder = new SqlCommandBuilder(adapter)
-                adapter.InsertCommand <- builder.GetInsertCommand()
-                adapter.DeleteCommand <- builder.GetDeleteCommand()
-                adapter.UpdateCommand <- builder.GetUpdateCommand()
-                adapter.Update table
-            @@>
-        result
-
     member internal __.AddExecuteWithResult(outputColumns, providedCommandType, resultType, singleRow, connectionConfig, commandText) = 
             
         let syncReturnType, executeMethodBody = 
@@ -289,7 +207,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     then
                         let _, column0TypeName, _ = outputColumns.Head
                         let column0Type = Type.GetType column0TypeName
-                        column0Type, this.GetExecuteBoby("SelectOnlyColumn0", column0Type, singleRow)
+                        column0Type, ExecuteWithResult.GetBody("SelectOnlyColumn0", column0Type, singleRow)
                     elif resultType = ReturnType.Tuples 
                     then 
                         this.Tuples(providedCommandType, outputColumns, singleRow)
@@ -310,7 +228,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
             Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [Expr.Var values; getTupleType]), tupleType))
 
-        tupleType, this.GetExecuteBoby("GetTypedSequence", tupleType, rowMapper, singleRow)
+        tupleType, ExecuteWithResult.GetBody("GetTypedSequence", tupleType, rowMapper, singleRow)
 
     member internal this.Records(providedCommandType, outputColumns, singleRow) =
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
@@ -327,7 +245,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
         providedCommandType.AddMember recordType
         let getExecuteBody (args : Expr list) = 
-            SqlCommandTypeProvider.GetTypedSequence(args.[0], <@ fun(values : obj[]) -> box values @>, singleRow)
+            ExecuteWithResult.GetTypedSequence(args.[0], <@ fun(values : obj[]) -> box values @>, singleRow)
                          
         upcast recordType, getExecuteBody
     
@@ -344,19 +262,23 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
         let tableType = ProvidedTypeDefinition("Table", typedefof<_ DataTable>.MakeGenericType rowType |> Some ) 
                     
-        this.GetUpdateDataTableBody(connectionConfig, commandText) |> tableType.AddMember 
+        let resolutionFolder, connectionStringProvided, connectionStringName, configFile = connectionConfig
+        let update = ProvidedMethod("Update", [], typeof<int>) 
+        update.InvokeCode <- fun args ->
+            <@@
+                let connectionString =  Configuration.getConnectionString (resolutionFolder, connectionStringProvided, connectionStringName, configFile)
+                let table = %%Expr.Coerce(args.[0], typeof<DataTable>) : DataTable
+                let adapter = new SqlDataAdapter(commandText, connectionString)
+                let builder = new SqlCommandBuilder(adapter)
+                adapter.InsertCommand <- builder.GetInsertCommand()
+                adapter.DeleteCommand <- builder.GetDeleteCommand()
+                adapter.UpdateCommand <- builder.GetUpdateCommand()
+                adapter.Update table
+            @@>
+        
+        tableType.AddMember update
 
         providedCommandType.AddMembers [ rowType; tableType ]
 
-        upcast tableType, this.GetExecuteBoby("GetTypedDataTable",  typeof<DataRow>, singleRow)
-
-    member internal this.GetExecuteBoby(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
-
-        let bodyFactory = 
-            let mi = this.GetType().GetMethod(methodName, BindingFlags.NonPublic ||| BindingFlags.Static)
-            assert(mi <> null)
-            mi.MakeGenericMethod([| specialization |])
-
-        fun(args : Expr list) -> 
-            bodyFactory.Invoke(null, [| yield box args.[0]; yield! bodyFactoryArgs |]) |> unbox
+        upcast tableType, ExecuteWithResult.GetBody("GetTypedDataTable",  typeof<DataRow>, singleRow)
 

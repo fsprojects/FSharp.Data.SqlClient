@@ -55,6 +55,7 @@
     <Compile Include="Configuration.fs" />
     <Compile Include="SqlCommand.fs" />
     <Compile Include="DataTable.fs" />
+    <Compile Include="ExecuteWithResultBodyBuilder.fs" />
     <Compile Include="TypeProvider.fs" />
     <Compile Include="AssemblyInfo.fs" />
     <None Include="App.config" />
