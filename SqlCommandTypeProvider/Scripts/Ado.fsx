@@ -26,24 +26,15 @@ let xs =
 //let spParams = conn.GetSchema("Procedure Parameters").AsEnumerable();;
 
 //Run sp
-let cmd = new SqlCommand("HumanResources.uspUpdateEmployeePersonalInfo", conn, CommandType = CommandType.StoredProcedure)
-SqlCommandBuilder.DeriveParameters cmd
-let ps = cmd.Parameters
-
-//ps.AddWithValue("@BusinessEntityID", 2)
-//ps.AddWithValue("@NationalIDNumber", "245797967")
-//ps.AddWithValue("@BirthDate", System.DateTime(1965, 09, 01))
-//ps.AddWithValue("@MaritalStatus", "S")
-//ps.AddWithValue("@Gender", "F")
-
-ps.["@BusinessEntityID"].Value <- 2
-ps.["@NationalIDNumber"].Value <- "245797967"
-ps.["@BirthDate"].Value <- System.DateTime(1965, 09, 01)
-ps.["@MaritalStatus"].Value <- "S"
-ps.["@Gender"].Value <- "F"
-
-let recordAffected = cmd.ExecuteNonQuery()
-if conn.State = ConnectionState.Open then conn.Open()
-let table = new DataTable() in table.Load <| cmd.ExecuteReader()
+if conn.State <> ConnectionState.Open then conn.Open()
+let sqlScript = "SELECT * FROM Production.Product"
+let cmd = new SqlCommand(sqlScript, conn)
+let table = new DataTable() 
+table.Load <| cmd.ExecuteReader()
+table.Rows.[0].["Name"] <- string table.Rows.[0].["Name"] + "1"
+let sqlAdapter = new SqlDataAdapter(cmd)
+printfn "Select command: %A" sqlAdapter.SelectCommand
+printfn "Update command: %A" sqlAdapter.UpdateCommand
+printfn "Updated recotds %i" <| sqlAdapter.Update table
 conn.Close()
 

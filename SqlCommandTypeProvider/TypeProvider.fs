@@ -48,14 +48,14 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         let connectionStringProvided : string = unbox parameters.[1] 
         let connectionStringName : string = unbox parameters.[2] 
         let commandType : CommandType = unbox parameters.[3] 
-        let resultSetType : ReturnType = unbox parameters.[4] 
+        let resultType : ReturnType = unbox parameters.[4] 
         let singleRow : bool = unbox parameters.[5] 
         let configFile : string = unbox parameters.[6] 
         let dataDirectory : string = unbox parameters.[7] 
 
         let resolutionFolder = config.ResolutionFolder
-        let connectionRelated = resolutionFolder,connectionStringProvided,connectionStringName,configFile
-        let connectionString =  Configuration.getConnectionString connectionRelated
+        let connectionConfig = resolutionFolder, connectionStringProvided, connectionStringName, configFile
+        let connectionString =  Configuration.getConnectionString connectionConfig
 
         using(new SqlConnection(connectionString)) <| fun conn ->
             conn.Open()
@@ -66,7 +66,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
         let parameters = this.ExtractParameters(connectionString, commandText, isStoredProcedure)
 
-        let genCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
+        let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
 
 
         ProvidedConstructor(
@@ -91,9 +91,9 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     this
                 @@>
         ) 
-        |> genCommandType.AddMember 
+        |> providedCommandType.AddMember 
 
-        genCommandType.AddMembersDelayed <| fun() -> 
+        providedCommandType.AddMembersDelayed <| fun() -> 
             parameters
             |> List.map (fun x -> 
                 let paramName, clrTypeName, direction = 
@@ -125,18 +125,28 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 prop
             )
 
+        let outputColumns : _ list = this.GetOutputColumns(commandText, connectionString)
+        if outputColumns.IsEmpty
+        then 
+            this.AddExecuteNonQuery(providedCommandType, connectionString)
+        else
+            this.AddExecuteWithResult(outputColumns, providedCommandType, resultType, singleRow, connectionConfig, commandText)            
+
+        providedCommandType
+
+    member this.GetOutputColumns(commandText, connectionString) = [
         use conn = new SqlConnection(connectionString)
         use cmd = new SqlCommand("sys.sp_describe_first_result_set", conn, CommandType = CommandType.StoredProcedure)
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
         conn.Open()
         use reader = cmd.ExecuteReader()
-        if reader.HasRows
-        then 
-            this.AddExecuteReader(reader, genCommandType, resultSetType, singleRow, connectionRelated, commandText)            
-        else
-           this.AddExecuteNonQuery (genCommandType, connectionString)
-
-        genCommandType
+        while reader.Read() do
+            let columnName = string reader.["name"]
+            let sqlEngineTypeId = unbox reader.["system_type_id"]
+            let detailedMessage = " Column name:" + columnName
+            let clrTypeName = mapSqlEngineTypeId(sqlEngineTypeId, detailedMessage) |> fst
+            yield columnName, clrTypeName, unbox<int> reader.["column_ordinal"]
+    ] 
     
     member __.ExtractParameters(connectionString, commandText, isStoredProcedure) : string list =  
         [
@@ -203,7 +213,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         @@>
 
     static member internal GetRows(cmd, singleRow) = 
-        let commandBehavior = if singleRow then CommandBehavior.SingleRow  else CommandBehavior.Default 
         <@@ 
             async {
                 let! token = Async.CancellationToken
@@ -254,7 +263,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             }
         @@>
 
-    member internal __.GetUpdateBody((resolutionFolder,connectionStringProvided,connectionStringName,configFile), commandText) = 
+    member internal __.GetUpdateDataTableBody((resolutionFolder,connectionStringProvided,connectionStringName,configFile), commandText) = 
         let result = ProvidedMethod("Update", [], typeof<int>) 
         result.InvokeCode <- fun args ->
             <@@
@@ -269,81 +278,77 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             @@>
         result
 
-    member internal __.AddExecuteReader(columnInfoReader, commandType, resultType, singleRow, connectionRelated, commandText) = 
-        let columns = [
-            while columnInfoReader.Read() do
-                let columnName = string columnInfoReader.["name"]
-                let sqlEngineTypeId = unbox columnInfoReader.["system_type_id"]
-                let detailedMessage = " Column name:" + columnName
-                let clrTypeName = mapSqlEngineTypeId(sqlEngineTypeId, detailedMessage) |> fst
-                yield columnName, clrTypeName, unbox<int> columnInfoReader.["column_ordinal"]
-        ] 
+    member internal __.AddExecuteWithResult(outputColumns, providedCommandType, resultType, singleRow, connectionConfig, commandText) = 
             
         let syncReturnType, executeMethodBody = 
-            if columns.Length = 1
-            then
-                let _, itemTypeName, _ = columns.Head
+            if resultType = ReturnType.DataTable
+            then this.DataTable(providedCommandType, connectionConfig, commandText, outputColumns, singleRow)
+            else
+                let rowType, executeMethodBody = 
+                    if outputColumns.Length = 1
+                    then
+                        let _, column0TypeName, _ = outputColumns.Head
+                        let column0Type = Type.GetType column0TypeName
+                        column0Type, this.GetExecuteBoby("SelectOnlyColumn0", column0Type, singleRow)
+                    elif resultType = ReturnType.Tuples 
+                    then 
+                        this.Tuples(providedCommandType, outputColumns, singleRow)
+                    else 
+                        assert (resultType = ReturnType.Records)
+                        this.Records(providedCommandType, outputColumns, singleRow)
 
-                let itemType = Type.GetType itemTypeName
-                let returnType = if singleRow then itemType else typedefof<_ seq>.MakeGenericType itemType 
-                returnType, this.GetExecuteBoby("SelectOnlyColumn0", itemType, singleRow)
+                let returnType = if singleRow then rowType else typedefof<_ seq>.MakeGenericType rowType
+                returnType, executeMethodBody
+                    
+        let returnType = typedefof<_ Async>.MakeGenericType syncReturnType
+        providedCommandType.AddMember <| ProvidedMethod("Execute", [], returnType, InvokeCode = executeMethodBody)
 
-            else 
-                match resultType with 
+    member internal this.Tuples(providedCommandType, outputColumns, singleRow) =
+        let tupleType = outputColumns |> List.map (fun(_, typeName, _) -> Type.GetType typeName) |> List.toArray |> FSharpType.MakeTupleType
+        let rowMapper = 
+            let values = Var("values", typeof<obj[]>)
+            let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
+            Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [Expr.Var values; getTupleType]), tupleType))
 
-                | ReturnType.Tuples ->
-                    let tupleType = columns |> List.map (fun(_, typeName, _) -> Type.GetType typeName) |> List.toArray |> FSharpType.MakeTupleType
-                    let rowMapper = 
-                        let values = Var("values", typeof<obj[]>)
-                        let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
-                        Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [Expr.Var values; getTupleType]), tupleType))
+        tupleType, this.GetExecuteBoby("GetTypedSequence", tupleType, rowMapper, singleRow)
 
-                    let syncReturnType = if singleRow then tupleType else typedefof<_ seq>.MakeGenericType(tupleType)
-                    syncReturnType, this.GetExecuteBoby("GetTypedSequence", tupleType, rowMapper, singleRow)
+    member internal this.Records(providedCommandType, outputColumns, singleRow) =
+        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
+        for name, propertyTypeName, columnOrdinal  in outputColumns do
+            if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." columnOrdinal
+            let property = ProvidedProperty(name, propertyType = Type.GetType propertyTypeName) 
+            property.GetterCode <- fun args -> 
+                <@@ 
+                    let values : obj[] = %%Expr.Coerce(args.[0], typeof<obj[]>)
+                    values.[columnOrdinal - 1]
+                @@>
 
-                | ReturnType.Records -> 
-                    let rowType = ProvidedTypeDefinition("Row", baseType = Some typeof<obj>, HideObjectMethods = true)
-                    for name, propertyTypeName, columnOrdinal  in columns do
-                        if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." columnOrdinal
-                        let property = ProvidedProperty(name, propertyType = Type.GetType propertyTypeName) 
-                        property.GetterCode <- fun args -> 
-                            <@@ 
-                                let values : obj[] = %%Expr.Coerce(args.[0], typeof<obj[]>)
-                                values.[columnOrdinal - 1]
-                            @@>
+            recordType.AddMember property
 
-                        rowType.AddMember property
-
-                    commandType.AddMember rowType
-                    let syncReturnType = if singleRow then rowType :> Type else typedefof<_ seq>.MakeGenericType(rowType)
-                    let getExecuteBody (args : Expr list) = 
-                        SqlCommandTypeProvider.GetTypedSequence(args.[0], <@ fun(values : obj[]) -> box values @>, singleRow)
+        providedCommandType.AddMember recordType
+        let getExecuteBody (args : Expr list) = 
+            SqlCommandTypeProvider.GetTypedSequence(args.[0], <@ fun(values : obj[]) -> box values @>, singleRow)
                          
-                    syncReturnType, getExecuteBody
+        upcast recordType, getExecuteBody
+    
+    member internal this.DataTable(providedCommandType, connectionConfig, commandText, outputColumns, singleRow) =
+        let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
+        for name, propertyTypeName, columnOrdinal  in outputColumns do
+            if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." columnOrdinal
+            let propertyType = Type.GetType propertyTypeName
+            let property = ProvidedProperty(name, propertyType) 
+            property.GetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] @@>
+            property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1],  typeof<obj>) @@>
 
-                | ReturnType.DataTable ->
-                    let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
-                    for name, propertyTypeName, columnOrdinal  in columns do
-                        if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." columnOrdinal
-                        let propertyType = Type.GetType propertyTypeName
-                        let property = ProvidedProperty(name, propertyType) 
-                        property.GetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] @@>
-                        property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1],  typeof<obj>) @@>
+            rowType.AddMember property
 
-                        rowType.AddMember property
-
-                    let syncReturnType = ProvidedTypeDefinition("Table", typedefof<_ DataTable>.MakeGenericType rowType |> Some ) 
+        let tableType = ProvidedTypeDefinition("Table", typedefof<_ DataTable>.MakeGenericType rowType |> Some ) 
                     
-                    this.GetUpdateBody(connectionRelated, commandText) |> syncReturnType.AddMember 
+        this.GetUpdateDataTableBody(connectionConfig, commandText) |> tableType.AddMember 
 
-                    commandType.AddMembers [ rowType :> Type; syncReturnType :> Type ]
+        providedCommandType.AddMembers [ rowType; tableType ]
 
-                    syncReturnType :> Type, this.GetExecuteBoby("GetTypedDataTable",  typeof<DataRow>, singleRow)
-
-                | _ -> failwith "Unexpected"
-                    
-        let execute = ProvidedMethod("Execute", [], typedefof<_ Async>.MakeGenericType syncReturnType, InvokeCode = executeMethodBody)
-        commandType.AddMember execute 
+        upcast tableType, this.GetExecuteBoby("GetTypedDataTable",  typeof<DataRow>, singleRow)
 
     member internal this.GetExecuteBoby(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
 
