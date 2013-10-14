@@ -11,7 +11,7 @@ open Microsoft.FSharp.Reflection
 
 open Samples.FSharp.ProvidedTypes
 
-type ReturnType =
+type ResultType =
     | Tuples = 0
     | Records = 1
     | DataTable = 3
@@ -33,7 +33,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConnectionString", typeof<string>, "") 
                 ProvidedStaticParameter("ConnectionStringName", typeof<string>, "") 
                 ProvidedStaticParameter("CommandType", typeof<CommandType>, CommandType.Text) 
-                ProvidedStaticParameter("ReturnType", typeof<ReturnType>, ReturnType.Tuples) 
+                ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Tuples) 
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false) 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "app.config") 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
@@ -47,7 +47,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         let connectionStringProvided : string = unbox parameters.[1] 
         let connectionStringName : string = unbox parameters.[2] 
         let commandType : CommandType = unbox parameters.[3] 
-        let resultType : ReturnType = unbox parameters.[4] 
+        let resultType : ResultType = unbox parameters.[4] 
         let singleRow : bool = unbox parameters.[5] 
         let configFile : string = unbox parameters.[6] 
         let dataDirectory : string = unbox parameters.[7] 
@@ -199,7 +199,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
     member internal __.AddExecuteWithResult(outputColumns, providedCommandType, resultType, singleRow, connectionConfig, commandText) = 
             
         let syncReturnType, executeMethodBody = 
-            if resultType = ReturnType.DataTable
+            if resultType = ResultType.DataTable
             then this.DataTable(providedCommandType, connectionConfig, commandText, outputColumns, singleRow)
             else
                 let rowType, executeMethodBody = 
@@ -208,11 +208,11 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                         let _, column0TypeName, _ = outputColumns.Head
                         let column0Type = Type.GetType column0TypeName
                         column0Type, ExecuteWithResult.GetBody("SelectOnlyColumn0", column0Type, singleRow)
-                    elif resultType = ReturnType.Tuples 
+                    elif resultType = ResultType.Tuples 
                     then 
                         this.Tuples(providedCommandType, outputColumns, singleRow)
                     else 
-                        assert (resultType = ReturnType.Records)
+                        assert (resultType = ResultType.Records)
                         this.Records(providedCommandType, outputColumns, singleRow)
 
                 let returnType = if singleRow then rowType else typedefof<_ seq>.MakeGenericType rowType
