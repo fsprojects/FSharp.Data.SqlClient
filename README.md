@@ -8,8 +8,13 @@ The library is available under Apache 2.0. For more information see the [License
 ) in the GitHub repository.
 
 ```ocaml
-type IController<'Events, 'Model> =
+#r "../SqlCommandTypeProvider/bin/Debug/SqlCommandTypeProvider.dll"
 
-    abstract InitModel : 'Model -> unit
-    abstract EventHandler : ('Events -> 'Model -> unit)
+open FSharp.Data.SqlClient
+open System.Data
+open System
+
+//Your connection string here
+[<Literal>]
+let connectionString="Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 ```
