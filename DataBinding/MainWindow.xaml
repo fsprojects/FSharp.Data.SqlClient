@@ -13,7 +13,6 @@
             </DataGrid.Columns>
         </DataGrid>
         <StackPanel Orientation="Horizontal" Grid.Row="1" FlowDirection="RightToLeft">
-            <Button Name="Save" Content="Save" Width="150" Height="30" Margin="5" HorizontalAlignment="Right"/>
             <Button Name="Close" Content="Close" Width="150" Height="30" Margin="5" HorizontalAlignment="Right"/>
         </StackPanel>
     </Grid>

@@ -35,7 +35,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("CommandType", typeof<CommandType>, CommandType.Text) 
                 ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Tuples) 
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false) 
-                ProvidedStaticParameter("ConfigFile", typeof<string>, "app.config") 
+                ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
             instantiationFunction = this.CreateType
@@ -260,26 +260,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
             rowType.AddMember property
 
-        let tableType = ProvidedTypeDefinition("Table", typedefof<_ DataTable>.MakeGenericType rowType |> Some ) 
-                    
-        let resolutionFolder, connectionStringProvided, connectionStringName, configFile = connectionConfig
-        let update = ProvidedMethod("Update", [], typeof<int>) 
-        update.InvokeCode <- fun args ->
-            <@@
-                let connectionString =  Configuration.getConnectionString (resolutionFolder, connectionStringProvided, connectionStringName, configFile)
-                let table = %%Expr.Coerce(args.[0], typeof<DataTable>) : DataTable
-                let adapter = new SqlDataAdapter(commandText, connectionString)
-                let builder = new SqlCommandBuilder(adapter)
-                adapter.InsertCommand <- builder.GetInsertCommand()
-                adapter.DeleteCommand <- builder.GetDeleteCommand()
-                adapter.UpdateCommand <- builder.GetUpdateCommand()
-                //printfn "Update command %A" adapter.UpdateCommand.CommandText
-                adapter.Update table
-            @@>
-        
-        tableType.AddMember update
+        providedCommandType.AddMember rowType
 
-        providedCommandType.AddMembers [ rowType; tableType ]
-
-        upcast tableType, ExecuteWithResult.GetBody("GetTypedDataTable",  typeof<DataRow>, singleRow)
+        typedefof<_ DataTable>.MakeGenericType rowType, ExecuteWithResult.GetBody("GetTypedDataTable",  typeof<DataRow>, singleRow)
 

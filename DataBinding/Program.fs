@@ -18,7 +18,6 @@ type Query =
 let main argv = 
     let mainWindow : Window = Uri("/Mainwindow.xaml", UriKind.Relative) |> Application.LoadComponent |> unbox
     let close : Button = mainWindow.FindName "Close" |> unbox
-    let save : Button = mainWindow.FindName "Save" |> unbox
     let grid : DataGrid = mainWindow.FindName "Grid" |> unbox
 
     let cmd = Query()
@@ -27,6 +26,5 @@ let main argv =
     grid.ItemsSource <- data
 
     close.Click.Add <| fun _ -> mainWindow.Close()
-    save.Click.Add <| fun _ -> data.Update() |> ignore
 
     Application().Run mainWindow
