@@ -2,6 +2,7 @@ FSharp.Data.SqlCommandTypeProvider
 ==============================
 
 Requires SQL Server 2012 or SQL Azure Database
+
 Extra type annotations are for demo purpose only
 
 ```ocaml
