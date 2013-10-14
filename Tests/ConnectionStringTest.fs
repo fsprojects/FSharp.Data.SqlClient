@@ -1,4 +1,4 @@
-﻿module  FSharp.Data.SqlClient.Test
+﻿module FSharp.Data.SqlClient.Test
 
 open Xunit
 open FsUnit

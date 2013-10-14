@@ -5,6 +5,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tests", "Tests\Tests.fsproj
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WebApi", "WebApi\WebApi.fsproj", "{3E7CE79F-A1D0-45B4-A7C3-9EF92DF80B91}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "DataBinding", "DataBinding\DataBinding.fsproj", "{3BA10AE4-4E31-4588-B77F-AB971DB27219}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,6 +21,10 @@ Global
 		{3E7CE79F-A1D0-45B4-A7C3-9EF92DF80B91}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3E7CE79F-A1D0-45B4-A7C3-9EF92DF80B91}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3E7CE79F-A1D0-45B4-A7C3-9EF92DF80B91}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3BA10AE4-4E31-4588-B77F-AB971DB27219}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BA10AE4-4E31-4588-B77F-AB971DB27219}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3BA10AE4-4E31-4588-B77F-AB971DB27219}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3BA10AE4-4E31-4588-B77F-AB971DB27219}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

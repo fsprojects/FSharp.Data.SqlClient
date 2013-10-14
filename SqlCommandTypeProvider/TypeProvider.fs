@@ -273,6 +273,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 adapter.InsertCommand <- builder.GetInsertCommand()
                 adapter.DeleteCommand <- builder.GetDeleteCommand()
                 adapter.UpdateCommand <- builder.GetUpdateCommand()
+                //printfn "Update command %A" adapter.UpdateCommand.CommandText
                 adapter.Update table
             @@>
         
