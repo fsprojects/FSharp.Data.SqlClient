@@ -27,14 +27,22 @@ let xs =
 
 //Run sp
 if conn.State <> ConnectionState.Open then conn.Open()
-let sqlScript = "SELECT * FROM Production.Product"
+let sqlScript = " 
+SELECT *
+FROM Production.Product 
+WHERE SellStartDate > @SellStartDate
+"
 let cmd = new SqlCommand(sqlScript, conn)
+cmd.Parameters.AddWithValue("@top", 7L)
+cmd.Parameters.AddWithValue("@SellStartDate", "2002-06-01")
 let table = new DataTable() 
 table.Load <| cmd.ExecuteReader()
 table.Rows.[0].["Name"] <- string table.Rows.[0].["Name"] + "1"
-let sqlAdapter = new SqlDataAdapter(cmd)
-printfn "Select command: %A" sqlAdapter.SelectCommand
-printfn "Update command: %A" sqlAdapter.UpdateCommand
-printfn "Updated recotds %i" <| sqlAdapter.Update table
+let adapter = new SqlDataAdapter(cmd)
+let builder = new SqlCommandBuilder(adapter)
+printfn "Select command: %A" adapter.SelectCommand.CommandText
+adapter.UpdateCommand <- builder.GetUpdateCommand()
+printfn "Update command: %A" adapter.UpdateCommand.CommandText
+printfn "Updated recotds %i" <| adapter.Update table
 conn.Close()
 
