@@ -1,7 +1,7 @@
 FSharp.Data.SqlCommandTypeProvider
 ==============================
 
-Extra type annotations are only for demo purpose only
+Extra type annotations are for demo purpose only
 
 ```ocaml
 #r "../SqlCommandTypeProvider/bin/Debug/SqlCommandTypeProvider.dll"
