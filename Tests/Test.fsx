@@ -33,19 +33,36 @@ result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %
 type QueryProductDataTable = SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.DataTable>
 let cmd2 = QueryProductDataTable(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let result2 : Async<DataTable<QueryProductDataTable.Row>> = cmd2.Execute() 
-result2 |> Async.RunSynchronously  |> Seq.map (fun row -> printfn "Product name: %s. Sells start date %O" row.ProductName row.SellStartDate)
+result2 |> Async.RunSynchronously  |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O" row.ProductName row.SellStartDate)
 
-//Single row hint and optional output columns
+//Single row hint and optional output columns. Records result type.
 type QueryPersonInfoSingletone = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultType = ResultType.Records, SingleRow=true>
 let cmd3 = new QueryPersonInfoSingletone(PersonId = 2)
 let result3 : Async<QueryPersonInfoSingletone.Record> = cmd3.Execute() 
 result3 |> Async.RunSynchronously |> fun x -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
 
-//Single row hint and optional output columns
+//Single row hint and optional output columns. Tuple result type.
 type QueryPersonInfoSingletoneTuples = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, SingleRow=true>
 let cmd35 = new QueryPersonInfoSingletoneTuples(PersonId = 2)
 let result35 : Async<_> = cmd35.Execute() 
 result35 |> Async.RunSynchronously |> fun(personId, firstName, lastName, jobTitle, businessEntityType) -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" personId firstName lastName jobTitle businessEntityType
+
+//Single row hint and optional output columns. Single value.
+type QueryPersonInfoSingleValue = SqlCommand<"SELECT FirstName FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, SingleRow=true>
+let cmd36 = new QueryPersonInfoSingleValue(PersonId = 2)
+let result36 : Async<_> = cmd36.Execute() 
+result36 |> Async.RunSynchronously |> (function | Some firstName -> printfn "FirstName - %s" firstName | None -> printfn "Nothing to print" )
+
+//Single row hint and optional output columns. Data table result type.
+type QueryPersonInfoSingletoneDataTable = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultType = ResultType.DataTable>
+let cmd37 = new QueryPersonInfoSingletoneDataTable(PersonId = 2)
+let result37 = cmd37.Execute() |> Async.RunSynchronously 
+let printPersonInfo(x : QueryPersonInfoSingletoneDataTable.Row) = printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
+result37 |> Seq.iter printPersonInfo
+result37.[0].FirstName <- result37.[0].FirstName |> Option.map (fun x -> x + "1")
+result37 |> Seq.iter printPersonInfo
+result37.[0].FirstName <- None
+result37 |> Seq.iter printPersonInfo
 
 //Non-query
 type UpdateEmplInfoCommand = SqlCommand<"EXEC HumanResources.uspUpdateEmployeePersonalInfo @BusinessEntityID, @NationalIDNumber,@BirthDate, @MaritalStatus, @Gender", connectionString>
