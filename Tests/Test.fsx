@@ -21,36 +21,34 @@ WHERE SellStartDate > @SellStartDate
 type QueryProductsAsTuples = SqlCommand<queryProductsSql, connectionString>
 let cmd = QueryProductsAsTuples(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let result : Async<(string * DateTime) seq> = cmd.Execute()
-result 
-    |> Async.RunSynchronously 
-    |> Seq.iter (fun(productName, sellStartDate) -> printfn "Product name: %s. Sells start date %A" productName sellStartDate)
+result |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate) -> printfn "Product name: %s. Sells start date %A" productName sellStartDate)
 
 //Custom record types
 type QueryProducts = SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.Records>
 let cmd1 = QueryProducts(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let result1 : Async<QueryProducts.Record seq> = cmd1.Execute()
-result1 
-    |> Async.RunSynchronously 
-    |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A" x.ProductName x.SellStartDate)
+result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A" x.ProductName x.SellStartDate)
 
 //DataTable for data binding scenarios and update
 type QueryProductDataTable = SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.DataTable>
 let cmd2 = QueryProductDataTable(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let result2 : Async<DataTable<QueryProductDataTable.Row>> = cmd2.Execute() 
-result2 
-    |> Async.RunSynchronously 
-    |> Seq.map (fun row -> printfn "Product name: %s. Sells start date %O" row.ProductName row.SellStartDate)
+result2 |> Async.RunSynchronously  |> Seq.map (fun row -> printfn "Product name: %s. Sells start date %O" row.ProductName row.SellStartDate)
 
-//Single row hint
+//Single row hint and optional output columns
 type QueryPersonInfoSingletone = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultType = ResultType.Records, SingleRow=true>
 let cmd3 = new QueryPersonInfoSingletone(PersonId = 2)
 let result3 : Async<QueryPersonInfoSingletone.Record> = cmd3.Execute() 
-result3 
-    |> Async.RunSynchronously 
-    |> fun x -> printfn "Person info: Id - %i, FirstName - %s, LastName - %s, JobTitle - %s, BusinessEntityType - %s" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
+result3 |> Async.RunSynchronously |> fun x -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
+
+//Single row hint and optional output columns
+type QueryPersonInfoSingletoneTuples = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, SingleRow=true>
+let cmd35 = new QueryPersonInfoSingletoneTuples(PersonId = 2)
+let result35 : Async<_> = cmd35.Execute() 
+result35 |> Async.RunSynchronously |> fun(personId, firstName, lastName, jobTitle, businessEntityType) -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" personId firstName lastName jobTitle businessEntityType
 
 //Non-query
-type UpdateEmplInfoCommand = SqlCommand<"EXEC HumanResources.uspUpdateEmployeePersonalInfo @BusinessEntityID, @NationalIDNumber, @BirthDate, @MaritalStatus, @Gender", connectionString>
+type UpdateEmplInfoCommand = SqlCommand<"EXEC HumanResources.uspUpdateEmployeePersonalInfo @BusinessEntityID, @NationalIDNumber,@BirthDate, @MaritalStatus, @Gender", connectionString>
 let cmd4 = new UpdateEmplInfoCommand(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "M")
 let result4 : Async<int> = cmd4.Execute() 
 let rowsAffected = result4 |> Async.RunSynchronously 
