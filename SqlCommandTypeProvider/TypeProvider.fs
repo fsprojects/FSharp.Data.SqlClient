@@ -4,6 +4,7 @@ open System
 open System.Data
 open System.Data.SqlClient
 open System.Reflection
+open System.Collections.Generic
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
@@ -202,6 +203,10 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             @@>
         commandType.AddMember execute
 
+    member internal __.GetTypeForNullable(columnType, isNullable) = 
+        let nakedType = Type.GetType columnType 
+        if isNullable then typedefof<_ option>.MakeGenericType nakedType else nakedType
+
     member internal __.AddExecuteWithResult(outputColumns, providedCommandType, resultType, singleRow, connectionConfig, commandText) = 
             
         let syncReturnType, executeMethodBody = 
@@ -212,8 +217,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     if outputColumns.Length = 1
                     then
                         let _, column0TypeName, _, isNullable = outputColumns.Head
-                        let column0Type = Type.GetType column0TypeName
-                        column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, singleRow)
+                        let column0Type = this.GetTypeForNullable(column0TypeName, isNullable)
+                        column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, singleRow, column0TypeName, isNullable)
                     elif resultType = ResultType.Tuples 
                     then 
                         this.Tuples(providedCommandType, outputColumns, singleRow)
@@ -228,49 +233,39 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         providedCommandType.AddMember <| ProvidedMethod("Execute", [], returnType, InvokeCode = executeMethodBody)
 
     member internal this.Tuples(providedCommandType, outputColumns, singleRow) =
-        let tupleType = 
-            FSharpType.MakeTupleType [|
-                for _, typeName, _, isNullable in outputColumns -> Type.GetType typeName
-            |]
+        let columnTypes, isNullableColumn, tupleItemTypes = 
+            List.unzip3 [
+                for _, typeName, _, isNullable in outputColumns do
+                    yield typeName, isNullable, this.GetTypeForNullable(typeName, isNullable)
+            ]
+
+        let tupleType = tupleItemTypes |> List.toArray |> FSharpType.MakeTupleType
 
         let rowMapper = 
             let values = Var("values", typeof<obj[]>)
             let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
             Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [Expr.Var values; getTupleType]), tupleType))
 
-        tupleType, QuotationsFactory.GetBody("GetTypedSequence", tupleType, rowMapper, singleRow)
+        tupleType, QuotationsFactory.GetBody("GetTypedSequence", tupleType, rowMapper, singleRow, columnTypes, isNullableColumn)
 
     member internal this.Records(providedCommandType, outputColumns, singleRow) =
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
         for name, propertyTypeName, columnOrdinal, isNullable  in outputColumns do
             if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." columnOrdinal
 
-            let nakedType = Type.GetType propertyTypeName
-
-            let property = 
-                if isNullable 
-                then
-                    ProvidedProperty(
-                        name, 
-                        propertyType= typedefof<_ option>.MakeGenericType nakedType,
-                        GetterCode = QuotationsFactory.GetBody("GetOption", nakedType, columnOrdinal)
-                    )
-                else
-                    ProvidedProperty(
-                        name, 
-                        propertyType = nakedType,
-                        GetterCode = fun args -> 
-                        <@@ 
-                            let values : obj[] = %%Expr.Coerce(args.[0], typeof<obj[]>)
-                            values.[columnOrdinal - 1]
-                        @@>
-                    )
+            let property = ProvidedProperty(name, propertyType = this.GetTypeForNullable(propertyTypeName, isNullable))
+            property.GetterCode <- fun args -> 
+                <@@ 
+                    let values : obj[] = %%Expr.Coerce(args.[0], typeof<obj[]>)
+                    values.[columnOrdinal - 1]
+                @@>
 
             recordType.AddMember property
 
         providedCommandType.AddMember recordType
         let getExecuteBody (args : Expr list) = 
-            QuotationsFactory.GetTypedSequence(args.[0], <@ fun(values : obj[]) -> box values @>, singleRow)
+            let columnTypes, isNullableColumn = List.unzip [ for _, propertyTypeName, _, isNullable in outputColumns -> propertyTypeName, isNullable ] 
+            QuotationsFactory.GetTypedSequence(args.[0], <@ fun(values : obj[]) -> box values @>, singleRow, columnTypes, isNullableColumn)
                          
         upcast recordType, getExecuteBody
     

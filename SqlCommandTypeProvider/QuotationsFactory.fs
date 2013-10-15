@@ -3,8 +3,9 @@
 open System
 open System.Data
 open System.Data.SqlClient
-open Microsoft.FSharp.Quotations
 open System.Reflection
+
+open Microsoft.FSharp.Quotations
 
 type QuotationsFactory private() = 
     
@@ -41,12 +42,25 @@ type QuotationsFactory private() =
             }
         @@>
 
-    static member internal GetTypedSequence<'Row>(cmd, rowMapper, singleRow) = 
+    static member internal GetTypedSequence<'Row>(cmd, rowMapper, singleRow, columnTypes : string list, isNullableColumn : bool list) = 
+        assert (columnTypes.Length = isNullableColumn.Length)
         let getTypedSeqAsync = 
             <@@
                 async { 
                     let! (rows : seq<obj[]>) = %%QuotationsFactory.GetRows(cmd, singleRow)
-                    return Seq.map (%%rowMapper : obj[] -> 'Row) rows
+                    return rows 
+                        |> Seq.map<_, 'Row> (fun values ->
+                            for i = 0 to columnTypes.Length - 1 do
+                                if isNullableColumn.[i]
+                                then
+                                    let t = typedefof<_ option>.MakeGenericType(Type.GetType columnTypes.[i])
+                                    if values.[i] = null 
+                                    then values.[i] <- t.GetMethod("None").Invoke(null, [||])
+                                    else values.[i] <- t.GetMethod("Some").Invoke(null, [| values.[i] |])
+                                    
+                            (%%rowMapper) values
+                        )
+                    
                 }
             @@>
 
@@ -62,8 +76,8 @@ type QuotationsFactory private() =
             getTypedSeqAsync
             
 
-    static member internal SelectOnlyColumn0<'Row>(cmd, singleRow) = 
-        QuotationsFactory.GetTypedSequence<'Row>(cmd, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow)
+    static member internal SelectOnlyColumn0<'Row>(cmd, singleRow, columntTypeName, isNullable) = 
+        QuotationsFactory.GetTypedSequence<'Row>(cmd, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow, [ columntTypeName ], [ isNullable])
 
     static member internal GetTypedDataTable<'T when 'T :> DataRow>(cmd, singleRow)  = 
         <@@
@@ -76,10 +90,10 @@ type QuotationsFactory private() =
         @@>
 
     static member internal GetOption<'T>(valuesExpr, index) =
-        <@@
+        <@
             let values : obj[] = %%Expr.Coerce(valuesExpr, typeof<obj[]>)
             match values.[index - 1] with null -> option<'T>.None | x -> Some(unbox x)
-        @@> 
+        @> 
 
     static member internal GetBody(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
 
