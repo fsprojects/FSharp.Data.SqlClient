@@ -1,7 +1,7 @@
 FSharp.Data.SqlCommandTypeProvider
 ==============================
 
-This project IS NOT replacment for either SqlDataConnection or SqlEntityConnection type providers.
+This project IS NOT replacement for either SqlDataConnection or SqlEntityConnection type providers.
 
 Requires SQL Server 2012 or SQL Azure Database
 
