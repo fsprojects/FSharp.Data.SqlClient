@@ -271,12 +271,27 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
     
     member internal this.DataTable(providedCommandType, connectionConfig, commandText, outputColumns, singleRow) =
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
-        for name, propertyTypeName, columnOrdinal, _  in outputColumns do
+        for name, propertyTypeName, columnOrdinal, isNullable  in outputColumns do
             if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." columnOrdinal
-            let propertyType = Type.GetType propertyTypeName
-            let property = ProvidedProperty(name, propertyType) 
-            property.GetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] @@>
-            property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1],  typeof<obj>) @@>
+
+            let nakedType = Type.GetType propertyTypeName
+
+            let property = 
+                if isNullable 
+                then
+                    ProvidedProperty(
+                        name, 
+                        propertyType= typedefof<_ option>.MakeGenericType nakedType,
+                        GetterCode = QuotationsFactory.GetBody("GetNullableValueFromRow", nakedType, name),
+                        SetterCode = QuotationsFactory.GetBody("SetNullableValueInRow", nakedType, name)
+                    )
+                else
+                    ProvidedProperty(
+                        name, 
+                        propertyType = nakedType, 
+                        GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>),
+                        SetterCode = fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1],  typeof<obj>) @@>
+                    )
 
             rowType.AddMember property
 

@@ -89,10 +89,15 @@ type QuotationsFactory private() =
             }
         @@>
 
-    static member internal GetOption<'T>(valuesExpr, index) =
+    static member internal GetNullableValueFromRow<'T>(rowExpr, name : string) =
         <@
-            let values : obj[] = %%Expr.Coerce(valuesExpr, typeof<obj[]>)
-            match values.[index - 1] with null -> option<'T>.None | x -> Some(unbox x)
+            let row : DataRow = %%rowExpr
+            if row.IsNull name then None else Some(unbox<'T> row.[name])
+        @> 
+
+    static member internal SetNullableValueInRow<'T>(row : Expr, value : Expr, name : string) =
+        <@
+            (%%row : DataRow).[name] <- match (%%value : option<'T>) with None -> null | Some value -> box value
         @> 
 
     static member internal GetBody(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
@@ -103,7 +108,8 @@ type QuotationsFactory private() =
             mi.MakeGenericMethod([| specialization |])
 
         fun(args : Expr list) -> 
-            bodyFactory.Invoke(null, [| yield box args.[0]; yield! bodyFactoryArgs |]) |> unbox
+            let parameters = Array.append [| for x in args -> box x |] bodyFactoryArgs
+            bodyFactory.Invoke(null, parameters) |> unbox
 
 
 
