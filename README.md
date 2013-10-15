@@ -5,7 +5,7 @@ This project IS NOT replacement for either SqlDataConnection or SqlEntityConnect
 
 Requires SQL Server 2012 or SQL Azure Database
 
-Extra type annotations are for demo purpose only
+Extra type annotations are for demo purposes only
 
 ```ocaml
 #r "../SqlCommandTypeProvider/bin/Debug/SqlCommandTypeProvider.dll"
