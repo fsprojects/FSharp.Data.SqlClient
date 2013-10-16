@@ -4,7 +4,7 @@ open System
 open System.Data
 open System.Data.SqlClient
 
-let connectionString = "Data Source=mitekm-pc2;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString = "Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 let conn = new SqlConnection(connectionString)
 conn.Open()
 

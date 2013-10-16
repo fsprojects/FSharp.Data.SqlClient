@@ -6,13 +6,11 @@ open System.Data
 open System
 
 [<Literal>]
-let connectionString="Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
-//let connectionString="Server=tcp:ybxsjdodsy.database.windows.net,1433;Database=AdventureWorks2012;User ID=stewie@ybxsjdodsy;Password=Leningrad1;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
-//let connectionString="Server=tcp:lhwp7zue01.database.windows.net,1433;Database=AdventureWorks2012;User ID=jackofshadows@lhwp7zue01;Password=Leningrad1;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
+let connectionString="Server=tcp:lhwp7zue01.database.windows.net,1433;Database=AdventureWorks2012;User ID=jackofshadows@lhwp7zue01;Password=Leningrad1;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
 
 [<Literal>]
 let queryProductsSql = " 
-SELECT TOP (@top) Name AS ProductName, SellStartDate
+SELECT TOP (@top) Name AS ProductName, SellStartDate, Size
 FROM Production.Product 
 WHERE SellStartDate > @SellStartDate
 "
@@ -20,20 +18,20 @@ WHERE SellStartDate > @SellStartDate
 //Tuples
 type QueryProductsAsTuples = SqlCommand<queryProductsSql, connectionString>
 let cmd = QueryProductsAsTuples(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
-let result : Async<(string * DateTime) seq> = cmd.Execute()
-result |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate) -> printfn "Product name: %s. Sells start date %A" productName sellStartDate)
+let result : Async<(string * DateTime * option<string>) seq> = cmd.Execute()
+result |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
 
 //Custom record types
 type QueryProducts = SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.Records>
 let cmd1 = QueryProducts(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let result1 : Async<QueryProducts.Record seq> = cmd1.Execute()
-result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A" x.ProductName x.SellStartDate)
+result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
 
 //DataTable for data binding scenarios and update
 type QueryProductDataTable = SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.DataTable>
 let cmd2 = QueryProductDataTable(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let result2 : Async<DataTable<QueryProductDataTable.Row>> = cmd2.Execute() 
-result2 |> Async.RunSynchronously  |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O" row.ProductName row.SellStartDate)
+result2 |> Async.RunSynchronously  |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
 
 //Single row hint and optional output columns. Records result type.
 type QueryPersonInfoSingletone = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultType = ResultType.Records, SingleRow=true>

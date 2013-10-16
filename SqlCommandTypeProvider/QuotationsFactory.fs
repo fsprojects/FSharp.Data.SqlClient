@@ -25,7 +25,7 @@ type QuotationsFactory private() =
             }
         @@>
 
-    static member internal GetRows(cmd, singleRow) = 
+    static member internal GetRows(cmd, singleRow, columnTypes : string list, isNullableColumn : bool list) = 
         <@@ 
             async {
                 let! token = Async.CancellationToken
@@ -35,6 +35,13 @@ type QuotationsFactory private() =
                         while(not token.IsCancellationRequested && reader.Read()) do
                             let row = Array.zeroCreate reader.VisibleFieldCount
                             reader.GetValues row |> ignore
+                            for i = 0 to columnTypes.Length - 1 do
+                                if isNullableColumn.[i]
+                                then
+                                    let t = typedefof<_ option>.MakeGenericType(Type.GetType columnTypes.[i])
+                                    row.[i] <-  if row.[i] = null || reader.IsDBNull(i) 
+                                                then t.GetMethod("get_None").Invoke(null, [||])
+                                                else t.GetMethod("Some").Invoke(null, [| row.[i] |])
                             yield row  
                     finally
                         reader.Close()
@@ -44,23 +51,12 @@ type QuotationsFactory private() =
 
     static member internal GetTypedSequence<'Row>(cmd, rowMapper, singleRow, columnTypes : string list, isNullableColumn : bool list) = 
         assert (columnTypes.Length = isNullableColumn.Length)
+        let nullValue = box System.DBNull.Value
         let getTypedSeqAsync = 
             <@@
                 async { 
-                    let! (rows : seq<obj[]>) = %%QuotationsFactory.GetRows(cmd, singleRow)
-                    return rows 
-                        |> Seq.map<_, 'Row> (fun values ->
-                            for i = 0 to columnTypes.Length - 1 do
-                                if isNullableColumn.[i]
-                                then
-                                    let t = typedefof<_ option>.MakeGenericType(Type.GetType columnTypes.[i])
-                                    if values.[i] = null 
-                                    then values.[i] <- t.GetMethod("None").Invoke(null, [||])
-                                    else values.[i] <- t.GetMethod("Some").Invoke(null, [| values.[i] |])
-                                    
-                            (%%rowMapper) values
-                        )
-                    
+                    let! (rows : seq<obj[]>) = %%QuotationsFactory.GetRows(cmd, singleRow, columnTypes, isNullableColumn)
+                    return rows |> Seq.map<_, 'Row> (%%rowMapper)                    
                 }
             @@>
 
