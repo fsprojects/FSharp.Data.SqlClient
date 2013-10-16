@@ -39,8 +39,8 @@ type QuotationsFactory private() =
                                 if isNullableColumn.[i]
                                 then
                                     let t = typedefof<_ option>.MakeGenericType(Type.GetType columnTypes.[i])
-                                    row.[i] <-  if row.[i] = null || reader.IsDBNull(i) 
-                                                then t.GetMethod("get_None").Invoke(null, [||])
+                                    row.[i] <-  if reader.IsDBNull(i) || row.[i] = null
+                                                then t.GetProperty("None").GetValue(null, [||])
                                                 else t.GetMethod("Some").Invoke(null, [| row.[i] |])
                             yield row  
                     finally
