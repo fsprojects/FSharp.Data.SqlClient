@@ -55,16 +55,17 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
         let resolutionFolder = config.ResolutionFolder
         let connectionConfig = resolutionFolder, connectionStringProvided, connectionStringName, configFile
-        let connectionString =  Configuration.getConnectionString connectionConfig
-
-        using(new SqlConnection(connectionString)) <| fun conn ->
+        
+        let designTimeConnectionString =  Configuration.getConnectionString connectionConfig
+        
+        using(new SqlConnection(designTimeConnectionString)) <| fun conn ->
             conn.Open()
             conn.CheckVersion()
             conn.LoadDataTypesMap()
        
         let isStoredProcedure = commandType = CommandType.StoredProcedure
 
-        let parameters = this.ExtractParameters(connectionString, commandText, isStoredProcedure)
+        let parameters = this.ExtractParameters(designTimeConnectionString, commandText, isStoredProcedure)
 
         let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
 
@@ -72,13 +73,13 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             parameters = [],
             InvokeCode = fun _ -> 
                 <@@ 
-                    let connectionString = Configuration.getConnectionString (resolutionFolder,connectionStringProvided,connectionStringName,configFile)
+                    let runTimeConnectionString = Configuration.getConnectionString (resolutionFolder,connectionStringProvided,connectionStringName,configFile)
 
                     do
                         if dataDirectory <> ""
                         then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
 
-                    let this = new SqlCommand(commandText, new SqlConnection(connectionString)) 
+                    let this = new SqlCommand(commandText, new SqlConnection(runTimeConnectionString)) 
                     this.CommandType <- commandType
                     for x in parameters do
                         let xs = x.Split(',') 
@@ -93,13 +94,15 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         |> providedCommandType.AddMember 
 
         this.AddPropertiesForParameters(providedCommandType, parameters)
+        
+        this.AddConnectionProperty(providedCommandType)
 
-        let outputColumns : _ list = this.GetOutputColumns(commandText, connectionString)
+        let outputColumns : _ list = this.GetOutputColumns(commandText, designTimeConnectionString)
         if outputColumns.IsEmpty
         then 
-            this.AddExecuteNonQuery(providedCommandType, connectionString)
+            this.AddExecuteNonQuery(providedCommandType)
         else
-            this.AddExecuteWithResult(outputColumns, providedCommandType, resultType, singleRow, connectionConfig, commandText)            
+            this.AddExecuteWithResult(outputColumns, providedCommandType, resultType, singleRow, commandText)            
 
         providedCommandType
 
@@ -188,14 +191,28 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 yield prop
         ]
 
-    member internal __.AddExecuteNonQuery(commandType, connectionString) = 
+    member internal __.AddConnectionProperty(commandType) = 
+        let prop = ProvidedProperty("ConnectionString", propertyType = typeof<string>)
+        prop.GetterCode <- fun args ->
+            <@@ 
+                let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
+                sqlCommand.Connection.ConnectionString
+            @@>
+        prop.SetterCode <- fun args -> 
+            <@@ 
+                let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
+                sqlCommand.Connection.ConnectionString <- %%Expr.Coerce(args.[1], typeof<string>)
+            @@>
+        commandType.AddMember <| prop
+
+    member internal __.AddExecuteNonQuery(commandType) = 
         let execute = ProvidedMethod("Execute", [], typeof<Async<int>>)
         execute.InvokeCode <- fun args ->
             <@@
                 async {
                     let sqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>) : SqlCommand
                     //open connection async on .NET 4.5
-                    use conn = new SqlConnection(connectionString)
+                    use conn = new SqlConnection(sqlCommand.Connection.ConnectionString)
                     conn.Open()
                     sqlCommand.Connection <- conn
                     return! sqlCommand.AsyncExecuteNonQuery() 
@@ -207,11 +224,11 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         let nakedType = Type.GetType columnType 
         if isNullable then typedefof<_ option>.MakeGenericType nakedType else nakedType
 
-    member internal __.AddExecuteWithResult(outputColumns, providedCommandType, resultType, singleRow, connectionConfig, commandText) = 
+    member internal __.AddExecuteWithResult(outputColumns, providedCommandType, resultType, singleRow, commandText) = 
             
         let syncReturnType, executeMethodBody = 
             if resultType = ResultType.DataTable
-            then this.DataTable(providedCommandType, connectionConfig, commandText, outputColumns, singleRow)
+            then this.DataTable(providedCommandType, commandText, outputColumns, singleRow)
             else
                 let rowType, executeMethodBody = 
                     if outputColumns.Length = 1
@@ -230,6 +247,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 returnType, executeMethodBody
                     
         let returnType = typedefof<_ Async>.MakeGenericType syncReturnType
+        //let param = ProvidedParameter("connectionString", typeof<string>, optionalValue = "")
         providedCommandType.AddMember <| ProvidedMethod("Execute", [], returnType, InvokeCode = executeMethodBody)
 
     member internal this.Tuples(providedCommandType, outputColumns, singleRow) =
@@ -269,7 +287,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                          
         upcast recordType, getExecuteBody
     
-    member internal this.DataTable(providedCommandType, connectionConfig, commandText, outputColumns, singleRow) =
+    member internal this.DataTable(providedCommandType, commandText, outputColumns, singleRow) =
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
         for name, propertyTypeName, columnOrdinal, isNullable  in outputColumns do
             if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." columnOrdinal
