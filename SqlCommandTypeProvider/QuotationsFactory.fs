@@ -15,7 +15,9 @@ type QuotationsFactory private() =
             async {
                 let sqlCommand : SqlCommand = %%Expr.Coerce(cmd, typeof<SqlCommand>)
                 //open connection async on .NET 4.5
-                sqlCommand.Connection.Open()
+                let conn = new SqlConnection(sqlCommand.Connection.ConnectionString)
+                conn.Open()
+                sqlCommand.Connection <- conn
                 return!
                     try 
                         sqlCommand.AsyncExecuteReader(commandBehavior ||| CommandBehavior.CloseConnection ||| CommandBehavior.SingleResult)

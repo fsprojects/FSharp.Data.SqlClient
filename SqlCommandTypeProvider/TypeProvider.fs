@@ -65,35 +65,37 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
        
         let isStoredProcedure = commandType = CommandType.StoredProcedure
 
-        let parameters = this.ExtractParameters(designTimeConnectionString, commandText, isStoredProcedure)
-
         let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
 
-        ProvidedConstructor(
-            parameters = [],
-            InvokeCode = fun _ -> 
-                <@@ 
-                    let runTimeConnectionString = Configuration.getConnectionString (resolutionFolder,connectionStringProvided,connectionStringName,configFile)
+        providedCommandType.AddMembersDelayed 
+        <|fun () -> 
+            [
+                let parameters = this.ExtractParameters(designTimeConnectionString, commandText, isStoredProcedure)
+                yield ProvidedConstructor(
+                    parameters = [],
+                    InvokeCode = fun _ -> 
+                        <@@ 
+                            let runTimeConnectionString = Configuration.getConnectionString (resolutionFolder,connectionStringProvided,connectionStringName,configFile)
 
-                    do
-                        if dataDirectory <> ""
-                        then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
+                            do
+                                if dataDirectory <> ""
+                                then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
 
-                    let this = new SqlCommand(commandText, new SqlConnection(runTimeConnectionString)) 
-                    this.CommandType <- commandType
-                    for x in parameters do
-                        let xs = x.Split(',') 
-                        let paramName = xs.[0]
-                        let sqlDbType = xs.[2] |> int |> enum
-                        let direction = Enum.Parse(typeof<ParameterDirection>, xs.[3]) 
-                        let p = SqlParameter(paramName, sqlDbType, Direction = unbox direction)
-                        this.Parameters.Add p |> ignore
-                    this
-                @@>
-        ) 
-        |> providedCommandType.AddMember 
-
-        this.AddPropertiesForParameters(providedCommandType, parameters)
+                            let this = new SqlCommand(commandText, new SqlConnection(runTimeConnectionString)) 
+                            this.CommandType <- commandType
+                            for x in parameters do
+                                let xs = x.Split(',') 
+                                let paramName = xs.[0]
+                                let sqlDbType = xs.[2] |> int |> enum
+                                let direction = Enum.Parse(typeof<ParameterDirection>, xs.[3]) 
+                                let p = SqlParameter(paramName, sqlDbType, Direction = unbox direction)
+                                this.Parameters.Add p |> ignore
+                            this
+                        @@>
+                )  :> MemberInfo    
+                yield! this.AddPropertiesForParameters(parameters) 
+               ]
+        
         
         this.AddConnectionProperty(providedCommandType)
 
@@ -105,6 +107,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             this.AddExecuteWithResult(outputColumns, providedCommandType, resultType, singleRow, commandText)            
 
         providedCommandType
+
 
     member this.GetOutputColumns(commandText, connectionString) = [
         use conn = new SqlConnection(connectionString)
@@ -118,16 +121,11 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             let detailedMessage = " Column name:" + columnName
             let isNullable : bool = unbox reader.["is_nullable"]
             let clrTypeName, _ =  mapSqlEngineTypeId(sqlEngineTypeId, detailedMessage)
-//                let typeName = mapSqlEngineTypeId(sqlEngineTypeId, detailedMessage) |> fst
-//                if unbox reader.["is_nullable"] 
-//                then typedefof<_ Option>.MakeGenericType(Type.GetType typeName).AssemblyQualifiedName  
-//                else typeName
 
             yield columnName, clrTypeName, unbox<int> reader.["column_ordinal"], isNullable
     ] 
     
-    member __.ExtractParameters(connectionString, commandText, isStoredProcedure) : string list =  
-        [
+    member __.ExtractParameters(connectionString, commandText, isStoredProcedure) : string list =  [
             use conn = new SqlConnection(connectionString)
             conn.Open()
 
@@ -158,9 +156,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     yield sprintf "%s,%s,%i,%O" paramName clrTypeName sqlDbTypeId direction
         ]
 
-    member internal __.AddPropertiesForParameters(providedCommandType, parameters) =  
-        providedCommandType.AddMembersDelayed <| fun() -> 
-        [
+    member internal __.AddPropertiesForParameters(parameters) =  [
             for x in parameters do
                 let paramName, clrTypeName, direction = 
                     let xs = x.Split(',') 
@@ -188,7 +184,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                             sqlCommand.Parameters.[paramName].Value <- %%Expr.Coerce(args.[1], typeof<obj>)
                         @@>
 
-                yield prop
+                yield prop :> MemberInfo
         ]
 
     member internal __.AddConnectionProperty(commandType) = 
