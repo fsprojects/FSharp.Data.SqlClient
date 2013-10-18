@@ -21,8 +21,6 @@ type ResultType =
 type public SqlCommandTypeProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces()
 
-    let runtimeAssembly = Assembly.LoadFrom(config.RuntimeAssembly)
-
     let nameSpace = this.GetType().Namespace
     let assembly = Assembly.GetExecutingAssembly()
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommand", Some typeof<obj>, HideObjectMethods = true)
@@ -67,8 +65,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
         let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
 
-        providedCommandType.AddMembersDelayed 
-        <|fun () -> 
+        providedCommandType.AddMembersDelayed <| fun () -> 
             [
                 let parameters = this.ExtractParameters(designTimeConnectionString, commandText, isStoredProcedure)
                 yield ProvidedConstructor(
@@ -92,9 +89,9 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                                 this.Parameters.Add p |> ignore
                             this
                         @@>
-                )  :> MemberInfo    
+                ) :> MemberInfo    
                 yield! this.AddPropertiesForParameters(parameters) 
-               ]
+            ]
         
         
         this.AddConnectionProperty(providedCommandType)
