@@ -23,15 +23,21 @@ type SqlConnection with
     member internal this.LoadDataTypesMap() = 
         if List.isEmpty !dataTypeMappings
         then
-            dataTypeMappings := query {
-                let getSysTypes = new SqlCommand("SELECT * FROM sys.types", this)
-                for x in this.GetSchema("DataTypes").AsEnumerable() do
-                join y in (getSysTypes.ExecuteReader(CommandBehavior.CloseConnection) |> Seq.cast<IDataRecord>) on 
-                    (x.Field("TypeName") = string y.["name"])
-                let sqlEngineTypeId = y.["system_type_id"] |> unbox<byte> |> int
-                let sqlDbTypeId : int = x.Field("ProviderDbType")
-                let clrTypeName : string = x.Field("DataType")
-                select(sqlEngineTypeId, sqlDbTypeId, clrTypeName)
+            dataTypeMappings :=
+                let datatypes = 
+                   this.GetSchema("DataTypes").AsEnumerable() 
+                   |> Seq.map (fun r -> r.Field("TypeName") |> string, r.Field("ProviderDbType") |> int, r.Field("DataType") |> string)
+                   |> Array.ofSeq 
+                let systypes = 
+                   use c = new SqlCommand("SELECT name, system_type_id FROM sys.types", this) in
+                   c.ExecuteReader(CommandBehavior.CloseConnection)
+                   |> Seq.cast<IDataRecord>
+                   |> Seq.map (fun r -> r.["name"] |> string, r.["system_type_id"] |> unbox<byte> |> int)
+                   |> Array.ofSeq
+                query {
+                  for typename, providerdbtype, datatype in datatypes do
+                  join (systypename, systemtypeid) in systypes on (typename = systypename)
+                  select (systemtypeid, providerdbtype, datatype)
             }
             |> Seq.toList
 
