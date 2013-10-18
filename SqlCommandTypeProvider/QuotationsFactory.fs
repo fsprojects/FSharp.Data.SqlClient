@@ -35,7 +35,7 @@ type QuotationsFactory private() =
                 return seq {
                     try 
                         while(not token.IsCancellationRequested && reader.Read()) do
-                            let row = Array.zeroCreate reader.VisibleFieldCount
+                            let row = Array.zeroCreate columnTypes.Length
                             reader.GetValues row |> ignore
                             for i = 0 to columnTypes.Length - 1 do
                                 if isNullableColumn.[i]
