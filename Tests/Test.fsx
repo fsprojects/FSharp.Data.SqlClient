@@ -21,7 +21,7 @@ type QueryProductsAsTuples = SqlCommand<queryProductsSql, connectionString>
 let cmd = QueryProductsAsTuples(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let result : Async<(string * DateTime * option<string>) seq> = cmd.AsyncExecute()
 result |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
-//cmd.Execute() |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
+cmd.Execute() |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
 
 //Custom record types
 type QueryProducts = SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.Records>
@@ -36,7 +36,7 @@ type QueryProductDataTable = SqlCommand<queryProductsSql, connectionString, Resu
 let cmd2 = QueryProductDataTable(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let result2 : Async<DataTable<QueryProductDataTable.Row>> = cmd2.AsyncExecute() 
 result2 |> Async.RunSynchronously  |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
-//cmd2.Execute() |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
+cmd2.Execute() |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
 
 //Single row hint and optional output columns. Records result type.
 type QueryPersonInfoSingletone = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultType = ResultType.Records, SingleRow=true>
@@ -72,6 +72,8 @@ type UpdateEmplInfoCommand = SqlCommand<"EXEC HumanResources.uspUpdateEmployeePe
 let cmd4 = new UpdateEmplInfoCommand(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "M")
 let result4 : Async<int> = cmd4.AsyncExecute() 
 let rowsAffected = result4 |> Async.RunSynchronously 
+let cmd45 = new UpdateEmplInfoCommand(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "M")
+cmd45.Execute()
 
 //Single value
 type GetServerTime = SqlCommand<"IF @IsUtc = CAST(1 AS BIT) SELECT GETUTCDATE() ELSE SELECT GETDATE()", connectionString, SingleRow=true>

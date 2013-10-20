@@ -208,7 +208,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     return! sqlCommand.AsyncExecuteNonQuery() 
                 }
             @@>
-        typeof<Async<int>>, body
+        typeof<int>, body
 
     member internal __.GetTypeForNullable(columnType, isNullable) = 
         let nakedType = Type.GetType columnType 
@@ -237,22 +237,27 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                         assert (resultType = ResultType.Records)
                         this.Records(providedCommandType, outputColumns, singleRow)
 
-                let returnType = if singleRow then rowType else typedefof<_ seq>.MakeGenericType rowType
+                //let returnType = if singleRow then rowType else ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
+                let returnType = 
+                    match singleRow, rowType with
+                    | true, _ -> rowType
+                    | false, :? ProvidedTypeDefinition as providedType -> ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])     
+                    | false, _ -> typedefof<_ seq>.MakeGenericType rowType     
+                           
                 returnType, executeMethodBody
                     
         //let returnType = typedefof<_ Async>.MakeGenericType syncReturnType
         let returnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ syncReturnType ])
         let asyncExecute = ProvidedMethod("AsyncExecute", [], returnType, InvokeCode = executeMethodBody)
-//        let execute = ProvidedMethod("Execute", [], returnType)
-//        execute.InvokeCode <- fun args ->
-//            let runSync = typeof<Async>.GetMethod("RunSynchronously").MakeGenericMethod([| syncReturnType |])
-//            //let runSync = ProvidedTypeBuilder.MakeGenericMethod(typeof<Async>.GetMethod("RunSynchronously"), [ syncReturnType ])
-////            let asyncComputation = Expr.Call(Expr.Coerce(args.[0], providedCommandType), asyncExecute, [])
-//            Expr.Call(runSync, [ executeMethodBody args; Expr.Value option<int>.None; Expr.Value option<CancellationToken>.None ])
-//            //Expr.Call(Expr.Coerce(args.[0], providedCommandType), asyncExecute, [])
+        let execute = ProvidedMethod("Execute", [], syncReturnType)
+        execute.InvokeCode <- fun args ->
+            //let runSync = typeof<Async>.GetMethod("RunSynchronously").MakeGenericMethod([| syncReturnType |])
+            let runSync = ProvidedTypeBuilder.MakeGenericMethod(typeof<Async>.GetMethod("RunSynchronously"), [ syncReturnType ])
+            let asyncComputation = Expr.Call(Expr.Coerce(args.[0], providedCommandType), asyncExecute, [])
+            Expr.Call(runSync, [ asyncComputation; Expr.Value option<int>.None; Expr.Value option<CancellationToken>.None ])
+            //Expr.Call(Expr.Coerce(args.[0], providedCommandType), asyncExecute, [])
 
-        //providedCommandType.AddMembers [ asyncExecute; execute ]
-        providedCommandType.AddMember asyncExecute
+        providedCommandType.AddMembers [ asyncExecute; execute ]
 
     member internal this.Tuples(providedCommandType, outputColumns, singleRow) =
         let columnTypes, isNullableColumn, tupleItemTypes = 
@@ -319,5 +324,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
         providedCommandType.AddMember rowType
 
-        typedefof<_ DataTable>.MakeGenericType rowType, QuotationsFactory.GetBody("GetTypedDataTable",  typeof<DataRow>, singleRow)
+        let body = QuotationsFactory.GetBody("GetTypedDataTable",  typeof<DataRow>, singleRow)
+        let returnType = typedefof<_ DataTable>.MakeGenericType rowType
+
+        returnType, body
 
