@@ -25,6 +25,6 @@ type HomeController() =
     member this.Get(top, sellStartDate) =
         async {
             let cmd = QueryProductsAsTuples(top = top, SellStartDate = sellStartDate)
-            let! data = cmd.Execute()
+            let! data = cmd.AsyncExecute()
             return this.Request.CreateResponse(HttpStatusCode.OK, data)
         } |> Async.StartAsTask

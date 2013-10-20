@@ -5,6 +5,7 @@ open System.Data
 open System.Data.SqlClient
 open System.Reflection
 open System.Collections.Generic
+open System.Threading
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
@@ -97,11 +98,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         this.AddConnectionProperty(providedCommandType)
 
         let outputColumns : _ list = this.GetOutputColumns(commandText, designTimeConnectionString)
-        if outputColumns.IsEmpty
-        then 
-            this.AddExecuteNonQuery(providedCommandType)
-        else
-            this.AddExecuteWithResult(outputColumns, providedCommandType, resultType, singleRow, commandText)            
+        
+        this.AddExecuteMethod(outputColumns, providedCommandType, resultType, singleRow, commandText)            
 
         providedCommandType
 
@@ -198,9 +196,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             @@>
         commandType.AddMember <| prop
 
-    member internal __.AddExecuteNonQuery(commandType) = 
-        let execute = ProvidedMethod("Execute", [], typeof<Async<int>>)
-        execute.InvokeCode <- fun args ->
+    member internal __.GetExecuteNonQuery() = 
+        let body (args :Expr list) =
             <@@
                 async {
                     let sqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>) : SqlCommand
@@ -211,17 +208,21 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     return! sqlCommand.AsyncExecuteNonQuery() 
                 }
             @@>
-        commandType.AddMember execute
+        typeof<Async<int>>, body
 
     member internal __.GetTypeForNullable(columnType, isNullable) = 
         let nakedType = Type.GetType columnType 
         if isNullable then typedefof<_ option>.MakeGenericType nakedType else nakedType
 
-    member internal __.AddExecuteWithResult(outputColumns, providedCommandType, resultType, singleRow, commandText) = 
+    member internal __.AddExecuteMethod(outputColumns, providedCommandType, resultType, singleRow, commandText) = 
             
         let syncReturnType, executeMethodBody = 
-            if resultType = ResultType.DataTable
-            then this.DataTable(providedCommandType, commandText, outputColumns, singleRow)
+            if outputColumns.IsEmpty
+            then 
+                this.GetExecuteNonQuery()
+            elif resultType = ResultType.DataTable
+            then 
+                this.DataTable(providedCommandType, commandText, outputColumns, singleRow)
             else
                 let rowType, executeMethodBody = 
                     if outputColumns.Length = 1
@@ -239,9 +240,19 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 let returnType = if singleRow then rowType else typedefof<_ seq>.MakeGenericType rowType
                 returnType, executeMethodBody
                     
-        let returnType = typedefof<_ Async>.MakeGenericType syncReturnType
-        //let param = ProvidedParameter("connectionString", typeof<string>, optionalValue = "")
-        providedCommandType.AddMember <| ProvidedMethod("Execute", [], returnType, InvokeCode = executeMethodBody)
+        //let returnType = typedefof<_ Async>.MakeGenericType syncReturnType
+        let returnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ syncReturnType ])
+        let asyncExecute = ProvidedMethod("AsyncExecute", [], returnType, InvokeCode = executeMethodBody)
+//        let execute = ProvidedMethod("Execute", [], returnType)
+//        execute.InvokeCode <- fun args ->
+//            let runSync = typeof<Async>.GetMethod("RunSynchronously").MakeGenericMethod([| syncReturnType |])
+//            //let runSync = ProvidedTypeBuilder.MakeGenericMethod(typeof<Async>.GetMethod("RunSynchronously"), [ syncReturnType ])
+////            let asyncComputation = Expr.Call(Expr.Coerce(args.[0], providedCommandType), asyncExecute, [])
+//            Expr.Call(runSync, [ executeMethodBody args; Expr.Value option<int>.None; Expr.Value option<CancellationToken>.None ])
+//            //Expr.Call(Expr.Coerce(args.[0], providedCommandType), asyncExecute, [])
+
+        //providedCommandType.AddMembers [ asyncExecute; execute ]
+        providedCommandType.AddMember asyncExecute
 
     member internal this.Tuples(providedCommandType, outputColumns, singleRow) =
         let columnTypes, isNullableColumn, tupleItemTypes = 

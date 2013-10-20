@@ -15,5 +15,5 @@ printfn "define type"
 type QueryProductsAsTuples  = SqlCommand<queryProductsSql, ConnectionStringName = "AdventureWorks2012">
 printfn "create command"
 let cmd = QueryProductsAsTuples(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
-//cmd.Execute() |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate) -> printfn "Product name: %s. Sells start date %A" productName sellStartDate)
+//cmd.AsyncExecute() |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate) -> printfn "Product name: %s. Sells start date %A" productName sellStartDate)
 

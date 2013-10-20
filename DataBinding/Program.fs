@@ -10,8 +10,7 @@ open FSharp.Data.SqlClient
 //let queryTableSql = "SELECT * FROM Production.Product WHERE SellStartDate > @SellStartDate"
 let queryTableSql = "SELECT * FROM Production.Product"
 
-type Query = 
-    SqlCommand<queryTableSql, ConnectionStringName="AdventureWorks2012", ResultType=ResultType.DataTable>
+type Query = SqlCommand<queryTableSql, ConnectionStringName="AdventureWorks2012", ResultType=ResultType.DataTable>
 
 [<STAThread>]
 [<EntryPoint>]
@@ -22,7 +21,7 @@ let main argv =
 
     let cmd = Query()
     //cmd.SellStartDate <- DateTime.Parse "7/1/2006"
-    let data = cmd.Execute() |> Async.RunSynchronously
+    let data = cmd.AsyncExecute() |> Async.RunSynchronously
     grid.ItemsSource <- data
 
     close.Click.Add <| fun _ -> mainWindow.Close()
