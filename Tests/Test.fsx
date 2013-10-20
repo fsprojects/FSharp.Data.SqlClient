@@ -36,7 +36,7 @@ type QueryProductDataTable = SqlCommand<queryProductsSql, connectionString, Resu
 let cmd2 = QueryProductDataTable(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let result2 : Async<DataTable<QueryProductDataTable.Row>> = cmd2.AsyncExecute() 
 result2 |> Async.RunSynchronously  |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
-cmd2.Execute() |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
+//cmd2.Execute() |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
 
 //Single row hint and optional output columns. Records result type.
 type QueryPersonInfoSingletone = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultType = ResultType.Records, SingleRow=true>
