@@ -252,7 +252,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         let execute = ProvidedMethod("Execute", [], syncReturnType)
         execute.InvokeCode <- fun args ->
             let runSync = ProvidedTypeBuilder.MakeGenericMethod(typeof<Async>.GetMethod("RunSynchronously"), [ syncReturnType ])
-            Expr.Call(runSync, [ Expr.Coerce (executeMethodBody args, asyncReturnType); Expr.Value option<int>.None; Expr.Value option<CancellationToken>.None ])
+            let callAsync = Expr.Call (Expr.Coerce (args.[0], providedCommandType), asyncExecute, [])
+            Expr.Call(runSync, [ Expr.Coerce (callAsync, asyncReturnType); Expr.Value option<int>.None; Expr.Value option<CancellationToken>.None ])
 
         providedCommandType.AddMembers [ asyncExecute; execute ]
 
