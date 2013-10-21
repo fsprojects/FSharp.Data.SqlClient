@@ -247,15 +247,12 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 returnType, executeMethodBody
                     
         //let returnType = typedefof<_ Async>.MakeGenericType syncReturnType
-        let returnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ syncReturnType ])
-        let asyncExecute = ProvidedMethod("AsyncExecute", [], returnType, InvokeCode = executeMethodBody)
+        let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ syncReturnType ])
+        let asyncExecute = ProvidedMethod("AsyncExecute", [], asyncReturnType, InvokeCode = executeMethodBody)
         let execute = ProvidedMethod("Execute", [], syncReturnType)
         execute.InvokeCode <- fun args ->
-            //let runSync = typeof<Async>.GetMethod("RunSynchronously").MakeGenericMethod([| syncReturnType |])
             let runSync = ProvidedTypeBuilder.MakeGenericMethod(typeof<Async>.GetMethod("RunSynchronously"), [ syncReturnType ])
-            let asyncComputation = Expr.Call(Expr.Coerce(args.[0], providedCommandType), asyncExecute, [])
-            Expr.Call(runSync, [ asyncComputation; Expr.Value option<int>.None; Expr.Value option<CancellationToken>.None ])
-            //Expr.Call(Expr.Coerce(args.[0], providedCommandType), asyncExecute, [])
+            Expr.Call(runSync, [ Expr.Coerce (executeMethodBody args, asyncReturnType); Expr.Value option<int>.None; Expr.Value option<CancellationToken>.None ])
 
         providedCommandType.AddMembers [ asyncExecute; execute ]
 
