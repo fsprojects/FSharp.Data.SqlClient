@@ -21,7 +21,7 @@ let main argv =
 
     let cmd = Query()
     //cmd.SellStartDate <- DateTime.Parse "7/1/2006"
-    let data = cmd.AsyncExecute() |> Async.RunSynchronously
+    let data = cmd.Execute()
     grid.ItemsSource <- data
 
     close.Click.Add <| fun _ -> mainWindow.Close()
