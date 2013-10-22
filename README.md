@@ -34,7 +34,7 @@ Tuples (default)
 ```ocaml
 type QueryProductsAsTuples = SqlCommand<queryProductsSql, connectionString>
 let cmd = QueryProductsAsTuples(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
-let result : Async<(string * DateTime) seq> = cmd.Execute()
+let result : Async<(string * DateTime) seq> = cmd.AsyncExecute()
 result 
     |> Async.RunSynchronously 
     |> Seq.iter (fun(productName, sellStartDate) -> printfn "Product name: %s. Sells start date %A" productName sellStartDate)
@@ -44,7 +44,7 @@ Custom record types
 type QueryProducts = 
     SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.Records>
 let cmd1 = QueryProducts(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
-let result1 : Async<QueryProducts.Record seq> = cmd1.Execute()
+let result1 : Async<QueryProducts.Record seq> = cmd1.AsyncExecute()
 result1 
     |> Async.RunSynchronously 
     |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A" x.ProductName x.SellStartDate)
@@ -54,7 +54,7 @@ DataTable for data binding scenarios and update
 type QueryProductDataTable = 
     SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.DataTable>
 let cmd2 = QueryProductDataTable(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
-let result2 : Async<DataTable<QueryProductDataTable.Row>> = cmd2.Execute() 
+let result2 : Async<DataTable<QueryProductDataTable.Row>> = cmd2.AsyncExecute() 
 result2 
     |> Async.RunSynchronously 
     |> Seq.map (fun row -> printfn "Product name: %s. Sells start date %O" row.ProductName row.SellStartDate)
@@ -64,7 +64,7 @@ Single row hint
 type QueryPersonInfoSingletone = 
     SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultType = ResultType.Records, SingleRow=true>
 let cmd3 = new QueryPersonInfoSingletone(PersonId = 2)
-let result3 : Async<QueryPersonInfoSingletone.Record> = cmd3.Execute() 
+let result3 : Async<QueryPersonInfoSingletone.Record> = cmd3.AsyncExecute() 
 result3 
     |> Async.RunSynchronously 
     |> fun x -> printfn "Person info: Id - %i, FirstName - %s, LastName - %s, JobTitle - %s, BusinessEntityType - %s" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
@@ -74,7 +74,7 @@ Non-query
 type UpdateEmplInfoCommand = 
     SqlCommand<"EXEC HumanResources.uspUpdateEmployeePersonalInfo @BusinessEntityID, @NationalIDNumber, @BirthDate, @MaritalStatus, @Gender", connectionString>
 let cmd4 = new UpdateEmplInfoCommand(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "M")
-let result4 : Async<int> = cmd4.Execute() 
+let result4 : Async<int> = cmd4.AsyncExecute() 
 let rowsAffected = result4 |> Async.RunSynchronously 
 ```
 Single value
@@ -82,11 +82,11 @@ Single value
 type GetServerTime = 
     SqlCommand<"IF @IsUtc = CAST(1 AS BIT) SELECT GETUTCDATE() ELSE SELECT GETDATE()", connectionString, SingleRow=true>
 let getSrvTime = new GetServerTime(IsUtc = true)
-let result5 : Async<DateTime> = getSrvTime.Execute()
+let result5 : Async<DateTime> = getSrvTime.AsyncExecute()
 result5 |> Async.RunSynchronously |> printfn "%A"
 getSrvTime.IsUtc <- false
-//Execute again
-getSrvTime.Execute() |> Async.RunSynchronously |> printfn "%A"
+//Execute again synchronously
+getSrvTime.Execute() |> printfn "%A"
 ```
 Stored procedure by name only
 ```ocaml
