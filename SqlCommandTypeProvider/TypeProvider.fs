@@ -71,10 +71,15 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 let parameters = this.ExtractParameters(designTimeConnectionString, commandText, isStoredProcedure)
                 yield! this.AddPropertiesForParameters(parameters) 
 
-                let ctor = ProvidedConstructor([])
+                let ctor = ProvidedConstructor([ProvidedParameter("connectionString", typeof<string>, optionalValue = Unchecked.defaultof<string>)])
                 ctor.InvokeCode <- fun args -> 
                     <@@ 
-                        let runTimeConnectionString = Configuration.getConnectionString (resolutionFolder,connectionStringProvided,connectionStringName,configFile)
+                        let runTimeConnectionString = 
+                            if String.IsNullOrEmpty(%%args.[0])
+                            then
+                                Configuration.getConnectionString (resolutionFolder,connectionStringProvided,connectionStringName,configFile)
+                            else 
+                                %%args.[0]
                         do
                             if dataDirectory <> ""
                             then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
@@ -96,8 +101,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             ]
         
         
-        this.AddConnectionProperty(providedCommandType)
-
         let outputColumns : _ list = this.GetOutputColumns(commandText, designTimeConnectionString)
         
         this.AddExecuteMethod(outputColumns, providedCommandType, resultType, singleRow, commandText)            
@@ -182,20 +185,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
                 yield prop :> MemberInfo
         ]
-
-    member internal __.AddConnectionProperty(commandType) = 
-        let prop = ProvidedProperty("ConnectionString", propertyType = typeof<string>)
-        prop.GetterCode <- fun args ->
-            <@@ 
-                let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
-                sqlCommand.Connection.ConnectionString
-            @@>
-        prop.SetterCode <- fun args -> 
-            <@@ 
-                let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
-                sqlCommand.Connection.ConnectionString <- %%Expr.Coerce(args.[1], typeof<string>)
-            @@>
-        commandType.AddMember <| prop
 
     member internal __.GetExecuteNonQuery() = 
         let body (args :Expr list) =

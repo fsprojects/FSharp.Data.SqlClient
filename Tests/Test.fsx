@@ -23,9 +23,9 @@ let result : Async<(string * DateTime * option<string>) seq> = cmd.AsyncExecute(
 result |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
 cmd.Execute() |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
 
-//Custom record types
+//Custom record types and connection string override
 type QueryProducts = SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.Records>
-let cmd1 = QueryProducts(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
+let cmd1 = QueryProducts(connectionString = "Data Source=(local);Initial Catalog=AdventureWorks2012;Integrated Security=True", top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let result1 : Async<QueryProducts.Record seq> = cmd1.AsyncExecute()
 result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
 cmd1.Execute() |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
