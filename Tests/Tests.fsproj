@@ -44,6 +44,7 @@
     <None Include="test.bat" />
     <None Include="ConnectionStringNameTest.fsx" />
     <None Include="Test.fsx" />
+    <None Include="sampleCommand.sql" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FsUnit.NUnit">

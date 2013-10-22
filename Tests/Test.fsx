@@ -6,8 +6,8 @@ open System.Data
 open System
 
 [<Literal>]
-//let connectionString = """Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"""
-let connectionString = """Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"""
+let connectionString = """Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"""
+//let connectionString = """Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"""
 
 [<Literal>]
 let queryProductsSql = " 
@@ -22,6 +22,11 @@ let cmd = QueryProductsAsTuples(top = 7L, SellStartDate = System.DateTime.Parse 
 let result : Async<(string * DateTime * option<string>) seq> = cmd.AsyncExecute()
 result |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
 cmd.Execute() |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
+
+//Command from file
+type q = SqlCommand<"sampleCommand.sql", connectionString>
+let cmdFromFile = q()
+cmdFromFile.Execute() |> ignore
 
 //Custom record types and connection string override
 type QueryProducts = SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.Records>
