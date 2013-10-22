@@ -2,6 +2,7 @@
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module FSharp.Data.SqlClient.Extensions
 
+open System
 open System.Data
 open System.Data.SqlClient
 
@@ -11,6 +12,12 @@ type SqlCommand with
 
     member this.AsyncExecuteNonQuery() =
         Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) 
+
+    //address an issue and regular Dispose on connection needed for async computation wipes out all properties like ConnectionString in addition to closing connection to db
+    member this.CloseConnectionOnly() = {
+        new IDisposable with
+            member __.Dispose() = this.Connection.Close()
+    }
 
 let private dataTypeMappings = ref List.empty
 
@@ -40,6 +47,7 @@ type SqlConnection with
                   select (systemtypeid, providerdbtype, datatype)
             }
             |> Seq.toList
+
 
 let internal mapSqlEngineTypeId(sqlEngineTypeId, detailedMessage) = 
     match !dataTypeMappings |> List.tryFind (fun(x, _, _) ->  x = sqlEngineTypeId) with

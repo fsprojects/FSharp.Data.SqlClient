@@ -69,29 +69,30 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         providedCommandType.AddMembersDelayed <| fun () -> 
             [
                 let parameters = this.ExtractParameters(designTimeConnectionString, commandText, isStoredProcedure)
-                yield ProvidedConstructor(
-                    parameters = [],
-                    InvokeCode = fun _ -> 
-                        <@@ 
-                            let runTimeConnectionString = Configuration.getConnectionString (resolutionFolder,connectionStringProvided,connectionStringName,configFile)
-
-                            do
-                                if dataDirectory <> ""
-                                then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
-
-                            let this = new SqlCommand(commandText, new SqlConnection(runTimeConnectionString)) 
-                            this.CommandType <- commandType
-                            for x in parameters do
-                                let xs = x.Split(',') 
-                                let paramName = xs.[0]
-                                let sqlDbType = xs.[2] |> int |> enum
-                                let direction = Enum.Parse(typeof<ParameterDirection>, xs.[3]) 
-                                let p = SqlParameter(paramName, sqlDbType, Direction = unbox direction)
-                                this.Parameters.Add p |> ignore
-                            this
-                        @@>
-                ) :> MemberInfo    
                 yield! this.AddPropertiesForParameters(parameters) 
+
+                let ctor = ProvidedConstructor([])
+                ctor.InvokeCode <- fun args -> 
+                    <@@ 
+                        let runTimeConnectionString = Configuration.getConnectionString (resolutionFolder,connectionStringProvided,connectionStringName,configFile)
+                        do
+                            if dataDirectory <> ""
+                            then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
+
+                        let this = new SqlCommand(commandText, new SqlConnection(runTimeConnectionString)) 
+                        this.CommandType <- commandType
+                        for x in parameters do
+                            let xs = x.Split(',') 
+                            let paramName = xs.[0]
+                            let sqlDbType = xs.[2] |> int |> enum
+                            let direction = Enum.Parse(typeof<ParameterDirection>, xs.[3]) 
+                            let p = SqlParameter(paramName, sqlDbType, Direction = unbox direction)
+                            this.Parameters.Add p |> ignore
+
+                        this
+                    @@>
+
+                yield ctor :> MemberInfo    
             ]
         
         
@@ -202,9 +203,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 async {
                     let sqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>) : SqlCommand
                     //open connection async on .NET 4.5
-                    use conn = new SqlConnection(sqlCommand.Connection.ConnectionString)
-                    conn.Open()
-                    sqlCommand.Connection <- conn
+                    sqlCommand.Connection.Open()
+                    use ensureConnectionClosed = sqlCommand.CloseConnectionOnly()
                     return! sqlCommand.AsyncExecuteNonQuery() 
                 }
             @@>
@@ -246,7 +246,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                            
                 returnType, executeMethodBody
                     
-        //let returnType = typedefof<_ Async>.MakeGenericType syncReturnType
         let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ syncReturnType ])
         let asyncExecute = ProvidedMethod("AsyncExecute", [], asyncReturnType, InvokeCode = executeMethodBody)
         let execute = ProvidedMethod("Execute", [], syncReturnType)
