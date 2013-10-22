@@ -97,6 +97,12 @@ cmdSp.Execute() |> Async.RunSynchronously
 cmdSp.SpReturnValue
 ```
 
+WPF Data Binding example
+http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/tree/master/DataBinding
+
+WebAPI example
+http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/tree/master/WebApi
+
 ### Library license
 
 The library is available under Apache 2.0. For more information see the [License file] 
