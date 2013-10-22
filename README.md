@@ -93,7 +93,7 @@ Stored procedure by name only
 type UpdateEmplInfoCommandSp = 
     SqlCommand<"HumanResources.uspUpdateEmployeePersonalInfo", connectionString, CommandType = CommandType.StoredProcedure>
 let cmdSp = new UpdateEmplInfoCommandSp(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F")
-cmdSp.Execute() |> Async.RunSynchronously
+cmdSp.AsyncExecute() |> Async.RunSynchronously
 cmdSp.SpReturnValue
 ```
 
