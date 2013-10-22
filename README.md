@@ -97,10 +97,12 @@ cmdSp.Execute() |> Async.RunSynchronously
 cmdSp.SpReturnValue
 ```
 
-WPF Data Binding example
+#WPF Data Binding example
+
 http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/tree/master/DataBinding
 
-WebAPI example
+#WebAPI example
+
 http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/tree/master/WebApi
 
 ### Library license
