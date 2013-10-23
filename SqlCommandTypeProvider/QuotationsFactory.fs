@@ -33,7 +33,7 @@ type QuotationsFactory private() =
 
     static member internal MapNullablesToOptions(columnTypes : string list, isNullableColumn : bool list) = 
         assert(columnTypes.Length = isNullableColumn.Length)
-        let arr = Var("values", typeof<obj[]>)
+        let arr = Var("_", typeof<obj[]>)
         let body =
             (columnTypes, isNullableColumn) 
             ||> List.zip
@@ -67,7 +67,7 @@ type QuotationsFactory private() =
                             let row = Array.zeroCreate columnTypes.Length
                             for i = 0 to columnTypes.Length - 1 do
                                 row.[i] <- if reader.IsDBNull(i) then null else reader.[i] 
-                            do
+                            do 
                                 (%%mapper : obj[] -> unit) row
                             yield row  
                     finally
