@@ -25,7 +25,38 @@ type QuotationsFactory private() =
             }
         @@>
 
+    static member internal MapNullableArrayItemToOption<'T>(arr, index) =
+        <@
+            let values : obj[] = %%arr
+            values.[index] <- box(if values.[index] = null then None else Some(unbox<'T> values.[index]))
+        @> 
+
+    static member internal MapNullablesToOptions(columnTypes : string list, isNullableColumn : bool list) = 
+        assert(columnTypes.Length = isNullableColumn.Length)
+        let arr = Var("values", typeof<obj[]>)
+        let body =
+            (columnTypes, isNullableColumn) 
+            ||> List.zip
+            |> List.mapi(fun index (typeName, isNullableColumn) ->
+                if isNullableColumn 
+                then 
+                    typeof<QuotationsFactory>
+                        .GetMethod("MapNullableArrayItemToOption", BindingFlags.NonPublic ||| BindingFlags.Static)
+                        .MakeGenericMethod(Type.GetType typeName)
+                        .Invoke(null, [| box(Expr.Var arr); box index |])
+                        |> unbox
+                        |> Some
+                else 
+                    None
+            ) 
+            |> List.choose id
+            |> List.fold (fun acc x ->
+                Expr.Sequential(acc, x)
+            ) <@@ () @@>
+        Expr.Lambda(arr, body)
+
     static member internal GetRows(cmd, singleRow, columnTypes : string list, isNullableColumn : bool list) = 
+        let mapper = QuotationsFactory.MapNullablesToOptions(columnTypes, isNullableColumn)
         <@@ 
             async {
                 let! token = Async.CancellationToken
@@ -34,14 +65,10 @@ type QuotationsFactory private() =
                     try 
                         while(not token.IsCancellationRequested && reader.Read()) do
                             let row = Array.zeroCreate columnTypes.Length
-                            reader.GetValues row |> ignore
                             for i = 0 to columnTypes.Length - 1 do
-                                if isNullableColumn.[i]
-                                then
-                                    let t = typedefof<_ option>.MakeGenericType(Type.GetType columnTypes.[i])
-                                    row.[i] <-  if reader.IsDBNull(i) || row.[i] = null
-                                                then t.GetProperty("None").GetValue(null, [||])
-                                                else t.GetMethod("Some").Invoke(null, [| row.[i] |])
+                                row.[i] <- if reader.IsDBNull(i) then null else reader.[i] 
+                            do
+                                (%%mapper : obj[] -> unit) row
                             yield row  
                     finally
                         reader.Close()

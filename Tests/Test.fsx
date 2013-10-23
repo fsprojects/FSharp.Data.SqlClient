@@ -6,8 +6,8 @@ open System.Data
 open System
 
 [<Literal>]
-let connectionString = """Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"""
-//let connectionString = """Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"""
+//let connectionString = """Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"""
+let connectionString = """Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"""
 
 [<Literal>]
 let queryProductsSql = " 

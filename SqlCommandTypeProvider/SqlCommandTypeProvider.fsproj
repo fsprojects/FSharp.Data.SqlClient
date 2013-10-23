@@ -58,7 +58,7 @@
     <Compile Include="TypeProvider.fs" />
     <Compile Include="AssemblyInfo.fs" />
     <None Include="App.config" />
-    <None Include="Scripts\Ado.fsx" />
+    <None Include="Scripts\Scratchpad.fsx" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>

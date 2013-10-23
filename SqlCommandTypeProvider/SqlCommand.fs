@@ -13,7 +13,7 @@ type SqlCommand with
     member this.AsyncExecuteNonQuery() =
         Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) 
 
-    //address an issue and regular Dispose on connection needed for async computation wipes out all properties like ConnectionString in addition to closing connection to db
+    //address an issue when regular Dispose on SqlConnection needed for async computation wipes out all properties like ConnectionString in addition to closing connection to db
     member this.CloseConnectionOnly() = {
         new IDisposable with
             member __.Dispose() = this.Connection.Close()
