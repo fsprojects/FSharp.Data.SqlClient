@@ -29,7 +29,7 @@ let private invalidChars = [
     yield! Path.GetInvalidFileNameChars() 
     yield! Path.GetInvalidPathChars()] |> set
 
-let parseTextAtDesignTime (commandTextOrPath : string) resolutionFolder =
+let parseTextAtDesignTime (commandTextOrPath : string) resolutionFolder invalidate =
     if commandTextOrPath |> Seq.exists (fun c-> invalidChars.Contains c)
     then commandTextOrPath
     else
@@ -38,5 +38,9 @@ let parseTextAtDesignTime (commandTextOrPath : string) resolutionFolder =
         then commandTextOrPath
         else
             if  Path.GetExtension(commandTextOrPath) <> ".sql" then failwith "Only files with .sql extension are supported"
+            let watcher = new FileSystemWatcher(Filter = commandTextOrPath, Path = resolutionFolder)
+            watcher.Changed.Add(fun _ -> invalidate())
+            watcher.EnableRaisingEvents <- true                    
             File.ReadAllText(path)
+            
   
