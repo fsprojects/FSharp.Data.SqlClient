@@ -31,16 +31,16 @@ let private invalidChars = [
 
 let parseTextAtDesignTime (commandTextOrPath : string) resolutionFolder invalidate =
     if commandTextOrPath |> Seq.exists (fun c-> invalidChars.Contains c)
-    then commandTextOrPath
+    then commandTextOrPath, None
     else
         let path = Path.Combine(resolutionFolder, commandTextOrPath)
         if File.Exists(path) |> not 
-        then commandTextOrPath
+        then commandTextOrPath, None
         else
             if  Path.GetExtension(commandTextOrPath) <> ".sql" then failwith "Only files with .sql extension are supported"
             let watcher = new FileSystemWatcher(Filter = commandTextOrPath, Path = resolutionFolder)
             watcher.Changed.Add(fun _ -> invalidate())
             watcher.EnableRaisingEvents <- true                    
-            File.ReadAllText(path)
+            File.ReadAllText(path), Some watcher
             
   
