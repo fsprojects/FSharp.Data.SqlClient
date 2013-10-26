@@ -26,7 +26,6 @@ let getConnectionString resolutionFolder connectionString connectionStringName c
 
 
 let private invalidChars = [ 
-    yield! Path.GetInvalidFileNameChars() 
     yield! Path.GetInvalidPathChars()] |> set
 
 let parseTextAtDesignTime (commandTextOrPath : string) resolutionFolder invalidate =
