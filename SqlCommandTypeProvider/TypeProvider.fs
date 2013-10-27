@@ -83,6 +83,15 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 let parameters = this.ExtractParameters(designTimeConnectionString, commandText, isStoredProcedure)
                 yield! this.AddPropertiesForParameters(parameters) 
 
+                let commandProp = ProvidedProperty("SqlCommand", typeof<SqlCommand>)
+                commandProp.GetterCode <- fun args -> 
+                    <@@ 
+                        let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
+                        sqlCommand
+                     @@>
+                commandProp.AddXmlDoc "<summary>Gives access to the underlying SqlCommand for this generated type</summary>"
+                yield commandProp :> MemberInfo
+
                 let ctor = ProvidedConstructor([ProvidedParameter("connectionString", typeof<string>, optionalValue = Unchecked.defaultof<string>)])
                 ctor.InvokeCode <- fun args -> 
                     <@@ 
