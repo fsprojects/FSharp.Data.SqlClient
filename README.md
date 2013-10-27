@@ -1,9 +1,36 @@
 FSharp.Data.SqlCommandTypeProvider
 ==============================
 
-This project IS NOT replacement for either SqlDataConnection or SqlEntityConnection type providers.
+## Features
 
-Requires SQL Server 2012 or SQL Azure Database
+* Typed access to the result of running a query. 
+* Typed access to @parameters needed for running a query
+* Fields that can be NULL translate to the F# Option type, forcing you to deal with the issue of null values directly.
+* Sql is invalid -> Compiler error! 
+* Results as tuples, records, or DataTable
+* Sql can be inline, or in an external file
+* Sync/Async execution
+
+This project IS NOT a replacement for either SqlDataConnection or SqlEntityConnection type providers.
+
+## Limitations
+
+* Requires SQL Server 2012 or SQL Azure Database at compile-time
+* Does not work with queries that use temporary tables 
+* Works in F# only
+* Parameters in a query may only be used once. 
+   
+    You can work around this by declaring a local variable in Sql, and assigning the @param to that local variable: 
+
+    ```SQL
+    DECLARE @input int
+    SET @input = @param
+    SELECT *
+    FROM sys.indexes
+    WHERE @input = 1 or @input = 2
+    ```
+
+## Code samples
 
 Extra type annotations are for demo purposes only
 
@@ -14,13 +41,16 @@ open FSharp.Data.SqlClient
 open System.Data
 open System
 ```
+
 Your connection string here
+
 ```
 [<Literal>]
 let connectionString="Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 ```
 
 Command text
+
 ```ocaml
 [<Literal>]
 let queryProductsSql = " 
@@ -31,6 +61,7 @@ WHERE SellStartDate > @SellStartDate
 ```
 
 Tuples (default)
+
 ```ocaml
 type QueryProductsAsTuples = SqlCommand<queryProductsSql, connectionString>
 let cmd = QueryProductsAsTuples(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
@@ -39,7 +70,9 @@ result
     |> Async.RunSynchronously 
     |> Seq.iter (fun(productName, sellStartDate) -> printfn "Product name: %s. Sells start date %A" productName sellStartDate)
 ```
+
 Custom record types
+
 ```ocaml
 type QueryProducts = 
     SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.Records>
@@ -49,7 +82,9 @@ result1
     |> Async.RunSynchronously 
     |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A" x.ProductName x.SellStartDate)
 ```
+
 DataTable for data binding scenarios and update
+
 ```ocaml
 type QueryProductDataTable = 
     SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.DataTable>
@@ -59,7 +94,9 @@ result2
     |> Async.RunSynchronously 
     |> Seq.map (fun row -> printfn "Product name: %s. Sells start date %O" row.ProductName row.SellStartDate)
 ```
+
 Single row hint
+
 ```ocaml
 type QueryPersonInfoSingletone = 
     SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultType = ResultType.Records, SingleRow=true>
@@ -69,7 +106,9 @@ result3
     |> Async.RunSynchronously 
     |> fun x -> printfn "Person info: Id - %i, FirstName - %s, LastName - %s, JobTitle - %s, BusinessEntityType - %s" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
 ```
+
 Non-query
+
 ```ocaml
 type UpdateEmplInfoCommand = 
     SqlCommand<"EXEC HumanResources.uspUpdateEmployeePersonalInfo @BusinessEntityID, @NationalIDNumber, @BirthDate, @MaritalStatus, @Gender", connectionString>
@@ -77,7 +116,9 @@ let cmd4 = new UpdateEmplInfoCommand(BusinessEntityID = 2, NationalIDNumber = "2
 let result4 : Async<int> = cmd4.AsyncExecute() 
 let rowsAffected = result4 |> Async.RunSynchronously 
 ```
+
 Single value
+
 ```ocaml
 type GetServerTime = 
     SqlCommand<"IF @IsUtc = CAST(1 AS BIT) SELECT GETUTCDATE() ELSE SELECT GETDATE()", connectionString, SingleRow=true>
@@ -88,7 +129,9 @@ getSrvTime.IsUtc <- false
 //Execute again synchronously
 getSrvTime.Execute() |> printfn "%A"
 ```
+
 Stored procedure by name only
+
 ```ocaml
 type UpdateEmplInfoCommandSp = 
     SqlCommand<"HumanResources.uspUpdateEmployeePersonalInfo", connectionString, CommandType = CommandType.StoredProcedure>
@@ -97,13 +140,11 @@ cmdSp.AsyncExecute() |> Async.RunSynchronously
 cmdSp.SpReturnValue
 ```
 
-###WPF Data Binding example
+### Other samples
 
-http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/tree/master/DataBinding
+[WPF Databinding](http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/tree/master/DataBinding)
 
-###WebAPI example
-
-http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/tree/master/WebApi
+[Web API](http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/tree/master/WebApi)
 
 ### Library license
 
