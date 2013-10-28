@@ -5,9 +5,10 @@ open System.IO
 open System
 
 let getConnectionString resolutionFolder connectionString connectionStringName configFile  =
-    if connectionString <> "" then connectionString
-    else
-        if connectionStringName = "" then failwithf "Either ConnectionString or ConnectionStringName is required"
+    match connectionString, connectionStringName with
+    | "", "" -> failwith "Either ConnectionString or ConnectionStringName is required"
+    | _, "" -> connectionString
+    | "", _ -> 
         let getMappedConfig file = 
             let path = Path.Combine(resolutionFolder, file)            
             let map = new ExeConfigurationFileMap()
@@ -23,10 +24,9 @@ let getConnectionString resolutionFolder connectionString connectionStringName c
         if configSection = null 
         then failwithf "Connection string %s is not found." connectionStringName
         else configSection.ConnectionString
+    | _, _ -> failwith "Ambiguous configuration: both ConnectionString and ConnectionStringName provided."
 
-
-let private invalidChars = [ 
-    yield! Path.GetInvalidPathChars()] |> set
+let private invalidChars = Path.GetInvalidPathChars() |> set
 
 let parseTextAtDesignTime (commandTextOrPath : string) resolutionFolder invalidate =
     if commandTextOrPath |> Seq.exists (fun c-> invalidChars.Contains c)

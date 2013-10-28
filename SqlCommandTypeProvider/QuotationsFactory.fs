@@ -28,7 +28,7 @@ type QuotationsFactory private() =
     static member internal MapNullableArrayItemToOption<'T>(arr, index) =
         <@
             let values : obj[] = %%arr
-            values.[index] <- box <| if Convert.IsDBNull(values.[index]) then None else Some(unbox<'T> values.[index]) 
+            values.[index] <- box <| if Convert.IsDBNull(values.[index]) then None else Some(unbox<'T> values.[index])
         @> 
 
     static member internal MapNullablesToOptions(columnTypes : string list, isNullableColumn : bool list) = 

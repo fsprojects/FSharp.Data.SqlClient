@@ -27,26 +27,33 @@ type SqlConnection with
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 or higher or Azure SQL Database). Currently used: %s" this.ServerVersion
 
+    member this.GetDataTypesMapping() = 
+
+        let providerTypes = 
+            this.GetSchema("DataTypes").AsEnumerable() 
+            |> Seq.map (fun r -> r.Field("TypeName") |> string, r.Field("ProviderDbType") |> int, r.Field("DataType") |> string)
+            |> Array.ofSeq 
+
+        let sqlEngineTypes = 
+            use c = new SqlCommand("SELECT name, system_type_id FROM sys.types", this) in
+            c.ExecuteReader(CommandBehavior.CloseConnection)
+            |> Seq.cast<IDataRecord>
+            |> Seq.map (fun r -> r.["name"] |> string, r.["system_type_id"] |> unbox<byte> |> int)
+            |> Array.ofSeq
+
+        query {
+            for typename, providerdbtype, clrType in providerTypes do
+            join (systypename, systemtypeid) in sqlEngineTypes on (typename = systypename)
+            //the next line fix the issue when ADO.NET SQL provider maps tinyint to byte despite of claiming to map it to SByte according to GetSchema("DataTypes")
+            let clrTypeFixed = if systemtypeid = 48 (*tinyint*) then typeof<byte>.FullName else clrType
+            select (systemtypeid, providerdbtype, clrTypeFixed)
+        }
+        |> Seq.toList
+
     member internal this.LoadDataTypesMap() = 
-        if List.isEmpty !dataTypeMappings
+        if List.isEmpty !dataTypeMappings 
         then
-            dataTypeMappings :=
-                let datatypes = 
-                   this.GetSchema("DataTypes").AsEnumerable() 
-                   |> Seq.map (fun r -> r.Field("TypeName") |> string, r.Field("ProviderDbType") |> int, r.Field("DataType") |> string)
-                   |> Array.ofSeq 
-                let systypes = 
-                   use c = new SqlCommand("SELECT name, system_type_id FROM sys.types", this) in
-                   c.ExecuteReader(CommandBehavior.CloseConnection)
-                   |> Seq.cast<IDataRecord>
-                   |> Seq.map (fun r -> r.["name"] |> string, r.["system_type_id"] |> unbox<byte> |> int)
-                   |> Array.ofSeq
-                query {
-                  for typename, providerdbtype, datatype in datatypes do
-                  join (systypename, systemtypeid) in systypes on (typename = systypename)
-                  select (systemtypeid, providerdbtype, datatype)
-            }
-            |> Seq.toList
+            dataTypeMappings := this.GetDataTypesMapping()
 
 
 let internal mapSqlEngineTypeId(sqlEngineTypeId, detailedMessage) = 
