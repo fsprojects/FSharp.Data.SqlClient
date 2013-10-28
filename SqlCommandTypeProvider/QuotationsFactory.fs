@@ -28,7 +28,7 @@ type QuotationsFactory private() =
     static member internal MapNullableArrayItemToOption<'T>(arr, index) =
         <@
             let values : obj[] = %%arr
-            values.[index] <- box <| if Convert.IsDBNull(values.[index]) then None else Some(unbox<'T> values.[index]) 
+            values.[index] <- box(if values.[index] = null then None else Some(unbox<'T> values.[index]))
         @> 
 
     static member internal MapNullablesToOptions(columnTypes : string list, isNullableColumn : bool list) = 
@@ -60,12 +60,16 @@ type QuotationsFactory private() =
         <@@ 
             async {
                 let! token = Async.CancellationToken
+                let types = columnTypes |> List.map Type.GetType
+
                 let! (reader : SqlDataReader) = %%QuotationsFactory.GetDataReader(cmd, singleRow)
                 return seq {
                     try 
                         while(not token.IsCancellationRequested && reader.Read()) do
                             let row = Array.zeroCreate columnTypes.Length
-                            let values = reader.GetValues(row) |> ignore
+                            for i = 0 to columnTypes.Length - 1 do
+                                row.[i] <- if reader.IsDBNull(i) then null 
+                                           else Convert.ChangeType(reader.[i], types.[i])
                             do 
                                 (%%mapper : obj[] -> unit) row
                             yield row  
