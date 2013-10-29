@@ -115,7 +115,17 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         
         let outputColumns : _ list = this.GetOutputColumns(commandText, designTimeConnectionString)
         
-        this.AddExecuteMethod(outputColumns, providedCommandType, resultType, singleRow, commandText)            
+        this.AddExecuteMethod(outputColumns, providedCommandType, resultType, singleRow, commandText) 
+        
+        let getSqlCommandClone = ProvidedMethod("GetSqlCommandClone", [], typeof<SqlCommand>)
+        getSqlCommandClone.InvokeCode <- fun args ->
+            <@@
+                let self : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
+                let clone = self.Clone()
+                clone.Connection <- new SqlConnection(self.Connection.ConnectionString)
+                clone
+            @@>
+        providedCommandType.AddMember getSqlCommandClone          
 
         providedCommandType
 

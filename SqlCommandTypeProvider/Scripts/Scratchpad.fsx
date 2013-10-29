@@ -23,3 +23,9 @@ assert(c = values.Length)
 printfn "values: %A" values
 printfn "type: %s" <| values.[0].GetType().Name
 printfn "value: %i" <| (unbox<sbyte> values.[0])
+
+let cmdClone = cmd.Clone()
+cmd.CommandText = cmdClone.CommandText
+cmdClone.CommandText <- "SELECT 0 AS X"
+//cmdClone.Connection <- cmd.Connection.Clone()
+cmd.Connection = cmdClone.Connection
