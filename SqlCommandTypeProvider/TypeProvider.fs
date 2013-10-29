@@ -67,7 +67,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         let resolutionFolder = config.ResolutionFolder
         let commandText, opt = Configuration.parseTextAtDesignTime commandText resolutionFolder (fun ()-> invalidateE.Trigger(this,EventArgs()))
         match opt with | Some disposable -> watcher <- disposable | None -> ()
-        let designTimeConnectionString =  Configuration.getConnectionString resolutionFolder connectionStringProvided connectionStringName configFile
+        let designTimeConnectionString =  Configuration.getConnectionString (resolutionFolder, connectionStringProvided, connectionStringName, configFile)
         
         using(new SqlConnection(designTimeConnectionString)) <| fun conn ->
             conn.Open()
@@ -89,7 +89,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                         let runTimeConnectionString = 
                             if String.IsNullOrEmpty(%%args.[0])
                             then
-                                Configuration.getConnectionString resolutionFolder connectionStringProvided connectionStringName configFile
+                                Configuration.getConnectionString (resolutionFolder, connectionStringProvided, connectionStringName, configFile)
                             else 
                                 %%args.[0]
                         do
