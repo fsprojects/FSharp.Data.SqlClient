@@ -52,7 +52,7 @@
     <Compile Include="ProvidedTypes-head.fsi" />
     <Compile Include="ProvidedTypes-head.fs" />
     <Compile Include="Configuration.fs" />
-    <Compile Include="SqlCommand.fs" />
+    <Compile Include="SqlClient.fs" />
     <Compile Include="DataTable.fs" />
     <Compile Include="QuotationsFactory.fs" />
     <Compile Include="TypeProvider.fs" />
