@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
     <metadata>
         <id>SqlCommandTypeProvider</id>
-        <version>1.0.8</version>
+        <version>1.0.9</version>
         <authors>Dmitry Morozov,Dmitry Sevastianov</authors>
         <owners>Dmitry Morozov</owners>
         <licenseUrl>https://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/blob/master/LICENSE.md</licenseUrl>
@@ -10,7 +10,7 @@
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>The SqlCommand type provider wraps over sql query to provide strongly typed parameters and various ways of deserializing output, including Tuples and DTOs</description>
         <summary>SqlCommand F# type provider</summary>
-        <releaseNotes>Support for .sql file change monitoring; switching Option generation to Quotations for performance</releaseNotes>
+        <releaseNotes>Fix for FileWatcher disposal</releaseNotes>
         <copyright>Copyright 2013</copyright>
         <tags>F# fsharp data typeprovider sql</tags>
         <frameworkAssemblies>
