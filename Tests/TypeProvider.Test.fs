@@ -18,7 +18,7 @@ type GetServerTime = SqlCommand<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'",
 [<Fact>]
 let sqlCommandClone() = 
     let cmd = new GetServerTime(Bit = 1)
-    let cmdClone = cmd.GetSqlCommandClone()
+    let cmdClone = cmd.GetSqlCommandCopy()
     cmdClone.Connection.Open()
     Assert.Equal(cmdClone.ExecuteScalar(), cmd.Execute())    
     cmdClone.Parameters.["@Bit"].Value <- 0

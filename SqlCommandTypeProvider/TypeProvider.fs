@@ -117,15 +117,15 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         
         this.AddExecuteMethod(outputColumns, providedCommandType, resultType, singleRow, commandText) 
         
-        let getSqlCommandClone = ProvidedMethod("GetSqlCommandClone", [], typeof<SqlCommand>)
-        getSqlCommandClone.InvokeCode <- fun args ->
+        let getSqlCommandCopy = ProvidedMethod("GetSqlCommandCopy", [], typeof<SqlCommand>)
+        getSqlCommandCopy.InvokeCode <- fun args ->
             <@@
                 let self : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
                 let clone = self.Clone()
                 clone.Connection <- new SqlConnection(self.Connection.ConnectionString)
                 clone
             @@>
-        providedCommandType.AddMember getSqlCommandClone          
+        providedCommandType.AddMember getSqlCommandCopy          
 
         providedCommandType
 
