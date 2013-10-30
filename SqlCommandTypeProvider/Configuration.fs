@@ -7,7 +7,7 @@ open System
 type Configuration() =    
     static let invalidChars = Path.GetInvalidPathChars() |> set
 
-    static member parseTextAtDesignTime (commandTextOrPath : string) resolutionFolder invalidate =
+    static member ParseTextAtDesignTime(commandTextOrPath : string, resolutionFolder, invalidateCallback) =
         if commandTextOrPath |> Seq.exists (fun c-> invalidChars.Contains c)
         then commandTextOrPath, None
         else
@@ -17,11 +17,11 @@ type Configuration() =
             else
                 if  Path.GetExtension(commandTextOrPath) <> ".sql" then failwith "Only files with .sql extension are supported"
                 let watcher = new FileSystemWatcher(Filter = commandTextOrPath, Path = resolutionFolder)
-                watcher.Changed.Add(fun _ -> invalidate())
+                watcher.Changed.Add(fun _ -> invalidateCallback())
                 watcher.EnableRaisingEvents <- true                    
                 File.ReadAllText(path), Some watcher
 
-    static member getConnectionString (resolutionFolder, connectionString, connectionStringName, configFile ) =
+    static member GetConnectionString (resolutionFolder, connectionString, connectionStringName, configFile ) =
         match connectionString, connectionStringName with
         | "", "" -> failwith "Either ConnectionString or ConnectionStringName is required"
         | _, "" -> connectionString

@@ -65,9 +65,10 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         let dataDirectory : string = unbox parameters.[7] 
 
         let resolutionFolder = config.ResolutionFolder
-        let commandText, opt = Configuration.parseTextAtDesignTime commandText resolutionFolder (fun ()-> invalidateE.Trigger(this,EventArgs()))
-        match opt with | Some disposable -> watcher <- disposable | None -> ()
-        let designTimeConnectionString =  Configuration.getConnectionString (resolutionFolder, connectionStringProvided, connectionStringName, configFile)
+        let commandText, watcher' = 
+            Configuration.ParseTextAtDesignTime(commandText, resolutionFolder, fun ()-> invalidateE.Trigger(this,EventArgs()))
+        watcher' |> Option.iter (fun x -> watcher <- x)
+        let designTimeConnectionString =  Configuration.GetConnectionString(resolutionFolder, connectionStringProvided, connectionStringName, configFile)
         
         using(new SqlConnection(designTimeConnectionString)) <| fun conn ->
             conn.Open()
@@ -89,7 +90,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                         let runTimeConnectionString = 
                             if String.IsNullOrEmpty(%%args.[0])
                             then
-                                Configuration.getConnectionString (resolutionFolder, connectionStringProvided, connectionStringName, configFile)
+                                Configuration.GetConnectionString (resolutionFolder, connectionStringProvided, connectionStringName, configFile)
                             else 
                                 %%args.[0]
                         do
@@ -117,7 +118,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         
         this.AddExecuteMethod(outputColumns, providedCommandType, resultType, singleRow, commandText) 
         
-        let getSqlCommandCopy = ProvidedMethod("GetSqlCommandCopy", [], typeof<SqlCommand>)
+        let getSqlCommandCopy = ProvidedMethod("AsSqlCommand", [], typeof<SqlCommand>)
         getSqlCommandCopy.InvokeCode <- fun args ->
             <@@
                 let self : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)

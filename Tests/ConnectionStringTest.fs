@@ -5,18 +5,22 @@ open FsUnit
 open System.Configuration
 
 [<Fact>]
-let ``Connection string provided`` () = Configuration.getConnectionString ""  "foo"  ""  ""  |> should equal "foo"
+let ``Connection string provided`` () = 
+    Configuration.GetConnectionString(resolutionFolder = "", connectionString = "foo", connectionStringName = "", configFile = "")  
+    |> should equal "foo"
 
 [<Fact>]
 let ``Nothing is provided`` () = 
-    should throw typeof<System.Exception> <| fun() -> Configuration.getConnectionString ""  ""  ""  "" |> ignore
+    should throw typeof<System.Exception> <| fun() ->
+        Configuration.GetConnectionString(resolutionFolder = "", connectionString = "", connectionStringName = "", configFile = "") 
+        |> ignore
 
 [<Fact>]
 let ``From config file`` () = 
-    Configuration.getConnectionString "" "" "AdventureWorks2012" "Tests.dll.config"
+    Configuration.GetConnectionString(resolutionFolder = "", connectionString = "", connectionStringName = "AdventureWorks2012", configFile = "Tests.dll.config") 
     |> should equal ConfigurationManager.ConnectionStrings.["AdventureWorks2012"].ConnectionString
 
 [<Fact>]
 let ``From default config file`` () = 
-    Configuration.getConnectionString "" "" "AdventureWorks2012" "" 
+    Configuration.GetConnectionString(resolutionFolder = "", connectionString = "", connectionStringName = "AdventureWorks2012", configFile = "") 
     |> should equal ConfigurationManager.ConnectionStrings.["AdventureWorks2012"].ConnectionString
