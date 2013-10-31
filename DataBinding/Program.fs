@@ -3,6 +3,7 @@
 open System
 open System.Windows
 open System.Windows.Controls
+open System.Data.SqlClient
 
 open FSharp.Data.SqlClient
 
@@ -17,13 +18,23 @@ type Query = SqlCommand<queryTableSql, ConnectionStringName="AdventureWorks2012"
 let main argv = 
     let mainWindow : Window = Uri("/Mainwindow.xaml", UriKind.Relative) |> Application.LoadComponent |> unbox
     let close : Button = mainWindow.FindName "Close" |> unbox
+    let save : Button = mainWindow.FindName "Save" |> unbox
     let grid : DataGrid = mainWindow.FindName "Grid" |> unbox
 
     let cmd = Query()
-    //cmd.SellStartDate <- DateTime.Parse "7/1/2006"
     let data = cmd.Execute()
     grid.ItemsSource <- data
 
     close.Click.Add <| fun _ -> mainWindow.Close()
+    save.Click.Add <| fun _ -> 
+        let sqlCommand = cmd.AsSqlCommand()
+        let adapter = new SqlDataAdapter(sqlCommand)
+        let builder = new SqlCommandBuilder(adapter)
+        adapter.UpdateCommand <- builder.GetUpdateCommand()
+        sqlCommand.Connection.Open()
+        try
+            adapter.Update data |> ignore
+        finally
+            sqlCommand.Connection.Close()
 
     Application().Run mainWindow
