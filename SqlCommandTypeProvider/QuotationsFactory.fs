@@ -65,7 +65,7 @@ type QuotationsFactory private() =
                     try 
                         while(not token.IsCancellationRequested && reader.Read()) do
                             let row = Array.zeroCreate columnTypes.Length
-                            let values = reader.GetValues(row) |> ignore
+                            reader.GetValues(row) |> ignore
                             do 
                                 (%%mapper : obj[] -> unit) row
                             yield row  
