@@ -212,11 +212,11 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                    let systype = r.["system_type_id"] |> unbox<byte>
                    let clrType, sqlType = mapSqlEngineTypeId(systype |> int, error)
                    let isNullable = r.["is_nullable"] |> unbox
-                   this.GetTypeForNullable(clrType, isNullable)) |> Array.ofSeq
+                   clrType, isNullable, this.GetTypeForNullable(clrType, isNullable)) |> List.ofSeq
                 if cols.Length > 0 then // is_table_type
-                   let tupletype = FSharpType.MakeTupleType(cols |> Array.map(fun typ -> typ))
+                   let tupletype = FSharpType.MakeTupleType(cols |> List.map(fun (_,_,typ) -> typ) |> Array.ofList)
                    let typ = typedefof<_ seq>.MakeGenericType tupletype
-                   providedTypes <- providedTypes.Add(userType, typ)
+                   providedTypes <- providedTypes.Add(userType, (typ, cols))
         providedTypes
 
     member internal __.AddPropertiesForParameters(parameters, providedTableValuedParameters) =  [
@@ -228,11 +228,11 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     xs.[0], xs.[1], direction, xs.[4] |> int
 
                 assert (paramName.StartsWith "@")
-                let tableValueParam = providedTableValuedParameters.ContainsKey userType
+                let tableValueParam = providedTableValuedParameters.TryFind userType
                 let propertyName = if direction = ParameterDirection.ReturnValue then "SpReturnValue" else paramName.Substring 1
-                let propertyType = match providedTableValuedParameters.TryFind userType with
-                                   | Some t -> t
-                                   | None   -> Type.GetType clrTypeName
+                let propertyType = match tableValueParam with
+                                   | Some (t,_) -> t
+                                   | None       -> Type.GetType clrTypeName
                 
                 let prop = ProvidedProperty(propertyName, propertyType = propertyType)
                 if direction = ParameterDirection.Output || direction = ParameterDirection.InputOutput || direction = ParameterDirection.ReturnValue
@@ -243,7 +243,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                             sqlCommand.Parameters.[paramName].Value
                         @@>
 
-                if direction = ParameterDirection.Input && tableValueParam = false
+                if direction = ParameterDirection.Input && tableValueParam.IsNone
                 then 
                     prop.SetterCode <- fun args -> 
                         <@@ 
@@ -251,8 +251,12 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                             sqlCommand.Parameters.[paramName].Value <- %%Expr.Coerce(args.[1], typeof<obj>)
                         @@>
 
-                if direction = ParameterDirection.Input && tableValueParam = true
+                if direction = ParameterDirection.Input && tableValueParam.IsSome
                 then 
+                    let t,cols = tableValueParam.Value
+                    let columns    = cols |> List.map (fun (c,_,_) -> c)
+                    let isNullable = cols |> List.map (fun (_,n,_) -> n)
+                    let mapper = QuotationsFactory.MapOptionsToNullables(columns,isNullable)
                     prop.SetterCode <- fun args -> 
                         <@@
                             let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
@@ -265,14 +269,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                                     first <- false
                                     for col in 0 .. tups.Length-1 do
                                         table.Columns.Add() |> ignore
-                                for col in 0 .. tups.Length-1 do
-                                   let v = tups.[col]
-                                   if v <> null then
-                                     // TODO: Remove option types without reflection 
-                                     let typ = v.GetType()
-                                     if typ.IsGenericType && typ.GetGenericTypeDefinition() = typedefof<option<_>> then
-                                        tups.[col] <- typ.GetProperty("Value").GetValue(v, [| |])
-                                        
+                                (%%mapper : obj[] -> unit) tups
                                 table.Rows.Add(tups) |> ignore 
                             sqlCommand.Parameters.[paramName].Value <- table
                          @@>
