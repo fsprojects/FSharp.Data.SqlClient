@@ -40,11 +40,7 @@ Extra type annotations are for demo purposes only
 open FSharp.Data.SqlClient
 open System.Data
 open System
-```
 
-Your connection string here
-
-```
 [<Literal>]
 let connectionString="Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 ```
@@ -60,7 +56,7 @@ WHERE SellStartDate > @SellStartDate
 "
 ```
 
-Tuples (default)
+#### Tuples (default)
 
 ```ocaml
 type QueryProductsAsTuples = SqlCommand<queryProductsSql, connectionString>
@@ -71,7 +67,7 @@ result
     |> Seq.iter (fun(productName, sellStartDate) -> printfn "Product name: %s. Sells start date %A" productName sellStartDate)
 ```
 
-Custom record types
+#### Custom record types
 
 ```ocaml
 type QueryProducts = 
@@ -83,7 +79,7 @@ result1
     |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A" x.ProductName x.SellStartDate)
 ```
 
-DataTable for data binding scenarios and update
+#### DataTable for data binding scenarios and update
 
 ```ocaml
 type QueryProductDataTable = 
@@ -95,7 +91,7 @@ result2
     |> Seq.map (fun row -> printfn "Product name: %s. Sells start date %O" row.ProductName row.SellStartDate)
 ```
 
-Single row hint
+#### Single row hint
 
 ```ocaml
 type QueryPersonInfoSingletone = 
@@ -107,7 +103,7 @@ result3
     |> fun x -> printfn "Person info: Id - %i, FirstName - %s, LastName - %s, JobTitle - %s, BusinessEntityType - %s" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
 ```
 
-Non-query
+#### Non-query
 
 ```ocaml
 type UpdateEmplInfoCommand = 
@@ -117,7 +113,7 @@ let result4 : Async<int> = cmd4.AsyncExecute()
 let rowsAffected = result4 |> Async.RunSynchronously 
 ```
 
-Single value
+#### Single value
 
 ```ocaml
 type GetServerTime = 
@@ -130,7 +126,7 @@ getSrvTime.IsUtc <- false
 getSrvTime.Execute() |> printfn "%A"
 ```
 
-Stored procedure by name only
+#### Stored procedure by name only
 
 ```ocaml
 type UpdateEmplInfoCommandSp = 
@@ -139,6 +135,35 @@ let cmdSp = new UpdateEmplInfoCommandSp(BusinessEntityID = 2, NationalIDNumber =
 cmdSp.AsyncExecute() |> Async.RunSynchronously
 cmdSp.SpReturnValue
 ```
+
+#### Table-valued parameters
+
+When using TVPs, the Sql command needs to be calling a stored procedure or user-defined function that takes the table type as a parameter. 
+
+Set up sample type and sproc
+
+```SQL
+CREATE TYPE myTableType AS TABLE (myId int not null, myName nvarchar(30) null)
+GO
+CREATE PROCEDURE myProc 
+   @p1 myTableType readonly
+AS
+BEGIN
+   SELECT myName from @p1 p
+END
+```
+
+Calling the sproc: 
+
+```ocaml
+type TableValuedSample = 
+    SqlCommand<"exec myProc @x", connectionString>
+let cmdSp = new TableValuedSample(x = [ 1, Some "monkey"; 2, Some "donkey"])
+cmdSp.Execute() |> List.ofSeq
+
+val it : string list = ["monkey"; "donkey"]
+```
+
 
 ### Other samples
 

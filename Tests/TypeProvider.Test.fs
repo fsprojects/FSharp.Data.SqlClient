@@ -33,8 +33,7 @@ type TableValuedRecord = SqlCommand<"exec myProc @x", connectionString, ResultTy
 
 [<Fact>]
 let tableValuedSprocTupleValue() = 
-    let cmd = new TableValuedTuple()
-    cmd.x <- [ (1, Some "monkey") ; (2, Some "donkey") ]
+    let cmd = new TableValuedTuple(x = [ 1, Some "monkey" ; 2, Some "donkey" ])
     Assert.Equal((1, Some "monkey"), cmd.Execute())    
     ()
 
@@ -44,22 +43,15 @@ let tvpInputIsEnumeratedExactlyOnce() =
     let counter = ref 0
     cmd.x <- seq { 
          counter := !counter + 1
-         yield (1, None)
-         yield (2, Some "donkey") }
+         yield 1, None
+         yield 2, Some "donkey" }
     cmd.Execute() |> ignore
     Assert.Equal(1, !counter)    
 
 [<Fact>] 
 let tableValuedSprocTupleNull() = 
     let cmd = new TableValuedTuple()
-    cmd.x <- [ (1, None) ; (2, Some "donkey") ]
+    cmd.x <- [ 1, None ; 2, Some "donkey" ]
     Assert.Equal((1, None), cmd.Execute())    
     ()
 
-//[<Fact>]
-//let tableValuedSprocRecord() = 
-//    let cmd = new TableValuedRecord()
-//    cmd.x <- seq { { myId: 1; myName: "monkey" }
-//                   { myId: 2; myName: "donkey" } }
-//    Assert.Equal<string>(1, cmd.Execute())    
-//
