@@ -37,6 +37,18 @@ let tableValuedSprocTupleValue() =
     Assert.Equal((1, Some "monkey"), cmd.Execute())    
     ()
 
+[<Fact>]
+let tableValuedClone() = 
+    let cmd = new TableValuedTuple(x = [ 1, Some "monkey" ; 2, Some "donkey" ])
+    let clone = cmd.AsSqlCommand()
+
+    Assert.Equal(1, clone.Parameters.Count)    
+    let table = clone.Parameters.["@x"].Value :?> System.Data.DataTable
+   
+    Assert.Equal(1, Convert.ChangeType(table.Rows.[0].[0], typeof<int>) |> unbox)
+    Assert.Equal<string>("donkey", Convert.ChangeType(table.Rows.[1].[1], typeof<string>) |> unbox)
+    ()
+
 [<Fact>] 
 let tvpInputIsEnumeratedExactlyOnce() = 
     let cmd = new TableValuedTuple()
