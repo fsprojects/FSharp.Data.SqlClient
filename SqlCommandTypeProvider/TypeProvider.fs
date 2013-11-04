@@ -161,10 +161,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 use cmd = new SqlCommand(commandText, conn, CommandType = CommandType.StoredProcedure)
                 SqlCommandBuilder.DeriveParameters cmd
                 for p in cmd.Parameters do
+                    // typeName is full namespace, ie AdventureWorks2012.dbo.myTableType. Only need the last part.
                     let userTypeName = if String.IsNullOrEmpty(p.TypeName) then "" else p.TypeName.Split('.') |> Seq.last
-                    
-                    //System.IO.File.AppendAllText("c:\\dev\\tp7.txt",  + "  " + p.ParameterName + "  " + p.TypeName)
-                    //TODO: Discover TVP's for sprocs
                     let clrTypeName = findBySqlDbType p.SqlDbType
                     yield sprintf "%s,%s,%i,%O,%s" p.ParameterName clrTypeName (int p.SqlDbType) p.Direction userTypeName
             else
