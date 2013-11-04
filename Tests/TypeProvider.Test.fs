@@ -1,6 +1,7 @@
 ﻿module FSharp.Data.SqlClient.TypeProviderTest
 
 open System
+open System.Data
 open Xunit
 
 [<Literal>]
@@ -29,11 +30,18 @@ let sqlCommandClone() =
 
 // If compile fails here, check prereqs.sql
 type TableValuedTuple  = SqlCommand<"exec myProc @x", connectionString, SingleRow = true>
+type TableValuedSprocTuple  = SqlCommand<"myProc", connectionString, SingleRow = true, CommandType = CommandType.StoredProcedure>
 type TableValuedRecord = SqlCommand<"exec myProc @x", connectionString, ResultType = ResultType.Records, SingleRow = true>
 
 [<Fact>]
-let tableValuedSprocTupleValue() = 
+let tableValuedTupleValue() = 
     let cmd = new TableValuedTuple(x = [ 1, Some "monkey" ; 2, Some "donkey" ])
+    Assert.Equal((1, Some "monkey"), cmd.Execute())    
+    ()
+
+[<Fact>]
+let tableValuedSprocTupleValue() = 
+    let cmd = new TableValuedSprocTuple(p1 = [ 1, Some "monkey" ; 2, Some "donkey" ])
     Assert.Equal((1, Some "monkey"), cmd.Execute())    
     ()
 

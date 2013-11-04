@@ -82,8 +82,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         providedCommandType.AddMembersDelayed <| fun () -> 
             [
                 let parameters = this.ExtractParameters(designTimeConnectionString, commandText, isStoredProcedure)
-                let providedTableValueParameter = this.AddTableValuedParameters(designTimeConnectionString, parameters)
-                yield! this.AddPropertiesForParameters(parameters, providedTableValueParameter) 
+                let providedTableValueParameters = this.AddTableValuedParameters(designTimeConnectionString, parameters)
+                yield! this.AddPropertiesForParameters(parameters, providedTableValueParameters) 
                 let ctor = ProvidedConstructor([ProvidedParameter("connectionString", typeof<string>, optionalValue = Unchecked.defaultof<string>)])
                 ctor.InvokeCode <- fun args -> 
                     <@@ 
@@ -106,7 +106,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                             let direction = Enum.Parse(typeof<ParameterDirection>, xs.[3]) 
                             
                             let p = SqlParameter(paramName, sqlDbType, Direction = unbox direction)
-                            let tableTypeName = xs.[5]
+                            let tableTypeName = xs.[4]
                             if tableTypeName <> "" then
                                 p.TypeName <- tableTypeName
                             this.Parameters.Add p |> ignore
@@ -161,9 +161,12 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 use cmd = new SqlCommand(commandText, conn, CommandType = CommandType.StoredProcedure)
                 SqlCommandBuilder.DeriveParameters cmd
                 for p in cmd.Parameters do
+                    let userTypeName = if String.IsNullOrEmpty(p.TypeName) then "" else p.TypeName.Split('.') |> Seq.last
+                    
+                    //System.IO.File.AppendAllText("c:\\dev\\tp7.txt",  + "  " + p.ParameterName + "  " + p.TypeName)
                     //TODO: Discover TVP's for sprocs
                     let clrTypeName = findBySqlDbType p.SqlDbType
-                    yield sprintf "%s,%s,%i,%O,0," p.ParameterName clrTypeName (int p.SqlDbType) p.Direction 
+                    yield sprintf "%s,%s,%i,%O,%s" p.ParameterName clrTypeName (int p.SqlDbType) p.Direction userTypeName
             else
                 use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", conn, CommandType = CommandType.StoredProcedure)
                 cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
@@ -171,11 +174,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 while(reader.Read()) do
                     let paramName = string reader.["name"]
                     let sqlEngineTypeId = unbox<int> reader.["suggested_system_type_id"]
-                    let userTypeId = let ord = reader.GetOrdinal("suggested_user_type_id") in
-                                     if reader.IsDBNull(ord) then 0 else reader.GetInt32(ord)
-                    let userTypeName = let name, schema = reader.GetOrdinal("suggested_user_type_name"),
-                                                          reader.GetOrdinal("suggested_user_type_schema") in
-                                       if reader.IsDBNull(name) then "" else reader.GetString(schema) + "." + reader.GetString (name)
+                    let userTypeName = let name = reader.GetOrdinal("suggested_user_type_name") in
+                                       if reader.IsDBNull(name) then "" else reader.GetString (name)
                     
                     let detailedMessage = " Parameter name:" + paramName
                     let clrTypeName, sqlDbTypeId = mapSqlEngineTypeId(sqlEngineTypeId, detailedMessage)
@@ -186,7 +186,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                         elif output then ParameterDirection.Output
                         else ParameterDirection.Input
 
-                    yield sprintf "%s,%s,%i,%O,%i,%s" paramName clrTypeName sqlDbTypeId direction userTypeId userTypeName
+                    yield sprintf "%s,%s,%i,%O,%s" paramName clrTypeName sqlDbTypeId direction userTypeName
         ]
 
     member this.AddTableValuedParameters(connectionString, parameters:string list) = 
@@ -195,20 +195,20 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
            select c.*
            from sys.table_types as tt
            inner join sys.columns as c on tt.type_table_object_id = c.object_id
-           where tt.user_type_id = @id
+           where tt.name = @name
            order by column_id"
 
         for x in parameters do
             let xs = x.Split(',') 
-            let userType = xs.[4] |> int
-            if userType > 0 then 
+            let tableTypeName = xs.[4]
+            if tableTypeName <> String.Empty then 
                 use conn = new SqlConnection(connectionString)
                 conn.Open()
                 use cmd = new SqlCommand(columnCommandText, conn)
-                cmd.Parameters.AddWithValue("@id", userType) |> ignore
+                cmd.Parameters.AddWithValue("@name", tableTypeName) |> ignore
                 let cols = cmd.ExecuteReaderWith (fun r ->
                    let name = r.["name"] |> unbox
-                   let error = sprintf "Table Type %s, column '%s'" xs.[5] name
+                   let error = sprintf "Table Type %s, column '%s'" tableTypeName name
                    let systype = r.["system_type_id"] |> unbox<byte>
                    let clrType, sqlType = mapSqlEngineTypeId(systype |> int, error)
                    let isNullable = r.["is_nullable"] |> unbox
@@ -216,19 +216,19 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 if cols.Length > 0 then // is_table_type
                    let tupletype = FSharpType.MakeTupleType(cols |> List.map(fun (_,_,typ) -> typ) |> Array.ofList)
                    let typ = typedefof<_ seq>.MakeGenericType tupletype
-                   providedTypes <- providedTypes.Add(userType, (typ, cols))
+                   providedTypes <- providedTypes.Add(tableTypeName, (typ, cols))
         providedTypes
 
     member internal __.AddPropertiesForParameters(parameters, providedTableValuedParameters) =  [
             for x in parameters do
-                let paramName, clrTypeName, direction, userType = 
+                let paramName, clrTypeName, direction, tableTypeName = 
                     let xs = x.Split(',') 
                     let success, direction = Enum.TryParse xs.[3]
                     assert success
-                    xs.[0], xs.[1], direction, xs.[4] |> int
+                    xs.[0], xs.[1], direction, xs.[4]
 
                 assert (paramName.StartsWith "@")
-                let tableValueParam = providedTableValuedParameters.TryFind userType
+                let tableValueParam = providedTableValuedParameters.TryFind tableTypeName
                 let propertyName = if direction = ParameterDirection.ReturnValue then "SpReturnValue" else paramName.Substring 1
                 let propertyType = match tableValueParam with
                                    | Some (t,_) -> t
