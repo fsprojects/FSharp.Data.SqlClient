@@ -199,7 +199,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         for x in parameters do
             let xs = x.Split(',') 
             let tableTypeName = xs.[4]
-            if tableTypeName <> String.Empty then 
+            if tableTypeName <> String.Empty && not (Map.containsKey tableTypeName providedTypes) then 
                 use conn = new SqlConnection(connectionString)
                 conn.Open()
                 use cmd = new SqlCommand(columnCommandText, conn)
@@ -211,9 +211,13 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                    let clrType, sqlType = mapSqlEngineTypeId(systype |> int, error)
                    let isNullable = r.["is_nullable"] |> unbox
                    clrType, isNullable, this.GetTypeForNullable(clrType, isNullable)) |> List.ofSeq
-                if cols.Length > 0 then // is_table_type
+                if cols.Length > 1 then
                    let tupletype = FSharpType.MakeTupleType(cols |> List.map(fun (_,_,typ) -> typ) |> Array.ofList)
                    let typ = typedefof<_ seq>.MakeGenericType tupletype
+                   providedTypes <- providedTypes.Add(tableTypeName, (typ, cols))
+                elif cols.Length = 1 then
+                   let _,_,typ = cols.Head
+                   let typ = typedefof<_ seq>.MakeGenericType typ
                    providedTypes <- providedTypes.Add(tableTypeName, (typ, cols))
         providedTypes
 
@@ -251,26 +255,25 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
                 if direction = ParameterDirection.Input && tableValueParam.IsSome
                 then 
-                    let t,cols = tableValueParam.Value
+                    let rowtype,cols = tableValueParam.Value
                     let columns    = cols |> List.map (fun (c,_,_) -> c)
+                    let singleColumn = columns.Length = 1
                     let isNullable = cols |> List.map (fun (_,n,_) -> n)
                     let mapper = QuotationsFactory.MapOptionsToNullables(columns,isNullable)
                     prop.SetterCode <- fun args -> 
-                        <@@
+                         <@@
                             let sqlCommand : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
                             use table = new DataTable();
-                            let xs = %%Expr.Coerce(args.[1], typeof<seq<obj>>)
-                            let mutable first = true
+                            let xs = %%Expr.Coerce(args.[1], typeof<System.Collections.IEnumerable>) |> Seq.cast<obj>
+                            for col in 0 .. (%%Expr.Value columns.Length)-1 do
+                                table.Columns.Add() |> ignore
                             for x in xs do
-                                let tups = FSharpValue.GetTupleFields(x)
-                                if first then
-                                    first <- false
-                                    for col in 0 .. tups.Length-1 do
-                                        table.Columns.Add() |> ignore
-                                (%%mapper : obj[] -> unit) tups
-                                table.Rows.Add(tups) |> ignore 
+                                let values = if %%Expr.Value singleColumn then [|box x|] else FSharpValue.GetTupleFields(x)
+                                (%%mapper : obj[] -> unit) values
+                                table.Rows.Add(values) |> ignore 
                             sqlCommand.Parameters.[paramName].Value <- table
                          @@>
+
 
                 yield prop :> MemberInfo
         ]

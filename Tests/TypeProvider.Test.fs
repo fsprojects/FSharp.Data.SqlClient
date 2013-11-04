@@ -41,6 +41,7 @@ let ConditionalQuery() =
 type TableValuedTuple  = SqlCommand<"exec myProc @x", connectionString, SingleRow = true>
 type TableValuedSprocTuple  = SqlCommand<"myProc", connectionString, SingleRow = true, CommandType = CommandType.StoredProcedure>
 type TableValuedRecord = SqlCommand<"exec myProc @x", connectionString, ResultType = ResultType.Records, SingleRow = true>
+type TableValuedSingle = SqlCommand<"exec SingleElementProc @x", connectionString>
 
 [<Fact>]
 let tableValuedTupleValue() = 
@@ -52,6 +53,13 @@ let tableValuedTupleValue() =
 let tableValuedSprocTupleValue() = 
     let cmd = new TableValuedSprocTuple(p1 = [ 1, Some "monkey" ; 2, Some "donkey" ])
     Assert.Equal((1, Some "monkey"), cmd.Execute())    
+    ()
+
+[<Fact>]
+let tableValuedSingle() = 
+    let cmd = new TableValuedSingle(x = [ 1; 2 ])
+    let result = cmd.Execute() |> List.ofSeq
+    Assert.Equal<int list>([1;2], result)    
     ()
 
 [<Fact>]
