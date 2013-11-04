@@ -28,7 +28,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
     let assembly = Assembly.GetExecutingAssembly()
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommand", Some typeof<obj>, HideObjectMethods = true)
     let invalidateE = new Event<EventHandler,EventArgs>()    
-    let log s = System.IO.File.AppendAllLines(@"c:\dev\tp.txt", [|s|])
     do 
         providerType.DefineStaticParameters(
             parameters = [ 
