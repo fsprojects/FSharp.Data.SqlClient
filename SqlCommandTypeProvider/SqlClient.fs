@@ -29,17 +29,17 @@ type SqlConnection with
 
     member this.GetDataTypesMapping() = 
 
-        let providerTypes = 
-            this.GetSchema("DataTypes").AsEnumerable() 
-            |> Seq.map (fun r -> r.Field("TypeName") |> string, r.Field("ProviderDbType") |> int, r.Field("DataType") |> string)
-            |> Array.ofSeq 
+        let providerTypes = [| 
+            for row in this.GetSchema("DataTypes").Rows -> 
+                string row.["TypeName"],  unbox<int> row.["ProviderDbType"], string row.["DataType"]
+        |]
 
-        let sqlEngineTypes = 
-            use c = new SqlCommand("SELECT name, system_type_id FROM sys.types", this) in
-            c.ExecuteReader(CommandBehavior.CloseConnection)
-            |> Seq.cast<IDataRecord>
-            |> Seq.map (fun r -> r.["name"] |> string, r.["system_type_id"] |> unbox<byte> |> int)
-            |> Array.ofSeq
+        let sqlEngineTypes = [|
+            use cmd = new SqlCommand("SELECT name, system_type_id FROM sys.types", this) 
+            use reader = cmd.ExecuteReader(CommandBehavior.CloseConnection)
+            while reader.Read() do
+                yield reader.GetString(0), reader.GetByte(1) |> int
+        |]
 
         query {
             for typename, providerdbtype, clrType in providerTypes do
