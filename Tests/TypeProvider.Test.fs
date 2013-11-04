@@ -17,7 +17,7 @@ let TinyIntConversion() =
 type GetServerTime = SqlCommand<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'", connectionString, SingleRow=true>
 
 [<Fact>]
-let sqlCommandClone() = 
+let SqlCommandClone() = 
     let cmd = new GetServerTime(Bit = 1)
     let cmdClone = cmd.AsSqlCommand()
     cmdClone.Connection.Open()
@@ -28,8 +28,16 @@ let sqlCommandClone() =
     cmdClone.CommandText <- "SELECT 0"
     Assert.Equal<string>("TRUE", cmd.Execute())    
 
+type ConditionalQuery = SqlCommand<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", connectionString, SingleRow=true>
+
+[<Fact>]
+let ConditionalQuery() = 
+    let cmd = ConditionalQuery(flag = 0)
+    Assert.Equal((1, "monkey"), cmd.Execute())    
+    cmd.flag <- 1
+    Assert.Equal((2, "donkey"), cmd.Execute())    
+
 // If compile fails here, check prereqs.sql
-type TableValuedTuple  = SqlCommand<"exec myProc @x", connectionString, SingleRow = true>
 type TableValuedSprocTuple  = SqlCommand<"myProc", connectionString, SingleRow = true, CommandType = CommandType.StoredProcedure>
 type TableValuedRecord = SqlCommand<"exec myProc @x", connectionString, ResultType = ResultType.Records, SingleRow = true>
 
