@@ -40,7 +40,6 @@ let ConditionalQuery() =
 // If compile fails here, check prereqs.sql
 type TableValuedTuple  = SqlCommand<"exec myProc @x", connectionString, SingleRow = true>
 type TableValuedSprocTuple  = SqlCommand<"myProc", connectionString, SingleRow = true, CommandType = CommandType.StoredProcedure>
-type TableValuedRecord = SqlCommand<"exec myProc @x", connectionString, ResultType = ResultType.Records, SingleRow = true>
 type TableValuedSingle = SqlCommand<"exec SingleElementProc @x", connectionString>
 
 [<Fact>]
