@@ -25,6 +25,39 @@ type QuotationsFactory private() =
             }
         @@>
 
+    static member internal MapOptionsToNullables(columnTypes : string list, isNullableColumn : bool list) = 
+        assert(columnTypes.Length = isNullableColumn.Length)
+        let arr = Var("_", typeof<obj[]>)
+        let body =
+            (columnTypes, isNullableColumn) 
+            ||> List.zip
+            |> List.mapi(fun index (typeName, isNullableColumn) ->
+                if isNullableColumn 
+                then 
+                    let nakedType  = Type.GetType typeName 
+                    let optionType = typedefof<_ option>.MakeGenericType nakedType
+                    let getm = typeof<System.Array>.GetMethod("GetValue", [|typeof<int>|])
+                    let setm = typeof<System.Array>.GetMethod("SetValue", [|typeof<obj>;typeof<int>|])
+                    let value  = optionType.GetProperty("Value")
+                    let isnone = optionType.GetProperty("IsNone")
+                    let index  = Expr.Value index
+                    let arr    = Expr.Var arr
+                    let get    = Expr.Coerce( Expr.Call(arr, getm, [index]), optionType)
+                    let cond   = Expr.IfThenElse(
+                                   Expr.PropertyGet(isnone, [get]),
+                                   Expr.Value(null, typeof<obj>),
+                                   Expr.Coerce(Expr.PropertyGet(get, value), typeof<obj>))
+                    let set   = Expr.Call(arr, setm, [cond; index])
+                    Some set
+                else 
+                    None
+            ) 
+            |> List.choose id
+            |> List.fold (fun acc x ->
+                Expr.Sequential(acc, x)
+            ) <@@ () @@>
+        Expr.Lambda(arr, body)
+
     static member internal MapNullableArrayItemToOption<'T>(arr, index) =
         <@
             let values : obj[] = %%arr
@@ -65,7 +98,7 @@ type QuotationsFactory private() =
                     try 
                         while(not token.IsCancellationRequested && reader.Read()) do
                             let row = Array.zeroCreate columnTypes.Length
-                            let values = reader.GetValues(row) |> ignore
+                            reader.GetValues(row) |> ignore
                             do 
                                 (%%mapper : obj[] -> unit) row
                             yield row  

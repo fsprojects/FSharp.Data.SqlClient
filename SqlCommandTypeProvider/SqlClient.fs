@@ -13,6 +13,12 @@ type SqlCommand with
     member this.AsyncExecuteNonQuery() =
         Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) 
 
+    member this.ExecuteReaderWith(f: IDataRecord -> 'a) = seq {
+       use reader = this.ExecuteReader()
+       while reader.Read() do
+          yield f(reader)
+    }
+
     //address an issue when regular Dispose on SqlConnection needed for async computation wipes out all properties like ConnectionString in addition to closing connection to db
     member this.CloseConnectionOnly() = {
         new IDisposable with
