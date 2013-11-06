@@ -91,3 +91,14 @@ let tableValuedSprocTupleNull() =
     Assert.Equal((1, None), cmd.Execute())    
     ()
 
+type ColumnsShouldNotBeNull2 = SqlCommand<"""SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'DatabaseLog' and numeric_precision is null
+ORDER BY ORDINAL_POSITION""", connectionString, SingleRow = true>
+
+[<Fact>]
+let columnsShouldNotBeNull2() = 
+    let cmd = new ColumnsShouldNotBeNull2()
+    let _,_,_,_,precision = cmd.Execute()
+    Assert.Equal(None, precision)    
+    ()
