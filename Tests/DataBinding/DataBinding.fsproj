@@ -40,7 +40,7 @@
     <Reference Include="mscorlib" />
     <Reference Include="PresentationUI" />
     <Reference Include="SqlCommandTypeProvider">
-      <HintPath>..\SqlCommandTypeProvider\bin\Debug\SqlCommandTypeProvider.dll</HintPath>
+      <HintPath>..\..\src\SqlCommandTypeProvider\bin\Debug\SqlCommandTypeProvider.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
