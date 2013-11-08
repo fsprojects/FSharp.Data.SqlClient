@@ -1,17 +1,18 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
     <metadata>
-        <id>SqlCommandTypeProvider</id>
-        <version>1.0.0</version>
-        <authors>Dmitry Morozov,Dmitry Sevastianov</authors>
-        <owners>Dmitry Morozov</owners>
+        <id>@project@</id>
+        <version>@build.number@</version>
+        <authors>@authors@</authors>
+        <owners>@authors@</owners>
         <licenseUrl>https://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/blob/master/LICENSE.md</licenseUrl>
         <projectUrl>https://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider</projectUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
-        <description>The SqlCommand type provider wraps over sql query to provide strongly typed parameters and various ways of deserializing output, including Tuples and DTOs</description>
-        <summary>SqlCommand F# type provider</summary>
+        <description>@description@</description>
+        <summary>@summary@</summary>
+		<releaseNotes>@releaseNotes@</releaseNotes>
         <copyright>Copyright 2013</copyright>
-        <tags>F# fsharp data typeprovider sql</tags>
+        <tags>@tags@</tags>
         <frameworkAssemblies>
             <frameworkAssembly assemblyName="System.Data" targetFramework=".NETFramework4.0" />
         </frameworkAssemblies>
