@@ -53,10 +53,18 @@ Target "AssemblyInfo" (fun _ ->
 )
 
 // --------------------------------------------------------------------------------------
-// Clean build results
+// Clean build results & restore NuGet packages
+Target "RestorePackages" (fun _ ->
+    !! "./**/packages.config"
+    |> Seq.iter (RestorePackage (fun p -> { p with ToolPath = "./.nuget/NuGet.exe" }))
+)
 
 Target "Clean" (fun _ ->
-    CleanDirs ["bin"]
+    CleanDirs ["bin"; "temp"]
+)
+
+Target "CleanDocs" (fun _ ->
+    CleanDirs ["docs/output"]
 )
 
 // --------------------------------------------------------------------------------------
@@ -117,44 +125,33 @@ Target "NuGet" (fun _ ->
 )
 
 // --------------------------------------------------------------------------------------
-// Release Scripts
+// Generate the documentation
 
-//Target "UpdateDocs" (fun _ ->
-//
-//    executeFSI "tools" "build.fsx" [] |> ignore
-//
-//    DeleteDir "gh-pages"
-//    Repository.clone "" "https://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider.git" "gh-pages"
-//    Branches.checkoutBranch "gh-pages" "gh-pages"
-//    CopyRecursive "docs" "gh-pages" true |> printfn "%A"
-//    CommandHelper.runSimpleGitCommand "gh-pages" (sprintf """commit -a -m "Update generated documentation for version %s""" version) |> printfn "%s"
-//    Branches.push "gh-pages"
-//)
-//
-//Target "UpdateBinaries" (fun _ ->
-//
-//    DeleteDir "release"
-//    Repository.clone "" "https://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider.git" "release"
-//    Branches.checkoutBranch "release" "release"
-//    CopyRecursive "bin" "release/bin" true |> printfn "%A"
-//    CommandHelper.runSimpleGitCommand "release" (sprintf """commit -a -m "Update binaries for version %s""" version) |> printfn "%s"
-//    Branches.push "release"
-//)
-//
-//Target "Release" DoNothing
-//
-//"UpdateDocs" ==> "Release"
-//"UpdateBinaries" ==> "Release"
+Target "GenerateDocs" (fun _ ->
+    executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"] [] |> ignore
+)
+
+
+Target "Release" DoNothing
 
 // --------------------------------------------------------------------------------------
 // Run all targets by default. Invoke 'build <Target>' to override
 
 Target "All" DoNothing
 
-"Clean" ==> "AssemblyInfo" ==> "Build"
-"Build" ==> "All"
-"BuildTests" ==> "All"
-"RunTests" ==> "All"
-"NuGet" ==> "All"
+"Clean"
+  ==> "RestorePackages"
+  ==> "AssemblyInfo"
+  ==> "Build"
+  ==> "BuildTests"
+  ==> "RunTests"
+  ==> "All"
+
+"All" 
+  ==> "CleanDocs"
+  ==> "GenerateDocs"
+  ==> "NuGet"
+  ==> "Release"
 
 RunTargetOrDefault "All"
+

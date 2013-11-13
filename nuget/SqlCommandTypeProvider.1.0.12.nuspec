@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+    <metadata>
+        <id>SqlCommandTypeProvider</id>
+        <version>1.0.12</version>
+        <authors>Dmitry Morozov, Dmitry Sevastianov</authors>
+        <owners>Dmitry Morozov, Dmitry Sevastianov</owners>
+        <licenseUrl>https://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/blob/master/LICENSE.md</licenseUrl>
+        <projectUrl>https://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description> The SqlCommand type provider wraps over sql query to provide strongly typed  parameters and various ways of deserializing output, including Tuples and DTOs</description>
+        <summary>SqlCommand F# type provider</summary>
+		<releaseNotes></releaseNotes>
+        <copyright>Copyright 2013</copyright>
+        <tags>F# fsharp data typeprovider sql</tags>
+        <frameworkAssemblies>
+            <frameworkAssembly assemblyName="System.Data" targetFramework=".NETFramework4.0" />
+        </frameworkAssemblies>
+    </metadata>
+    <files>
+        <file src="..\src\SqlCommandTypeProvider\bin\Debug\SqlCommandTypeProvider.dll" target="lib/net40\SqlCommandTypeProvider.dll" />
+        <file src="..\src\SqlCommandTypeProvider\bin\Debug\SqlCommandTypeProvider.dll.config" target="lib/net40\SqlCommandTypeProvider.dll.config" />
+        <file src="..\src\SqlCommandTypeProvider\bin\Debug\SqlCommandTypeProvider.pdb" target="lib/net40\SqlCommandTypeProvider.pdb" />
+        <file src="..\src\SqlCommandTypeProvider\bin\Debug\SqlCommandTypeProvider.XML" target="lib/net40\SqlCommandTypeProvider.XML" />
+    </files>
+</package>
