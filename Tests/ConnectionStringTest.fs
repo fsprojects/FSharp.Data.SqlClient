@@ -1,7 +1,7 @@
 ﻿module FSharp.Data.SqlClient.Test
 
 open Xunit
-open FsUnit
+open FsUnit.Xunit
 open System.Configuration
 
 [<Fact>]

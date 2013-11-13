@@ -5,9 +5,11 @@ open System
 open Fake 
 
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
-let oldSource = "Data Source=.;"
-let localDb = """Data Source=(LocalDb)\v11.0;"""
-let connectionString = localDb + "Initial Catalog=AdventureWorks2012;Integrated Security=True"
+//let oldSource = "Data Source=.;"
+//let newSource = """Data Source=(LocalDb)\v11.0;"""
+let oldSource = """Data Source=(LocalDb)\v11.0;"""
+let newSource = "Data Source=.;"
+let connectionString = newSource + "Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 [
     "Databinding/app.config"
@@ -18,7 +20,7 @@ let connectionString = localDb + "Initial Catalog=AdventureWorks2012;Integrated 
 [
     "Test.fsx"
     "TypeProvider.Test.fs"
-] |> Seq.iter (fun s-> StringHelper.ReplaceInFile (fun s-> s.Replace(oldSource, localDb)) s)
+] |> Seq.iter (fun s-> StringHelper.ReplaceInFile (fun s-> s.Replace(oldSource, newSource)) s)
 
 
 

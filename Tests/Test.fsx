@@ -1,4 +1,6 @@
-
+(**
+    Use cases
+*)
 #r "../src/SqlCommandTypeProvider/bin/Debug/SqlCommandTypeProvider.dll"
 
 open FSharp.Data.SqlClient
