@@ -104,7 +104,7 @@ type QuotationsFactory private() =
                             yield row  
                     finally
                         reader.Close()
-                } |> Seq.cache
+                } 
             }
         @@>
 
