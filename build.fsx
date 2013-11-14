@@ -27,8 +27,8 @@ let description = """
   parameters and various ways of deserializing output, including Tuples and DTOs"""
 let tags = "F# fsharp data typeprovider sql"
       
-let gitHome = "https://github.com/fsharp"
-let gitName = "FSharp.Data"
+let gitHome = "https://github.com/dmitry-a-morozov"
+let gitName = "FSharp.Data.SqlCommandTypeProvider"
 
 // Read release notes & version info from RELEASE_NOTES.md
 let release = 
@@ -131,6 +131,15 @@ Target "GenerateDocs" (fun _ ->
     executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"] [] |> ignore
 )
 
+Target "ReleaseDocs" (fun _ ->
+    Repository.clone "" (gitHome + "/" + gitName + ".git") "temp/gh-pages"
+    Branches.checkoutBranch "temp/gh-pages" "gh-pages"
+    CopyRecursive "docs/output" "temp/gh-pages" true |> printfn "%A"
+    CommandHelper.runSimpleGitCommand "temp/gh-pages" "add ." |> printfn "%s"
+    let cmd = sprintf """commit -a -m "Update generated documentation for version %s""" release.NugetVersion
+    CommandHelper.runSimpleGitCommand "temp/gh-pages" cmd |> printfn "%s"
+    Branches.push "temp/gh-pages"
+)
 
 Target "Release" DoNothing
 

@@ -1,4 +1,17 @@
-﻿#I "../../packages/FSharp.Formatting.2.1.6/lib/net40"
+﻿// Binaries that have XML documentation (in a corresponding generated XML file)
+let referenceBinaries = [  ]
+// Web site location for the generated documentation
+let website = "http://dmitry-a-morozov.github.io/FSharp.Data.SqlCommandTypeProvider"
+
+// Specify more information about your project
+let info =
+  [ "project-name", "SqlcommandTypeProvider"
+    "project-author", "Dmitry Morozov, Dmitry Sevastianov"
+    "project-summary", "The SqlCommand type provider wraps over sql query to provide strongly typed parameters and various ways of deserializing output, including Tuples and DTOs"
+    "project-github", "http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider"
+    "project-nuget", "http://www.nuget.org/packages/SqlCommandTypeProvider" ]
+
+#I "../../packages/FSharp.Formatting.2.1.6/lib/net40"
 #I "../../packages/RazorEngine.3.3.0/lib/net40/"
 #r "../../packages/Microsoft.AspNet.Razor.2.0.30506.0/lib/net40/System.Web.Razor.dll"
 #r "../../packages/FAKE/tools/FakeLib.dll"
@@ -12,22 +25,17 @@ open Fake.FileHelper
 open FSharp.Literate
 open FSharp.MetadataFormat
 
-
-// Specify more information about your project
-let info =
-  [ "project-name", "SqlcommandTypeProvider"
-    "project-author", "Dmitry Morozov, Dmitry Sevastianov"
-    "project-summary", "The SqlCommand type provider wraps over sql query to provide strongly typed parameters and various ways of deserializing output, including Tuples and DTOs"
-    "project-github", "http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider"
-    "project-nuget", "http://www.nuget.org/packages/SqlCommandTypeProvider" ]
-
+#if RELEASE
+let root = website
+#else
 let root = "file://" + (__SOURCE_DIRECTORY__ @@ "../output")
+#endif
 
 // Paths with template/source/output locations
 let bin        = __SOURCE_DIRECTORY__ @@ "../../bin"
 let content    = __SOURCE_DIRECTORY__ @@ "../content"
 let output     = __SOURCE_DIRECTORY__ @@ "../output"
-let test        = __SOURCE_DIRECTORY__ @@ "../../Tests/Test.fsx"
+let files      = __SOURCE_DIRECTORY__ @@ "../files"
 let templates  = __SOURCE_DIRECTORY__ @@ "templates"
 let formatting = __SOURCE_DIRECTORY__ @@ "../../packages/FSharp.Formatting.2.1.6/"
 let docTemplate = formatting @@ "templates/docpage.cshtml"
@@ -36,12 +44,32 @@ let layoutRoots =
   [ templates; formatting @@ "templates"
     formatting @@ "templates/reference" ]
 
-    // Copy static files and CSS + JS from F# Formatting
+// Copy static files and CSS + JS from F# Formatting
 let copyFiles () =
-  CopyFile output test 
+  CopyRecursive files output true |> Log "Copying file: "
   ensureDirectory (output @@ "content")
   CopyRecursive (formatting @@ "content") (output @@ "content") true 
     |> Log "Copying styles and scripts: "
 
+// Build API reference from XML comments
+let buildReference () =
+  CleanDir (output @@ "reference")
+  for lib in referenceBinaries do
+    MetadataFormat.Generate
+      ( bin @@ lib, output @@ "reference", layoutRoots, 
+        parameters = ("root", root)::info )
+
+// Build documentation from `fsx` and `md` files in `docs/content`
+let buildDocumentation () =
+  let subdirs = Directory.EnumerateDirectories(content, "*", SearchOption.AllDirectories)
+  for dir in Seq.append [content] subdirs do
+    let sub = if dir.Length > content.Length then dir.Substring(content.Length + 1) else "."
+    Literate.ProcessDirectory
+      ( dir, docTemplate, output @@ sub, replacements = ("root", root)::info,
+        layoutRoots = layoutRoots )
+
+// Generate
 copyFiles()
-Literate.ProcessScriptFile( test, docTemplate, output @@ "Test.html", replacements = ("root", root)::info, layoutRoots = layoutRoots)
+buildDocumentation()
+buildReference()
+
