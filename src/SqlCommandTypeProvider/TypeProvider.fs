@@ -62,7 +62,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
     let nameSpace = this.GetType().Namespace
     let assembly = Assembly.GetExecutingAssembly()
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommand", Some typeof<obj>, HideObjectMethods = true)
-    let invalidateE = new Event<EventHandler,EventArgs>()    
+
     do 
         providerType.DefineStaticParameters(
             parameters = [ 
@@ -79,10 +79,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         )
         this.AddNamespace(nameSpace, [ providerType ])
     
-    interface ITypeProvider with
-        [<CLIEvent>]
-        override this.Invalidate = invalidateE.Publish
-
     interface IDisposable with 
         member this.Dispose() = 
            if watcher <> null
@@ -100,7 +96,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
         let resolutionFolder = config.ResolutionFolder
         let commandText, watcher' = 
-            Configuration.ParseTextAtDesignTime(commandText, resolutionFolder, fun ()-> invalidateE.Trigger(this,EventArgs()))
+            Configuration.ParseTextAtDesignTime(commandText, resolutionFolder, fun() -> this.Invalidate())
         watcher' |> Option.iter (fun x -> watcher <- x)
         let designTimeConnectionString =  Configuration.GetConnectionString(resolutionFolder, connectionStringProvided, connectionStringName, configFile)
         
