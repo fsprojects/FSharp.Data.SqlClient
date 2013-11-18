@@ -18,24 +18,31 @@ type ResultType =
     | Records = 1
     | DataTable = 3
 
-type ValueParameter = { Name: string
-                        ClrTypeName: string
-                        SqlDbTypeId: int
-                        Direction: ParameterDirection }
+type ValueParameter = { 
+    Name : string
+    ClrTypeName : string
+    SqlDbTypeId : int
+    Direction : ParameterDirection 
+}
 
-type TableValuedColumn    = { Name: string
-                              ClrTypeName: string
-                              IsNullable: bool 
-                              ColumnType: Type}
+type TableValuedColumn  = { 
+    Name : string
+    ClrTypeName : string
+    IsNullable : bool 
+    ColumnType : Type
+}
 
-type TableValuedParameter = { Name: string
-                              TableTypeName: string
-                              SqlDbTypeId: int
-                              PropertyType: Type
-                              Columns: TableValuedColumn list}
+type TableValuedParameter = { 
+    Name : string
+    TableTypeName : string
+    SqlDbTypeId : int
+    PropertyType : Type
+    Columns : TableValuedColumn list
+}
+
 type Parameter = 
-     | Value of ValueParameter
-     | TableValued of TableValuedParameter
+    | Value of ValueParameter
+    | TableValued of TableValuedParameter
 
 [<TypeProvider>]
 type public SqlCommandTypeProvider(config : TypeProviderConfig) as this = 
@@ -97,10 +104,10 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         watcher' |> Option.iter (fun x -> watcher <- x)
         let designTimeConnectionString =  Configuration.GetConnectionString(resolutionFolder, connectionStringProvided, connectionStringName, configFile)
         
-        using(new SqlConnection(designTimeConnectionString)) <| fun conn ->
-            conn.Open()
-            conn.CheckVersion()
-            conn.LoadDataTypesMap()
+        use connection = new SqlConnection(designTimeConnectionString)
+        connection.Open()
+        connection.CheckVersion()
+        connection.LoadDataTypesMap()
        
         let isStoredProcedure = commandType = CommandType.StoredProcedure
 
@@ -137,7 +144,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             ]
         
         
-        let outputColumns : _ list = this.GetOutputColumns(commandText, designTimeConnectionString)
+        let outputColumns : _ list = this.GetOutputColumns(connection, commandText)
         
         this.AddExecuteMethod(outputColumns, providedCommandType, resultType, singleRow, commandText) 
         
@@ -154,11 +161,9 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         providedCommandType
 
 
-    member this.GetOutputColumns(commandText, connectionString) = [
-        use conn = new SqlConnection(connectionString)
-        use cmd = new SqlCommand("sys.sp_describe_first_result_set", conn, CommandType = CommandType.StoredProcedure)
+    member this.GetOutputColumns(connection, commandText) = [
+        use cmd = new SqlCommand("sys.sp_describe_first_result_set", connection, CommandType = CommandType.StoredProcedure)
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
-        conn.Open()
         use reader = cmd.ExecuteReader()
         while reader.Read() do
             let columnName = string reader.["name"]

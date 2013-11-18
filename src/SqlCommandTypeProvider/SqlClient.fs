@@ -31,7 +31,7 @@ type SqlConnection with
     member internal this.CheckVersion() = 
         let majorVersion = this.ServerVersion.Split('.').[0]
         if int majorVersion < 11 
-        then failwithf "Minimal supported major version is 11 (SQL Server 2012 or higher or Azure SQL Database). Currently used: %s" this.ServerVersion
+        then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
 
     member this.GetDataTypesMapping() = 
 
@@ -42,7 +42,7 @@ type SqlConnection with
 
         let sqlEngineTypes = [|
             use cmd = new SqlCommand("SELECT name, system_type_id FROM sys.types", this) 
-            use reader = cmd.ExecuteReader(CommandBehavior.CloseConnection)
+            use reader = cmd.ExecuteReader()
             while reader.Read() do
                 yield reader.GetString(0), reader.GetByte(1) |> int
         |]
