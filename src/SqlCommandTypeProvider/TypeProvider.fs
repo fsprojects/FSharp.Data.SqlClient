@@ -105,13 +105,12 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         connection.CheckVersion()
         connection.LoadDataTypesMap()
        
-        let isStoredProcedure = commandType = CommandType.StoredProcedure
 
         let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
 
         providedCommandType.AddMembersDelayed <| fun () -> 
             [
-                let parameters = this.ExtractParameters(designTimeConnectionString, commandText, isStoredProcedure)
+                let parameters = this.ExtractParameters(designTimeConnectionString, commandText, commandType)
 
                 yield! this.AddPropertiesForParameters(parameters) 
                 let ctor = ProvidedConstructor([ProvidedParameter("connectionString", typeof<string>, optionalValue = Unchecked.defaultof<string>)])
@@ -170,7 +169,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
             yield columnName, clrTypeName, unbox<int> reader.["column_ordinal"], isNullable
     ] 
-    member this.ExtractParameters(connectionString, commandText, isStoredProcedure) : Parameter list =  [
+
+    member this.ExtractParameters(connectionString, commandText, commandType) : Parameter list =  [
             use conn = new SqlConnection(connectionString)
             conn.Open()
 
@@ -189,8 +189,8 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                                  PropertyType = propertyType
                                  Columns = cols }
 
-            if isStoredProcedure
-            then
+            match commandType with 
+            | CommandType.StoredProcedure ->
                 //quick solution for now. Maybe better to use conn.GetSchema("ProcedureParameters")
                 use cmd = new SqlCommand(commandText, conn, CommandType = CommandType.StoredProcedure)
                 SqlCommandBuilder.DeriveParameters cmd
@@ -199,13 +199,15 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     let userTypeName = if String.IsNullOrEmpty(p.TypeName) then "" else p.TypeName.Split('.') |> Seq.last
                     let clrTypeName = findBySqlDbType p.SqlDbType
                     yield categorize p.ParameterName clrTypeName (int p.SqlDbType) p.Direction userTypeName
-            else
+
+            | CommandType.Text -> 
                 use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", conn, CommandType = CommandType.StoredProcedure)
                 cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
                 use reader = cmd.ExecuteReader()
                 while(reader.Read()) do
                     let paramName = string reader.["name"]
                     let sqlEngineTypeId = unbox<int> reader.["suggested_system_type_id"]
+
                     let userTypeName = let name = reader.GetOrdinal("suggested_user_type_name") in
                                        if reader.IsDBNull(name) then "" else reader.GetString (name)
                     
@@ -217,7 +219,9 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                         if input && output then ParameterDirection.InputOutput
                         elif output then ParameterDirection.Output
                         else ParameterDirection.Input
-                    yield categorize paramName clrTypeName sqlDbTypeId direction userTypeName    
+                    yield categorize paramName clrTypeName sqlDbTypeId direction userTypeName
+
+            | _ -> failwithf "Unsupported command type: %O" commandType    
         ]
 
     member this.FindTableType(connectionString, tableTypeName:string) = 
@@ -286,7 +290,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                   let isNullable = tvp.Columns |> List.map (fun c -> c.IsNullable)
                   let columnLength = Expr.Value columnTypeNames.Length
                   let paramName = Expr.Value tvp.Name
-                  let mapper = QuotationsFactory.MapOptionsToNullables(columnTypeNames,isNullable)
+                  let mapper = QuotationsFactory.MapOptionsToObjects(columnTypeNames, isNullable)
                   prop.SetterCode <- fun args -> 
                        <@@
                           ()

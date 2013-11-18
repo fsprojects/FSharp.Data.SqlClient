@@ -29,12 +29,13 @@ let private dataTypeMappings = ref List.empty
 
 type SqlConnection with
     member internal this.CheckVersion() = 
+        assert (this.State = ConnectionState.Open)
         let majorVersion = this.ServerVersion.Split('.').[0]
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
 
     member this.GetDataTypesMapping() = 
-
+        assert (this.State = ConnectionState.Open)
         let providerTypes = [| 
             for row in this.GetSchema("DataTypes").Rows -> 
                 string row.["TypeName"],  unbox<int> row.["ProviderDbType"], string row.["DataType"]
@@ -60,7 +61,6 @@ type SqlConnection with
         if List.isEmpty !dataTypeMappings 
         then
             dataTypeMappings := this.GetDataTypesMapping()
-
 
 let internal mapSqlEngineTypeId(sqlEngineTypeId, detailedMessage) = 
     match !dataTypeMappings |> List.tryFind (fun(x, _, _) ->  x = sqlEngineTypeId) with

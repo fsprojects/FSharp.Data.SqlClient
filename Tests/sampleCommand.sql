@@ -1,1 +1,1 @@
-﻿PRINT 'foo bar'
+﻿PRINT 'foo bar.'

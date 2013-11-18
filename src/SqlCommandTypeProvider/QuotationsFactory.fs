@@ -25,46 +25,15 @@ type QuotationsFactory private() =
             }
         @@>
 
-    static member internal MapOptionsToNullables(columnTypes : string list, isNullableColumn : bool list) = 
-        assert(columnTypes.Length = isNullableColumn.Length)
-        let arr = Var("_", typeof<obj[]>)
-        let body =
-            (columnTypes, isNullableColumn) 
-            ||> List.zip
-            |> List.mapi(fun index (typeName, isNullableColumn) ->
-                if isNullableColumn 
-                then 
-                    let nakedType  = Type.GetType typeName 
-                    let optionType = typedefof<_ option>.MakeGenericType nakedType
-                    let getm = typeof<System.Array>.GetMethod("GetValue", [|typeof<int>|])
-                    let setm = typeof<System.Array>.GetMethod("SetValue", [|typeof<obj>;typeof<int>|])
-                    let value  = optionType.GetProperty("Value")
-                    let isnone = optionType.GetProperty("IsNone")
-                    let index  = Expr.Value index
-                    let arr    = Expr.Var arr
-                    let get    = Expr.Coerce( Expr.Call(arr, getm, [index]), optionType)
-                    let cond   = Expr.IfThenElse(
-                                   Expr.PropertyGet(isnone, [get]),
-                                   Expr.Value(null, typeof<obj>),
-                                   Expr.Coerce(Expr.PropertyGet(get, value), typeof<obj>))
-                    let set   = Expr.Call(arr, setm, [cond; index])
-                    Some set
-                else 
-                    None
-            ) 
-            |> List.choose id
-            |> List.fold (fun acc x ->
-                Expr.Sequential(acc, x)
-            ) <@@ () @@>
-        Expr.Lambda(arr, body)
-
-    static member internal MapNullableArrayItemToOption<'T>(arr, index) =
+    static member internal MapArrayOptionItemToObj<'T>(arr, index) =
         <@
-            let values : obj[] = %%arr
-            values.[index] <- box <| if Convert.IsDBNull(values.[index]) then None else Some(unbox<'T> values.[index])
+            Array.get %%arr index
+            |> unbox 
+            |> function Some (x : 'T) -> box x | None -> null
+            |> Array.set %%arr index 
         @> 
 
-    static member internal MapNullablesToOptions(columnTypes : string list, isNullableColumn : bool list) = 
+    static member internal MapOptionsToObjects(columnTypes : string list, isNullableColumn : bool list) = 
         assert(columnTypes.Length = isNullableColumn.Length)
         let arr = Var("_", typeof<obj[]>)
         let body =
@@ -74,7 +43,37 @@ type QuotationsFactory private() =
                 if isNullableColumn 
                 then 
                     typeof<QuotationsFactory>
-                        .GetMethod("MapNullableArrayItemToOption", BindingFlags.NonPublic ||| BindingFlags.Static)
+                        .GetMethod("MapArrayOptionItemToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
+                        .MakeGenericMethod(Type.GetType typeName)
+                        .Invoke(null, [| box(Expr.Var arr); box index |])
+                        |> unbox
+                        |> Some
+                else 
+                    None
+            ) 
+            |> List.choose id
+            |> List.fold (fun acc x ->
+                Expr.Sequential(acc, x)
+            ) <@@ () @@>
+        Expr.Lambda(arr, body)
+
+    static member internal MapArrayObjItemToOption<'T>(arr, index) =
+        <@
+            let values : obj[] = %%arr
+            values.[index] <- box <| if Convert.IsDBNull(values.[index]) then None else Some(unbox<'T> values.[index])
+        @> 
+
+    static member internal MapObjectsToOptions(columnTypes : string list, isNullableColumn : bool list) = 
+        assert(columnTypes.Length = isNullableColumn.Length)
+        let arr = Var("_", typeof<obj[]>)
+        let body =
+            (columnTypes, isNullableColumn) 
+            ||> List.zip
+            |> List.mapi(fun index (typeName, isNullableColumn) ->
+                if isNullableColumn 
+                then 
+                    typeof<QuotationsFactory>
+                        .GetMethod("MapArrayObjItemToOption", BindingFlags.NonPublic ||| BindingFlags.Static)
                         .MakeGenericMethod(Type.GetType typeName)
                         .Invoke(null, [| box(Expr.Var arr); box index |])
                         |> unbox
@@ -89,7 +88,7 @@ type QuotationsFactory private() =
         Expr.Lambda(arr, body)
 
     static member internal GetRows(cmd, singleRow, columnTypes : string list, isNullableColumn : bool list) = 
-        let mapper = QuotationsFactory.MapNullablesToOptions(columnTypes, isNullableColumn)
+        let mapper = QuotationsFactory.MapObjectsToOptions(columnTypes, isNullableColumn)
         <@@ 
             async {
                 let! token = Async.CancellationToken
