@@ -9,6 +9,18 @@ open Microsoft.FSharp.Quotations
 
 type QuotationsFactory private() = 
     
+    static member internal ToSqlParam(p : Parameter) = 
+        let name = p.Name
+        let dbType = p.TypeInfo.SqlDbTypeId
+        <@@ 
+            SqlParameter(
+                name, 
+                enum dbType, 
+                Direction = %%Expr.Value p.Direction,
+                TypeName = %%Expr.Value p.TypeInfo.UdtName
+            )
+        @@>
+    
     static member internal GetDataReader(cmd, singleRow) = 
         let commandBehavior = if singleRow then CommandBehavior.SingleRow  else CommandBehavior.Default 
         <@@ 
@@ -33,37 +45,13 @@ type QuotationsFactory private() =
             |> Array.set %%arr index 
         @> 
 
-    static member internal MapOptionsToObjects(columnTypes : string list, isNullableColumn : bool list) = 
-        assert(columnTypes.Length = isNullableColumn.Length)
-        let arr = Var("_", typeof<obj[]>)
-        let body =
-            (columnTypes, isNullableColumn) 
-            ||> List.zip
-            |> List.mapi(fun index (typeName, isNullableColumn) ->
-                if isNullableColumn 
-                then 
-                    typeof<QuotationsFactory>
-                        .GetMethod("MapArrayOptionItemToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
-                        .MakeGenericMethod(Type.GetType typeName)
-                        .Invoke(null, [| box(Expr.Var arr); box index |])
-                        |> unbox
-                        |> Some
-                else 
-                    None
-            ) 
-            |> List.choose id
-            |> List.fold (fun acc x ->
-                Expr.Sequential(acc, x)
-            ) <@@ () @@>
-        Expr.Lambda(arr, body)
-
     static member internal MapArrayObjItemToOption<'T>(arr, index) =
         <@
             let values : obj[] = %%arr
             values.[index] <- box <| if Convert.IsDBNull(values.[index]) then None else Some(unbox<'T> values.[index])
         @> 
 
-    static member internal MapObjectsToOptions(columnTypes : string list, isNullableColumn : bool list) = 
+    static member internal MapArrayNullableItems(columnTypes : string list, isNullableColumn : bool list, mapper : string) = 
         assert(columnTypes.Length = isNullableColumn.Length)
         let arr = Var("_", typeof<obj[]>)
         let body =
@@ -73,7 +61,7 @@ type QuotationsFactory private() =
                 if isNullableColumn 
                 then 
                     typeof<QuotationsFactory>
-                        .GetMethod("MapArrayObjItemToOption", BindingFlags.NonPublic ||| BindingFlags.Static)
+                        .GetMethod(mapper, BindingFlags.NonPublic ||| BindingFlags.Static)
                         .MakeGenericMethod(Type.GetType typeName)
                         .Invoke(null, [| box(Expr.Var arr); box index |])
                         |> unbox
@@ -86,6 +74,12 @@ type QuotationsFactory private() =
                 Expr.Sequential(acc, x)
             ) <@@ () @@>
         Expr.Lambda(arr, body)
+
+    static member internal MapOptionsToObjects(columnTypes, isNullableColumn) = 
+        QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayOptionItemToObj")
+
+    static member internal MapObjectsToOptions(columnTypes, isNullableColumn) = 
+        QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption")
 
     static member internal GetRows(cmd, singleRow, columnTypes : string list, isNullableColumn : bool list) = 
         let mapper = QuotationsFactory.MapObjectsToOptions(columnTypes, isNullableColumn)
@@ -107,9 +101,8 @@ type QuotationsFactory private() =
             }
         @@>
 
-    static member internal GetTypedSequence<'Row>(cmd, rowMapper, singleRow, columnTypes : string list, isNullableColumn : bool list) = 
-        assert (columnTypes.Length = isNullableColumn.Length)
-        let nullValue = box System.DBNull.Value
+    static member internal GetTypedSequence<'Row>(cmd, rowMapper, singleRow, columns : Column list) = 
+        let columnTypes, isNullableColumn = columns |> List.map (fun c -> c.ClrTypeFullName, c.IsNullable) |> List.unzip
         let getTypedSeqAsync = 
             <@@
                 async { 
@@ -130,8 +123,8 @@ type QuotationsFactory private() =
             getTypedSeqAsync
             
 
-    static member internal SelectOnlyColumn0<'Row>(cmd, singleRow, columntTypeName, isNullable) = 
-        QuotationsFactory.GetTypedSequence<'Row>(cmd, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow, [ columntTypeName ], [ isNullable])
+    static member internal SelectOnlyColumn0<'Row>(cmd, singleRow, column : Column) = 
+        QuotationsFactory.GetTypedSequence<'Row>(cmd, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow, [ column ])
 
     static member internal GetTypedDataTable<'T when 'T :> DataRow>(cmd, singleRow)  = 
         <@@

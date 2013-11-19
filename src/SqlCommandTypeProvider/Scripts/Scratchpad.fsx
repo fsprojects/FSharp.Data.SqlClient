@@ -1,13 +1,19 @@
 
-#r "../bin/Debug/SqlCommandTypeProvider.dll"
+//#r "../bin/Debug/SqlCommandTypeProvider.dll"
 #r "System.Data.DataSetExtensions"
 
 open System.Data
 open System.Data.SqlClient
-open FSharp.Data.SqlClient.Extensions
+//open FSharp.Data.SqlClient.Extensions
 let conn = new SqlConnection("Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True")
 conn.Open()
-printfn "%A" <| conn.GetDataTypesMapping()
+//printfn "%A" <| conn.GetDataTypesMapping()
+
+let cmd2 = new SqlCommand("", conn, CommandType = CommandType.StoredProcedure)
+let cmd = new SqlCommand("myProc", conn, CommandType = CommandType.StoredProcedure)
+SqlCommandBuilder.DeriveParameters cmd
+
+for p in cmd.Parameters do printfn "Param: %s, type: %s, sqldbtype: %A, direction %A" p.ParameterName p.TypeName p.SqlDbType p.Direction
 
 conn.GetSchema("DataTypes").AsEnumerable() 
 |> Seq.map (fun r -> r.Field("TypeName") |> string, r.Field("ProviderDbType") |> int, r.Field("DataType") |> string)

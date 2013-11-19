@@ -5,6 +5,7 @@ module FSharp.Data.SqlClient.Extensions
 open System
 open System.Data
 open System.Data.SqlClient
+open Microsoft.FSharp.Linq.NullableOperators
 
 type SqlCommand with
     member this.AsyncExecuteReader(behavior : CommandBehavior) =
@@ -25,16 +26,58 @@ type SqlCommand with
             member __.Dispose() = this.Connection.Close()
     }
 
+type internal Column = {
+    Name : string
+    Ordinal : int
+    ClrTypeFullName : string
+    IsNullable : bool
+}   with
+    member inline this.ClrType = Type.GetType this.ClrTypeFullName
+    member this.ClrTypeConsideringNullable = 
+        if this.IsNullable 
+        then typedefof<_ option>.MakeGenericType this.ClrType 
+        else this.ClrType
+        
+
+type internal TypeInfo = {
+    SqlEngineTypeId : int
+    SqlDbTypeId : int
+    ClrTypeFullName : string
+    UdtName : string 
+    TvpColumns : Column seq
+}   with
+    member this.SqlDbType : SqlDbType = enum this.SqlDbTypeId
+    member this.ClrType = Type.GetType this.ClrTypeFullName
+    member this.IsTvpType = this.SqlDbType = SqlDbType.Structured
+
+type internal Parameter = {
+    Name : string
+    TypeInfo : TypeInfo
+    IsNullable : bool
+    Direction : ParameterDirection 
+}
+
 let private dataTypeMappings = ref List.empty
 
+let internal finBySqlEngineTypeId id = 
+    !dataTypeMappings |> List.tryFind(fun x -> x.SqlEngineTypeId = id )
+
+let internal finBySqlEngineTypeIdAndUdt(id, udtName) = 
+    !dataTypeMappings |> List.tryFind(fun x -> x.SqlEngineTypeId = id && x.UdtName = udtName)
+    
+let internal findTypeInfoByProviderType(sqlDbType, udtName)  = 
+    !dataTypeMappings  
+    |> List.tryFind (fun x -> x.SqlDbType = sqlDbType && x.UdtName = udtName)
+
 type SqlConnection with
+
     member internal this.CheckVersion() = 
         assert (this.State = ConnectionState.Open)
         let majorVersion = this.ServerVersion.Split('.').[0]
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
 
-    member this.GetDataTypesMapping() = 
+    member internal this.GetDataTypesMapping() = 
         assert (this.State = ConnectionState.Open)
         let providerTypes = [| 
             for row in this.GetSchema("DataTypes").Rows -> 
@@ -42,18 +85,52 @@ type SqlConnection with
         |]
 
         let sqlEngineTypes = [|
-            use cmd = new SqlCommand("SELECT name, system_type_id FROM sys.types", this) 
+            use cmd = new SqlCommand("SELECT name, system_type_id, user_type_id, is_table_type FROM sys.types", this) 
             use reader = cmd.ExecuteReader()
             while reader.Read() do
-                yield reader.GetString(0), reader.GetByte(1) |> int
+                yield reader.GetString(0), reader.GetByte(1) |> int, reader.GetInt32(2), reader.GetBoolean(3)
         |]
 
+        let connectionString = this.ConnectionString
         query {
             for typename, providerdbtype, clrType in providerTypes do
-            join (systypename, systemtypeid) in sqlEngineTypes on (typename = systypename)
+            join (name, system_type_id, user_type_id, is_table_type) in sqlEngineTypes on (typename = name)
             //the next line fix the issue when ADO.NET SQL provider maps tinyint to byte despite of claiming to map it to SByte according to GetSchema("DataTypes")
-            let clrTypeFixed = if systemtypeid = 48 (*tinyint*) then typeof<byte>.FullName else clrType
-            select (systemtypeid, providerdbtype, clrTypeFixed)
+            let clrTypeFixed = if system_type_id = 48 (*tinyint*) then typeof<byte>.FullName else clrType
+            let tvpColumns = 
+                if system_type_id = 243 && is_table_type
+                then
+                    seq {
+                        use cmd = new SqlCommand("
+                            SELECT c.name, c.column_id, c.system_type_id, c.is_nullable
+                            FROM sys.table_types AS tt
+                            INNER JOIN sys.columns AS c ON tt.type_table_object_id = c.object_id
+                            WHERE tt.system_type_id = 243 AND tt.user_type_id = @user_type_id
+                            ORDER BY column_id")
+                        cmd.Parameters.AddWithValue("@user_type_id", user_type_id) |> ignore
+                        use conn = new SqlConnection(connectionString) 
+                        conn.Open()
+                        cmd.Connection <- conn
+                        use reader = cmd.ExecuteReader()
+                        while reader.Read() do 
+                            yield {
+                                Column.Name = string reader.["name"]
+                                Ordinal = unbox reader.["column_id"]
+                                ClrTypeFullName = reader.["system_type_id"] |> unbox<byte> |> int |> finBySqlEngineTypeId |> Option.map (fun x -> x.ClrTypeFullName) |> Option.get
+                                IsNullable = unbox reader.["is_nullable"]
+                            }
+                    } 
+                    |> Seq.cache
+                else
+                    Seq.empty
+
+            select {
+                SqlEngineTypeId = system_type_id
+                SqlDbTypeId = providerdbtype
+                ClrTypeFullName = clrTypeFixed
+                UdtName = if is_table_type then name else ""
+                TvpColumns = tvpColumns
+            }
         }
         |> Seq.toList
 
@@ -61,14 +138,4 @@ type SqlConnection with
         if List.isEmpty !dataTypeMappings 
         then
             dataTypeMappings := this.GetDataTypesMapping()
-
-let internal mapSqlEngineTypeId(sqlEngineTypeId, detailedMessage) = 
-    match !dataTypeMappings |> List.tryFind (fun(x, _, _) ->  x = sqlEngineTypeId) with
-    | Some(_, sqlDbTypeId, clrTypeName) -> clrTypeName, sqlDbTypeId
-    | None -> failwithf "Cannot map sql engine type %i to CLR/SqlDbType type. %s" sqlEngineTypeId detailedMessage
-
-let internal findBySqlDbType sqlDbType  = 
-    match !dataTypeMappings |> List.tryFind (fun(_, x, _) -> sqlDbType = enum<SqlDbType> x) with
-    | Some(_, _, clrTypeName) -> clrTypeName
-    | None -> failwithf "Cannot map SqlDbType %O to CLR type." sqlDbType
 
