@@ -61,7 +61,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
         let resolutionFolder = config.ResolutionFolder
         let commandText, watcher' = 
-            Configuration.ParseTextAtDesignTime(commandText, resolutionFolder, fun() -> this.Invalidate())
+            Configuration.ParseTextAtDesignTime(commandText, resolutionFolder, this.Invalidate)
         watcher' |> Option.iter (fun x -> watcher <- x)
         let designTimeConnectionString =  Configuration.GetConnectionString(resolutionFolder, connectionStringProvided, connectionStringName, configFile)
         
@@ -194,7 +194,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             | _ -> failwithf "Unsupported command type: %O" commandType    
         ]
 
-    member internal __.AddPropertiesForParameters(parameters: Parameter list) = [
+    member internal __.AddPropertiesForParameters parameters = [
         for p in parameters do
             let name = p.Name
             assert name.StartsWith("@")

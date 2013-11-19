@@ -25,12 +25,11 @@ type internal Column = {
     ClrTypeFullName : string
     IsNullable : bool
 }   with
-    member inline this.ClrType = Type.GetType this.ClrTypeFullName
+    member this.ClrType = Type.GetType this.ClrTypeFullName
     member this.ClrTypeConsideringNullable = 
         if this.IsNullable 
         then typedefof<_ option>.MakeGenericType this.ClrType 
         else this.ClrType
-        
 
 type internal TypeInfo = {
     SqlEngineTypeId : int
