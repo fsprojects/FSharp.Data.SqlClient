@@ -9,7 +9,7 @@ open FSharp.Data.SqlClient
 
 [<Literal>]
 //let queryTableSql = "SELECT * FROM Production.Product WHERE SellStartDate > @SellStartDate"
-let queryTableSql = "SELECT * FROM Production.Product"
+let queryTableSql = "SELECT * FROM Production.Product WHERE Name like @startsWith"
 
 type Query = SqlCommand<queryTableSql, ConnectionStringName="AdventureWorks2012", ResultType=ResultType.DataTable>
 
@@ -22,7 +22,7 @@ let main argv =
     let grid : DataGrid = mainWindow.FindName "Grid" |> unbox
 
     let cmd = Query()
-    let data = cmd.Execute()
+    let data = cmd.Execute(startsWith = "c%")
     grid.ItemsSource <- data
 
     close.Click.Add <| fun _ -> mainWindow.Close()

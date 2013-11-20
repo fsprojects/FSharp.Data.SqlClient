@@ -5,9 +5,10 @@ module FSharp.Data.SqlClient.Extensions
 open System
 open System.Data
 open System.Data.SqlClient
+open Microsoft.FSharp.Reflection
 
 type SqlCommand with
-    member this.AsyncExecuteReader(behavior : CommandBehavior) =
+    member this.AsyncExecuteReader behavior =
         Async.FromBeginEnd((fun(callback, state) -> this.BeginExecuteReader(callback, state, behavior)), this.EndExecuteReader)
 
     member this.AsyncExecuteNonQuery() =
@@ -18,36 +19,6 @@ type SqlCommand with
         new IDisposable with
             member __.Dispose() = this.Connection.Close()
     }
-
-type internal Column = {
-    Name : string
-    Ordinal : int
-    ClrTypeFullName : string
-    IsNullable : bool
-}   with
-    member this.ClrType = Type.GetType this.ClrTypeFullName
-    member this.ClrTypeConsideringNullable = 
-        if this.IsNullable 
-        then typedefof<_ option>.MakeGenericType this.ClrType 
-        else this.ClrType
-
-type internal TypeInfo = {
-    SqlEngineTypeId : int
-    SqlDbTypeId : int
-    ClrTypeFullName : string
-    UdtName : string 
-    TvpColumns : Column seq
-}   with
-    member this.SqlDbType : SqlDbType = enum this.SqlDbTypeId
-    member this.ClrType = Type.GetType this.ClrTypeFullName
-    member this.IsTvpType = this.SqlDbType = SqlDbType.Structured
-
-type internal Parameter = {
-    Name : string
-    TypeInfo : TypeInfo
-    IsNullable : bool
-    Direction : ParameterDirection 
-}
 
 let private dataTypeMappings = ref List.empty
 
@@ -60,6 +31,11 @@ let internal finBySqlEngineTypeIdAndUdt(id, udtName) =
 let internal findTypeInfoByProviderType(sqlDbType, udtName)  = 
     !dataTypeMappings  
     |> List.tryFind (fun x -> x.SqlDbType = sqlDbType && x.UdtName = udtName)
+
+let internal getTupleTypeForColumns (xs : seq<Column>) = 
+    match Seq.toArray xs with
+    | [| x |] -> x.ClrTypeConsideringNullable
+    | xs' -> FSharpType.MakeTupleType [| for x in xs' -> x.ClrTypeConsideringNullable|]
 
 type SqlConnection with
 

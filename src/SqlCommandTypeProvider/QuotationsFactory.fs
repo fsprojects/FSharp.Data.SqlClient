@@ -6,9 +6,138 @@ open System.Data.SqlClient
 open System.Reflection
 
 open Microsoft.FSharp.Quotations
+open Microsoft.FSharp.Reflection
 
 type QuotationsFactory private() = 
     
+    //The entry point
+    static member internal GetBody(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
+
+        let bodyFactory =   
+            let mi = typeof<QuotationsFactory>.GetMethod(methodName, BindingFlags.NonPublic ||| BindingFlags.Static)
+            assert(mi <> null)
+            mi.MakeGenericMethod([| specialization |])
+
+        fun(args : Expr list) -> 
+            let sss = methodName
+            let parameters = Array.append [| box args |] bodyFactoryArgs
+            bodyFactory.Invoke(null, parameters) |> unbox
+
+    //Core impl
+    static member internal GetSqlCommandWithParamValuesSet(exprArgs : Expr list) = 
+        <@
+            let sqlCommand : SqlCommand = %%Expr.Coerce(exprArgs.[0], typeof<SqlCommand>)
+
+            let paramValues : obj[] = %%Expr.NewArray(typeof<obj>, elements = [for x in exprArgs.Tail -> Expr.Coerce(x, typeof<obj>)])
+            let skip = 
+                if sqlCommand.CommandType = CommandType.StoredProcedure 
+                then
+                    assert (sqlCommand.Parameters.[0].Direction = ParameterDirection.ReturnValue); 
+                    1 
+                else 0
+            for i = 0 to paramValues.Length - 1 do
+                let p = sqlCommand.Parameters.[i + skip]
+                let TVP = p.SqlDbType = SqlDbType.Structured
+                if not TVP
+                then
+                    p.Value <- paramValues.[i]
+                else //TVP
+//                    let columns = findTypeInfoByProviderType(p.SqlDbType, p.TypeName) //|> Option.map(fun x -> x.TvpColumns) |> Option.get |> Seq.toArray
+                    //still some duplication in generating list of tuples type. Overlaps with output columns case
+//                    let columnCount = columns.Length
+//                    assert (columnCount > 0)
+//
+//                    let rowType = getTupleTypeForColumns columns
+
+//                    //let mapper = columns |> Seq.toList |> List.map (fun c -> c.ClrTypeFullName, c.IsNullable) |> List.unzip |> QuotationsFactory.MapOptionsToObjects 
+//                    let table = new DataTable();
+//
+//                    for i = 0 to columnCount - 1 do
+//                        table.Columns.Add() |> ignore
+//
+//                    let input : Collections.IEnumerable = unbox paramValues.[i]
+//                    for row in input do
+//                        let values = if columnCount = 1 then [|box row|] else FSharpValue.GetTupleFields row
+//                        //(%%mapper : obj[] -> unit) values
+//                        table.Rows.Add values |> ignore 
+//
+//                    p.Value <- table
+                    ()                    
+            sqlCommand
+        @>
+
+    static member internal GetDataReader(exprArgs, singleRow) = 
+        let commandBehavior = if singleRow then CommandBehavior.SingleRow  else CommandBehavior.Default 
+        <@@ 
+            async {
+                let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet exprArgs
+                //open connection async on .NET 4.5
+                sqlCommand.Connection.Open()
+                return!
+                    try 
+                        sqlCommand.AsyncExecuteReader(commandBehavior ||| CommandBehavior.CloseConnection ||| CommandBehavior.SingleResult)
+                    with _ ->
+                        sqlCommand.Connection.Close()
+                        reraise()
+            }
+        @@>
+
+    static member internal GetRows(exprArgs, singleRow, columnTypes : string list, isNullableColumn : bool list) = 
+        let mapper = QuotationsFactory.MapObjectsToOptions(columnTypes, isNullableColumn)
+        <@@ 
+            async {
+                let! token = Async.CancellationToken
+                let! (reader : SqlDataReader) = %%QuotationsFactory.GetDataReader(exprArgs, singleRow)
+                return seq {
+                    try 
+                        while(not token.IsCancellationRequested && reader.Read()) do
+                            let row = Array.zeroCreate columnTypes.Length
+                            reader.GetValues(row) |> ignore
+                            do 
+                                (%%mapper : obj[] -> unit) row
+                            yield row  
+                    finally
+                        reader.Close()
+                } 
+            }
+        @@>
+
+    //API
+    static member internal GetTypedSequence<'Row>(exprArgs, rowMapper, singleRow, columns : Column list) = 
+        let columnTypes, isNullableColumn = columns |> List.map (fun c -> c.ClrTypeFullName, c.IsNullable) |> List.unzip
+        let getTypedSeqAsync = 
+            <@@
+                async { 
+                    let! (rows : seq<obj[]>) = %%QuotationsFactory.GetRows(exprArgs, singleRow, columnTypes, isNullableColumn)
+                    return rows |> Seq.map<_, 'Row> (%%rowMapper)                    
+                }
+            @@>
+
+        if singleRow
+        then 
+            <@@ 
+                async { 
+                    let! xs  = %%getTypedSeqAsync : Async<'Row seq>
+                    return Seq.exactlyOne xs
+                }
+            @@>
+        else
+            getTypedSeqAsync
+        
+    static member internal SelectOnlyColumn0<'Row>(exprArgs, singleRow, column : Column) = 
+        QuotationsFactory.GetTypedSequence<'Row>(exprArgs, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow, [ column ])
+
+    static member internal GetTypedDataTable<'T when 'T :> DataRow>(exprArgs, singleRow)  = 
+        <@@
+            async {
+                use! reader = %%QuotationsFactory.GetDataReader(exprArgs, singleRow) : Async<SqlDataReader >
+                let table = new DataTable<'T>() 
+                table.Load reader
+                return table
+            }
+        @@>
+
+    //Utility methods            
     static member internal ToSqlParam(p : Parameter) = 
         let name = p.Name
         let dbType = p.TypeInfo.SqlDbTypeId
@@ -21,22 +150,6 @@ type QuotationsFactory private() =
             )
         @@>
     
-    static member internal GetDataReader(cmd, singleRow) = 
-        let commandBehavior = if singleRow then CommandBehavior.SingleRow  else CommandBehavior.Default 
-        <@@ 
-            async {
-                let sqlCommand : SqlCommand = %%Expr.Coerce(cmd, typeof<SqlCommand>)
-                //open connection async on .NET 4.5
-                sqlCommand.Connection.Open()
-                return!
-                    try 
-                        sqlCommand.AsyncExecuteReader(commandBehavior ||| CommandBehavior.CloseConnection ||| CommandBehavior.SingleResult)
-                    with _ ->
-                        sqlCommand.Connection.Close()
-                        reraise()
-            }
-        @@>
-
     static member internal MapArrayOptionItemToObj<'T>(arr, index) =
         <@
             Array.get %%arr index
@@ -81,82 +194,17 @@ type QuotationsFactory private() =
     static member internal MapObjectsToOptions(columnTypes, isNullableColumn) = 
         QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption")
 
-    static member internal GetRows(cmd, singleRow, columnTypes : string list, isNullableColumn : bool list) = 
-        let mapper = QuotationsFactory.MapObjectsToOptions(columnTypes, isNullableColumn)
-        <@@ 
-            async {
-                let! token = Async.CancellationToken
-                let! (reader : SqlDataReader) = %%QuotationsFactory.GetDataReader(cmd, singleRow)
-                return seq {
-                    try 
-                        while(not token.IsCancellationRequested && reader.Read()) do
-                            let row = Array.zeroCreate columnTypes.Length
-                            reader.GetValues(row) |> ignore
-                            do 
-                                (%%mapper : obj[] -> unit) row
-                            yield row  
-                    finally
-                        reader.Close()
-                } 
-            }
-        @@>
-
-    static member internal GetTypedSequence<'Row>(cmd, rowMapper, singleRow, columns : Column list) = 
-        let columnTypes, isNullableColumn = columns |> List.map (fun c -> c.ClrTypeFullName, c.IsNullable) |> List.unzip
-        let getTypedSeqAsync = 
-            <@@
-                async { 
-                    let! (rows : seq<obj[]>) = %%QuotationsFactory.GetRows(cmd, singleRow, columnTypes, isNullableColumn)
-                    return rows |> Seq.map<_, 'Row> (%%rowMapper)                    
-                }
-            @@>
-
-        if singleRow
-        then 
-            <@@ 
-                async { 
-                    let! xs  = %%getTypedSeqAsync : Async<'Row seq>
-                    return Seq.exactlyOne xs
-                }
-            @@>
-        else
-            getTypedSeqAsync
-            
-
-    static member internal SelectOnlyColumn0<'Row>(cmd, singleRow, column : Column) = 
-        QuotationsFactory.GetTypedSequence<'Row>(cmd, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow, [ column ])
-
-    static member internal GetTypedDataTable<'T when 'T :> DataRow>(cmd, singleRow)  = 
-        <@@
-            async {
-                use! reader = %%QuotationsFactory.GetDataReader(cmd, singleRow) : Async<SqlDataReader >
-                let table = new DataTable<'T>() 
-                table.Load reader
-                return table
-            }
-        @@>
-
-    static member internal GetNullableValueFromRow<'T>(rowExpr, name : string) =
+    static member internal GetNullableValueFromDataRow<'T>(exprArgs : Expr list, name : string) =
         <@
-            let row : DataRow = %%rowExpr
+            let row : DataRow = %%exprArgs.[0]
             if row.IsNull name then None else Some(unbox<'T> row.[name])
         @> 
 
-    static member internal SetNullableValueInRow<'T>(row : Expr, value : Expr, name : string) =
+    static member internal SetNullableValueInDataRow<'T>(exprArgs : Expr list, name : string) =
         <@
-            (%%row : DataRow).[name] <- match (%%value : option<'T>) with None -> null | Some value -> box value
+            (%%exprArgs.[0] : DataRow).[name] <- match (%%exprArgs.[1] : option<'T>) with None -> null | Some value -> box value
         @> 
 
-    static member internal GetBody(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
-
-        let bodyFactory =   
-            let mi = typeof<QuotationsFactory>.GetMethod(methodName, BindingFlags.NonPublic ||| BindingFlags.Static)
-            assert(mi <> null)
-            mi.MakeGenericMethod([| specialization |])
-
-        fun(args : Expr list) -> 
-            let parameters = Array.append [| for x in args -> box x |] bodyFactoryArgs
-            bodyFactory.Invoke(null, parameters) |> unbox
 
 
 

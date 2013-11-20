@@ -16,7 +16,7 @@ SqlCommandBuilder.DeriveParameters cmd
 for p in cmd.Parameters do printfn "Param: %s, type: %s, sqldbtype: %A, direction %A" p.ParameterName p.TypeName p.SqlDbType p.Direction
 
 conn.GetSchema("DataTypes").AsEnumerable() 
-|> Seq.map (fun r -> r.Field("TypeName") |> string, r.Field("ProviderDbType") |> int, r.Field("DataType") |> string)
+|> Seq.map (fun r -> r.["TypeName"], r.["ProviderDbType"], r.["DataType"], r.["IsBestMatch"])
 |> Array.ofSeq 
 
 let cmd = new SqlCommand("SELECT CAST(10 AS TINYINT) AS Value", conn)
