@@ -78,7 +78,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 conn.Open()
 
                 let sqlParameters = this.ExtractSqlParameters(conn, commandText, commandType)
-                let returnValueParam, inOutParameters = sqlParameters |> List.partition (fun p -> p.Direction = ParameterDirection.ReturnValue)
 
                 let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = Unchecked.defaultof<string>) ])
                 ctor.InvokeCode <- fun args -> 
@@ -102,17 +101,17 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
                 yield ctor :> MemberInfo    
 
-                let executeArgs = this.GetExecuteArgsForSqlParameters(inOutParameters) 
+                let executeArgs = this.GetExecuteArgsForSqlParameters(sqlParameters) 
                 let outputColumns = this.GetOutputColumns(conn, commandText)
-                this.AddExecuteMethod(inOutParameters, executeArgs, returnValueParam, outputColumns, providedCommandType, resultType, singleRow, commandText) 
+                this.AddExecuteMethod(sqlParameters, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) 
             ]
         
         let getSqlCommandCopy = ProvidedMethod("AsSqlCommand", [], typeof<SqlCommand>)
         getSqlCommandCopy.InvokeCode <- fun args ->
             <@@
                 let self : SqlCommand = %%Expr.Coerce(args.[0], typeof<SqlCommand>)
-                let clone = self.Clone()
-                clone.Connection <- new SqlConnection(self.Connection.ConnectionString)
+                let clone = new SqlCommand(self.CommandText, new SqlConnection(self.Connection.ConnectionString), CommandType = self.CommandType)
+                clone.Parameters.AddRange <| [| for p in self.Parameters -> SqlParameter(p.ParameterName, p.SqlDbType) |]
                 clone
             @@>
         providedCommandType.AddMember getSqlCommandCopy          
@@ -144,19 +143,13 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 //quick solution for now. Maybe better to use conn.GetSchema("ProcedureParameters")
                 use cmd = new SqlCommand(commandText, connection, CommandType = CommandType.StoredProcedure)
                 SqlCommandBuilder.DeriveParameters cmd
-                for p in cmd.Parameters do
-                    // typeName is full namespace, ie AdventureWorks2012.dbo.myTableType. Only need the last part.
-                    let udt = if String.IsNullOrEmpty(p.TypeName) then "" else p.TypeName.Split('.') |> Seq.last
-                    match findTypeInfoByProviderType(p.SqlDbType, udt) with
-                    | Some x -> 
-                        yield { 
-                            Name = p.ParameterName
-                            TypeInfo = x 
-                            IsNullable = p.IsNullable
-                            Direction = p.Direction 
-                        }
-                    | None -> 
-                        failwithf "Cannot map pair of SqlDbType '%O' and user definto type '%s' CLR type." p.SqlDbType udt
+
+                let xs = cmd.Parameters |> Seq.cast<SqlParameter> |> Seq.toList
+                assert(xs.Head.Direction = ParameterDirection.ReturnValue)
+                for p in xs.Tail do
+                    yield p.ToParameter()
+
+                //yield xs.Head.ToParameter()
 
             | CommandType.Text -> 
                 use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", connection, CommandType = CommandType.StoredProcedure)
@@ -181,43 +174,30 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                         | None -> failwithf "Cannot map sql engine type %i and UDT %s to CLR/SqlDbType type. Parameter name: %s" sqlEngineTypeId udtName paramName
 
                     yield { 
-                            Name = paramName
-                            TypeInfo = typeInfo 
-                            IsNullable = false
-                            Direction = direction 
+                        Name = paramName
+                        TypeInfo = typeInfo 
+                        Direction = direction 
                     }
 
             | _ -> failwithf "Unsupported command type: %O" commandType    
-        ]
+    ]
 
     member internal __.GetExecuteArgsForSqlParameters sqlParameters = [
         for p in sqlParameters do
-            let name = p.Name
-            assert name.StartsWith("@")
-            let parameterName = name.Substring 1
+            assert p.Name.StartsWith("@")
+            let parameterName = p.Name.Substring 1
 
-            if not p.TypeInfo.IsTvpType 
+            if p.TypeInfo.IsTvpType 
             then   
-                assert (p.Direction <> ParameterDirection.ReturnValue)
-                let parameterType = p.TypeInfo.ClrType
-                let isOut = p.Direction = ParameterDirection.Output || p.Direction = ParameterDirection.InputOutput
-                let p = 
-                    if p.IsNullable
-                    then ProvidedParameter(parameterName, parameterType, isOut, optionalValue = null)
-                    else ProvidedParameter(parameterName, parameterType, isOut)
-                yield p
-            else
                 assert(p.Direction = ParameterDirection.Input)
-                let columns = p.TypeInfo.TvpColumns |> Seq.toArray
-                //still some duplication in generating list of tuples type. Overlaps with output columns case
-                let columnCount = columns.Length
-                assert (columnCount > 0)
-
-                let rowType = getTupleTypeForColumns columns
-
+                let rowType = getTupleTypeForColumns p.TypeInfo.TvpColumns
                 yield ProvidedParameter(parameterName, parameterType = typedefof<_ seq>.MakeGenericType rowType)
+            else
+                if p.Direction <> ParameterDirection.Input 
+                then failwithf "Only input parameters are supported. Parameter %s had direction %O" p.Name p.Direction
+                //yield ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType, isOut = (p.Direction <> ParameterDirection.Input))
+                yield ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType)
         ]
-
 
     member internal this.GetExecuteNonQuery paramInfos  = 
         let body expr =
@@ -227,12 +207,16 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     //open connection async on .NET 4.5
                     sqlCommand.Connection.Open()
                     use ensureConnectionClosed = sqlCommand.CloseConnectionOnly()
-                    return! sqlCommand.AsyncExecuteNonQuery() 
+                    let rowsAffected = sqlCommand.AsyncExecuteNonQuery()
+                    if sqlCommand.CommandType = CommandType.StoredProcedure
+                    then
+                        ()
+                    return! rowsAffected  
                 }
             @@>
         typeof<int>, body
 
-    member internal __.AddExecuteMethod(paramInfos, executeArgs, returnValueParam, outputColumns, providedCommandType, resultType, singleRow, commandText) = 
+    member internal __.AddExecuteMethod(paramInfos, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) = 
             
         let syncReturnType, executeMethodBody = 
             if outputColumns.IsEmpty
@@ -243,11 +227,12 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 this.DataTable(providedCommandType, commandText, outputColumns, singleRow)
             else
                 let rowType, executeMethodBody = 
-                    match outputColumns with
-                    | [ col ] -> 
-                        let column0Type = col.ClrTypeConsideringNullable
-                        column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, singleRow, col)
-                    | _ -> 
+                    if List.length outputColumns = 1
+                    then
+                        let singleCol = outputColumns.Head
+                        let column0Type = singleCol.ClrTypeConsideringNullable
+                        column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, singleRow, singleCol)
+                    else 
                         if resultType = ResultType.Tuples 
                         then 
                             this.Tuples(outputColumns, singleRow)
@@ -259,18 +244,10 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                            
                 returnType, executeMethodBody
                     
-//        let syncReturnTypeWithReturnValue = 
-//            match returnValueParam with 
-//            | [] -> syncReturnType
-//            | [ x ] -> 
-//                assert (x.Direction = ParameterDirection.ReturnValue)
-//                FSharpType.MakeTupleType [| syncReturnType; x.TypeInfo.ClrType |]
-//            | _ -> failwith "There is can be only one @RETURN_VALUE. Got: " returnValueParam.Length
-
         let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ syncReturnType ])
         let asyncExecute = ProvidedMethod("AsyncExecute", executeArgs, asyncReturnType)
-        asyncExecute.InvokeCode <- 
-            fun expr -> QuotationsFactory.MapExecuteArgs(paramInfos, expr) |> executeMethodBody
+        asyncExecute.InvokeCode <- fun expr -> QuotationsFactory.MapExecuteArgs(paramInfos, expr) |> executeMethodBody
+
         let execute = ProvidedMethod("Execute", executeArgs, syncReturnType)
         execute.InvokeCode <- fun args ->
             let runSync = ProvidedTypeBuilder.MakeGenericMethod(typeof<Async>.GetMethod("RunSynchronously"), [ syncReturnType ])

@@ -16,15 +16,18 @@ let TinyIntConversion() =
 
 type GetServerTime = SqlCommand<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'", connectionString, SingleRow=true>
 
-[<Fact(Skip="Needs to be changed")>]
+[<Fact>]
 let SqlCommandClone() = 
     let cmd = new GetServerTime()
+    Assert.Equal<string>("TRUE", cmd.Execute(Bit = 1))    
     let cmdClone = cmd.AsSqlCommand()
     cmdClone.Connection.Open()
+    Assert.Throws<SqlClient.SqlException>(cmdClone.ExecuteScalar) |> ignore
+    cmdClone.Parameters.["@Bit"].Value <- 1
+    Assert.Equal(box "TRUE", cmdClone.ExecuteScalar())    
     Assert.Equal(cmdClone.ExecuteScalar(), cmd.Execute(Bit = 1))    
-    cmdClone.Parameters.["@Bit"].Value <- 0
-    Assert.Equal<string>("TRUE", cmd.Execute(Bit = 1))    
-    Assert.Equal(box "FALSE", cmdClone.ExecuteScalar())    
+    Assert.Equal<string>("FALSE", cmd.Execute(Bit = 0))    
+    Assert.Equal(box "TRUE", cmdClone.ExecuteScalar())    
     cmdClone.CommandText <- "SELECT 0"
     Assert.Equal<string>("TRUE", cmd.Execute(Bit = 1))    
 
@@ -56,17 +59,6 @@ let tableValuedSingle() =
     let cmd = new TableValuedSingle()
     let result = cmd.Execute(x = [ 1; 2 ]) |> List.ofSeq
     Assert.Equal<int list>([1;2], result)    
-
-[<Fact>]
-let tableValuedClone() = 
-    let cmd = new TableValuedTuple()
-    let clone = cmd.AsSqlCommand()
-
-    Assert.Equal(1, clone.Parameters.Count)    
-    let table = clone.Parameters.["@x"].Value :?> System.Data.DataTable
-   
-    Assert.Equal(1, Convert.ChangeType(table.Rows.[0].[0], typeof<int>) |> unbox)
-    Assert.Equal<string>("donkey", Convert.ChangeType(table.Rows.[1].[1], typeof<string>) |> unbox)
 
 [<Fact>] 
 let tvpInputIsEnumeratedExactlyOnce() = 

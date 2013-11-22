@@ -29,7 +29,6 @@ type internal TypeInfo = {
 type internal Parameter = {
     Name : string
     TypeInfo : TypeInfo
-    IsNullable : bool
     Direction : ParameterDirection 
 }
 

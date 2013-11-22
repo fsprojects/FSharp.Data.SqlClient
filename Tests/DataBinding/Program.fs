@@ -22,13 +22,13 @@ let main argv =
     let grid : DataGrid = mainWindow.FindName "Grid" |> unbox
 
     let cmd = Query()
-    let sqlCommand = cmd.AsSqlCommand()
     let data = cmd.Execute(startsWith = "c%")
     grid.ItemsSource <- data
 
     close.Click.Add <| fun _ -> mainWindow.Close()
     save.Click.Add <| fun _ -> 
-        let adapter = new SqlDataAdapter()
+        let sqlCommand = cmd.AsSqlCommand()
+        let adapter = new SqlDataAdapter(sqlCommand)
         let builder = new SqlCommandBuilder(adapter)
         adapter.UpdateCommand <- builder.GetUpdateCommand()
         sqlCommand.Connection.Open()

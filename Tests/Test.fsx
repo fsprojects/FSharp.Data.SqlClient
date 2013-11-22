@@ -94,7 +94,7 @@ cmd45.Execute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = 
 //Stored procedure by name only
 type UpdateEmplInfoCommandSp = SqlCommand<"HumanResources.uspUpdateEmployeePersonalInfo", connectionString, CommandType = CommandType.StoredProcedure >
 let cmdSp = new UpdateEmplInfoCommandSp()
-cmdSp.AsyncExecute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F") |> Async.RunSynchronously
+cmdSp.AsyncExecute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F", RETURN_VALUE = 5) |> Async.RunSynchronously
 //cmdSp.SpReturnValue
-cmdSp.Execute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F")
+let xs, returnValue = cmdSp.Execute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F", RETURN_VALUE = 5)
 //cmdSp.SpReturnValue
