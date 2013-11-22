@@ -147,6 +147,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 let xs = cmd.Parameters |> Seq.cast<SqlParameter> |> Seq.toList
                 assert(xs.Head.Direction = ParameterDirection.ReturnValue)
                 for p in xs.Tail do
+                    if p.Direction <> ParameterDirection.Input then failwithf "Only input parameters are supported. Parameter %s has direction %O" p.ParameterName p.Direction
                     yield p.ToParameter()
 
                 //yield xs.Head.ToParameter()
@@ -193,8 +194,6 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 let rowType = getTupleTypeForColumns p.TypeInfo.TvpColumns
                 yield ProvidedParameter(parameterName, parameterType = typedefof<_ seq>.MakeGenericType rowType)
             else
-                if p.Direction <> ParameterDirection.Input 
-                then failwithf "Only input parameters are supported. Parameter %s had direction %O" p.Name p.Direction
                 //yield ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType, isOut = (p.Direction <> ParameterDirection.Input))
                 yield ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType)
         ]
