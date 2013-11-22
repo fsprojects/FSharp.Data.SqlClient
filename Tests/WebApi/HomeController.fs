@@ -24,7 +24,7 @@ type HomeController() =
     //http://localhost:61594/?top=4&sellStartDate=2002-07-01
     member this.Get(top, sellStartDate) =
         async {
-            let cmd = QueryProductsAsTuples(top = top, SellStartDate = sellStartDate)
-            let! data = cmd.AsyncExecute()
+            let cmd = QueryProductsAsTuples()
+            let! data = cmd.AsyncExecute(top = top, SellStartDate = sellStartDate)
             return this.Request.CreateResponse(HttpStatusCode.OK, data)
         } |> Async.StartAsTask

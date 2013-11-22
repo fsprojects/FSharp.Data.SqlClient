@@ -104,7 +104,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
                 let executeArgs = this.GetExecuteArgsForSqlParameters(inOutParameters) 
                 let outputColumns = this.GetOutputColumns(conn, commandText)
-                this.AddExecuteMethod(executeArgs, returnValueParam, outputColumns, providedCommandType, resultType, singleRow, commandText) 
+                this.AddExecuteMethod(inOutParameters, executeArgs, returnValueParam, outputColumns, providedCommandType, resultType, singleRow, commandText) 
             ]
         
         let getSqlCommandCopy = ProvidedMethod("AsSqlCommand", [], typeof<SqlCommand>)
@@ -127,15 +127,11 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
         while reader.Read() do
 
             let name = string reader.["name"]
-            let typeInfo = 
-                match reader.["system_type_id"] |> unbox |> finBySqlEngineTypeId with
-                | Some x -> x
-                | None -> failwithf "Cannot map column %s of sql engine type %O to CLR/SqlDbType type." name reader.["system_type_id"]
 
             yield { 
                 Column.Name = name
                 Ordinal = unbox reader.["column_ordinal"]
-                ClrTypeFullName =  typeInfo.ClrTypeFullName
+                ClrTypeFullName =  reader.["system_type_id"] |> unbox |> findClrTypeNameBySqlEngineTypeId
                 IsNullable = unbox reader.["is_nullable"]
             }
     ] 
@@ -180,7 +176,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                         else ParameterDirection.Input
                     
                     let typeInfo = 
-                        match finBySqlEngineTypeIdAndUdt(sqlEngineTypeId, udtName) with
+                        match findBySqlEngineTypeIdAndUdt(sqlEngineTypeId, udtName) with
                         | Some x -> x
                         | None -> failwithf "Cannot map sql engine type %i and UDT %s to CLR/SqlDbType type. Parameter name: %s" sqlEngineTypeId udtName paramName
 
@@ -222,11 +218,12 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                 yield ProvidedParameter(parameterName, parameterType = typedefof<_ seq>.MakeGenericType rowType)
         ]
 
-    member internal __.GetExecuteNonQuery() = 
-        let body exprArgs =
+
+    member internal this.GetExecuteNonQuery paramInfos  = 
+        let body expr =
             <@@
                 async {
-                    let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet exprArgs
+                    let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet expr
                     //open connection async on .NET 4.5
                     sqlCommand.Connection.Open()
                     use ensureConnectionClosed = sqlCommand.CloseConnectionOnly()
@@ -235,7 +232,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             @@>
         typeof<int>, body
 
-    member internal __.AddExecuteMethod(executeArgs, returnValueParam, outputColumns, providedCommandType, resultType, singleRow, commandText) = 
+    member internal __.AddExecuteMethod(paramInfos, executeArgs, returnValueParam, outputColumns, providedCommandType, resultType, singleRow, commandText) = 
             
         let syncReturnType, executeMethodBody = 
             if outputColumns.IsEmpty
@@ -271,7 +268,9 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 //            | _ -> failwith "There is can be only one @RETURN_VALUE. Got: " returnValueParam.Length
 
         let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ syncReturnType ])
-        let asyncExecute = ProvidedMethod("AsyncExecute", executeArgs, asyncReturnType, InvokeCode = executeMethodBody)
+        let asyncExecute = ProvidedMethod("AsyncExecute", executeArgs, asyncReturnType)
+        asyncExecute.InvokeCode <- 
+            fun expr -> QuotationsFactory.MapExecuteArgs(paramInfos, expr) |> executeMethodBody
         let execute = ProvidedMethod("Execute", executeArgs, syncReturnType)
         execute.InvokeCode <- fun args ->
             let runSync = ProvidedTypeBuilder.MakeGenericMethod(typeof<Async>.GetMethod("RunSynchronously"), [ syncReturnType ])

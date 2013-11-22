@@ -22,15 +22,15 @@ type SqlCommand with
 
 let private dataTypeMappings = ref List.empty
 
-let internal finBySqlEngineTypeId id = 
-    !dataTypeMappings |> List.tryFind(fun x -> x.SqlEngineTypeId = id )
+let internal findClrTypeNameBySqlEngineTypeId id = 
+    !dataTypeMappings |> List.filter(fun x -> x.SqlEngineTypeId = id ) |> Seq.exactlyOne |> fun x -> x.ClrTypeFullName
 
-let internal finBySqlEngineTypeIdAndUdt(id, udtName) = 
-    !dataTypeMappings |> List.tryFind(fun x -> x.SqlEngineTypeId = id && x.UdtName = udtName)
+let internal findBySqlEngineTypeIdAndUdt(id, udttName) = 
+    !dataTypeMappings |> List.tryFind(fun x -> x.SqlEngineTypeId = id && x.UdttName = udttName)
     
-let internal findTypeInfoByProviderType(sqlDbType, udtName)  = 
+let internal findTypeInfoByProviderType(sqlDbType, udttName)  = 
     !dataTypeMappings  
-    |> List.tryFind (fun x -> x.SqlDbType = sqlDbType && x.UdtName = udtName)
+    |> List.tryFind (fun x -> x.SqlDbType = sqlDbType && x.UdttName = udttName)
 
 let internal getTupleTypeForColumns (xs : seq<Column>) = 
     match Seq.toArray xs with
@@ -84,7 +84,7 @@ type SqlConnection with
                             yield {
                                 Column.Name = string reader.["name"]
                                 Ordinal = unbox reader.["column_id"]
-                                ClrTypeFullName = reader.["system_type_id"] |> unbox<byte> |> int |> finBySqlEngineTypeId |> Option.map (fun x -> x.ClrTypeFullName) |> Option.get
+                                ClrTypeFullName = reader.["system_type_id"] |> unbox<byte> |> int |> findClrTypeNameBySqlEngineTypeId
                                 IsNullable = unbox reader.["is_nullable"]
                             }
                     } 
@@ -96,7 +96,7 @@ type SqlConnection with
                 SqlEngineTypeId = system_type_id
                 SqlDbTypeId = providerdbtype
                 ClrTypeFullName = clrTypeFixed
-                UdtName = if is_table_type then name else ""
+                UdttName = if is_table_type then name else ""
                 TvpColumns = tvpColumns
             }
         }

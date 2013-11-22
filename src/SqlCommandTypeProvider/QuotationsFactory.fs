@@ -4,6 +4,7 @@ open System
 open System.Data
 open System.Data.SqlClient
 open System.Reflection
+open System.Collections
 
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
@@ -35,34 +36,14 @@ type QuotationsFactory private() =
                     assert (sqlCommand.Parameters.[0].Direction = ParameterDirection.ReturnValue); 
                     1 
                 else 0
+
             for i = 0 to paramValues.Length - 1 do
                 let p = sqlCommand.Parameters.[i + skip]
-                let TVP = p.SqlDbType = SqlDbType.Structured
-                if not TVP
-                then
-                    p.Value <- paramValues.[i]
-                else //TVP
-//                    let columns = findTypeInfoByProviderType(p.SqlDbType, p.TypeName) //|> Option.map(fun x -> x.TvpColumns) |> Option.get |> Seq.toArray
-                    //still some duplication in generating list of tuples type. Overlaps with output columns case
-//                    let columnCount = columns.Length
-//                    assert (columnCount > 0)
-//
-//                    let rowType = getTupleTypeForColumns columns
+                if p.SqlDbType = SqlDbType.Structured
+                then 
+                    printfn "TVP param. Name: %s. Value: %A" p.ParameterName p.Value
+                p.Value <- paramValues.[i]
 
-//                    //let mapper = columns |> Seq.toList |> List.map (fun c -> c.ClrTypeFullName, c.IsNullable) |> List.unzip |> QuotationsFactory.MapOptionsToObjects 
-//                    let table = new DataTable();
-//
-//                    for i = 0 to columnCount - 1 do
-//                        table.Columns.Add() |> ignore
-//
-//                    let input : Collections.IEnumerable = unbox paramValues.[i]
-//                    for row in input do
-//                        let values = if columnCount = 1 then [|box row|] else FSharpValue.GetTupleFields row
-//                        //(%%mapper : obj[] -> unit) values
-//                        table.Rows.Add values |> ignore 
-//
-//                    p.Value <- table
-                    ()                    
             sqlCommand
         @>
 
@@ -146,16 +127,14 @@ type QuotationsFactory private() =
                 name, 
                 enum dbType, 
                 Direction = %%Expr.Value p.Direction,
-                TypeName = %%Expr.Value p.TypeInfo.UdtName
+                TypeName = %%Expr.Value p.TypeInfo.UdttName
             )
         @@>
     
     static member internal MapArrayOptionItemToObj<'T>(arr, index) =
         <@
-            Array.get %%arr index
-            |> unbox 
-            |> function Some (x : 'T) -> box x | None -> null
-            |> Array.set %%arr index 
+            let values : obj[] = %%arr
+            values.[index] <- match unbox values.[index] with Some (x : 'T) -> box x | None -> null
         @> 
 
     static member internal MapArrayObjItemToOption<'T>(arr, index) =
@@ -204,6 +183,36 @@ type QuotationsFactory private() =
         <@
             (%%exprArgs.[0] : DataRow).[name] <- match (%%exprArgs.[1] : option<'T>) with None -> null | Some value -> box value
         @> 
+
+    static member internal MapExecuteArgs(executeArgs : Parameter list, argsExpr : Expr list) =
+        let sqlCommand = argsExpr.Head
+        let args = 
+            (argsExpr.Tail, executeArgs)
+            ||> List.map2 (fun expr argInfo ->
+                if argInfo.TypeInfo.IsTvpType
+                then
+                    let columns = argInfo.TypeInfo.TvpColumns |> Seq.toList
+                    let columnCount = columns.Length
+                    assert (columnCount > 0)
+                    let mapper = columns |> List.map (fun c -> c.ClrTypeFullName, c.IsNullable) |> List.unzip |> QuotationsFactory.MapOptionsToObjects 
+                    <@@
+                        let table = new DataTable();
+
+                        for i = 0 to columnCount - 1 do
+                            table.Columns.Add() |> ignore
+
+                        let input : IEnumerable = %%Expr.Coerce(expr, typeof<IEnumerable>)
+                        for row in input do
+                            let values = if columnCount = 1 then [|box row|] else FSharpValue.GetTupleFields row
+                            (%%mapper : obj[] -> unit) values
+                            table.Rows.Add values |> ignore 
+                        table
+                    @@>
+                else
+                    expr
+            )   
+
+        sqlCommand :: args
 
 
 

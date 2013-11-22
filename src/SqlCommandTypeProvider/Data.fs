@@ -19,7 +19,7 @@ type internal TypeInfo = {
     SqlEngineTypeId : int
     SqlDbTypeId : int
     ClrTypeFullName : string
-    UdtName : string 
+    UdttName : string 
     TvpColumns : Column seq
 }   with
     member this.SqlDbType : SqlDbType = enum this.SqlDbTypeId
