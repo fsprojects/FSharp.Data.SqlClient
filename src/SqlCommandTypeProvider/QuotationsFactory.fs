@@ -5,6 +5,7 @@ open System.Data
 open System.Data.SqlClient
 open System.Reflection
 open System.Collections
+open System.Diagnostics
 
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
@@ -30,18 +31,10 @@ type QuotationsFactory private() =
             let sqlCommand : SqlCommand = %%Expr.Coerce(exprArgs.[0], typeof<SqlCommand>)
 
             let paramValues : obj[] = %%Expr.NewArray(typeof<obj>, elements = [for x in exprArgs.Tail -> Expr.Coerce(x, typeof<obj>)])
-            let skip = 
-                if sqlCommand.CommandType = CommandType.StoredProcedure 
-                then
-                    assert (sqlCommand.Parameters.[0].Direction = ParameterDirection.ReturnValue); 
-                    1 
-                else 0
 
+            Debug.Assert(sqlCommand.Parameters.Count = paramValues.Length, "Expect size of values array to be equal to the number of SqlParameters.")
             for i = 0 to paramValues.Length - 1 do
-                let p = sqlCommand.Parameters.[i + skip]
-                if p.SqlDbType = SqlDbType.Structured
-                then 
-                    printfn "TVP param. Name: %s. Value: %A" p.ParameterName p.Value
+                let p = sqlCommand.Parameters.[i]
                 p.Value <- paramValues.[i]
 
             sqlCommand
@@ -185,6 +178,7 @@ type QuotationsFactory private() =
         @> 
 
     static member internal MapExecuteArgs(executeArgs : Parameter list, argsExpr : Expr list) =
+        assert(executeArgs.Length + 1 = argsExpr.Length)
         let sqlCommand = argsExpr.Head
         let args = 
             (argsExpr.Tail, executeArgs)
@@ -196,7 +190,7 @@ type QuotationsFactory private() =
                     assert (columnCount > 0)
                     let mapper = columns |> List.map (fun c -> c.ClrTypeFullName, c.IsNullable) |> List.unzip |> QuotationsFactory.MapOptionsToObjects 
                     <@@
-                        let table = new DataTable();
+                        let table = new DataTable()
 
                         for i = 0 to columnCount - 1 do
                             table.Columns.Add() |> ignore
@@ -206,6 +200,7 @@ type QuotationsFactory private() =
                             let values = if columnCount = 1 then [|box row|] else FSharpValue.GetTupleFields row
                             (%%mapper : obj[] -> unit) values
                             table.Rows.Add values |> ignore 
+                            
                         table
                     @@>
                 else
