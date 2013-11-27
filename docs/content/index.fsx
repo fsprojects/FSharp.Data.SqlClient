@@ -34,14 +34,14 @@ let connectionString = "Data Source=.;Initial Catalog=AdventureWorks2012;Integra
 let query = "
     SELECT TOP(@TopN) FirstName, LastName, SalesYTD 
     FROM Sales.vSalesPerson
-    WHERE CountryRegionName = @regionName AND SalesYTD > @soldMoreThan 
+    WHERE CountryRegionName = @regionName AND SalesYTD > @salesMoreThan 
     ORDER BY SalesYTD
 " 
 
 type SalesPersonQuery = SqlCommand<query, connectionString>
 let cmd = SalesPersonQuery()
 
-cmd.AsyncExecute(TopN = 3L, regionName = "United States", soldMoreThan = 1000000M) 
+cmd.AsyncExecute(TopN = 3L, regionName = "United States", salesMoreThan = 1000000M) 
 |> Async.RunSynchronously
 
 //output
