@@ -21,7 +21,7 @@ SqlCommandTypeProvider provides statically typed access to input parameters and 
 Sample code 
 -------------------------------------
 
-The query below retrieves top 3 sales representative from North American region who has sales YTD for more than one million. 
+The query below retrieves top 3 sales representatives from North American region who have sales YTD of more than one million. 
 
 *)
 
@@ -52,8 +52,8 @@ seq
 
 (**
 
-Notice how T-SQL unbound variables mapped into parameters of AsyncExecute method. Output is a sequence of tuples. 
-Tuple elemens match to the columns of query result set.
+Note how T-SQL unbound variables are mapped into parameters of AsyncExecute method. Output is a sequence of tuples. 
+Tuple elemens match the columns of query result set.
 
 System requirements
 -------------------------------------
