@@ -183,7 +183,7 @@ type QuotationsFactory private() =
         let args = 
             (argsExpr.Tail, executeArgs)
             ||> List.map2 (fun expr argInfo ->
-                if argInfo.TypeInfo.IsTvpType
+                if argInfo.TypeInfo.TableType
                 then
                     let columns = argInfo.TypeInfo.TvpColumns |> Seq.toList
                     let columnCount = columns.Length

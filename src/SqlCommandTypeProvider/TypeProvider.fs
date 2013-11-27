@@ -172,7 +172,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
                     let typeInfo = 
                         match findBySqlEngineTypeIdAndUdt(sqlEngineTypeId, udtName) with
                         | Some x -> x
-                        | None -> failwithf "Cannot map sql engine type %i and UDT %s to CLR/SqlDbType type. Parameter name: %s" sqlEngineTypeId udtName paramName
+                        | None -> failwithf "Cannot map unbound variable of sql engine type %i and UDT %s to CLR/SqlDbType type. Parameter name: %s" sqlEngineTypeId udtName paramName
 
                     yield { 
                         Name = paramName
@@ -188,7 +188,7 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
             assert p.Name.StartsWith("@")
             let parameterName = p.Name.Substring 1
 
-            if p.TypeInfo.IsTvpType 
+            if p.TypeInfo.TableType 
             then   
                 assert(p.Direction = ParameterDirection.Input)
                 let rowType = getTupleTypeForColumns p.TypeInfo.TvpColumns

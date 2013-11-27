@@ -6,7 +6,7 @@
         <authors>@authors@</authors>
         <owners>@authors@</owners>
         <licenseUrl>https://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/blob/master/LICENSE.md</licenseUrl>
-        <projectUrl>https://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider</projectUrl>
+        <projectUrl>http://dmitry-a-morozov.github.io/FSharp.Data.SqlCommandTypeProvider/</projectUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>@description@</description>
         <summary>@summary@</summary>
@@ -14,7 +14,8 @@
         <copyright>Copyright 2013</copyright>
         <tags>@tags@</tags>
         <frameworkAssemblies>
-            <frameworkAssembly assemblyName="System.Data" targetFramework=".NETFramework4.0" />
+          <frameworkAssembly assemblyName="System.Data" targetFramework=".NETFramework4.0" />
+          <frameworkAssembly assemblyName="System.Xml" targetFramework=".NETFramework4.0" />
         </frameworkAssemblies>
     </metadata>
     <files>

@@ -116,7 +116,7 @@ Target "NuGet" (fun _ ->
             Version = version
             ReleaseNotes = releaseNotes
             Tags = tags
-            OutputPath = "bin"
+            OutputPath = "nuget"
             ToolPath = nugetPath
             AccessKey = getBuildParamOrDefault "nugetkey" ""
             Publish = hasBuildParam "nugetkey"

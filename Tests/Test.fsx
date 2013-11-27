@@ -3,9 +3,9 @@
 *)
 #r "../src/SqlCommandTypeProvider/bin/Debug/SqlCommandTypeProvider.dll"
 
-open FSharp.Data.SqlClient
-open System.Data
 open System
+open System.Data
+open FSharp.Data.SqlClient
 
 [<Literal>]
 let connectionString = """Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"""
@@ -23,11 +23,6 @@ let cmd = QueryProductsAsTuples()
 let result = cmd.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 result |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
 cmd.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
-
-//Command from file
-type q = SqlCommand<"sampleCommand.sql", connectionString>
-let cmdFromFile = q()
-cmdFromFile.Execute() |> ignore
 
 //Custom record types and connection string override
 type QueryProducts = SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.Records>
@@ -96,3 +91,9 @@ type UpdateEmplInfoCommandSp = SqlCommand<"HumanResources.uspUpdateEmployeePerso
 let cmdSp = new UpdateEmplInfoCommandSp()
 cmdSp.AsyncExecute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F") |> Async.RunSynchronously
 cmdSp.Execute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F")
+
+//Command from file
+type q = SqlCommand<"sampleCommand.sql", connectionString>
+let cmdFromFile = q()
+cmdFromFile.Execute() |> ignore
+

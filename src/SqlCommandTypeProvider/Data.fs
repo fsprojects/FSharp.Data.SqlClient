@@ -24,7 +24,7 @@ type internal TypeInfo = {
 }   with
     member this.SqlDbType : SqlDbType = enum this.SqlDbTypeId
     member this.ClrType = Type.GetType this.ClrTypeFullName
-    member this.IsTvpType = this.SqlDbType = SqlDbType.Structured
+    member this.TableType = this.SqlDbType = SqlDbType.Structured
 
 type internal Parameter = {
     Name : string

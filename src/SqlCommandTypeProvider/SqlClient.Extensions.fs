@@ -26,7 +26,7 @@ let internal findClrTypeNameBySqlEngineTypeId id =
     !dataTypeMappings |> List.filter(fun x -> x.SqlEngineTypeId = id ) |> Seq.exactlyOne |> fun x -> x.ClrTypeFullName
 
 let internal findBySqlEngineTypeIdAndUdt(id, udttName) = 
-    !dataTypeMappings |> List.tryFind(fun x -> x.SqlEngineTypeId = id && x.UdttName = udttName)
+    !dataTypeMappings |> List.tryFind(fun x -> x.SqlEngineTypeId = id && (not x.TableType|| x.UdttName = udttName))
     
 let internal findTypeInfoByProviderType(sqlDbType, udttName)  = 
     !dataTypeMappings  

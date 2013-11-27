@@ -5,7 +5,8 @@ let website = "http://dmitry-a-morozov.github.io/FSharp.Data.SqlCommandTypeProvi
 
 // Specify more information about your project
 let info =
-  [ "project-name", "SqlcommandTypeProvider"
+  [ "project-name", "SqlCommand Type Provider"
+    "project-logo-url", "img/logo.png"
     "project-author", "Dmitry Morozov, Dmitry Sevastianov"
     "project-summary", "The SqlCommand type provider wraps over sql query to provide strongly typed parameters and various ways of deserializing output, including Tuples and DTOs"
     "project-github", "http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider"

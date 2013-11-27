@@ -1,0 +1,1 @@
+﻿PRINT 'foo bar.'
