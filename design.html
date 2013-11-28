@@ -5,7 +5,7 @@
     <title>Design considerations
 </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="The SqlCommand type provider wraps over sql query to provide strongly typed parameters and various ways of deserializing output, including Tuples and DTOs">
+    <meta name="description" content="SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.">
     <meta name="author" content="Dmitry Morozov, Dmitry Sevastianov">
 
     <script src="http://code.jquery.com/jquery-1.8.0.js"></script>
@@ -13,8 +13,8 @@
     <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
     <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet">
 
-    <link type="text/css" rel="stylesheet" href="http://dmitry-a-morozov.github.io/FSharp.Data.SqlCommandTypeProvider/content/style.css" />
-    <script type="text/javascript" src="http://dmitry-a-morozov.github.io/FSharp.Data.SqlCommandTypeProvider/content/tips.js"></script>
+    <link type="text/css" rel="stylesheet" href="http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider/content/style.css" />
+    <script type="text/javascript" src="http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider/content/tips.js"></script>
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
       <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
@@ -25,7 +25,7 @@
         <div class="masthead">
             <ul class="nav nav-pills pull-right">
                 <li><a href="http://fsharp.org">fsharp.org</a></li>
-                <li><a href="http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider">github page</a></li>
+                <li><a href="http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider">github page</a></li>
             </ul>
             <h3 class="muted">SqlCommand Type Provider</h3>
         </div>
@@ -44,18 +44,18 @@
                 </a>
                 <ul class="nav nav-list" id="menu">
                     <li class="nav-header">SqlCommand Type Provider</li>
-                    <li><a href="http://dmitry-a-morozov.github.io/FSharp.Data.SqlCommandTypeProvider/index.html">Home page</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider/index.html">Home page</a></li>
                     <li class="divider"></li>
                     <li><a href="http://www.nuget.org/packages/SqlCommandTypeProvider">Get Library via NuGet</a></li>
-                    <li><a href="http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider">Source Code on GitHub</a></li>
-                    <li><a href="http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/blob/master/LICENSE.md">License</a></li>
-                    <li><a href="http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider">Source Code on GitHub</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider/blob/master/LICENSE.md">License</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
 
                     <li class="nav-header">Documentation</li>
-                    <li><a href="http://dmitry-a-morozov.github.io/FSharp.Data.SqlCommandTypeProvider/start.html">Getting started</a></li>
-                    <li><a href="http://dmitry-a-morozov.github.io/FSharp.Data.SqlCommandTypeProvider/limitations.html">Limitations</a></li>
-                    <li><a href="http://dmitry-a-morozov.github.io/FSharp.Data.SqlCommandTypeProvider/comparison.html">Comparison</a></li>
-                    <li><a href="http://dmitry-a-morozov.github.io/FSharp.Data.SqlCommandTypeProvider/design.html">Design notes</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider/start.html">Getting started</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider/limitations.html">Limitations</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider/comparison.html">Comparison</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider/design.html">Design notes</a></li>
 
                     <li class="nav-header">Tools</li>
                     <li><a href="http://tpetricek.github.io/FSharp.Formatting/">F# Formatting</a></li>
@@ -66,7 +66,7 @@
             </div>
         </div>
     </div>
-    <a href="http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider">
+    <a href="http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider">
         <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub">
     </a>
 </body>
