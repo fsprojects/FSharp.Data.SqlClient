@@ -1,5 +1,4 @@
 (*** hide ***)
-#r "../../bin/SqlCommandTypeProvider.dll"
 
 (**
 

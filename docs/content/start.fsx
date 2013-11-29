@@ -1,5 +1,5 @@
 (*** hide ***)
-#r "../../bin/SqlCommandTypeProvider.dll"
+#r "../../bin/FSharp.Data.Experimental.SqlCommandProvider.dll"
 
 (**
 
@@ -18,7 +18,7 @@ Examples
 ===============================================
 *)
 
-open FSharp.Data.SqlClient
+open FSharp.Data.Experimental
 
 [<Literal>]
 let connectionString = "Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
@@ -221,3 +221,33 @@ sp.AsyncExecute(BusinessEntityID = 2, NationalIDNumber = "245797967",
 type CommandFromFile = SqlCommand<"sampleCommand.sql", connectionString>
 let cmd = CommandFromFile()
 cmd.Execute() |> ignore
+
+(**
+
+ * Table-valued parameters.
+
+When using TVPs, the Sql command needs to be calling a stored procedure or user-defined function that takes the table type as a parameter. 
+Set up sample type and sproc
+
+CREATE TYPE myTableType AS TABLE (myId int not null, myName nvarchar(30) null)
+
+GO
+
+CREATE PROCEDURE myProc 
+
+   @p1 myTableType readonly
+
+AS
+
+BEGIN
+
+   SELECT myName from @p1 p
+
+END
+
+
+*)
+
+type TableValuedSample = SqlCommand<"exec myProc @x", connectionString>
+let tvpSp = new TableValuedSample()
+tvpSp.Execute(x = [ 1, Some "monkey"; 2, Some "donkey"]) 

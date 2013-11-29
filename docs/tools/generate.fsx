@@ -8,9 +8,9 @@ let info =
   [ "project-name", "SqlCommand Type Provider"
     "project-logo-url", "img/logo.png"
     "project-author", "Dmitry Morozov, Dmitry Sevastianov"
-    "project-summary", "The SqlCommand type provider wraps over sql query to provide strongly typed parameters and various ways of deserializing output, including Tuples and DTOs"
+    "project-summary", "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way."
     "project-github", "https://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider"
-    "project-nuget", "http://www.nuget.org/packages/SqlCommandTypeProvider" ]
+    "project-nuget", "http://www.nuget.org/packages/SqlCommandProvider" ]
 
 #I "../../packages/FSharp.Formatting.2.1.6/lib/net40"
 #I "../../packages/RazorEngine.3.3.0/lib/net40/"

@@ -1,6 +1,6 @@
 ﻿module FSharp.Data.SqlClient.Test.DataAccess
 
-open FSharp.Data.SqlClient
+open FSharp.Data.Experimental
 
 [<Literal>]
 let queryProductsSql = " 

@@ -1,5 +1,5 @@
 
-//#r "../bin/Debug/SqlCommandTypeProvider.dll"
+//#r "../bin/Debug/SqlCommandProvider.dll"
 #r "System.Data.DataSetExtensions"
 
 open System.Data
@@ -35,3 +35,9 @@ cmd.CommandText = cmdClone.CommandText
 cmdClone.CommandText <- "SELECT 0 AS X"
 //cmdClone.Connection <- cmd.Connection.Clone()
 cmd.Connection = cmdClone.Connection
+
+open System.Dynamic
+
+let expando = ExpandoObject()
+let dict : System.Collections.Generic.IDictionary<string, obj> = upcast expando
+dict.["test"] <- 15

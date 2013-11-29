@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.SqlClient
+﻿namespace FSharp.Data.Experimental
 
 open System.Data
 open System.Collections.Generic

@@ -19,12 +19,11 @@ let files includes =
     Excludes = [] } 
 
 // Information about the project to be used at NuGet and in AssemblyInfo files
-let project = "SqlCommandTypeProvider"
+let project = "FSharp.Data.Experimental.SqlCommandProvider"
 let authors = ["Dmitry Morozov, Dmitry Sevastianov"]
 let summary = "SqlCommand F# type provider"
-let description = """
-  The SqlCommand type provider wraps over sql query to provide strongly typed 
-  parameters and various ways of deserializing output, including Tuples and DTOs"""
+let description = 
+    "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way."
 let tags = "F# fsharp data typeprovider sql"
       
 let gitHome = "https://github.com/fsprojects"
@@ -42,7 +41,7 @@ let releaseNotes = release.Notes |> String.concat "\n"
 // Generate assembly info files with the right version & up-to-date information
 
 Target "AssemblyInfo" (fun _ ->
-    [ ("src/SqlCommandTypeProvider/AssemblyInfo.fs", "SqlCommandTypeProvider", project, summary) ]
+    [ "src/SqlCommandProvider/AssemblyInfo.fs", "SqlCommandProvider", project, summary ]
     |> Seq.iter (fun (fileName, title, project, summary) ->
         CreateFSharpAssemblyInfo fileName
            [ Attribute.Title title
@@ -72,21 +71,21 @@ Target "CleanDocs" (fun _ ->
 // of the runtime library & desktop + Silverlight version of design time library)
 
 Target "Build" (fun _ ->
-    files (["SqlCommandTypeProvider.sln"])
+    files (["SqlCommandProvider.sln"])
     |> MSBuildRelease "" "Rebuild"
     |> ignore
 )
 
 Target "BuildTests" (fun _ ->
-    files ["SqlCommandTypeProvider.Tests.sln"]
+    files ["SqlCommandProvider.Tests.sln"]
     |> MSBuildReleaseExt "" ([]) "Rebuild"
     |> ignore
 )
 
 // --------------------------------------------------------------------------------------
 // Run the unit tests 
-let testDir = "Tests/*/bin/Release"
-let testDlls = !! (testDir + "/Tests.dll")
+let testDir = "src/SqlCommandProvider.Tests/*/bin/Release"
+let testDlls = !! (testDir + "/FSharp.Data.Experimental.SqlCommandProvider.Tests.dll")
 
 Target "RunTests" (fun _ ->
     testDlls
@@ -121,7 +120,7 @@ Target "NuGet" (fun _ ->
             AccessKey = getBuildParamOrDefault "nugetkey" ""
             Publish = hasBuildParam "nugetkey"
             Dependencies = [] })
-        "nuget/SqlCommandTypeProvider.nuspec"
+        "nuget/SqlCommandProvider.nuspec"
 )
 
 // --------------------------------------------------------------------------------------

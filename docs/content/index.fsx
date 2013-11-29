@@ -1,18 +1,18 @@
 (*** hide ***)
-#r "../../bin/SqlCommandTypeProvider.dll"
+#r "../../bin/FSharp.Data.Experimental.SqlCommandProvider.dll"
 
 (**
 Bridging the gap between T-SQL queries and F# type system.
 ===================
 
-SqlCommandTypeProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.
+SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.
 
 <div class="row">
   <div class="span1"></div>
   <div class="span6">
     <div class="well well-small" id="nuget">
-      The F# ProjectTemplate library can be <a href="https://www.nuget.org/packages/SqlCommandTypeProvider">installed from NuGet</a>:
-      <pre>PM> Install-Package SqlCommandTypeProvider</pre>
+      The F# ProjectTemplate library can be <a href="https://www.nuget.org/packages/SqlCommandProvider">installed from NuGet</a>:
+      <pre>PM> Install-Package SqlCommandProvider</pre>
     </div>
   </div>
   <div class="span1"></div>
@@ -25,7 +25,7 @@ The query below retrieves top 3 sales representatives from North American region
 
 *)
 
-open FSharp.Data.SqlClient
+open FSharp.Data.Experimental
 
 [<Literal>]
 let connectionString = "Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
@@ -60,5 +60,6 @@ System requirements
 
  * SQL Server 2012 and up or SQL Azure Database at compile-time. 
  * .NET 4.0 or higher
+
 *)
 

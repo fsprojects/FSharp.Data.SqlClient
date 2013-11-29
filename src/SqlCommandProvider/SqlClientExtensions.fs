@@ -1,6 +1,6 @@
 ﻿[<AutoOpen>]
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module FSharp.Data.SqlClient.Extensions
+module FSharp.Data.Experimental.Internals.SqlClientExtensions
 
 open System
 open System.Data

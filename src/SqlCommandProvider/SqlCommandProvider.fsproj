@@ -8,10 +8,11 @@
     <ProjectGuid>8974ce2e-79b4-4887-859a-b853c2624138</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>SqlCommandTypeProvider</RootNamespace>
-    <AssemblyName>SqlCommandTypeProvider</AssemblyName>
+    <AssemblyName>FSharp.Data.Experimental.SqlCommandProvider</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <Name>SqlCommandTypeProvider</Name>
+    <Name>SqlCommandProvider</Name>
     <TargetFrameworkProfile />
+    <TargetFSharpCoreVersion>4.3.0.0</TargetFSharpCoreVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,10 +22,10 @@
     <OutputPath>..\..\bin</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\bin\SqlCommandTypeProvider.xml</DocumentationFile>
+    <DocumentationFile>..\..\bin\FSharp.Data.Experimental.SqlCommandProvider.xml</DocumentationFile>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\devenv.exe</StartProgram>
-    <StartArguments>..\..\..\..\SqlCommandTypeProvider.Tests.sln</StartArguments>
+    <StartArguments>..\SqlCommandProvider.Tests.sln</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -33,18 +34,17 @@
     <OutputPath>..\..\bin</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\bin\SqlCommandTypeProvider.xml</DocumentationFile>
+    <DocumentationFile>..\..\bin\FSharp.Data.Experimental.SqlCommandProvider.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="mscorlib" />
-    <Reference Include="FSharp.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Private>True</Private>
     </Reference>
+    <Reference Include="mscorlib" />
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -53,18 +53,31 @@
     <Compile Include="ProvidedTypes-head.fs" />
     <Compile Include="Configuration.fs" />
     <Compile Include="Data.fs" />
-    <Compile Include="SqlClient.Extensions.fs" />
+    <Compile Include="SqlClientExtensions.fs" />
     <Compile Include="DataTable.fs" />
     <Compile Include="QuotationsFactory.fs" />
     <Compile Include="TypeProvider.fs" />
+    <Compile Include="Runtime.fs" />
     <Compile Include="AssemblyInfo.fs" />
     <None Include="App.config" />
-    <None Include="Scripts\Scratchpad.fsx" />
+    <None Include="Scratchpad.fsx" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
   </PropertyGroup>
-  <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" Condition=" Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')" />
+  <Choose>
+    <When Condition="'$(VisualStudioVersion)' == '11.0'">
+      <PropertyGroup>
+        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets</FSharpTargetsPath>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+  <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

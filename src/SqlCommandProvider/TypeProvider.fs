@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.SqlClient
+﻿namespace FSharp.Data.Experimental
 
 open System
 open System.Data
@@ -11,6 +11,8 @@ open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
 
+open FSharp.Data.Experimental.Internals
+
 open Samples.FSharp.ProvidedTypes
 
 type ResultType =
@@ -18,8 +20,11 @@ type ResultType =
     | Records = 1
     | DataTable = 3
 
+//[<assembly:TypeProviderAssembly()>]
+//do()
+
 [<TypeProvider>]
-type public SqlCommandTypeProvider(config : TypeProviderConfig) as this = 
+type public SqlCommandProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces()
 
     let mutable watcher = null : IDisposable
@@ -316,5 +321,4 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
         returnType, body
 
-[<TypeProviderAssembly>]
-do ()
+

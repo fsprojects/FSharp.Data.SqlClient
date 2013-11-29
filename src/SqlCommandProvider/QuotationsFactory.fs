@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.SqlClient
+﻿namespace FSharp.Data.Experimental.Internals
 
 open System
 open System.Data
@@ -10,11 +10,13 @@ open System.Diagnostics
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
 
+open FSharp.Data.Experimental
+
 type QuotationsFactory private() = 
     
     //The entry point
     static member internal GetBody(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
-
+        
         let bodyFactory =   
             let mi = typeof<QuotationsFactory>.GetMethod(methodName, BindingFlags.NonPublic ||| BindingFlags.Static)
             assert(mi <> null)

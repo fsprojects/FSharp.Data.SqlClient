@@ -42,6 +42,10 @@
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Private>True</Private>
     </Reference>
+    <Reference Include="FSharp.Data.Experimental.SqlCommandProvider">
+      <HintPath>..\..\..\packages\FSharp.Data.Experimental.SqlCommandProvider.1.0.015\lib\net40\FSharp.Data.Experimental.SqlCommandProvider.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Microsoft.Web.Infrastructure">
       <HintPath>..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
       <Private>True</Private>
@@ -50,9 +54,6 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.4.5.11\lib\net40\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
-    </Reference>
-    <Reference Include="SqlCommandTypeProvider">
-      <HintPath>..\..\src\SqlCommandTypeProvider\bin\Debug\SqlCommandTypeProvider.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -83,6 +84,7 @@
       <HintPath>..\packages\Microsoft.AspNet.WebApi.WebHost.4.0.30506.0\lib\net40\System.Web.Http.WebHost.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq.dll" />
   </ItemGroup>
   <ItemGroup>

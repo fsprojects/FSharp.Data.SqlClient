@@ -6,7 +6,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{7ECDF2
 		.nuget\NuGet.Config = .nuget\NuGet.Config
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
-		nuget\SqlCommandTypeProvider.nuspec = nuget\SqlCommandTypeProvider.nuspec
+		nuget\SqlCommandProvider.nuspec = nuget\SqlCommandProvider.nuspec
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9E58B00A-A993-4542-B40F-C58AC1A9AA4D}"
@@ -17,8 +17,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		RELEASE_NOTES.md = RELEASE_NOTES.md
 	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlCommandTypeProvider", "src\SqlCommandTypeProvider\SqlCommandTypeProvider.fsproj", "{8974CE2E-79B4-4887-859A-B853C2624138}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{61AC061E-5824-41B7-8E09-8D3A73D564E5}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{4B60BF24-D078-4950-A994-A633FBC272EB}"
@@ -28,6 +26,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{4B60
 		docs\content\index.fsx = docs\content\index.fsx
 		docs\content\limitations.fsx = docs\content\limitations.fsx
 		docs\content\sampleCommand.sql = docs\content\sampleCommand.sql
+		docs\content\samples.fsx = docs\content\samples.fsx
 		docs\content\start.fsx = docs\content\start.fsx
 	EndProjectSection
 EndProject
@@ -40,6 +39,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{
 	ProjectSection(SolutionItems) = preProject
 		docs\tools\templates\template.cshtml = docs\tools\templates\template.cshtml
 	EndProjectSection
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlCommandProvider", "src\SqlCommandProvider\SqlCommandProvider.fsproj", "{8974CE2E-79B4-4887-859A-B853C2624138}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

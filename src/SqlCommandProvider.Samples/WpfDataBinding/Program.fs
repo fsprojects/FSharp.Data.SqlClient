@@ -5,7 +5,7 @@ open System.Windows
 open System.Windows.Controls
 open System.Data.SqlClient
 
-open FSharp.Data.SqlClient
+open FSharp.Data.Experimental
 
 [<Literal>]
 //let queryTableSql = "SELECT * FROM Production.Product WHERE SellStartDate > @SellStartDate"
