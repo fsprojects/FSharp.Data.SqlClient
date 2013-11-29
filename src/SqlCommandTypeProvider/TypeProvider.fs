@@ -316,3 +316,5 @@ type public SqlCommandTypeProvider(config : TypeProviderConfig) as this =
 
         returnType, body
 
+[<TypeProviderAssembly>]
+do ()

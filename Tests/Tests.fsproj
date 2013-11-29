@@ -79,7 +79,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="SqlCommandTypeProvider">
-      <HintPath>..\src\SqlCommandTypeProvider\bin\Debug\SqlCommandTypeProvider.dll</HintPath>
+      <HintPath>..\bin\SqlCommandTypeProvider.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />

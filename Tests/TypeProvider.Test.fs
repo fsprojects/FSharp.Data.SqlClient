@@ -3,6 +3,7 @@ module FSharp.Data.SqlClient.TypeProviderTest
 open System
 open System.Data
 open Xunit
+open FSharp.Data.SqlClient
 
 [<Literal>]
 let connectionString = """Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"""

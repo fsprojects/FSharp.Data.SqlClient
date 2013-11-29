@@ -14,7 +14,7 @@ open Fake.Git
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
 let files includes = 
-  { BaseDirectories = [__SOURCE_DIRECTORY__]
+  { BaseDirectory = __SOURCE_DIRECTORY__
     Includes = includes
     Excludes = [] } 
 
@@ -27,8 +27,8 @@ let description = """
   parameters and various ways of deserializing output, including Tuples and DTOs"""
 let tags = "F# fsharp data typeprovider sql"
       
-let gitHome = "https://github.com/dmitry-a-morozov"
-let gitName = "FSharp.Data.SqlCommandTypeProvider"
+let gitHome = "https://github.com/fsprojects"
+let gitName = "FSharp.Data.Experimental.SqlCommandProvider"
 
 // Read release notes & version info from RELEASE_NOTES.md
 let release = 

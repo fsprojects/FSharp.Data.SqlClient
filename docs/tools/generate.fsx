@@ -1,7 +1,7 @@
 ﻿// Binaries that have XML documentation (in a corresponding generated XML file)
 let referenceBinaries = [  ]
 // Web site location for the generated documentation
-let website = "http://dmitry-a-morozov.github.io/FSharp.Data.SqlCommandTypeProvider"
+let website = "http://fsprojects.github.io/FSharp.Data.Experimental.SqlCommandProvider/"
 
 // Specify more information about your project
 let info =
@@ -9,7 +9,7 @@ let info =
     "project-logo-url", "img/logo.png"
     "project-author", "Dmitry Morozov, Dmitry Sevastianov"
     "project-summary", "The SqlCommand type provider wraps over sql query to provide strongly typed parameters and various ways of deserializing output, including Tuples and DTOs"
-    "project-github", "http://github.com/dmitry-a-morozov/FSharp.Data.SqlCommandTypeProvider"
+    "project-github", "https://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider"
     "project-nuget", "http://www.nuget.org/packages/SqlCommandTypeProvider" ]
 
 #I "../../packages/FSharp.Formatting.2.1.6/lib/net40"
