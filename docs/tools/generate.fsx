@@ -10,7 +10,7 @@ let info =
     "project-author", "Dmitry Morozov, Dmitry Sevastianov"
     "project-summary", "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way."
     "project-github", "https://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider"
-    "project-nuget", "http://www.nuget.org/packages/SqlCommandProvider" ]
+    "project-nuget", "http://www.nuget.org/packages/FSharp.Data.Experimental.SqlCommandProvider" ]
 
 #I "../../packages/FSharp.Formatting.2.1.6/lib/net40"
 #I "../../packages/RazorEngine.3.3.0/lib/net40/"
