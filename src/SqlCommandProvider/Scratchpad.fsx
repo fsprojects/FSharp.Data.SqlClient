@@ -6,12 +6,17 @@ open System.Data
 open System.Data.SqlClient
 //open FSharp.Data.SqlClient.Extensions
 let conn = new SqlConnection("Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True")
+conn.Close()
 conn.Open()
 //printfn "%A" <| conn.GetDataTypesMapping()
 
 //let cmd = new SqlCommand("uspSearchCandidateResumes", conn, CommandType = CommandType.StoredProcedure)
-let cmd = new SqlCommand("myProc", conn, CommandType = CommandType.StoredProcedure)
+let cmd = new SqlCommand("dbo.[Init]", conn, CommandType = CommandType.StoredProcedure)
 SqlCommandBuilder.DeriveParameters cmd
+let reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly)
+    let x.GetSchemaTable()
+    .AsEnumerable()
+    printfn "DataType: %s, %A" (x.GetDataTypeName 0) (x.GetFieldType 0)
 
 for p in cmd.Parameters do printfn "Param: %s, type: %s, sqldbtype: %A, direction %A, IsNullable %b, Value: %A" p.ParameterName p.TypeName p.SqlDbType p.Direction p.IsNullable p.Value
 

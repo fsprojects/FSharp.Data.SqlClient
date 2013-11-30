@@ -115,3 +115,15 @@ type SqlParameter with
             { Name = this.ParameterName; TypeInfo = x; Direction = this.Direction }
         | None -> 
             failwithf "Cannot map pair of SqlDbType '%O' and user definto type '%s' CLR type." this.SqlDbType udt
+
+type SqlDataReader with
+    member internal this.GetColumnsInfo() = [
+        for row in this.GetSchemaTable().Rows do
+            yield { 
+                Column.Name = unbox row.["ColumnName"]
+                Ordinal = unbox row.["ColumnOrdinal"]
+                ClrTypeFullName = let t : Type = unbox row.["DataType"] in t.FullName
+                IsNullable = unbox row.["AllowDBNull"]
+            }
+    ]
+        

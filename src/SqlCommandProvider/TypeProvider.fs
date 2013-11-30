@@ -20,8 +20,8 @@ type ResultType =
     | Records = 1
     | DataTable = 3
 
-//[<assembly:TypeProviderAssembly()>]
-//do()
+[<assembly:TypeProviderAssembly()>]
+do()
 
 [<TypeProvider>]
 type public SqlCommandProvider(config : TypeProviderConfig) as this = 
@@ -44,6 +44,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false) 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
+                ProvidedStaticParameter("FallbackToProbeResultTypeInTransaction", typeof<bool>, false) 
             ],             
             instantiationFunction = this.CreateType
         )
@@ -63,6 +64,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let singleRow : bool = unbox parameters.[5] 
         let configFile : string = unbox parameters.[6] 
         let dataDirectory : string = unbox parameters.[7] 
+        let allowFallbackToProbeTypesInTransaction : bool = unbox parameters.[8] 
 
         let resolutionFolder = config.ResolutionFolder
         let commandText, watcher' = 
@@ -90,6 +92,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                         let runTimeConnectionString = 
                             if String.IsNullOrEmpty(%%args.[0])
                             then
+
                                 Configuration.GetConnectionString (resolutionFolder, connectionStringProvided, connectionStringName, configFile)
                             else 
                                 %%args.[0]
@@ -107,7 +110,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 yield ctor :> MemberInfo    
 
                 let executeArgs = this.GetExecuteArgsForSqlParameters(sqlParameters) 
-                let outputColumns = this.GetOutputColumns(conn, commandText)
+                let outputColumns = this.GetOutputColumns(conn, commandText, commandType, allowFallbackToProbeTypesInTransaction)
                 this.AddExecuteMethod(sqlParameters, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) 
             ]
         
@@ -123,22 +126,45 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         providedCommandType
 
-    member internal this.GetOutputColumns(connection, commandText) = [
+    member internal this.GetOutputColumns(connection, commandText, commandType, allowFallbackToProbeTypesInTransaction) = 
+        try
+            this.GetFullQualityColumnInfo(connection, commandText)
+        with :? SqlException as why ->
+            try 
+                this.FallbackToSETFMONLY(connection, commandText, commandType)
+            with :? SqlException ->
+                try 
+                    this.ProbeResultsetTypesInTransaction(connection, commandText, commandType)
+                with _ -> 
+                    raise why
+
+    member internal __.GetFullQualityColumnInfo(connection, commandText) = [
         use cmd = new SqlCommand("sys.sp_describe_first_result_set", connection, CommandType = CommandType.StoredProcedure)
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
         use reader = cmd.ExecuteReader()
 
         while reader.Read() do
-
-            let name = string reader.["name"]
-
             yield { 
-                Column.Name = name
+                Column.Name = string reader.["name"]
                 Ordinal = unbox reader.["column_ordinal"]
-                ClrTypeFullName =  reader.["system_type_id"] |> unbox |> findClrTypeNameBySqlEngineTypeId
+                ClrTypeFullName = reader.["system_type_id"] |> unbox |> findClrTypeNameBySqlEngineTypeId
                 IsNullable = unbox reader.["is_nullable"]
             }
     ] 
+
+    member internal __.FallbackToSETFMONLY(connection, commandText, commandType) = 
+        use cmd = new SqlCommand(commandText, connection, CommandType = commandType)
+        use reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly)
+        reader.GetColumnsInfo()
+
+    member internal __.ProbeResultsetTypesInTransaction(connection, commandText, commandType) = 
+        use tran = connection.BeginTransaction()
+        try 
+            use cmd = new SqlCommand(commandText, connection, tran, CommandType = commandType)
+            use reader = cmd.ExecuteReader()
+            reader.GetColumnsInfo()
+        finally 
+            tran.Rollback()
 
     member internal this.ExtractSqlParameters(connection, commandText, commandType) =  [
 

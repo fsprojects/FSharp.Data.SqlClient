@@ -1,13 +1,13 @@
 (**
     Use cases
 *)
-#r "../src/SqlCommandTypeProvider/bin/Debug/SqlCommandTypeProvider.dll"
+#r "../../bin/FSharp.Data.Experimental.SqlCommandProvider.dll"
 
 open System
 open System.Data
-open FSharp.Data.SqlClient
+open FSharp.Data.Experimental
 
-[<Literal>]
+[<Literal>] 
 let connectionString = """Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"""
 
 [<Literal>]
@@ -96,4 +96,12 @@ cmdSp.Execute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = 
 type q = SqlCommand<"sampleCommand.sql", connectionString>
 let cmdFromFile = q()
 cmdFromFile.Execute() |> ignore
+
+type UseFMTONLY = SqlCommand<"dbo.[Init]", connectionString, CommandType = CommandType.StoredProcedure >
+let useFMTONLY = UseFMTONLY()
+useFMTONLY.Execute()
+
+type UseProbeTypesInTran = SqlCommand<"dbo.[Get]", connectionString, CommandType = CommandType.StoredProcedure, FallbackToProbeResultTypeInTransaction = true>
+let useTranToProbeTypes = UseProbeTypesInTran()
+useTranToProbeTypes.Execute()
 

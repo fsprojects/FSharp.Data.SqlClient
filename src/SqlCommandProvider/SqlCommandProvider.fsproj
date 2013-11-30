@@ -19,10 +19,11 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>..\..\bin</OutputPath>
+    <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\bin\FSharp.Data.Experimental.SqlCommandProvider.xml</DocumentationFile>
+    <DocumentationFile>
+    </DocumentationFile>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\devenv.exe</StartProgram>
     <StartArguments>..\SqlCommandProvider.Tests.sln</StartArguments>
@@ -46,6 +47,7 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Transactions" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
@@ -57,7 +59,6 @@
     <Compile Include="DataTable.fs" />
     <Compile Include="QuotationsFactory.fs" />
     <Compile Include="TypeProvider.fs" />
-    <Compile Include="Runtime.fs" />
     <None Include="App.config" />
     <None Include="Scratchpad.fsx" />
   </ItemGroup>
