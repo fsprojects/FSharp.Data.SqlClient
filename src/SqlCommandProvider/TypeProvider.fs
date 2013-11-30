@@ -134,7 +134,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 this.FallbackToSETFMONLY(connection, commandText, commandType)
             with :? SqlException ->
                 try 
-                    this.ProbeResultsetTypesInTransaction(connection, commandText, commandType)
+                    if allowFallbackToProbeTypesInTransaction
+                    then this.ProbeResultsetTypesInTransaction(connection, commandText, commandType)
+                    else raise why
                 with _ -> 
                     raise why
 
