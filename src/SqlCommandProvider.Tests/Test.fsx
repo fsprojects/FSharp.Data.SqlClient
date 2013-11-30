@@ -8,7 +8,7 @@ open System.Data
 open FSharp.Data.Experimental
 
 [<Literal>] 
-let connectionString = """Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"""
+let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 [<Literal>]
 let queryProductsSql = " 
@@ -99,7 +99,7 @@ cmdFromFile.Execute() |> ignore
 
 type UseFMTONLY = SqlCommand<"dbo.[Init]", connectionString, CommandType = CommandType.StoredProcedure >
 let useFMTONLY = UseFMTONLY()
-useFMTONLY.Execute(12, DateTime.Now)
+useFMTONLY.Execute()
 
 type UseProbeTypesInTran = SqlCommand<"dbo.[Get]", connectionString, CommandType = CommandType.StoredProcedure, FallbackToProbeResultTypeInTransaction = true>
 let useTranToProbeTypes = UseProbeTypesInTran()

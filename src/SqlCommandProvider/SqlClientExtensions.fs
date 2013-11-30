@@ -117,13 +117,17 @@ type SqlParameter with
             failwithf "Cannot map pair of SqlDbType '%O' and user definto type '%s' CLR type." this.SqlDbType udt
 
 type SqlDataReader with
-    member internal this.GetColumnsInfo() = [
-        for row in this.GetSchemaTable().Rows do
-            yield { 
-                Column.Name = unbox row.["ColumnName"]
-                Ordinal = unbox row.["ColumnOrdinal"]
-                ClrTypeFullName = let t : Type = unbox row.["DataType"] in t.FullName
-                IsNullable = unbox row.["AllowDBNull"]
-            }
-    ]
+    member internal this.GetColumnsInfo() = 
+        match this.GetSchemaTable() with
+        | null -> []
+        | columnSchema -> 
+            [
+                for row in columnSchema.Rows do
+                    yield { 
+                        Column.Name = unbox row.["ColumnName"]
+                        Ordinal = unbox row.["ColumnOrdinal"]
+                        ClrTypeFullName = let t : Type = unbox row.["DataType"] in t.FullName
+                        IsNullable = unbox row.["AllowDBNull"]
+                    }
+            ]
         

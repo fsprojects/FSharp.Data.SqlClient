@@ -5,7 +5,7 @@
 open System.Data
 open System.Data.SqlClient
 //open FSharp.Data.SqlClient.Extensions
-let conn = new SqlConnection("Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True")
+let conn = new SqlConnection("""Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True""")
 conn.Close()
 conn.Open()
 //printfn "%A" <| conn.GetDataTypesMapping()
