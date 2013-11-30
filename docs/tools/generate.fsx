@@ -5,7 +5,7 @@ let website = "http://fsprojects.github.io/FSharp.Data.Experimental.SqlCommandPr
 
 // Specify more information about your project
 let info =
-  [ "project-name", "SqlCommand Type Provider"
+  [ "project-name", "SqlCommandProvider"
     "project-logo-url", "img/logo.png"
     "project-author", "Dmitry Morozov, Dmitry Sevastianov"
     "project-summary", "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way."
