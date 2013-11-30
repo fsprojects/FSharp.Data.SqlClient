@@ -99,7 +99,7 @@ cmdFromFile.Execute() |> ignore
 
 type UseFMTONLY = SqlCommand<"dbo.[Init]", connectionString, CommandType = CommandType.StoredProcedure >
 let useFMTONLY = UseFMTONLY()
-useFMTONLY.Execute()
+useFMTONLY.Execute(12, DateTime.Now)
 
 type UseProbeTypesInTran = SqlCommand<"dbo.[Get]", connectionString, CommandType = CommandType.StoredProcedure, FallbackToProbeResultTypeInTransaction = true>
 let useTranToProbeTypes = UseProbeTypesInTran()

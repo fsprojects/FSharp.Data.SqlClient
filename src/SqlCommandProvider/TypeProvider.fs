@@ -110,7 +110,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 yield ctor :> MemberInfo    
 
                 let executeArgs = this.GetExecuteArgsForSqlParameters(sqlParameters) 
-                let outputColumns = this.GetOutputColumns(conn, commandText, commandType, allowFallbackToProbeTypesInTransaction)
+                let outputColumns = this.GetOutputColumns(conn, commandText, commandType, sqlParameters, allowFallbackToProbeTypesInTransaction)
                 this.AddExecuteMethod(sqlParameters, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) 
             ]
         
@@ -126,15 +126,15 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         providedCommandType
 
-    member internal this.GetOutputColumns(connection, commandText, commandType, allowFallbackToProbeTypesInTransaction) = 
+    member internal this.GetOutputColumns(connection, commandText, commandType, sqlParameters, allowFallbackToProbeTypesInTransaction) = 
         try
             this.GetFullQualityColumnInfo(connection, commandText)
         with :? SqlException as why ->
             try 
-                this.FallbackToSETFMONLY(connection, commandText, commandType)
+                this.FallbackToSETFMONLY(connection, commandText, commandType, sqlParameters)
             with :? SqlException ->
                 try 
-                    if allowFallbackToProbeTypesInTransaction
+                    if allowFallbackToProbeTypesInTransaction && sqlParameters.Length = 0
                     then this.ProbeResultsetTypesInTransaction(connection, commandText, commandType)
                     else raise why
                 with _ -> 
@@ -154,8 +154,10 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             }
     ] 
 
-    member internal __.FallbackToSETFMONLY(connection, commandText, commandType) = 
+    member internal __.FallbackToSETFMONLY(connection, commandText, commandType, sqlParameters) = 
         use cmd = new SqlCommand(commandText, connection, CommandType = commandType)
+        for p in sqlParameters do
+            cmd.Parameters.Add(p.Name, p.TypeInfo.SqlDbType) |> ignore
         use reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly)
         reader.GetColumnsInfo()
 
