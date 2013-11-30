@@ -14,9 +14,7 @@ conn.Open()
 let cmd = new SqlCommand("dbo.[Init]", conn, CommandType = CommandType.StoredProcedure)
 SqlCommandBuilder.DeriveParameters cmd
 let reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly)
-    let x.GetSchemaTable()
-    .AsEnumerable()
-    printfn "DataType: %s, %A" (x.GetDataTypeName 0) (x.GetFieldType 0)
+
 
 for p in cmd.Parameters do printfn "Param: %s, type: %s, sqldbtype: %A, direction %A, IsNullable %b, Value: %A" p.ParameterName p.TypeName p.SqlDbType p.Direction p.IsNullable p.Value
 
@@ -40,9 +38,15 @@ cmd.CommandText = cmdClone.CommandText
 cmdClone.CommandText <- "SELECT 0 AS X"
 //cmdClone.Connection <- cmd.Connection.Clone()
 cmd.Connection = cmdClone.Connection
-
+//
 open System.Dynamic
+open System.Collections.Generic
+let (?) (this : ExpandoObject) prop =
+    match (this :> IDictionary<_, _>).[prop] with
+    | null -> None
+    | value -> Some(unbox value)
 
 let expando = ExpandoObject()
 let dict : System.Collections.Generic.IDictionary<string, obj> = upcast expando
 dict.["test"] <- 15
+let x : int option = expando ? test
