@@ -58,7 +58,6 @@
     <Compile Include="QuotationsFactory.fs" />
     <Compile Include="TypeProvider.fs" />
     <Compile Include="Runtime.fs" />
-    <Compile Include="AssemblyInfo.fs" />
     <None Include="App.config" />
     <None Include="Scratchpad.fsx" />
   </ItemGroup>

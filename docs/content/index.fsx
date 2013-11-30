@@ -11,8 +11,8 @@ SqlCommandProvider provides statically typed access to input parameters and resu
   <div class="span1"></div>
   <div class="span6">
     <div class="well well-small" id="nuget">
-      The F# ProjectTemplate library can be <a href="https://www.nuget.org/packages/SqlCommandProvider">installed from NuGet</a>:
-      <pre>PM> Install-Package SqlCommandProvider</pre>
+      The F# ProjectTemplate library can be <a href="http://www.nuget.org/packages/FSharp.Data.Experimental.SqlCommandProvider">installed from NuGet</a>:
+      <pre>PM> Install-Package FSharp.Data.Experimental.SqlCommandProvider</pre>
     </div>
   </div>
   <div class="span1"></div>
