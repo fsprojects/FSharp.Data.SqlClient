@@ -6,4 +6,6 @@
 * Fixing FallbackToProbeResultTypeInTransaction value is not respected 
 #### 1.0.018 
 * Parametrized queries that can fallback to SET FMTONLY ON
+#### 1.0.019 
+* Removing FallbackToProbeResultTypeInTransaction
 

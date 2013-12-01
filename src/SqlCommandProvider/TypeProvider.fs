@@ -19,6 +19,7 @@ type ResultType =
     | Tuples = 0
     | Records = 1
     | DataTable = 3
+    | DynamicObjects = 5
 
 [<assembly:TypeProviderAssembly()>]
 do()
@@ -44,7 +45,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false) 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
-                ProvidedStaticParameter("FallbackToProbeResultTypeInTransaction", typeof<bool>, false) 
             ],             
             instantiationFunction = this.CreateType
         )
@@ -133,12 +133,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             try 
                 this.FallbackToSETFMONLY(connection, commandText, commandType, sqlParameters)
             with :? SqlException ->
-                try 
-                    if allowFallbackToProbeTypesInTransaction && sqlParameters.Length = 0
-                    then this.ProbeResultsetTypesInTransaction(connection, commandText, commandType)
-                    else raise why
-                with _ -> 
-                    raise why
+                raise why
 
     member internal __.GetFullQualityColumnInfo(connection, commandText) = [
         use cmd = new SqlCommand("sys.sp_describe_first_result_set", connection, CommandType = CommandType.StoredProcedure)
@@ -160,16 +155,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             cmd.Parameters.Add(p.Name, p.TypeInfo.SqlDbType) |> ignore
         use reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly)
         reader.GetColumnsInfo()
-
-    member internal __.ProbeResultsetTypesInTransaction(connection, commandText, commandType) = 
-        use tran = connection.BeginTransaction()
-        try 
-            use cmd = new SqlCommand(commandText, connection, tran, CommandType = commandType)
-            use reader = cmd.ExecuteReader()
-            reader.GetColumnsInfo()
-        finally 
-            tran.Rollback()
-
+        
     member internal this.ExtractSqlParameters(connection, commandText, commandType) =  [
 
             match commandType with 
@@ -267,12 +253,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                         let column0Type = singleCol.ClrTypeConsideringNullable
                         column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, singleRow, singleCol)
                     else 
-                        if resultType = ResultType.Tuples 
-                        then 
-                            this.Tuples(outputColumns, singleRow)
-                        else 
-                            assert (resultType = ResultType.Records)
-                            this.Records(providedCommandType, outputColumns, singleRow)
+                        match resultType with
+                        | ResultType.Tuples -> this.Tuples(outputColumns, singleRow)
+                        | ResultType.Records -> this.Records(providedCommandType, outputColumns, singleRow)
+                        | ResultType.DynamicObjects -> this.DynamicObjects(providedCommandType, outputColumns, singleRow)
+                        | _ -> ResultType.DataTable.ToString() |> failwith
 
                 let returnType = if singleRow then rowType else ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
                            
@@ -316,11 +301,30 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         providedCommandType.AddMember recordType
         let getExecuteBody (args : Expr list) = 
-            let columnTypes, isNullableColumn = columns |> List.map (fun c -> c.ClrTypeFullName, c.IsNullable) |> List.unzip 
             QuotationsFactory.GetTypedSequence(args, <@ fun(values : obj[]) -> box values @>, singleRow, columns)
                          
         upcast recordType, getExecuteBody
     
+    member internal this.DynamicObjects(providedCommandType, columns, singleRow) =
+        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<Map<string,obj>>, HideObjectMethods = true)
+        for col in columns do
+            if col.Name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
+
+            let property = ProvidedProperty(col.Name, propertyType = col.ClrTypeConsideringNullable)
+            property.GetterCode <- fun args -> 
+                <@@ 
+                    let values : obj[] = %%Expr.Coerce(args.[0], typeof<obj[]>)
+                    values.[%%Expr.Value (col.Ordinal - 1)]
+                @@>
+
+            recordType.AddMember property
+
+        providedCommandType.AddMember recordType
+        let getExecuteBody (args : Expr list) = 
+            QuotationsFactory.GetTypedSequence(args, <@ fun(values : obj[]) -> box values @>, singleRow, columns)
+                         
+        upcast recordType, getExecuteBody
+
     member internal this.DataTable(providedCommandType, commandText, outputColumns, singleRow) =
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
         for col in outputColumns do

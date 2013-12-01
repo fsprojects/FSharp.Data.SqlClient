@@ -2,7 +2,7 @@
 #r "../../bin/FSharp.Data.Experimental.SqlCommandProvider.dll"
 
 (**
-Bridging the gap between T-SQL queries and F# type system.
+Bridging the gap between T-SQL queries and F# type system
 ===================
 
 SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.
