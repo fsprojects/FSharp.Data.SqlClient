@@ -16,9 +16,6 @@ open DataAccess
 type HomeController() =
     inherit ApiController()
 
-    [<Literal>]
-    let connectionString="Data Source=mitekm-pc2;Initial Catalog=AdventureWorks2012;Integrated Security=True"
-
     member this.Get() = this.Get(7L, System.DateTime.Parse "2002-06-01")
 
     //http://localhost:61594/?top=4&sellStartDate=2002-07-01

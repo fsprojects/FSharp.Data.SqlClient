@@ -8,4 +8,7 @@
 * Parametrized queries that can fallback to SET FMTONLY ON
 #### 1.0.019 
 * Removing FallbackToProbeResultTypeInTransaction
+#### 1.0.020
+* Support ResultType.Maps for untyped output data
+
 
