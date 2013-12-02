@@ -26,7 +26,7 @@ cmd.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> Seq
 
 //Custom record types and connection string override
 type QueryProducts = SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.Records>
-let cmd1 = QueryProducts(connectionString = "Data Source=(local);Initial Catalog=AdventureWorks2012;Integrated Security=True")
+let cmd1 = QueryProducts(connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
 let result1 : Async<QueryProducts.Record seq> = cmd1.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
 cmd1.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
@@ -97,11 +97,13 @@ type q = SqlCommand<"sampleCommand.sql", connectionString>
 let cmdFromFile = q()
 cmdFromFile.Execute() |> ignore
 
+//Fallback to metadata retrieval through FMTONLY
 type UseFMTONLY = SqlCommand<"dbo.[Init]", connectionString, CommandType = CommandType.StoredProcedure >
 let useFMTONLY = UseFMTONLY()
 useFMTONLY.Execute()
 
-type UseProbeTypesInTran = SqlCommand<"dbo.[Get]", connectionString, CommandType = CommandType.StoredProcedure, FallbackToProbeResultTypeInTransaction = true>
-let useTranToProbeTypes = UseProbeTypesInTran()
-useTranToProbeTypes.Execute()
+//Runtime column names and Map<string,obj> as a row type
+type UseGet = SqlCommand<"dbo.[Get]", connectionString, CommandType = CommandType.StoredProcedure, ResultType = ResultType.Maps >
+let useGet = UseGet()
+useGet.Execute()
 

@@ -19,7 +19,7 @@ type ResultType =
     | Tuples = 0
     | Records = 1
     | DataTable = 3
-    | DynamicObjects = 5
+    | Maps = 5
 
 [<assembly:TypeProviderAssembly()>]
 do()
@@ -127,12 +127,12 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
     member internal this.GetOutputColumns(connection, commandText, commandType, sqlParameters) = 
         try
-            this.GetFullQualityColumnInfo(connection, commandText)
+            this.GetFullQualityColumnInfo(connection, commandText) |> Some
         with :? SqlException as why ->
             try 
-                this.FallbackToSETFMONLY(connection, commandText, commandType, sqlParameters)
+                this.FallbackToSETFMONLY(connection, commandText, commandType, sqlParameters) |> Some
             with :? SqlException ->
-                raise why
+                None
 
     member internal __.GetFullQualityColumnInfo(connection, commandText) = [
         use cmd = new SqlCommand("sys.sp_describe_first_result_set", connection, CommandType = CommandType.StoredProcedure)
@@ -235,32 +235,37 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             @@>
         typeof<int>, body
 
-    member internal __.AddExecuteMethod(paramInfos, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) = 
-            
+    member internal __.AddExecuteMethod(paramInfos, executeArgs, outputColumnsOpt, providedCommandType, resultType, singleRow, commandText) = 
         let syncReturnType, executeMethodBody = 
-            if outputColumns.IsEmpty
-            then 
-                this.GetExecuteNonQuery()
-            elif resultType = ResultType.DataTable
-            then 
-                this.DataTable(providedCommandType, commandText, outputColumns, singleRow)
+            if outputColumnsOpt.IsNone then
+                if resultType <>  ResultType.Maps 
+                then failwith "Output metadata is not available at design time, please use ResultType.Maps"
+                else typeof<Map<string,obj> seq>, (fun args -> QuotationsFactory.GetMaps(args, singleRow))
             else
-                let rowType, executeMethodBody = 
-                    if List.length outputColumns = 1
-                    then
-                        let singleCol = outputColumns.Head
-                        let column0Type = singleCol.ClrTypeConsideringNullable
-                        column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, singleRow, singleCol)
-                    else 
-                        match resultType with
-                        | ResultType.Tuples -> this.Tuples(outputColumns, singleRow)
-                        | ResultType.Records -> this.Records(providedCommandType, outputColumns, singleRow)
-                        | ResultType.DynamicObjects -> this.DynamicObjects(providedCommandType, outputColumns, singleRow)
-                        | _ -> ResultType.DataTable.ToString() |> failwith
+                let outputColumns = outputColumnsOpt.Value
+                if outputColumns.IsEmpty
+                then 
+                    this.GetExecuteNonQuery()
+                elif resultType = ResultType.DataTable
+                then 
+                    this.DataTable(providedCommandType, commandText, outputColumns, singleRow)
+                else
+                    let rowType, executeMethodBody = 
+                        if List.length outputColumns = 1
+                        then
+                            let singleCol = outputColumns.Head
+                            let column0Type = singleCol.ClrTypeConsideringNullable
+                            column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, singleRow, singleCol)
+                        else 
+                            match resultType with
+                            | ResultType.Tuples -> this.Tuples(outputColumns, singleRow)
+                            | ResultType.Records -> this.Records(providedCommandType, outputColumns, singleRow)
+                            | ResultType.Maps -> typeof<Map<string,obj>>, (fun args -> QuotationsFactory.GetMaps(args, singleRow))
+                            | _ -> ResultType.DataTable.ToString() |> failwith
 
-                let returnType = if singleRow then rowType else ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
+                    let returnType = if singleRow then rowType else ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
                            
-                returnType, executeMethodBody
+                    returnType, executeMethodBody
                     
         let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ syncReturnType ])
         let asyncExecute = ProvidedMethod("AsyncExecute", executeArgs, asyncReturnType)
@@ -304,26 +309,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                          
         upcast recordType, getExecuteBody
     
-    member internal this.DynamicObjects(providedCommandType, columns, singleRow) =
-        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<Map<string,obj>>, HideObjectMethods = true)
-        for col in columns do
-            if col.Name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
-
-            let property = ProvidedProperty(col.Name, propertyType = col.ClrTypeConsideringNullable)
-            property.GetterCode <- fun args -> 
-                <@@ 
-                    let values : obj[] = %%Expr.Coerce(args.[0], typeof<obj[]>)
-                    values.[%%Expr.Value (col.Ordinal - 1)]
-                @@>
-
-            recordType.AddMember property
-
-        providedCommandType.AddMember recordType
-        let getExecuteBody (args : Expr list) = 
-            QuotationsFactory.GetTypedSequence(args, <@ fun(values : obj[]) -> box values @>, singleRow, columns)
-                         
-        upcast recordType, getExecuteBody
-
     member internal this.DataTable(providedCommandType, commandText, outputColumns, singleRow) =
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
         for col in outputColumns do

@@ -1,7 +1,10 @@
-﻿-- The following Sql must be run against AdventureWorks2012 for the tests to compile.
+﻿USE AdventureWorks2012
+-- The following Sql must be run against AdventureWorks2012 for the tests to compile.
 
 DROP PROCEDURE MyProc
 DROP PROCEDURE SingleElementProc
+DROP PROCEDURE [Init]
+DROP PROCEDURE [Get]
 DROP TYPE MyTableType
 DROP TYPE SingleElementType
 GO
@@ -23,3 +26,21 @@ BEGIN
    SELECT * from @p1 p
 END
 GO
+
+create procedure [Init]
+AS
+begin
+    exec sp_getapplock 
+        @Resource = 'R',
+        @LockMode = 'Exclusive',
+        @LockOwner = 'Session',
+        @LockTimeout = -1;
+END
+GO
+
+create procedure [Get]
+as
+begin
+    create table #result (id  uniqueidentifier not null)
+    select * from #result
+end
