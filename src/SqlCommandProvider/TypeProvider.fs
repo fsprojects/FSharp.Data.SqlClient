@@ -64,7 +64,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let singleRow : bool = unbox parameters.[5] 
         let configFile : string = unbox parameters.[6] 
         let dataDirectory : string = unbox parameters.[7] 
-        let allowFallbackToProbeTypesInTransaction : bool = unbox parameters.[8] 
 
         let resolutionFolder = config.ResolutionFolder
         let commandText, watcher' = 
@@ -110,7 +109,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 yield ctor :> MemberInfo    
 
                 let executeArgs = this.GetExecuteArgsForSqlParameters(sqlParameters) 
-                let outputColumns = this.GetOutputColumns(conn, commandText, commandType, sqlParameters, allowFallbackToProbeTypesInTransaction)
+                let outputColumns = this.GetOutputColumns(conn, commandText, commandType, sqlParameters)
                 this.AddExecuteMethod(sqlParameters, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) 
             ]
         
@@ -126,7 +125,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         providedCommandType
 
-    member internal this.GetOutputColumns(connection, commandText, commandType, sqlParameters, allowFallbackToProbeTypesInTransaction) = 
+    member internal this.GetOutputColumns(connection, commandText, commandType, sqlParameters) = 
         try
             this.GetFullQualityColumnInfo(connection, commandText)
         with :? SqlException as why ->
