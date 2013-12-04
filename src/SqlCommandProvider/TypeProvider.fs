@@ -109,7 +109,10 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 yield ctor :> MemberInfo    
 
                 let executeArgs = this.GetExecuteArgsForSqlParameters(sqlParameters) 
-                let outputColumns = this.GetOutputColumns(conn, commandText, commandType, sqlParameters)
+                let outputColumns = 
+                    if resultType <> ResultType.Maps 
+                    then this.GetOutputColumns(conn, commandText, commandType, sqlParameters)
+                    else []
                 this.AddExecuteMethod(sqlParameters, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) 
             ]
         
@@ -127,12 +130,12 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
     member internal this.GetOutputColumns(connection, commandText, commandType, sqlParameters) = 
         try
-            this.GetFullQualityColumnInfo(connection, commandText) |> Some
+            this.GetFullQualityColumnInfo(connection, commandText) 
         with :? SqlException as why ->
             try 
-                this.FallbackToSETFMONLY(connection, commandText, commandType, sqlParameters) |> Some
+                this.FallbackToSETFMONLY(connection, commandText, commandType, sqlParameters) 
             with :? SqlException ->
-                None
+                raise why
 
     member internal __.GetFullQualityColumnInfo(connection, commandText) = [
         use cmd = new SqlCommand("sys.sp_describe_first_result_set", connection, CommandType = CommandType.StoredProcedure)
@@ -153,7 +156,18 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         for p in sqlParameters do
             cmd.Parameters.Add(p.Name, p.TypeInfo.SqlDbType) |> ignore
         use reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly)
-        reader.GetColumnsInfo()
+        match reader.GetSchemaTable() with
+        | null -> []
+        | columnSchema -> 
+            [
+                for row in columnSchema.Rows do
+                    yield { 
+                        Column.Name = unbox row.["ColumnName"]
+                        Ordinal = unbox row.["ColumnOrdinal"]
+                        ClrTypeFullName = let t : Type = unbox row.["DataType"] in t.FullName
+                        IsNullable = unbox row.["AllowDBNull"]
+                    }
+            ]
         
     member internal this.ExtractSqlParameters(connection, commandText, commandType) =  [
 
@@ -235,14 +249,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             @@>
         typeof<int>, body
 
-    member internal __.AddExecuteMethod(paramInfos, executeArgs, outputColumnsOpt, providedCommandType, resultType, singleRow, commandText) = 
+    member internal __.AddExecuteMethod(paramInfos, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) = 
         let syncReturnType, executeMethodBody = 
-            if outputColumnsOpt.IsNone then
-                if resultType <>  ResultType.Maps 
-                then failwith "Output metadata is not available at design time, please use ResultType.Maps"
-                else typeof<Map<string,obj> seq>, (fun args -> QuotationsFactory.GetMaps(args, singleRow))
+            if resultType = ResultType.Maps then
+                typeof<Map<string,obj> seq>, (fun args -> QuotationsFactory.GetMaps(args, singleRow))
             else
-                let outputColumns = outputColumnsOpt.Value
                 if outputColumns.IsEmpty
                 then 
                     this.GetExecuteNonQuery()

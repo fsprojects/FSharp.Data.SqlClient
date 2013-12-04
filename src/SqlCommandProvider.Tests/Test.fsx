@@ -11,7 +11,7 @@ open FSharp.Data.Experimental
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 [<Literal>]
-let queryProductsSql = " 
+let queryProductsSql = "
 SELECT TOP (@top) Name AS ProductName, SellStartDate, Size
 FROM Production.Product 
 WHERE SellStartDate > @SellStartDate
