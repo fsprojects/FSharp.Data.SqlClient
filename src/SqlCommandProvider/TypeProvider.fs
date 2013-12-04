@@ -268,12 +268,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                             let column0Type = singleCol.ClrTypeConsideringNullable
                             column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, singleRow, singleCol)
                         else 
-                            match resultType with
-                            | ResultType.Tuples -> this.Tuples(outputColumns, singleRow)
-                            | ResultType.Records -> this.Records(providedCommandType, outputColumns, singleRow)
-                            | ResultType.Maps -> typeof<Map<string,obj>>, (fun args -> QuotationsFactory.GetMaps(args, singleRow))
-                            | _ -> ResultType.DataTable.ToString() |> failwith
-
+                            if resultType = ResultType.Tuples
+                            then this.Tuples(outputColumns, singleRow)
+                            else this.Records(providedCommandType, outputColumns, singleRow)
                     let returnType = if singleRow then rowType else ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
                            
                     returnType, executeMethodBody
