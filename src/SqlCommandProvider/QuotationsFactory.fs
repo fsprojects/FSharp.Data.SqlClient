@@ -58,67 +58,48 @@ type QuotationsFactory private() =
             }
         @@>
 
-    static member internal GetRows(exprArgs, singleRow, includeColumnInfo) = 
+    static member internal GetRows<'Row>(exprArgs, mapper : Expr<(SqlDataReader -> 'Row)>, singleRow) = 
         <@@ 
             async {
                 let! token = Async.CancellationToken
                 let! (reader : SqlDataReader) = %%QuotationsFactory.GetDataReader(exprArgs, singleRow)
-                let columnInfo = 
-                    if includeColumnInfo 
-                    then  
-                        let table = reader.GetSchemaTable() 
-                        if table = null then failwith "Metadata is not avialable in runtime"
-                        table.Rows |> Seq.cast<DataRow> |> Seq.map(fun c->string c.["ColumnName"]) |> Array.ofSeq |> Some
-                    else None
-                return columnInfo, seq {
+                return seq {
                     try 
                         while(not token.IsCancellationRequested && reader.Read()) do
-                            let row = Array.zeroCreate reader.FieldCount
-                            reader.GetValues(row) |> ignore
-                            yield row  
+                            yield (%mapper) reader
                     finally
                         reader.Close()
                 } 
             }
         @@>
 
-    
-    static member internal GetTypedSequenceWithCols<'Row>(exprArgs, rowMapper, singleRow, includeColumnInfo) = 
-        let getTypedSeqAsync = 
-            <@@
-                async { 
-                    let! (columns : string [] option, rows :  seq<obj[]>) = %%QuotationsFactory.GetRows(exprArgs, singleRow, includeColumnInfo)
-                    return rows |> Seq.map<_,'Row> (fun row -> (%%rowMapper : string [] option * obj[] -> 'Row) (columns, row))
-                }
-            @@>
+    //API
+    static member internal GetTypedSequence<'Row>(exprArgs, rowMapper, singleRow, columns : Column list) = 
+        let columnTypes, isNullableColumn = columns |> List.map (fun c -> c.ClrTypeFullName, c.IsNullable) |> List.unzip
+        let mapper = 
+            <@
+                fun(reader : SqlDataReader) ->
+                    let values = Array.zeroCreate columnTypes.Length
+                    reader.GetValues(values) |> ignore
+                    let mapNullables :  obj[] -> unit = %%QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption")
+                    mapNullables values
+                    (%%rowMapper : obj[] -> 'Row) values
+            @>
 
+        let getTypedSeqAsync = QuotationsFactory.GetRows(exprArgs, mapper, singleRow)
         if singleRow
         then 
             <@@ 
                 async { 
-                    let! xs  = %%getTypedSeqAsync : Async<'Row seq>
+                    let! (xs : 'Row seq) = %%getTypedSeqAsync
                     return Seq.exactlyOne xs
                 }
             @@>
         else
             getTypedSeqAsync
-    
-    static member internal GetTypedSequence<'Row>(exprArgs, rowMapper, singleRow, columns : Column list) = 
-        let columnTypes, isNullableColumn = columns |> List.map (fun c -> c.ClrTypeFullName, c.IsNullable) |> List.unzip
-        let combinedMapper = 
-            <@@
-                fun (_ : string [] option, x) -> 
-                    (%%QuotationsFactory.MapObjectsToOptions(columnTypes, isNullableColumn) : obj[] -> unit) x
-                    (%%rowMapper :  obj[] -> 'Row) x 
-             @@>
-        QuotationsFactory.GetTypedSequenceWithCols<'Row>(exprArgs, combinedMapper, singleRow, false)
         
     static member internal SelectOnlyColumn0<'Row>(exprArgs, singleRow, column : Column) = 
         QuotationsFactory.GetTypedSequence<'Row>(exprArgs, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow, [ column ])
-
-    static member internal GetMaps(exprArgs, singleRow) = 
-        let combinedMapper = <@@ fun (cols : string [] option , x : obj[] )  -> Seq.zip cols.Value x |> Map.ofSeq @@>
-        QuotationsFactory.GetTypedSequenceWithCols<Map<string,obj>>(exprArgs, combinedMapper, singleRow, true)
 
     static member internal GetTypedDataTable<'T when 'T :> DataRow>(exprArgs, singleRow)  = 
         <@@

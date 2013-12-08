@@ -18,8 +18,8 @@ open Samples.FSharp.ProvidedTypes
 type ResultType =
     | Tuples = 0
     | Records = 1
-    | DataTable = 3
-    | Maps = 5
+    | DataTable = 2
+    | Maps = 3
 
 [<assembly:TypeProviderAssembly()>]
 do()
@@ -184,6 +184,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     if p.Direction <> ParameterDirection.Input then failwithf "Only input parameters are supported. Parameter %s has direction %O" p.ParameterName p.Direction
                     yield p.ToParameter()
 
+                // skip RETURN_VALUE
                 //yield xs.Head.ToParameter()
 
             | CommandType.Text -> 
@@ -228,7 +229,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 let rowType = getTupleTypeForColumns p.TypeInfo.TvpColumns
                 yield ProvidedParameter(parameterName, parameterType = typedefof<_ seq>.MakeGenericType rowType)
             else
-                //yield ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType, isOut = (p.Direction <> ParameterDirection.Input))
                 yield ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType)
         ]
 
@@ -252,7 +252,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     member internal __.AddExecuteMethod(paramInfos, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) = 
         let syncReturnType, executeMethodBody = 
             if resultType = ResultType.Maps then
-                typeof<Map<string,obj> seq>, (fun args -> QuotationsFactory.GetMaps(args, singleRow))
+                this.Maps(singleRow)
             else
                 if outputColumns.IsEmpty
                 then 
@@ -347,4 +347,18 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         returnType, body
 
+    member internal this.Maps(singleRow) =
+        let readerToMap = 
+            <@
+                fun(reader : SqlDataReader) -> 
+                    Map.ofArray<string, obj> [| 
+                        for i = 0 to reader.FieldCount - 1 do
+                             if not <| reader.IsDBNull(i) then yield reader.GetName(i), reader.GetValue(i)
+                    |]  
+            @>
+
+        let getExecuteBody(args : Expr list) = 
+            QuotationsFactory.GetRows(args, readerToMap, singleRow)
+            
+        typeof<Map<string, obj>>, getExecuteBody
 
