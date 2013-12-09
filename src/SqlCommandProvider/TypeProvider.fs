@@ -360,5 +360,5 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let getExecuteBody(args : Expr list) = 
             QuotationsFactory.GetRows(args, readerToMap, singleRow)
             
-        typeof<Map<string, obj>>, getExecuteBody
+        typeof<Map<string, obj> seq>, getExecuteBody
 
