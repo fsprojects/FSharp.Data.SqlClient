@@ -75,7 +75,7 @@ type QuotationsFactory private() =
 
     //API
     static member internal GetTypedSequence<'Row>(exprArgs, rowMapper, singleRow, columns : Column list) = 
-        let columnTypes, isNullableColumn = columns |> List.map (fun c -> c.ClrTypeFullName, c.IsNullable) |> List.unzip
+        let columnTypes, isNullableColumn = columns |> List.map (fun c -> c.TypeInfo.ClrTypeFullName, c.IsNullable) |> List.unzip
         let mapper = 
             <@
                 fun(reader : SqlDataReader) ->
@@ -176,41 +176,3 @@ type QuotationsFactory private() =
         <@
             (%%exprArgs.[0] : DataRow).[name] <- match (%%exprArgs.[1] : option<'T>) with None -> null | Some value -> box value
         @> 
-
-    static member internal MapExecuteArgs(executeArgs : Parameter list, argsExpr : Expr list) =
-        assert(executeArgs.Length + 1 = argsExpr.Length)
-        let sqlCommand = argsExpr.Head
-        let args = 
-            (argsExpr.Tail, executeArgs)
-            ||> List.map2 (fun expr argInfo ->
-                if argInfo.TypeInfo.TableType
-                then
-                    let columns = argInfo.TypeInfo.TvpColumns |> Seq.toList
-                    let columnCount = columns.Length
-                    assert (columnCount > 0)
-                    let mapper = columns |> List.map (fun c -> c.ClrTypeFullName, c.IsNullable) |> List.unzip |> QuotationsFactory.MapOptionsToObjects 
-                    <@@
-                        let table = new DataTable()
-
-                        for i = 0 to columnCount - 1 do
-                            table.Columns.Add() |> ignore
-
-                        let input : IEnumerable = %%Expr.Coerce(expr, typeof<IEnumerable>)
-                        for row in input do
-                            let values = if columnCount = 1 then [|box row|] else FSharpValue.GetTupleFields row
-                            (%%mapper : obj[] -> unit) values
-                            table.Rows.Add values |> ignore 
-                            
-                        table
-                    @@>
-                else
-                    expr
-            )   
-
-        sqlCommand :: args
-
-
-
-
-    
-

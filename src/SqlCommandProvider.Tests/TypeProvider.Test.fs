@@ -41,11 +41,17 @@ let ConditionalQuery() =
 
 // If compile fails here, check prereqs.sql
 type TableValuedTuple  = SqlCommand<"exec myProc @x", connectionString, SingleRow = true>
+type MyTableType = TableValuedTuple.MyTableType
 
 [<Fact>]
 let tableValuedTupleValue() = 
     let cmd = new TableValuedTuple()
-    Assert.Equal((1, Some "monkey"), cmd.Execute(x = [ 1, Some "monkey" ; 2, Some "donkey" ]))    
+    let x = TableValuedTuple.MyTableType(myId = 5, myName = "test")
+    let p = [
+        MyTableType(myId = 1, myName = "monkey")
+        MyTableType(myId = 2, myName = "donkey")
+    ]
+    Assert.Equal((1, Some "monkey"), cmd.Execute(x = p))    
 
 [<Fact>] 
 let tvpInputIsEnumeratedExactlyOnce() = 
@@ -53,15 +59,20 @@ let tvpInputIsEnumeratedExactlyOnce() =
     let counter = ref 0
     let x = seq { 
          counter := !counter + 1
-         yield 1, None
-         yield 2, Some "donkey" }
+         yield MyTableType(myId = 1)
+         yield MyTableType(myId = 2, myName = "donkey")
+    }
     cmd.Execute x |> ignore
     Assert.Equal(1, !counter)    
 
 [<Fact>] 
 let tableValuedSprocTupleNull() = 
     let cmd = new TableValuedTuple()
-    Assert.Equal((1, None), cmd.Execute([ 1, None ; 2, Some "donkey" ]))    
+    let p = [
+        MyTableType(myId = 1)
+        MyTableType(myId = 2, myName = "donkey")
+    ]
+    Assert.Equal((1, None), cmd.Execute p)    
 
 
 type TableValuedSingle = SqlCommand<"exec SingleElementProc @x", connectionString>
@@ -69,7 +80,11 @@ type TableValuedSingle = SqlCommand<"exec SingleElementProc @x", connectionStrin
 [<Fact>]
 let tableValuedSingle() = 
     let cmd = new TableValuedSingle()
-    let result = cmd.Execute(x = [ 1; 2 ]) |> List.ofSeq
+    let p = [ 
+        TableValuedSingle.SingleElementType(myId = 1) 
+        TableValuedSingle.SingleElementType(myId = 2) 
+    ]
+    let result = cmd.Execute(x = p) |> List.ofSeq
     Assert.Equal<int list>([1;2], result)    
 
 type TableValuedSprocTuple  = SqlCommand<"myProc", connectionString, SingleRow = true, CommandType = CommandType.StoredProcedure>
@@ -77,13 +92,18 @@ type TableValuedSprocTuple  = SqlCommand<"myProc", connectionString, SingleRow =
 [<Fact>]
 let tableValuedSprocTupleValue() = 
     let cmd = new TableValuedSprocTuple()
-    let actual = cmd.Execute(p1 = [ 1, Some "monkey" ; 2, Some "donkey" ])
+    let p = [
+        TableValuedSprocTuple.MyTableType(myId = 1, myName = "monkey")
+        TableValuedSprocTuple.MyTableType(myId = 2, myName = "donkey")
+    ]
+    let actual = cmd.Execute(p1 = p)
     Assert.Equal((1, Some "monkey"), actual)    
 
-type ColumnsShouldNotBeNull2 = SqlCommand<"""SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_NAME = 'DatabaseLog' and numeric_precision is null
-ORDER BY ORDINAL_POSITION""", connectionString, SingleRow = true>
+type ColumnsShouldNotBeNull2 = 
+    SqlCommand<"SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_NAME = 'DatabaseLog' and numeric_precision is null
+            ORDER BY ORDINAL_POSITION", connectionString, SingleRow = true>
 
 [<Fact>]
 let columnsShouldNotBeNull2() = 

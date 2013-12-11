@@ -6,6 +6,8 @@ open System.Data.SqlClient
 open System.Reflection
 open System.Collections.Generic
 open System.Threading
+open System.Diagnostics
+open Microsoft.SqlServer.Server
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
@@ -108,7 +110,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
                 yield ctor :> MemberInfo    
 
-                let executeArgs = this.GetExecuteArgsForSqlParameters(sqlParameters) 
+                let executeArgs = this.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters) 
                 let outputColumns = 
                     if resultType <> ResultType.Maps 
                     then this.GetOutputColumns(conn, commandText, commandType, sqlParameters)
@@ -146,8 +148,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             yield { 
                 Column.Name = string reader.["name"]
                 Ordinal = unbox reader.["column_ordinal"]
-                ClrTypeFullName = reader.["system_type_id"] |> unbox |> findClrTypeNameBySqlEngineTypeId
+                TypeInfo = reader.["system_type_id"] |> unbox |> findTypeInfoBySqlEngineTypeId
                 IsNullable = unbox reader.["is_nullable"]
+                MaxLength = reader.["max_length"] |> unbox<int16> |> int
             }
     ] 
 
@@ -164,8 +167,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     yield { 
                         Column.Name = unbox row.["ColumnName"]
                         Ordinal = unbox row.["ColumnOrdinal"]
-                        ClrTypeFullName = let t : Type = unbox row.["DataType"] in t.FullName
+                        TypeInfo =
+                            let t = Enum.Parse(typeof<SqlDbType>, string row.["ProviderType"]) |> unbox
+                            findTypeInfoByProviderType(unbox t, "").Value
                         IsNullable = unbox row.["AllowDBNull"]
+                        MaxLength = unbox row.["ColumnSize"]
                     }
             ]
         
@@ -218,19 +224,49 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             | _ -> failwithf "Unsupported command type: %O" commandType    
     ]
 
-    member internal __.GetExecuteArgsForSqlParameters sqlParameters = [
+    member internal __.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters) = [
         for p in sqlParameters do
             assert p.Name.StartsWith("@")
             let parameterName = p.Name.Substring 1
 
-            if p.TypeInfo.TableType 
+            if not p.TypeInfo.TableType 
             then   
-                assert(p.Direction = ParameterDirection.Input)
-                let rowType = getTupleTypeForColumns p.TypeInfo.TvpColumns
-                yield ProvidedParameter(parameterName, parameterType = typedefof<_ seq>.MakeGenericType rowType)
-            else
                 yield ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType)
-        ]
+            else
+                assert(p.Direction = ParameterDirection.Input)
+                let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<SqlDataRecord>)
+                providedCommandType.AddMember rowType
+                let parameters, metaData = 
+                    [
+                        for p in p.TypeInfo.TvpColumns do
+                            let name, dbType, maxLength = p.Name, p.TypeInfo.SqlDbTypeId, int64 p.MaxLength
+                            let paramMeta = 
+                                match p.TypeInfo.IsFixedLength with 
+                                | Some true -> <@@ SqlMetaData(name, enum dbType) @@>
+                                | Some false -> <@@ SqlMetaData(name, enum dbType, maxLength) @@>
+                                | _ -> failwith "Unexpected"
+                            //yield ProvidedParameter(p.Name, p.TypeInfo.ClrType), paramMeta
+                            let param = 
+                                if p.IsNullable
+                                then ProvidedParameter(p.Name, p.TypeInfo.ClrType, optionalValue = null)
+                                else ProvidedParameter(p.Name, p.TypeInfo.ClrType)
+                            yield param, paramMeta
+                    ] |> List.unzip
+
+                let ctor = ProvidedConstructor(parameters)
+                ctor.InvokeCode <- fun args -> 
+                    let values = Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
+                    <@@ 
+                        let result = SqlDataRecord(metaData = %%Expr.NewArray(typeof<SqlMetaData>, metaData)) 
+                        let count = result.SetValues(%%values)
+                        Debug.Assert(%%Expr.Value(args.Length) = count, "Unexpected return value from SqlDataRecord.SetValues.")
+                        result
+                    @@>
+                rowType.AddMember ctor
+                //let rowType = getTupleTypeForColumns p.TypeInfo.TvpColumns
+                let parameterType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
+                yield ProvidedParameter(parameterName, parameterType)
+    ]
 
     member internal this.GetExecuteNonQuery paramInfos  = 
         let body expr =
@@ -241,9 +277,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     sqlCommand.Connection.Open()
                     use ensureConnectionClosed = sqlCommand.CloseConnectionOnly()
                     let rowsAffected = sqlCommand.AsyncExecuteNonQuery()
-                    if sqlCommand.CommandType = CommandType.StoredProcedure
-                    then
-                        ()
                     return! rowsAffected  
                 }
             @@>
@@ -277,15 +310,17 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     
         let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ syncReturnType ])
         let asyncExecute = ProvidedMethod("AsyncExecute", executeArgs, asyncReturnType)
-        asyncExecute.InvokeCode <- fun expr -> QuotationsFactory.MapExecuteArgs(paramInfos, expr) |> executeMethodBody
+        //asyncExecute.InvokeCode <- fun expr -> QuotationsFactory.MapExecuteArgs(paramInfos, expr) |> executeMethodBody
+        asyncExecute.InvokeCode <- executeMethodBody
+        providedCommandType.AddMember asyncExecute
 
-        let execute = ProvidedMethod("Execute", executeArgs, syncReturnType)
+        let execute = ProvidedMethod("Execute",  executeArgs, syncReturnType)
         execute.InvokeCode <- fun args ->
             let runSync = ProvidedTypeBuilder.MakeGenericMethod(typeof<Async>.GetMethod("RunSynchronously"), [ syncReturnType ])
-            let callAsync = Expr.Call (Expr.Coerce (args.[0], providedCommandType), asyncExecute, args.Tail)
+            //let callAsync = Expr.Call (Expr.Coerce (args.[0], providedCommandType), asyncExecute, args.Tail)
+            let callAsync = executeMethodBody args
             Expr.Call(runSync, [ Expr.Coerce (callAsync, asyncReturnType); Expr.Value option<int>.None; Expr.Value option<CancellationToken>.None ])
-
-        providedCommandType.AddMembers [ asyncExecute; execute ]
+        providedCommandType.AddMember execute 
 
     member internal this.Tuples(columns, singleRow) =
         let tupleType = getTupleTypeForColumns columns
@@ -329,8 +364,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 if col.IsNullable 
                 then
                     ProvidedProperty(name, propertyType = col.ClrTypeConsideringNullable,
-                        GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", col.ClrType, name),
-                        SetterCode = QuotationsFactory.GetBody("SetNullableValueInDataRow", col.ClrType, name)
+                        GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", col.TypeInfo.ClrType, name),
+                        SetterCode = QuotationsFactory.GetBody("SetNullableValueInDataRow", col.TypeInfo.ClrType, name)
                     )
                 else
                     ProvidedProperty(name, propertyType, 

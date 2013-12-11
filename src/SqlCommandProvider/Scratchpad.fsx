@@ -11,7 +11,7 @@ conn.Open()
 //printfn "%A" <| conn.GetDataTypesMapping()
 
 //let cmd = new SqlCommand("uspSearchCandidateResumes", conn, CommandType = CommandType.StoredProcedure)
-let cmd = new SqlCommand("dbo.[Init]", conn, CommandType = CommandType.StoredProcedure)
+let cmd = new SqlCommand("SELECT CAST(10 AS TINYINT) AS Value", conn)
 SqlCommandBuilder.DeriveParameters cmd
 let reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly)
 
@@ -33,20 +33,11 @@ printfn "values: %A" values
 printfn "type: %s" <| values.[0].GetType().Name
 printfn "value: %i" <| (unbox<sbyte> values.[0])
 
-let cmdClone = cmd.Clone()
-cmd.CommandText = cmdClone.CommandText
-cmdClone.CommandText <- "SELECT 0 AS X"
-//cmdClone.Connection <- cmd.Connection.Clone()
-cmd.Connection = cmdClone.Connection
-//
-open System.Dynamic
-open System.Collections.Generic
-let (?) (this : ExpandoObject) prop =
-    match (this :> IDictionary<_, _>).[prop] with
-    | null -> None
-    | value -> Some(unbox value)
 
-let expando = ExpandoObject()
-let dict : System.Collections.Generic.IDictionary<string, obj> = upcast expando
-dict.["test"] <- 15
-let x : int option = expando ? test
+open Microsoft.FSharp.Quotations
+open Microsoft.FSharp.Linq.RuntimeHelpers
+
+let f = <@@ fun x y z -> x + y + z @@>
+let args = [ [Expr.Value 2]; [Expr.Value 5]; [Expr.Value 20] ]
+let value = Expr.Applications(f, args)
+LeafExpressionConverter.EvaluateQuotation value

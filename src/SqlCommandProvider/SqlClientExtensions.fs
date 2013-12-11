@@ -22,11 +22,11 @@ type SqlCommand with
 
 let private dataTypeMappings = ref List.empty
 
-let internal findClrTypeNameBySqlEngineTypeId id = 
-    !dataTypeMappings |> List.filter(fun x -> x.SqlEngineTypeId = id ) |> Seq.exactlyOne |> fun x -> x.ClrTypeFullName
+let internal findTypeInfoBySqlEngineTypeId id = 
+    !dataTypeMappings |> List.filter(fun x -> x.SqlEngineTypeId = id ) |> Seq.exactlyOne 
 
 let internal findBySqlEngineTypeIdAndUdt(id, udttName) = 
-    !dataTypeMappings |> List.tryFind(fun x -> x.SqlEngineTypeId = id && (not x.TableType|| x.UdttName = udttName))
+    !dataTypeMappings |> List.tryFind(fun x -> x.SqlEngineTypeId = id && (not x.TableType || x.UdttName = udttName))
     
 let internal findTypeInfoByProviderType(sqlDbType, udttName)  = 
     !dataTypeMappings  
@@ -48,8 +48,9 @@ type SqlConnection with
     member internal this.GetDataTypesMapping() = 
         assert (this.State = ConnectionState.Open)
         let providerTypes = [| 
-            for row in this.GetSchema("DataTypes").Rows -> 
-                string row.["TypeName"],  unbox<int> row.["ProviderDbType"], string row.["DataType"]
+            for row in this.GetSchema("DataTypes").Rows do
+                let isFixedLength = if row.IsNull("IsFixedLength") then None else Some(unbox<bool> row.["IsFixedLength"])
+                yield string row.["TypeName"],  unbox<int> row.["ProviderDbType"], string row.["DataType"], isFixedLength
         |]
 
         let sqlEngineTypes = [|
@@ -61,7 +62,7 @@ type SqlConnection with
 
         let connectionString = this.ConnectionString
         query {
-            for typename, providerdbtype, clrType in providerTypes do
+            for typename, providerdbtype, clrType, isFixedLength in providerTypes do
             join (name, system_type_id, user_type_id, is_table_type) in sqlEngineTypes on (typename = name)
             //the next line fix the issue when ADO.NET SQL provider maps tinyint to byte despite of claiming to map it to SByte according to GetSchema("DataTypes")
             let clrTypeFixed = if system_type_id = 48 (*tinyint*) then typeof<byte>.FullName else clrType
@@ -70,7 +71,7 @@ type SqlConnection with
                 then
                     seq {
                         use cmd = new SqlCommand("
-                            SELECT c.name, c.column_id, c.system_type_id, c.is_nullable
+                            SELECT c.name, c.column_id, c.system_type_id, c.is_nullable, c.max_length
                             FROM sys.table_types AS tt
                             INNER JOIN sys.columns AS c ON tt.type_table_object_id = c.object_id
                             WHERE tt.system_type_id = 243 AND tt.user_type_id = @user_type_id
@@ -84,8 +85,9 @@ type SqlConnection with
                             yield {
                                 Column.Name = string reader.["name"]
                                 Ordinal = unbox reader.["column_id"]
-                                ClrTypeFullName = reader.["system_type_id"] |> unbox<byte> |> int |> findClrTypeNameBySqlEngineTypeId
+                                TypeInfo = reader.["system_type_id"] |> unbox<byte> |> int |> findTypeInfoBySqlEngineTypeId
                                 IsNullable = unbox reader.["is_nullable"]
+                                MaxLength = reader.["max_length"] |> unbox<int16> |> int
                             }
                     } 
                     |> Seq.cache
@@ -95,6 +97,7 @@ type SqlConnection with
             select {
                 SqlEngineTypeId = system_type_id
                 SqlDbTypeId = providerdbtype
+                IsFixedLength = isFixedLength
                 ClrTypeFullName = clrTypeFixed
                 UdttName = if is_table_type then name else ""
                 TvpColumns = tvpColumns
