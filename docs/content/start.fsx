@@ -249,5 +249,7 @@ END
 *)
 
 type TableValuedSample = SqlCommand<"exec myProc @x", connectionString>
+type TVP = TableValuedSample.MyTableType
 let tvpSp = new TableValuedSample()
-tvpSp.Execute(x = [ 1, Some "monkey"; 2, Some "donkey"]) 
+//nullable columns mapped to optional ctor params
+tvpSp.Execute(x = [ TVP(myId = 1, myName = "monkey"); TVP(myId = 2) ]) 
