@@ -7,5 +7,6 @@
 * 1.0.020 - Support ResultType.Maps for untyped output data
 * 1.1.21 - Preserve original exception thrown by sys.spdescribefirstresult_set.
 * 1.1.22 - Change TVP representation from tuples to custom types with ctor
+* 1.1.23 - Fix issue #35. Change lazy ctor generation to eager.
 
 
