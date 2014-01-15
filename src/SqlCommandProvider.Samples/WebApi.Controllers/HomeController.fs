@@ -1,27 +1,23 @@
-﻿namespace FSharp.Data.SqlClient.Test
+﻿namespace WebApi
 
 open System
 open System.Net
 open System.Net.Http
 open System.Web.Http
-
-[<CLIMutable>]
-type HomeRendition = {
-    Message : string
-    Time : string
-}
- 
+open System.Web.Configuration
 open DataAccess
 
 type HomeController() =
     inherit ApiController()
+
+    let connectionString = WebConfigurationManager.ConnectionStrings.["AdventureWorks2012"].ConnectionString
 
     member this.Get() = this.Get(7L, System.DateTime.Parse "2002-06-01")
 
     //http://localhost:61594/?top=4&sellStartDate=2002-07-01
     member this.Get(top, sellStartDate) =
         async {
-            let cmd = QueryProductsAsTuples()
+            let cmd = QueryProductsAsTuples(connectionString)
             let! data = cmd.AsyncExecute(top = top, SellStartDate = sellStartDate)
             return this.Request.CreateResponse(HttpStatusCode.OK, data)
         } |> Async.StartAsTask

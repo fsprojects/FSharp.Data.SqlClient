@@ -1,1 +1,1 @@
-﻿<%@ Application Inherits="FSharp.Data.SqlClient.Test.Application" %>
+﻿<%@ Application Codebehind="Global.asax.cs" Inherits="WebApi.Global" Language="C#" %>

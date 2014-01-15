@@ -1,4 +1,4 @@
-﻿module FSharp.Data.SqlClient.Application
+﻿module FSharp.Data.Experimental.Application
 
 open System
 open System.Windows
