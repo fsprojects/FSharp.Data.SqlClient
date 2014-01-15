@@ -73,50 +73,45 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         watcher' |> Option.iter (fun x -> watcher <- x)
         let designTimeConnectionString =  Configuration.GetConnectionString(resolutionFolder, connectionStringProvided, connectionStringName, configFile)
         
-        using(new SqlConnection(designTimeConnectionString)) <| fun conn ->
-            conn.Open()
-            conn.CheckVersion()
-            conn.LoadDataTypesMap()
+        use conn = new SqlConnection(designTimeConnectionString)
+        conn.Open()
+        conn.CheckVersion()
+        conn.LoadDataTypesMap()
 
         let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
 
-        providedCommandType.AddMembersDelayed <| fun () -> 
-            [
-                use conn = new SqlConnection(designTimeConnectionString)
-                conn.Open()
+        let sqlParameters = this.ExtractSqlParameters(conn, commandText, commandType)
 
-                let sqlParameters = this.ExtractSqlParameters(conn, commandText, commandType)
+        let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = Unchecked.defaultof<string>) ])
+        ctor.InvokeCode <- fun args -> 
+            <@@ 
+                let runTimeConnectionString = 
+                    if String.IsNullOrEmpty(%%args.[0])
+                    then
 
-                let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = Unchecked.defaultof<string>) ])
-                ctor.InvokeCode <- fun args -> 
-                    <@@ 
-                        let runTimeConnectionString = 
-                            if String.IsNullOrEmpty(%%args.[0])
-                            then
+                        Configuration.GetConnectionString (resolutionFolder, connectionStringProvided, connectionStringName, configFile)
+                    else 
+                        %%args.[0]
+                do
+                    if dataDirectory <> ""
+                    then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
 
-                                Configuration.GetConnectionString (resolutionFolder, connectionStringProvided, connectionStringName, configFile)
-                            else 
-                                %%args.[0]
-                        do
-                            if dataDirectory <> ""
-                            then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
+                let this = new SqlCommand(commandText, new SqlConnection(runTimeConnectionString)) 
+                this.CommandType <- commandType
+                let xs = %%Expr.NewArray(typeof<SqlParameter>, List.map QuotationsFactory.ToSqlParam sqlParameters)
+                this.Parameters.AddRange xs
+                this
+            @@>
 
-                        let this = new SqlCommand(commandText, new SqlConnection(runTimeConnectionString)) 
-                        this.CommandType <- commandType
-                        let xs = %%Expr.NewArray(typeof<SqlParameter>, List.map QuotationsFactory.ToSqlParam sqlParameters)
-                        this.Parameters.AddRange xs
-                        this
-                    @@>
+        providedCommandType.AddMember ctor
 
-                yield ctor :> MemberInfo    
+        let executeArgs = this.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters) 
+        let outputColumns = 
+            if resultType <> ResultType.Maps 
+            then this.GetOutputColumns(conn, commandText, commandType, sqlParameters)
+            else []
 
-                let executeArgs = this.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters) 
-                let outputColumns = 
-                    if resultType <> ResultType.Maps 
-                    then this.GetOutputColumns(conn, commandText, commandType, sqlParameters)
-                    else []
-                this.AddExecuteMethod(sqlParameters, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) 
-            ]
+        this.AddExecuteMethod(sqlParameters, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) 
         
         let getSqlCommandCopy = ProvidedMethod("AsSqlCommand", [], typeof<SqlCommand>)
         getSqlCommandCopy.InvokeCode <- fun args ->
