@@ -8,10 +8,17 @@ open System.Data.SqlClient
 open Microsoft.FSharp.Reflection
 
 type SqlCommand with
+
+    member this.MapNullParams() =
+        for p in this.Parameters do
+            if p.Value = null then p.Value <- DBNull.Value
+
     member this.AsyncExecuteReader behavior =
+        this.MapNullParams()
         Async.FromBeginEnd((fun(callback, state) -> this.BeginExecuteReader(callback, state, behavior)), this.EndExecuteReader)
 
     member this.AsyncExecuteNonQuery() =
+        this.MapNullParams()
         Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) 
 
     //address an issue when regular Dispose on SqlConnection needed for async computation wipes out all properties like ConnectionString in addition to closing connection to db

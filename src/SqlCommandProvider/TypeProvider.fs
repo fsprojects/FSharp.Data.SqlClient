@@ -46,6 +46,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Tuples) 
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false) 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
+                ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
             instantiationFunction = this.CreateType
@@ -65,7 +66,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let resultType : ResultType = unbox parameters.[4] 
         let singleRow : bool = unbox parameters.[5] 
         let configFile : string = unbox parameters.[6] 
-        let dataDirectory : string = unbox parameters.[7] 
+        let allParametersOptional : bool = unbox parameters.[7] 
+        let dataDirectory : string = unbox parameters.[8] 
 
         let resolutionFolder = config.ResolutionFolder
         let commandText, watcher' = 
@@ -105,13 +107,13 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         providedCommandType.AddMember ctor
 
-        let executeArgs = this.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters) 
+        let executeArgs = this.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters, allParametersOptional) 
         let outputColumns = 
             if resultType <> ResultType.Maps 
             then this.GetOutputColumns(conn, commandText, commandType, sqlParameters)
             else []
 
-        this.AddExecuteMethod(sqlParameters, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) 
+        this.AddExecuteMethod(allParametersOptional, sqlParameters, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) 
         
         let getSqlCommandCopy = ProvidedMethod("AsSqlCommand", [], typeof<SqlCommand>)
         getSqlCommandCopy.InvokeCode <- fun args ->
@@ -219,55 +221,62 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             | _ -> failwithf "Unsupported command type: %O" commandType    
     ]
 
-    member internal __.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters) = [
+    member internal __.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters, allParametersOptional) = [
         for p in sqlParameters do
             assert p.Name.StartsWith("@")
             let parameterName = p.Name.Substring 1
 
-            if not p.TypeInfo.TableType 
-            then   
-                yield ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType)
-            else
-                assert(p.Direction = ParameterDirection.Input)
-                let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<SqlDataRecord>)
-                providedCommandType.AddMember rowType
-                let parameters, metaData = 
-                    [
-                        for p in p.TypeInfo.TvpColumns do
-                            let name, dbType, maxLength = p.Name, p.TypeInfo.SqlDbTypeId, int64 p.MaxLength
-                            let paramMeta = 
-                                match p.TypeInfo.IsFixedLength with 
-                                | Some true -> <@@ SqlMetaData(name, enum dbType) @@>
-                                | Some false -> <@@ SqlMetaData(name, enum dbType, maxLength) @@>
-                                | _ -> failwith "Unexpected"
-                            //yield ProvidedParameter(p.Name, p.TypeInfo.ClrType), paramMeta
-                            let param = 
-                                if p.IsNullable
-                                then ProvidedParameter(p.Name, p.TypeInfo.ClrType, optionalValue = null)
-                                else ProvidedParameter(p.Name, p.TypeInfo.ClrType)
-                            yield param, paramMeta
-                    ] |> List.unzip
+            let optionalValue = if allParametersOptional then Some null else None
 
-                let ctor = ProvidedConstructor(parameters)
-                ctor.InvokeCode <- fun args -> 
-                    let values = Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
-                    <@@ 
-                        let result = SqlDataRecord(metaData = %%Expr.NewArray(typeof<SqlMetaData>, metaData)) 
-                        let count = result.SetValues(%%values)
-                        Debug.Assert(%%Expr.Value(args.Length) = count, "Unexpected return value from SqlDataRecord.SetValues.")
-                        result
-                    @@>
-                rowType.AddMember ctor
-                //let rowType = getTupleTypeForColumns p.TypeInfo.TvpColumns
-                let parameterType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
-                yield ProvidedParameter(parameterName, parameterType)
+            let parameterType = 
+                if not p.TypeInfo.TableType 
+                then
+                    p.TypeInfo.ClrType
+                else
+                    assert(p.Direction = ParameterDirection.Input)
+                    let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<SqlDataRecord>)
+                    providedCommandType.AddMember rowType
+                    let parameters, metaData = 
+                        [
+                            for p in p.TypeInfo.TvpColumns do
+                                let name, dbType, maxLength = p.Name, p.TypeInfo.SqlDbTypeId, int64 p.MaxLength
+                                let paramMeta = 
+                                    match p.TypeInfo.IsFixedLength with 
+                                    | Some true -> <@@ SqlMetaData(name, enum dbType) @@>
+                                    | Some false -> <@@ SqlMetaData(name, enum dbType, maxLength) @@>
+                                    | _ -> failwith "Unexpected"
+                                let param = 
+                                    if p.IsNullable
+                                    then ProvidedParameter(p.Name, p.TypeInfo.ClrType, optionalValue = null)
+                                    else ProvidedParameter(p.Name, p.TypeInfo.ClrType)
+                                yield param, paramMeta
+                        ] |> List.unzip
+
+                    let ctor = ProvidedConstructor(parameters)
+                    ctor.InvokeCode <- fun args -> 
+                        let values = Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
+                        <@@ 
+                            let result = SqlDataRecord(metaData = %%Expr.NewArray(typeof<SqlMetaData>, metaData)) 
+                            let count = result.SetValues(%%values)
+                            Debug.Assert(%%Expr.Value(args.Length) = count, "Unexpected return value from SqlDataRecord.SetValues.")
+                            result
+                        @@>
+                    rowType.AddMember ctor
+
+                    ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
+
+            yield ProvidedParameter(
+                parameterName, 
+                parameterType = (if allParametersOptional then typedefof<_ option>.MakeGenericType( parameterType) else parameterType), 
+                ?optionalValue = optionalValue
+            )
     ]
 
-    member internal this.GetExecuteNonQuery paramInfos  = 
+    member internal this.GetExecuteNonQuery(allParametersOptional, paramInfos)  = 
         let body expr =
             <@@
                 async {
-                    let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet expr
+                    let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet(expr, allParametersOptional, paramInfos)
                     //open connection async on .NET 4.5
                     sqlCommand.Connection.Open()
                     use ensureConnectionClosed = sqlCommand.CloseConnectionOnly()
@@ -277,28 +286,28 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             @@>
         typeof<int>, body
 
-    member internal __.AddExecuteMethod(paramInfos, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) = 
+    member internal __.AddExecuteMethod(allParametersOptional, paramInfos, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) = 
         let syncReturnType, executeMethodBody = 
             if resultType = ResultType.Maps then
-                this.Maps(singleRow)
+                this.Maps(allParametersOptional, paramInfos, singleRow)
             else
                 if outputColumns.IsEmpty
                 then 
-                    this.GetExecuteNonQuery()
+                    this.GetExecuteNonQuery(allParametersOptional, paramInfos)
                 elif resultType = ResultType.DataTable
                 then 
-                    this.DataTable(providedCommandType, commandText, outputColumns, singleRow)
+                    this.DataTable(providedCommandType, allParametersOptional, paramInfos, commandText, outputColumns, singleRow)
                 else
                     let rowType, executeMethodBody = 
                         if List.length outputColumns = 1
                         then
                             let singleCol = outputColumns.Head
                             let column0Type = singleCol.ClrTypeConsideringNullable
-                            column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, singleRow, singleCol)
+                            column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, allParametersOptional, paramInfos, singleRow, singleCol)
                         else 
                             if resultType = ResultType.Tuples
-                            then this.Tuples(outputColumns, singleRow)
-                            else this.Records(providedCommandType, outputColumns, singleRow)
+                            then this.Tuples(allParametersOptional, paramInfos, outputColumns, singleRow)
+                            else this.Records(providedCommandType, allParametersOptional, paramInfos, outputColumns, singleRow)
                     let returnType = if singleRow then rowType else ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
                            
                     returnType, executeMethodBody
@@ -317,7 +326,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             Expr.Call(runSync, [ Expr.Coerce (callAsync, asyncReturnType); Expr.Value option<int>.None; Expr.Value option<CancellationToken>.None ])
         providedCommandType.AddMember execute 
 
-    member internal this.Tuples(columns, singleRow) =
+    member internal this.Tuples(allParametersOptional, paramInfos, columns, singleRow) =
         let tupleType = getTupleTypeForColumns columns
 
         let rowMapper = 
@@ -325,9 +334,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
             Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [ Expr.Var values; getTupleType ]), tupleType))
 
-        tupleType, QuotationsFactory.GetBody("GetTypedSequence", tupleType, rowMapper, singleRow, columns)
+        tupleType, QuotationsFactory.GetBody("GetTypedSequence", tupleType, allParametersOptional, paramInfos, rowMapper, singleRow, columns)
 
-    member internal this.Records(providedCommandType, columns, singleRow) =
+    member internal this.Records( providedCommandType, allParametersOptional, paramInfos,  columns, singleRow) =
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
         for col in columns do
             if col.Name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
@@ -343,11 +352,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         providedCommandType.AddMember recordType
         let getExecuteBody (args : Expr list) = 
-            QuotationsFactory.GetTypedSequence(args, <@ fun(values : obj[]) -> box values @>, singleRow, columns)
+            QuotationsFactory.GetTypedSequence(args, allParametersOptional, paramInfos, <@ fun(values : obj[]) -> box values @>, singleRow, columns)
                          
         upcast recordType, getExecuteBody
     
-    member internal this.DataTable(providedCommandType, commandText, outputColumns, singleRow) =
+    member internal this.DataTable(providedCommandType, allParametersOptional, paramInfos, commandText, outputColumns, singleRow) =
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
         for col in outputColumns do
             let name = col.Name
@@ -372,12 +381,12 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         providedCommandType.AddMember rowType
 
-        let body = QuotationsFactory.GetBody("GetTypedDataTable", typeof<DataRow>, singleRow)
+        let body = QuotationsFactory.GetBody("GetTypedDataTable", typeof<DataRow>, allParametersOptional, paramInfos, singleRow)
         let returnType = typedefof<_ DataTable>.MakeGenericType rowType
 
         returnType, body
 
-    member internal this.Maps(singleRow) =
+    member internal this.Maps(allParametersOptional, paramInfos, singleRow) =
         let readerToMap = 
             <@
                 fun(reader : SqlDataReader) -> 
@@ -388,7 +397,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             @>
 
         let getExecuteBody(args : Expr list) = 
-            QuotationsFactory.GetRows(args, readerToMap, singleRow)
+            QuotationsFactory.GetRows(args, allParametersOptional, paramInfos, readerToMap, singleRow)
             
         typeof<Map<string, obj> seq>, getExecuteBody
 

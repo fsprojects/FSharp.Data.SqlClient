@@ -13,7 +13,7 @@ open Microsoft.FSharp.Reflection
 open FSharp.Data.Experimental
 
 type QuotationsFactory private() = 
-    
+
     //The entry point
     static member internal GetBody(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
         
@@ -23,16 +23,31 @@ type QuotationsFactory private() =
             mi.MakeGenericMethod([| specialization |])
 
         fun(args : Expr list) -> 
-            let sss = methodName
             let parameters = Array.append [| box args |] bodyFactoryArgs
             bodyFactory.Invoke(null, parameters) |> unbox
 
     //Core impl
-    static member internal GetSqlCommandWithParamValuesSet(exprArgs : Expr list) = 
+    static member internal GetSqlCommandWithParamValuesSet(exprArgs : Expr list, allParametersOptional, paramInfos : Parameter list) = 
+        assert(exprArgs.Length - 1 = paramInfos.Length)
+        let mappedParamValues = 
+            if not allParametersOptional
+            then 
+                exprArgs.Tail
+            else
+                let types = paramInfos |> List.map (fun p -> p.TypeInfo.ClrTypeFullName)
+                (exprArgs.Tail, paramInfos)
+                ||> List.map2 (fun expr info ->
+                    typeof<QuotationsFactory>
+                        .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
+                        .MakeGenericMethod(info.TypeInfo.ClrType)
+                        .Invoke(null, [| box expr|])
+                        |> unbox
+                )
+
         <@
             let sqlCommand : SqlCommand = %%Expr.Coerce(exprArgs.[0], typeof<SqlCommand>)
 
-            let paramValues : obj[] = %%Expr.NewArray(typeof<obj>, elements = [for x in exprArgs.Tail -> Expr.Coerce(x, typeof<obj>)])
+            let paramValues : obj[] = %%Expr.NewArray(typeof<obj>, elements = [for x in mappedParamValues -> Expr.Coerce(x, typeof<obj>)])
 
             Debug.Assert(sqlCommand.Parameters.Count = paramValues.Length, "Expect size of values array to be equal to the number of SqlParameters.")
             for i = 0 to paramValues.Length - 1 do
@@ -42,11 +57,11 @@ type QuotationsFactory private() =
             sqlCommand
         @>
 
-    static member internal GetDataReader(exprArgs, singleRow) = 
+    static member internal GetDataReader(exprArgs, allParametersOptional, paramInfos, singleRow) = 
         let commandBehavior = if singleRow then CommandBehavior.SingleRow  else CommandBehavior.Default 
         <@@ 
             async {
-                let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet exprArgs
+                let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet(exprArgs, allParametersOptional, paramInfos)
                 //open connection async on .NET 4.5
                 sqlCommand.Connection.Open()
                 return!
@@ -58,11 +73,11 @@ type QuotationsFactory private() =
             }
         @@>
 
-    static member internal GetRows<'Row>(exprArgs, mapper : Expr<(SqlDataReader -> 'Row)>, singleRow) = 
+    static member internal GetRows<'Row>(exprArgs, allParametersOptional, paramInfos, mapper : Expr<(SqlDataReader -> 'Row)>, singleRow) = 
         <@@ 
             async {
                 let! token = Async.CancellationToken
-                let! (reader : SqlDataReader) = %%QuotationsFactory.GetDataReader(exprArgs, singleRow)
+                let! (reader : SqlDataReader) = %%QuotationsFactory.GetDataReader(exprArgs, allParametersOptional, paramInfos, singleRow)
                 return seq {
                     try 
                         while(not token.IsCancellationRequested && reader.Read()) do
@@ -74,7 +89,7 @@ type QuotationsFactory private() =
         @@>
 
     //API
-    static member internal GetTypedSequence<'Row>(exprArgs, rowMapper, singleRow, columns : Column list) = 
+    static member internal GetTypedSequence<'Row>(exprArgs, allParametersOptional, paramInfos, rowMapper, singleRow, columns : Column list) = 
         let columnTypes, isNullableColumn = columns |> List.map (fun c -> c.TypeInfo.ClrTypeFullName, c.IsNullable) |> List.unzip
         let mapper = 
             <@
@@ -86,7 +101,7 @@ type QuotationsFactory private() =
                     (%%rowMapper : obj[] -> 'Row) values
             @>
 
-        let getTypedSeqAsync = QuotationsFactory.GetRows(exprArgs, mapper, singleRow)
+        let getTypedSeqAsync = QuotationsFactory.GetRows(exprArgs, allParametersOptional, paramInfos, mapper, singleRow)
         if singleRow
         then 
             <@@ 
@@ -98,13 +113,13 @@ type QuotationsFactory private() =
         else
             getTypedSeqAsync
         
-    static member internal SelectOnlyColumn0<'Row>(exprArgs, singleRow, column : Column) = 
-        QuotationsFactory.GetTypedSequence<'Row>(exprArgs, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow, [ column ])
+    static member internal SelectOnlyColumn0<'Row>(exprArgs, allParametersOptional, paramInfos, singleRow, column : Column) = 
+        QuotationsFactory.GetTypedSequence<'Row>(exprArgs, allParametersOptional, paramInfos, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow, [ column ])
 
-    static member internal GetTypedDataTable<'T when 'T :> DataRow>(exprArgs, singleRow)  = 
+    static member internal GetTypedDataTable<'T when 'T :> DataRow>(exprArgs, allParametersOptional, paramInfos, singleRow)  = 
         <@@
             async {
-                use! reader = %%QuotationsFactory.GetDataReader(exprArgs, singleRow) : Async<SqlDataReader >
+                use! reader = %%QuotationsFactory.GetDataReader(exprArgs, allParametersOptional, paramInfos, singleRow) : Async<SqlDataReader >
                 let table = new DataTable<'T>() 
                 table.Load reader
                 return table
@@ -124,10 +139,13 @@ type QuotationsFactory private() =
             )
         @@>
     
+//    static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> box(DBNull.Value) @@>    
+    static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> null @@>    
+
     static member internal MapArrayOptionItemToObj<'T>(arr, index) =
         <@
             let values : obj[] = %%arr
-            values.[index] <- match unbox values.[index] with Some (x : 'T) -> box x | None -> null
+            values.[index] <- match unbox values.[index] with Some (x : 'T) -> box x | None -> null 
         @> 
 
     static member internal MapArrayObjItemToOption<'T>(arr, index) =
