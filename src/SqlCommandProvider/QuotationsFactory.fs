@@ -139,8 +139,7 @@ type QuotationsFactory private() =
             )
         @@>
     
-//    static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> box(DBNull.Value) @@>    
-    static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> null @@>    
+    static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> SqlClient.DbNull @@>    
 
     static member internal MapArrayOptionItemToObj<'T>(arr, index) =
         <@
