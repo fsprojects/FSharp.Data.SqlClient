@@ -21,4 +21,5 @@ let result = cmd.ExecuteScalar()
 
 
 //for p in cmd.Parameters do printfn "Param: %s, type: %s, sqldbtype: %A, direction %A, IsNullable %b, Value: %A" p.ParameterName p.TypeName p.SqlDbType p.Direction p.IsNullable p.Value
-
+open System.Runtime.ExceptionServices
+let raise exn : 'a = ExceptionDispatchInfo.Capture(exn).Throw(); Unchecked.defaultof<'a>

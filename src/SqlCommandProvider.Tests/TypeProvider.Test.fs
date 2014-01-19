@@ -50,3 +50,13 @@ let columnsShouldNotBeNull2() =
     let cmd = new ColumnsShouldNotBeNull2()
     let _,_,_,_,precision = cmd.Execute()
     Assert.Equal(None, precision)    
+
+type InsertCommand = 
+    SqlCommand<"INSERT INTO dbo.ErrorLog
+                VALUES (GETDATE(), @UserName, @ErrorNumber, @ErrorSeverity, @ErrorState, @ErrorProcedure, @ErrorLine, @ErrorMessage)", 
+                connectionString, SingleRow = true>
+[<Fact>]
+let insert() = 
+    let cmd = new InsertCommand()
+    cmd.Execute("dmitry morozov", 121, 16, 3, "insert test", int __LINE__, "failed insert")
+
