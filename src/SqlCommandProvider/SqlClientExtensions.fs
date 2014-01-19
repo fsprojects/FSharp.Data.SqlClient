@@ -34,11 +34,6 @@ let internal findTypeInfoByProviderType(sqlDbType, udttName)  =
     !dataTypeMappings  
     |> List.tryFind (fun x -> x.SqlDbType = sqlDbType && x.UdttName = udttName)
 
-let internal getTupleTypeForColumns (xs : seq<Column>) = 
-    match Seq.toArray xs with
-    | [| x |] -> x.ClrTypeConsideringNullable
-    | xs' -> FSharpType.MakeTupleType [| for x in xs' -> x.ClrTypeConsideringNullable|]
-
 type SqlConnection with
 
     member internal this.CheckVersion() = 

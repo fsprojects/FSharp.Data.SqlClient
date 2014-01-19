@@ -5,6 +5,9 @@ open System.Net
 open System.Net.Http
 open System.Web.Http
 open System.Web.Configuration
+open System.Dynamic
+open System.Collections.Generic
+
 open DataAccess
 
 type HomeController() =
@@ -19,5 +22,11 @@ type HomeController() =
         async {
             let cmd = QueryProductsAsTuples(connectionString)
             let! data = cmd.AsyncExecute(top = top, SellStartDate = sellStartDate)
-            return this.Request.CreateResponse(HttpStatusCode.OK, data)
+            let xs = data |> Seq.map (fun x ->
+                let dict : IDictionary<_, _> = upcast ExpandoObject()
+                dict.Add("ProductName", x.ProductName)
+                dict.Add("SellStartDate", x.SellStartDate)
+                dict
+            )
+            return this.Request.CreateResponse(HttpStatusCode.OK, xs)
         } |> Async.StartAsTask

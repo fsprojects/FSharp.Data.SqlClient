@@ -7,6 +7,8 @@ open System.Reflection
 open System.Collections.Generic
 open System.Threading
 open System.Diagnostics
+open System.Dynamic
+
 open Microsoft.SqlServer.Server
 
 open Microsoft.FSharp.Core.CompilerServices
@@ -327,7 +329,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         providedCommandType.AddMember execute 
 
     member internal this.Tuples(allParametersOptional, paramInfos, columns, singleRow) =
-        let tupleType = getTupleTypeForColumns columns
+        let tupleType = match Seq.toArray columns with
+                        | [| x |] -> x.ClrTypeConsideringNullable
+                        | xs' -> FSharpType.MakeTupleType [| for x in xs' -> x.ClrTypeConsideringNullable|]
 
         let rowMapper = 
             let values = Var("values", typeof<obj[]>)
@@ -339,20 +343,30 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     member internal this.Records( providedCommandType, allParametersOptional, paramInfos,  columns, singleRow) =
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
         for col in columns do
-            if col.Name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
+            let propertyName = col.Name
+            if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
 
-            let property = ProvidedProperty(col.Name, propertyType = col.ClrTypeConsideringNullable)
+            let property = ProvidedProperty(propertyName, propertyType = col.ClrTypeConsideringNullable)
             property.GetterCode <- fun args -> 
                 <@@ 
-                    let values : obj[] = %%Expr.Coerce(args.[0], typeof<obj[]>)
-                    values.[%%Expr.Value (col.Ordinal - 1)]
+                    let dict : IDictionary<string, obj> = %%Expr.Coerce(args.[0], typeof<IDictionary<string, obj>>)
+                    dict.[propertyName] 
                 @@>
 
             recordType.AddMember property
 
         providedCommandType.AddMember recordType
+
         let getExecuteBody (args : Expr list) = 
-            QuotationsFactory.GetTypedSequence(args, allParametersOptional, paramInfos, <@ fun(values : obj[]) -> box values @>, singleRow, columns)
+            let arrayToRecord = 
+                <@ 
+                    fun(values : obj[]) -> 
+                        let names : string[] = %%Expr.NewArray(typeof<string>, columns |> List.map (fun x -> Expr.Value(x.Name))) 
+                        let dict : IDictionary<_, _> = upcast ExpandoObject()
+                        (names, values) ||> Array.iter2 (fun name value -> dict.Add(name, value))
+                        box dict 
+                @>
+            QuotationsFactory.GetTypedSequence(args, allParametersOptional, paramInfos, arrayToRecord, singleRow, columns)
                          
         upcast recordType, getExecuteBody
     
@@ -392,7 +406,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 fun(reader : SqlDataReader) -> 
                     Map.ofArray<string, obj> [| 
                         for i = 0 to reader.FieldCount - 1 do
-                             if not <| reader.IsDBNull(i) then yield reader.GetName(i), reader.GetValue(i)
+                             if not( reader.IsDBNull(i)) then yield reader.GetName(i), reader.GetValue(i)
                     |]  
             @>
 
