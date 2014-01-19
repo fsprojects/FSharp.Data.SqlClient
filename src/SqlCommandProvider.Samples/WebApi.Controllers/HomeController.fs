@@ -22,11 +22,5 @@ type HomeController() =
         async {
             let cmd = QueryProductsAsTuples(connectionString)
             let! data = cmd.AsyncExecute(top = top, SellStartDate = sellStartDate)
-            let xs = data |> Seq.map (fun x ->
-                let dict : IDictionary<_, _> = upcast ExpandoObject()
-                dict.Add("ProductName", x.ProductName)
-                dict.Add("SellStartDate", x.SellStartDate)
-                dict
-            )
-            return this.Request.CreateResponse(HttpStatusCode.OK, xs)
+            return this.Request.CreateResponse(HttpStatusCode.OK, data)
         } |> Async.StartAsTask
