@@ -107,3 +107,14 @@ type UseGet = SqlCommand<"dbo.[Get]", connectionString, CommandType = CommandTyp
 let useGet = UseGet()
 useGet.Execute()
 
+//Insert command
+type InsertCommand = 
+    SqlCommand<"INSERT INTO dbo.ErrorLog
+                VALUES (GETDATE(), @UserName, @ErrorNumber, @ErrorSeverity, @ErrorState, @ErrorProcedure, @ErrorLine, @ErrorMessage)", 
+                connectionString, SingleRow = true>
+
+open System.Security.Principal
+
+let cmdInsert = InsertCommand()
+let user = WindowsIdentity.GetCurrent().Name
+cmdInsert.Execute(user, 121, 16, 3, "insert test", int __LINE__, "failed insert")
