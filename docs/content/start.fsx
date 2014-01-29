@@ -253,3 +253,15 @@ type TVP = TableValuedSample.MyTableType
 let tvpSp = new TableValuedSample()
 //nullable columns mapped to optional ctor params
 tvpSp.Execute(x = [ TVP(myId = 1, myName = "monkey"); TVP(myId = 2) ]) 
+
+(*
+
+Draft
+
+    * Tuples. Default. Mostly convenient in F# combined with pattern matching
+    * Records. .NET-style class with read-only properties. WebAPI/Json.NET/WPF/ASP.NET MVC.
+    * DataTable with inferred data rows similar to Records. Update scenarios. WPF data binding.
+    * Maps. For rare cases when structure of output cannot be inferred.
+
+
+*)

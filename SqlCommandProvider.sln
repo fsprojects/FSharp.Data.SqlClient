@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.30110.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{7ECDF2A7-A71C-43B5-AFF2-64468098B7B6}"
 	ProjectSection(SolutionItems) = preProject
@@ -44,6 +44,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlCommandProvider", "src\SqlCommandProvider\SqlCommandProvider.fsproj", "{8974CE2E-79B4-4887-859A-B853C2624138}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlProgrammability", "src\SqlProgrammability\SqlProgrammability.fsproj", "{E16643D1-3825-4571-BE41-3FDA49A7A6D5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -54,6 +56,10 @@ Global
 		{8974CE2E-79B4-4887-859A-B853C2624138}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8974CE2E-79B4-4887-859A-B853C2624138}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8974CE2E-79B4-4887-859A-B853C2624138}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E16643D1-3825-4571-BE41-3FDA49A7A6D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E16643D1-3825-4571-BE41-3FDA49A7A6D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E16643D1-3825-4571-BE41-3FDA49A7A6D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E16643D1-3825-4571-BE41-3FDA49A7A6D5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

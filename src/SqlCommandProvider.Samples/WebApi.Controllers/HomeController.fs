@@ -10,6 +10,12 @@ open System.Collections.Generic
 
 open DataAccess
 
+module SqlCommand = 
+    let inline create() : 'a = 
+        let connStr = WebConfigurationManager.ConnectionStrings.["AdventureWorks2012"].ConnectionString
+        (^a : (new : string -> ^a) connStr)    
+
+
 type HomeController() =
     inherit ApiController()
 
@@ -20,7 +26,8 @@ type HomeController() =
     //http://localhost:61594/?top=4&sellStartDate=2002-07-01
     member this.Get(top, sellStartDate) =
         async {
-            let cmd = QueryProductsAsTuples(connectionString)
+            let cmd : QueryProductsAsTuples = SqlCommand.create()
+            //let cmd = QueryProductsAsTuples(connectionString)
             let! data = cmd.AsyncExecute(top = top, SellStartDate = sellStartDate)
             return this.Request.CreateResponse(HttpStatusCode.OK, data)
         } |> Async.StartAsTask

@@ -52,14 +52,28 @@ seq
 
 (**
 
-Note how T-SQL unbound variables are mapped into parameters of AsyncExecute method. Output is a sequence of tuples. 
-Tuple elemens match the columns of query result set.
-
 System requirements
 -------------------------------------
 
  * SQL Server 2012 and up or SQL Azure Database at compile-time. 
  * .NET 4.0 or higher
 
+Features at glance:
+-------------------------------------
+
+* Static type per SqlCommand<...> with 2 methods:
+    * AsyncExecute - for scalability scenarios 
+    * Execute - convenience when needed
+* Configuration
+    * Command text (sql script) provided either as literal or path to *.sql file
+    * Connection string is either literal or from config file
+    * Connection string can be overridden at run time via constructor  
+* Statically typed input/output:
+    * Unbound sql variables/input parameters mapped to mandatory arguments for AsyncExecute/Execute
+    * Inferred type for output. Choice of `seq<Tuples>`, `seq<Records>`, `DataTable` or `seq<Maps>`. Each column mapped to item/property/key.
+* Extra configuration options:
+    * SingleRow hint forces singleton output instead of sequence
+    * Set AllParametersOptional to true to make all parameters optional (nullable).
+* Set CommandType parameter to CommandType.StoredProcedure to specify it directly by name. 
 *)
 
