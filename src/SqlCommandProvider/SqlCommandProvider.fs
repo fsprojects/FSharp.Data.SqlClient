@@ -90,12 +90,14 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             then Configuration.ReadConnectionStringFromConfigFileByName(value, resolutionFolder, configFile)
             else value
 
+        let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
+        
+        providedCommandType.AddMember <| ProvidedProperty( "ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ value @@>)
+
         use conn = new SqlConnection(designTimeConnectionString)
         conn.Open()
         conn.CheckVersion()
         conn.LoadDataTypesMap()
-
-        let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
 
         let sqlParameters = this.ExtractSqlParameters(conn, commandText, commandType)
 
