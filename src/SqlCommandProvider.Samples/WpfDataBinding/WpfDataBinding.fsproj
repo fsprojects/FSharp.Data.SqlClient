@@ -40,7 +40,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data.Experimental.SqlCommandProvider">
-      <HintPath>..\..\..\packages\FSharp.Data.Experimental.SqlCommandProvider.1.1.25\lib\net40\FSharp.Data.Experimental.SqlCommandProvider.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.Experimental.SqlCommandProvider.1.1.27\lib\net40\FSharp.Data.Experimental.SqlCommandProvider.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />

@@ -1,6 +1,7 @@
 ﻿namespace WebApi
 
 open System
+open System.Data.SqlClient
 open System.Net
 open System.Net.Http
 open System.Web.Http
@@ -12,9 +13,12 @@ open DataAccess
 
 module SqlCommand = 
     let inline create() : 'a = 
-        let connStr = WebConfigurationManager.ConnectionStrings.["AdventureWorks2012"].ConnectionString
-        (^a : (new : string -> ^a) connStr)    
-
+        let adventureWorks = WebConfigurationManager.ConnectionStrings.["AdventureWorks2012"].ConnectionString
+        let designTimeConnectionString = (^a : (static member get_ConnectionStringOrName : unit -> string) ())
+        let database = SqlConnectionStringBuilder(designTimeConnectionString).InitialCatalog
+        if database = "AdventureWorks2012"
+        then (^a : (new : string -> ^a) adventureWorks)    
+        else failwithf "Unrecognized command type %s" typeof<'a>.FullName
 
 type HomeController() =
     inherit ApiController()
@@ -27,7 +31,6 @@ type HomeController() =
     member this.Get(top, sellStartDate) =
         async {
             let cmd : QueryProductsAsTuples = SqlCommand.create()
-            //let cmd = QueryProductsAsTuples(connectionString)
             let! data = cmd.AsyncExecute(top = top, SellStartDate = sellStartDate)
             return this.Request.CreateResponse(HttpStatusCode.OK, data)
         } |> Async.StartAsTask

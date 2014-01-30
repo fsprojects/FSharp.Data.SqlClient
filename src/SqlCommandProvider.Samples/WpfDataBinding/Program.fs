@@ -10,7 +10,7 @@ open FSharp.Data.Experimental
 [<Literal>]
 let queryTableSql = "SELECT * FROM Production.Product WHERE Name like @startsWith"
 
-type Query = SqlCommand<queryTableSql, ConnectionStringName="AdventureWorks2012", ResultType=ResultType.DataTable>
+type Query = SqlCommand<queryTableSql, ConnectionStringOrName="name=AdventureWorks2012", ResultType=ResultType.DataTable>
 
 [<STAThread>]
 [<EntryPoint>]
