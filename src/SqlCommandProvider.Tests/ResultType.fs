@@ -7,7 +7,7 @@ open Xunit
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 type ResultTypeMaps = 
-    SqlCommand<"SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003)) AS T(lang, DOB)", ConnectionStringName = "AdventureWorks2012", ResultType = ResultType.Maps>
+    SqlCommand<"SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003)) AS T(lang, DOB)", "name=AdventureWorks2012", ResultType = ResultType.Maps>
 
 [<Fact>]
 let ResultTypeMaps() = 
@@ -24,7 +24,7 @@ let ResultTypeMaps() =
     Assert.Equal<Map<string, obj>[]>(expected, cmd.Execute() |> Seq.toArray)
 
 type ResultTypeMapsWithNullableCols = 
-    SqlCommand<"SELECT * FROM (VALUES ('abc', 123), ('def', 456), ('xyz', NULL)) AS T(name, value)", ConnectionStringName = "AdventureWorks2012", ResultType = ResultType.Maps>
+    SqlCommand<"SELECT * FROM (VALUES ('abc', 123), ('def', 456), ('xyz', NULL)) AS T(name, value)", "name=AdventureWorks2012", ResultType = ResultType.Maps>
 
 [<Fact>]
 let ResultTypeMapsWithNullableCols() = 

@@ -21,27 +21,22 @@ type Configuration() =
                 watcher.EnableRaisingEvents <- true                    
                 File.ReadAllText(path), Some watcher
 
-    static member GetConnectionString (resolutionFolder, connectionString, connectionStringName, configFile ) =
-        match connectionString, connectionStringName with
-        | "", "" -> failwith "Either ConnectionString or ConnectionStringName is required"
-        | _, "" -> connectionString
-        | "", _ -> 
-            let getMappedConfig file = 
-                let path = Path.Combine(resolutionFolder, file)            
-                let map = new ExeConfigurationFileMap()
-                map.ExeConfigFilename <- path
-                ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None).ConnectionStrings.ConnectionStrings.[connectionStringName]
-            let configSection = 
-                match configFile, ConfigurationManager.ConnectionStrings.[connectionStringName] with
-                | "", null -> 
-                    let c = getMappedConfig "app.config"
-                    if c = null then getMappedConfig "web.config" else c
-                | "", c -> c
-                | file, _ -> getMappedConfig file
-            if configSection = null 
-            then failwithf "Connection string %s is not found." connectionStringName
-            else configSection.ConnectionString
-        | _, _ -> failwith "Ambiguous configuration: both ConnectionString and ConnectionStringName provided."
+    static member ReadConnectionStringFromConfigFileByName(name: string, resolutionFolder, fileName) =
+        let path = Path.Combine(resolutionFolder, fileName)
+        if not <| File.Exists path then raise <| FileNotFoundException( sprintf "Could not find config file '%s'." path)
+        let map = ExeConfigurationFileMap( ExeConfigFilename = path)
+        let configSection = ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None).ConnectionStrings.ConnectionStrings
+        match configSection, lazy configSection.[name] with
+        | null, _ | _, Lazy null -> failwithf "Cannot find name %s in <connectionStrings> section of %s file." name path
+        | _, Lazy x -> x.ConnectionString
+
+    static member GetConnectionStringRunTimeByName(name: string) = 
+        let section = ConfigurationManager.ConnectionStrings.[name]
+        if section = null 
+        then failwithf "Cannot find name %s in <connectionStrings> section of config file." name
+        else section.ConnectionString
+
+
 
             
   

@@ -62,9 +62,7 @@
     <Compile Include="..\SqlCommandProvider\ProvidedTypes-head.fs">
       <Link>ProvidedTypes-head.fs</Link>
     </Compile>
-    <Compile Include="..\SqlCommandProvider\Configuration.fs">
-      <Link>Configuration.fs</Link>
-    </Compile>
+    <Compile Include="Configuration.fs" />
     <Compile Include="SqlProgrammabilityProvider.fs" />
   </ItemGroup>
   <ItemGroup>

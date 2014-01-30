@@ -58,9 +58,7 @@
     <Compile Include="Input.Test.fs" />
     <Compile Include="TypeProvider.Test.fs" />
     <Compile Include="ResultType.fs" />
-    <None Include="app.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <None Include="app.config" />
     <None Include="Test.fsx" />
     <None Include="sampleCommand.sql" />
     <None Include="prereqs.sql" />

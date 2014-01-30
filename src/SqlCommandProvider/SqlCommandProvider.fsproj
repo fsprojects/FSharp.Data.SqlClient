@@ -57,8 +57,7 @@
     <Compile Include="SqlClientExtensions.fs" />
     <Compile Include="DataTable.fs" />
     <Compile Include="QuotationsFactory.fs" />
-    <Compile Include="TypeProvider.fs" />
-    <None Include="App.config" />
+    <Compile Include="SqlCommandProvider.fs" />
     <None Include="Scratchpad.fsx" />
   </ItemGroup>
   <PropertyGroup>

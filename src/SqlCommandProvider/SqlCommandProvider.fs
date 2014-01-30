@@ -2,6 +2,7 @@
 
 open System
 open System.Data
+open System.IO
 open System.Data.SqlClient
 open System.Reflection
 open System.Collections.Generic
@@ -9,6 +10,7 @@ open System.Threading
 open System.Diagnostics
 open System.Dynamic
 open System.Runtime.CompilerServices
+open System.Configuration
 
 open Microsoft.SqlServer.Server
 
@@ -17,17 +19,18 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
 
 open FSharp.Data.Experimental.Internals
-open Samples.FSharp.ProvidedTypes
 
-[<assembly:TypeProviderAssembly()>]
-[<assembly:InternalsVisibleTo("FSharp.Data.Experimental.SqlCommandProvider.Tests")>]
-do()
+open Samples.FSharp.ProvidedTypes
 
 type ResultType =
     | Tuples = 0
     | Records = 1
     | DataTable = 2
     | Maps = 3
+
+[<assembly:TypeProviderAssembly()>]
+[<assembly:InternalsVisibleTo("FSharp.Data.Experimental.SqlCommandProvider.Tests")>]
+do()
 
 [<TypeProvider>]
 type public SqlCommandProvider(config : TypeProviderConfig) as this = 
@@ -43,12 +46,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         providerType.DefineStaticParameters(
             parameters = [ 
                 ProvidedStaticParameter("CommandText", typeof<string>) 
-                ProvidedStaticParameter("ConnectionString", typeof<string>, "") 
-                ProvidedStaticParameter("ConnectionStringName", typeof<string>, Configuration.defaultConnectionStringName) 
+                ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
                 ProvidedStaticParameter("CommandType", typeof<CommandType>, CommandType.Text) 
                 ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Tuples) 
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false) 
-                ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
+                ProvidedStaticParameter("ConfigFile", typeof<string>, "app.config") 
                 ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
@@ -61,23 +63,33 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
            if watcher <> null
            then try watcher.Dispose() with _ -> ()
 
+
     member internal this.CreateType typeName parameters = 
         let commandText : string = unbox parameters.[0] 
-        let connectionStringProvided : string = unbox parameters.[1] 
-        let connectionStringName : string = unbox parameters.[2] 
-        let commandType : CommandType = unbox parameters.[3] 
-        let resultType : ResultType = unbox parameters.[4] 
-        let singleRow : bool = unbox parameters.[5] 
-        let configFile : string = unbox parameters.[6] 
-        let allParametersOptional : bool = unbox parameters.[7] 
-        let dataDirectory : string = unbox parameters.[8] 
+        let connectionStringOrName : string = unbox parameters.[1] 
+        let commandType : CommandType = unbox parameters.[2] 
+        let resultType : ResultType = unbox parameters.[3] 
+        let singleRow : bool = unbox parameters.[4] 
+        let configFile : string = unbox parameters.[5] 
+        let allParametersOptional : bool = unbox parameters.[6] 
+        let dataDirectory : string = unbox parameters.[7] 
 
         let resolutionFolder = config.ResolutionFolder
-        let commandText, watcher' = 
-            Configuration.parseTextAtDesignTime(commandText, resolutionFolder, this.Invalidate)
+
+        let commandText, watcher' = Configuration.ParseTextAtDesignTime(commandText, resolutionFolder, this.Invalidate)
         watcher' |> Option.iter (fun x -> watcher <- x)
-        let designTimeConnectionString = Configuration.getConnectionString(resolutionFolder, connectionStringProvided, connectionStringName, configFile)
-        
+
+        let value, byName = 
+            match connectionStringOrName.Trim().Split([|'='|], 2, StringSplitOptions.RemoveEmptyEntries) with
+            | [| "" |] -> invalidArg "ConnectionStringOrName" "Value is empty!"
+            | [| prefix; tail |] when prefix.Trim().ToLower() = "name" -> tail.Trim(), true
+            | _ -> connectionStringOrName, false
+
+        let designTimeConnectionString = 
+            if byName 
+            then Configuration.ReadConnectionStringFromConfigFileByName(value, resolutionFolder, configFile)
+            else value
+
         use conn = new SqlConnection(designTimeConnectionString)
         conn.Open()
         conn.CheckVersion()
@@ -91,19 +103,18 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         ctor.InvokeCode <- fun args -> 
             <@@ 
                 let runTimeConnectionString = 
-                    if String.IsNullOrEmpty(%%args.[0])
-                    then
-
-                        Configuration.getConnectionString( resolutionFolder, connectionStringProvided, connectionStringName, configFile)
-                    else 
-                        %%args.[0]
+                    if not( String.IsNullOrEmpty(%%args.[0]))
+                    then %%args.[0]
+                    elif byName then Configuration.GetConnectionStringRunTimeByName value
+                    else designTimeConnectionString
+                        
                 do
                     if dataDirectory <> ""
                     then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
 
                 let this = new SqlCommand(commandText, new SqlConnection(runTimeConnectionString)) 
                 this.CommandType <- commandType
-                let xs = %%Expr.NewArray(typeof<SqlParameter>, List.map QuotationsFactory.ToSqlParam sqlParameters)
+                let xs = %%Expr.NewArray( typeof<SqlParameter>, sqlParameters |> List.map QuotationsFactory.ToSqlParam)
                 this.Parameters.AddRange xs
                 this
             @@>

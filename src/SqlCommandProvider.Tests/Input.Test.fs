@@ -7,7 +7,7 @@ open Xunit
 type QueryWithNullableParam = 
     SqlCommand<"declare @yCopy as int = @y
         SELECT Result = @x + CASE WHEN @yCopy IS NULL THEN 1 ELSE @yCopy END
-    ",ConnectionStringName = "AdventureWorks2012", SingleRow = true, AllParametersOptional = true>
+    ","name=AdventureWorks2012", SingleRow = true, AllParametersOptional = true>
 
 [<Fact>]
 let BothOptinalParamsSupplied() = 
