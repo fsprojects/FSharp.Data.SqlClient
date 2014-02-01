@@ -13,11 +13,14 @@ open DataAccess
 
 module SqlCommand = 
     let inline create() : 'a = 
-        let adventureWorks = WebConfigurationManager.ConnectionStrings.["AdventureWorks2012"].ConnectionString
         let designTimeConnectionString = (^a : (static member get_ConnectionStringOrName : unit -> string) ())
+
         let database = SqlConnectionStringBuilder(designTimeConnectionString).InitialCatalog
+
         if database = "AdventureWorks2012"
-        then (^a : (new : string -> ^a) adventureWorks)    
+        then 
+            let adventureWorks = WebConfigurationManager.ConnectionStrings.["AdventureWorks2012"].ConnectionString
+            (^a : (new : string -> ^a) adventureWorks)    
         else failwithf "Unrecognized command type %s" typeof<'a>.FullName
 
 type HomeController() =
