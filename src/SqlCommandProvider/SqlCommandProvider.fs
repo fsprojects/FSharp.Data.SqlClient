@@ -101,7 +101,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         let sqlParameters = this.ExtractSqlParameters(conn, commandText, commandType)
 
-        let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = Unchecked.defaultof<string>) ])
+        let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = null) ])
         ctor.InvokeCode <- fun args -> 
             <@@ 
                 let runTimeConnectionString = 
