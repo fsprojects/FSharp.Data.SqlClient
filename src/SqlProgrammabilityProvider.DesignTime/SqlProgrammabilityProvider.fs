@@ -12,7 +12,7 @@ open Microsoft.SqlServer.Management.Common
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
-open Microsoft.FSharp.Reflection
+open Microsoft.FSharp.Reflection 
 
 open Samples.FSharp.ProvidedTypes
 
@@ -117,6 +117,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let twoPartsName = sprintf "%s.%s" sp.Schema sp.Name 
                         let propertyType = ProvidedTypeDefinition(twoPartsName, baseType = Some typeof<obj>, HideObjectMethods = true)
                         let ctor = ProvidedConstructor( [], InvokeCode = fun _ -> <@@ obj() @@>)
+                        propertyType.AddMember ctor
                         
                         propertyType.AddMemberDelayed <| fun() ->
                             let execute = ProvidedMethod("AsyncExecute", [], typeof<unit Async>)
