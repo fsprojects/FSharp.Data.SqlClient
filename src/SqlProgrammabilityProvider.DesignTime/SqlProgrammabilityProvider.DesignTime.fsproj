@@ -46,10 +46,13 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ProvidedTypes-head.fsi" />
     <Compile Include="ProvidedTypes-head.fs" />
+    <Compile Include="Data.fs" />
+    <Compile Include="SqlClientExtensions.fs" />
     <Compile Include="SqlProgrammabilityProvider.fs" />
   </ItemGroup>
   <ItemGroup>

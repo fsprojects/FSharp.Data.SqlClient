@@ -13,4 +13,4 @@ let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWo
 type AdventureWorks2012 = SqlProgrammability<connectionString>
 
 let db = AdventureWorks2012()
-db.StoredProcedures.``HumanResources.uspUpdateEmployeeHireInfo``.AsyncExecute()
+db.StoredProcedures.``dbo.uspPrintError``.AsyncExecute()

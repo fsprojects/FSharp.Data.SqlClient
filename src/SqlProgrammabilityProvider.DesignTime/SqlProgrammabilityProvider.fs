@@ -1,12 +1,14 @@
 ﻿namespace FSharp.Data.Experimental
 
 open System
+open System.Data
 open System.Data.SqlClient
+open System.Diagnostics
 open System.Reflection
 open System.IO
 open System.Configuration
 
-//open Microsoft.SqlServer.Server
+open Microsoft.SqlServer.Server
 open Microsoft.SqlServer.Management.Smo
 open Microsoft.SqlServer.Management.Common
 
@@ -79,11 +81,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             then readConnectionStringFromConfigFileByName(connStrOrName, resolutionFolder, configFile)
             else connStrOrName
 
-
-        let conn = new SqlConnection( designTimeConnectionString)
-        let server = Server( ServerConnection( conn))
-        let db = server.Databases.[conn.Database]
-
         let databaseRootType = ProvidedTypeDefinition(runtimeAssembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
         let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = null) ])
         ctor.InvokeCode <- fun args -> 
@@ -102,25 +99,32 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         databaseRootType.AddMember ctor
 
+        use conn = new SqlConnection(designTimeConnectionString)
+        conn.Open()
+        conn.CheckVersion()
+        conn.LoadDataTypesMap()
+
+        let procedures = conn.GetProcedures()
+
         //Stored procedures
         let spHostType = ProvidedTypeDefinition("StoredProcedures", baseType = Some typeof<obj>, HideObjectMethods = true)
         databaseRootType.AddMember spHostType
 
         let ctor = ProvidedConstructor( [], InvokeCode = fun _ -> <@@ obj() @@>)
         spHostType.AddMember ctor
-
+        
         spHostType.AddMembers
             [
-                for sp in db.StoredProcedures do
-                    if not sp.IsSystemObject
-                    then 
-                        let twoPartsName = sprintf "%s.%s" sp.Schema sp.Name 
+                for twoPartsName, isFunction, parameters in procedures do
+                    if not isFunction then
                         let propertyType = ProvidedTypeDefinition(twoPartsName, baseType = Some typeof<obj>, HideObjectMethods = true)
                         let ctor = ProvidedConstructor( [], InvokeCode = fun _ -> <@@ obj() @@>)
                         propertyType.AddMember ctor
-                        
+                    
+                        let execArgs = this.GetExecuteArgsForSqlParameters(propertyType, parameters, false)
+
                         propertyType.AddMemberDelayed <| fun() ->
-                            let execute = ProvidedMethod("AsyncExecute", [], typeof<unit Async>)
+                            let execute = ProvidedMethod("AsyncExecute", execArgs, typeof<unit Async>)
                             execute.InvokeCode <- fun _ -> <@@ async.Return () @@>
                             execute
 
@@ -133,5 +137,55 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         databaseRootType.AddMember <| ProvidedProperty( "StoredProcedures", spHostType, GetterCode = fun _ -> Expr.NewObject( ctor, []))
         databaseRootType
+
+     member internal __.GetExecuteArgsForSqlParameters(providedCommandType : ProvidedTypeDefinition, sqlParameters, allParametersOptional) = [
+        for p in sqlParameters do
+            let parameterName = p.Name
+
+            let optionalValue = if allParametersOptional then Some null else None
+
+            let parameterType = 
+                if not p.TypeInfo.TableType 
+                then
+                    p.TypeInfo.ClrType
+                else
+                    assert(p.Direction = ParameterDirection.Input)
+                    let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<SqlDataRecord>)
+                    providedCommandType.AddMember rowType
+                    let parameters, metaData = 
+                        [
+                            for p in p.TypeInfo.TvpColumns do
+                                let name, dbType, maxLength = p.Name, p.TypeInfo.SqlDbTypeId, int64 p.MaxLength
+                                let paramMeta = 
+                                    match p.TypeInfo.IsFixedLength with 
+                                    | Some true -> <@@ SqlMetaData(name, enum dbType) @@>
+                                    | Some false -> <@@ SqlMetaData(name, enum dbType, maxLength) @@>
+                                    | _ -> failwith "Unexpected"
+                                let param = 
+                                    if p.IsNullable
+                                    then ProvidedParameter(p.Name, p.TypeInfo.ClrType, optionalValue = null)
+                                    else ProvidedParameter(p.Name, p.TypeInfo.ClrType)
+                                yield param, paramMeta
+                        ] |> List.unzip
+
+                    let ctor = ProvidedConstructor(parameters)
+                    ctor.InvokeCode <- fun args -> 
+                        let values = Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
+                        <@@ 
+                            let result = SqlDataRecord(metaData = %%Expr.NewArray(typeof<SqlMetaData>, metaData)) 
+                            let count = result.SetValues(%%values)
+                            Debug.Assert(%%Expr.Value(args.Length) = count, "Unexpected return value from SqlDataRecord.SetValues.")
+                            result
+                        @@>
+                    rowType.AddMember ctor
+
+                    ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
+
+            yield ProvidedParameter(
+                parameterName, 
+                parameterType = (if allParametersOptional then typedefof<_ option>.MakeGenericType( parameterType) else parameterType), 
+                ?optionalValue = optionalValue
+            )
+    ]
 
 
