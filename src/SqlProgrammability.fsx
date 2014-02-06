@@ -10,7 +10,7 @@ open FSharp.Data.Experimental
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
  
 
-type AdventureWorks2012 = SqlProgrammability<connectionString>
+type AdventureWorks2012 = SqlProgrammability<connectionString, ResultType = ResultType.Maps>
 
 let db = AdventureWorks2012()
-db.StoredProcedures.``dbo.uspPrintError``.AsyncExecute()
+db.StoredProcedures.``dbo.Get``.AsyncExecute() |> Async.RunSynchronously

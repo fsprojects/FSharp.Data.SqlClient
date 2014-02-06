@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.Experimental.Runtime
+﻿namespace FSharp.Data.Experimental
 
 open System
 open System.Data

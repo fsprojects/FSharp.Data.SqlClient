@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-module FSharp.Data.Experimental.Runtime.SqlClient
+module FSharp.Data.Experimental.SqlClient
 
 open System
 open System.Data
@@ -69,20 +69,20 @@ type SqlConnection with
                             for catalog, name, param in rows do
                             where (catalog = this.Database)
                             groupBy name into g
-                            let ps = [| for p,_,_ in g do if p.IsSome then yield p.Value |]
+                            let ps = [ for p,_,_ in g do if p.IsSome then yield p.Value ]
                             let unsupported = g |> Seq.exists (fun (p,_,_) -> p.IsNone || p.Value.Direction <> ParameterDirection.Input)
                             select (g.Key, (unsupported, ps))
                          } |> Map.ofSeq
-        [| 
+        [ 
             for r in this.GetSchema("Procedures").Rows do
                 let name = fullName r
                 let isFunction = string r.["routine_type"] = "FUNCTION"
                 match parameters.TryFind(name) with
                 | Some (false, ps) -> yield name, isFunction, ps
-                | None -> yield name, isFunction, [||]
+                | None -> yield name, isFunction, []
                 | _ -> ()
 
-        |]
+        ]
 
     member internal this.GetDataTypesMapping() = 
         assert (this.State = ConnectionState.Open)
