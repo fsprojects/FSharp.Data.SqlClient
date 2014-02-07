@@ -7,14 +7,14 @@ open Xunit
 [<Literal>]
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
-type QueryWithTinyInt = SqlCommand<"SELECT CAST(10 AS TINYINT) AS Value", connectionString, SingleRow = true>
+type QueryWithTinyInt = SqlCommand<"SELECT CAST(10 AS TINYINT) AS Value", connectionString, ResultRows = ExpectedRows.ExactlyOne>
 
 [<Fact>]
 let TinyIntConversion() = 
     let cmd = QueryWithTinyInt()
     Assert.Equal(Some 10uy, cmd.Execute())    
 
-type GetServerTime = SqlCommand<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'", connectionString, SingleRow=true>
+type GetServerTime = SqlCommand<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'", connectionString, ResultRows = ExpectedRows.ExactlyOne>
 
 [<Fact>]
 let SqlCommandClone() = 
@@ -31,7 +31,7 @@ let SqlCommandClone() =
     cmdClone.CommandText <- "SELECT 0"
     Assert.Equal<string>("TRUE", cmd.Execute(Bit = 1))    
 
-type ConditionalQuery = SqlCommand<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", connectionString, SingleRow=true>
+type ConditionalQuery = SqlCommand<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", connectionString, ResultRows = ExpectedRows.ExactlyOne>
 
 [<Fact>]
 let ConditionalQuery() = 
@@ -43,7 +43,7 @@ type ColumnsShouldNotBeNull2 =
     SqlCommand<"SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_NAME = 'DatabaseLog' and numeric_precision is null
-            ORDER BY ORDINAL_POSITION", connectionString, SingleRow = true>
+            ORDER BY ORDINAL_POSITION", connectionString, ResultRows = ExpectedRows.ExactlyOne>
 
 [<Fact>]
 let columnsShouldNotBeNull2() = 
