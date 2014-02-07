@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-module FSharp.Data.Experimental.SqlClient
+module FSharp.Data.Experimental.Runtime.Sqlclient
 
 open System
 open System.Data
@@ -25,13 +25,13 @@ type SqlCommand with
 
 let private dataTypeMappings = ref List.empty
 
-let internal findTypeInfoBySqlEngineTypeId id = 
+let findTypeInfoBySqlEngineTypeId id = 
     !dataTypeMappings |> List.filter(fun x -> x.SqlEngineTypeId = id ) |> Seq.exactlyOne 
 
 let internal findBySqlEngineTypeIdAndUdt(id, udttName) = 
     !dataTypeMappings |> List.tryFind(fun x -> x.SqlEngineTypeId = id && (not x.TableType || x.UdttName = udttName))
     
-let internal findTypeInfoByProviderType(sqlDbType, udttName)  = 
+let findTypeInfoByProviderType(sqlDbType, udttName)  = 
     !dataTypeMappings  
     |> List.tryFind (fun x -> x.SqlDbType = sqlDbType && x.UdttName = udttName)
 
@@ -40,13 +40,13 @@ let internal findTypeInfoByName(name) =
 
 type SqlConnection with
 
-    member internal this.CheckVersion() = 
+    member this.CheckVersion() = 
         assert (this.State = ConnectionState.Open)
         let majorVersion = this.ServerVersion.Split('.').[0]
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
 
-    member internal this.GetProcedures() = 
+    member this.GetProcedures() = 
         assert (this.State = ConnectionState.Open)
         
         let fullName (r:DataRow) = sprintf "%s.%s" (string r.["specific_schema"]) (string r.["specific_name"])
@@ -84,7 +84,7 @@ type SqlConnection with
 
         ]
 
-    member internal this.GetDataTypesMapping() = 
+    member this.GetDataTypesMapping() = 
         assert (this.State = ConnectionState.Open)
         let providerTypes = [| 
             for row in this.GetSchema("DataTypes").Rows do
@@ -145,7 +145,7 @@ type SqlConnection with
         }
         |> Seq.toList
 
-    member internal this.LoadDataTypesMap() = 
+    member this.LoadDataTypesMap() = 
         if List.isEmpty !dataTypeMappings 
         then
             dataTypeMappings := this.GetDataTypesMapping()

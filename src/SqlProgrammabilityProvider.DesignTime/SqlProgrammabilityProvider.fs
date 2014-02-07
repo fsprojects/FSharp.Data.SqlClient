@@ -2,7 +2,6 @@
 
 open System
 open System.Collections.Generic
-open System.Configuration
 open System.Data
 open System.Data.SqlClient
 open System.Diagnostics
@@ -10,13 +9,11 @@ open System.Dynamic
 open System.IO
 open System.Reflection
 
-open Microsoft.SqlServer.Server
-open Microsoft.SqlServer.Management.Smo
-open Microsoft.SqlServer.Management.Common
-
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection 
+
+open Microsoft.SqlServer.Server
 
 open Samples.FSharp.ProvidedTypes
 
@@ -41,8 +38,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         providerType.DefineStaticParameters(
             parameters = [ 
-                ProvidedStaticParameter("ConnectionString", typeof<string>, "") 
-                ProvidedStaticParameter("ConnectionStringName", typeof<string>, "") 
+                ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
                 ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Tuples) 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
@@ -50,39 +46,25 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             instantiationFunction = this.CreateType
         )
         this.AddNamespace(nameSpace, [ providerType ])
-
-    let readConnectionStringFromConfigFileByName(name: string, resolutionFolder, fileName) = 
-        let path = Path.Combine(resolutionFolder, fileName)
-        if not <| File.Exists path then raise <| FileNotFoundException( sprintf "Could not find config file '%s'." path)
-        let map = ExeConfigurationFileMap( ExeConfigFilename = path)
-        let configSection = ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None).ConnectionStrings.ConnectionStrings
-        match configSection, lazy configSection.[name] with
-        | null, _ | _, Lazy null -> failwithf "Cannot find name %s in <connectionStrings> section of %s file." name path
-        | _, Lazy x -> x.ConnectionString
     
     member internal this.CreateType typeName parameters = 
-        let connectionString : string = unbox parameters.[0] 
-        let connectionStringName : string = unbox parameters.[1] 
-        let resultType : ResultType = unbox parameters.[2] 
-        let configFile : string = unbox parameters.[3] 
-        let dataDirectory : string = unbox parameters.[4] 
+        let connectionStringOrName : string = unbox parameters.[0] 
+        let resultType : ResultType = unbox parameters.[1] 
+        let configFile : string = unbox parameters.[2] 
+        let dataDirectory : string = unbox parameters.[3] 
 
         let resolutionFolder = config.ResolutionFolder
 
-        let connStrOrName, byName = 
-            if connectionString <> "" 
-            then 
-                connectionString, false
-            elif connectionStringName <> ""
-            then 
-                connectionStringName, true
-            else
-                failwith """When using this provider you must specify either a connection string or a connection string name. To specify a connection string, use SqlProgrammability<"...connection string...">."""
+        let value, byName = 
+            match connectionStringOrName.Trim().Split([|'='|], 2, StringSplitOptions.RemoveEmptyEntries) with
+            | [| "" |] -> invalidArg "ConnectionStringOrName" "Value is empty!"
+            | [| prefix; tail |] when prefix.Trim().ToLower() = "name" -> tail.Trim(), true
+            | _ -> connectionStringOrName, false
 
         let designTimeConnectionString = 
             if byName 
-            then readConnectionStringFromConfigFileByName(connStrOrName, resolutionFolder, configFile)
-            else connStrOrName
+            then Configuration.ReadConnectionStringFromConfigFileByName(value, resolutionFolder, configFile)
+            else value
 
         let databaseRootType = ProvidedTypeDefinition(runtimeAssembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
         let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = null) ])
@@ -91,7 +73,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 let runTimeConnectionString = 
                     if not( String.IsNullOrEmpty(%%args.[0]))
                     then %%args.[0]
-                    elif byName then Configuration.getConnectionStringAtRunTime connStrOrName
+                    elif byName then Configuration.GetConnectionStringRunTimeByName(connectionStringOrName)
                     else designTimeConnectionString
                         
                 do
@@ -114,14 +96,32 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         databaseRootType.AddMember spHostType
 
         let ctor = ProvidedConstructor( [], InvokeCode = fun _ -> <@@ obj() @@>)
-        spHostType.AddMember ctor
         
+        
+        spHostType.AddMember ctor             
+
         spHostType.AddMembers
             [
-                for twoPartsName, isFunction, parameters in procedures do
-                    if not isFunction then
+                for twoPartsName, isFunction, parameters in procedures do                    
+                    if not isFunction then                        
+                        let ctor = ProvidedConstructor( [])
+                        ctor.InvokeCode <- fun args -> 
+                            <@@ 
+                                let runTimeConnectionString = 
+                                    if byName then Configuration.GetConnectionStringRunTimeByName(value)
+                                    else designTimeConnectionString
+                        
+                                do
+                                    if dataDirectory <> ""
+                                    then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
+
+                                let this = new SqlCommand(twoPartsName, new SqlConnection(runTimeConnectionString)) 
+                                this.CommandType <- CommandType.StoredProcedure
+                                let xs = %%Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
+                                this.Parameters.AddRange xs
+                                this
+                            @@>
                         let propertyType = ProvidedTypeDefinition(twoPartsName, baseType = Some typeof<obj>, HideObjectMethods = true)
-                        let ctor = ProvidedConstructor( [], InvokeCode = fun _ -> <@@ obj() @@>)
                         propertyType.AddMember ctor
                     
                         propertyType.AddMemberDelayed <| 
@@ -135,7 +135,46 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             ]
 
         databaseRootType.AddMember <| ProvidedProperty( "StoredProcedures", spHostType, GetterCode = fun _ -> Expr.NewObject( ctor, []))
-        databaseRootType
+        databaseRootType           
+
+     member internal __.AddExecuteMethod(designTimeConnectionString, propertyType, allParametersOptional, parameters, twoPartsName, isFunction, resultType, singleRow) = 
+        fun() -> 
+            let outputColumns = 
+                if resultType <> ResultType.Maps 
+                then this.GetOutputColumns(designTimeConnectionString, twoPartsName, isFunction, parameters)
+                else []
+        
+            let execArgs = this.GetExecuteArgsForSqlParameters(propertyType, parameters, false)
+
+            let syncReturnType, executeMethodBody = 
+                if resultType = ResultType.Maps then
+                    this.Maps(allParametersOptional, parameters, singleRow)
+                else
+                    if outputColumns.IsEmpty
+                    then 
+                        this.GetExecuteNonQuery(allParametersOptional, parameters)
+                    elif resultType = ResultType.DataTable
+                    then 
+                        this.DataTable(propertyType, allParametersOptional, parameters, twoPartsName, outputColumns, singleRow)
+                    else
+                        let rowType, executeMethodBody = 
+                            if List.length outputColumns = 1
+                            then
+                                let singleCol : Column = outputColumns.Head
+                                let column0Type = singleCol.ClrTypeConsideringNullable
+                                column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, allParametersOptional, parameters, singleRow, singleCol)
+                            else 
+                                if resultType = ResultType.Tuples
+                                then this.Tuples(allParametersOptional, parameters, outputColumns, singleRow)
+                                else this.Records(propertyType, allParametersOptional, parameters, outputColumns, singleRow)
+                        let returnType = if singleRow then rowType else ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
+                           
+                        returnType, executeMethodBody
+
+            let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ syncReturnType ])
+            let execute = ProvidedMethod("AsyncExecute", execArgs, asyncReturnType)
+            execute.InvokeCode <- executeMethodBody
+            execute        
 
      member internal this.GetOutputColumns(designTimeConnectionString, commandText, isFunction, sqlParameters) = 
         use connection = new SqlConnection(designTimeConnectionString)
@@ -184,46 +223,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         MaxLength = unbox row.["ColumnSize"]
                     }
             ]
-
-     member internal __.AddExecuteMethod(designTimeConnectionString, propertyType, allParametersOptional, parameters, twoPartsName, isFunction, resultType, singleRow) = 
-        fun() -> 
-        let outputColumns = 
-            if resultType <> ResultType.Maps 
-            then this.GetOutputColumns(designTimeConnectionString, twoPartsName, isFunction, parameters)
-            else []
-        
-        let execArgs = this.GetExecuteArgsForSqlParameters(propertyType, parameters, false)
-
-        let syncReturnType, executeMethodBody = 
-            if resultType = ResultType.Maps then
-                this.Maps(allParametersOptional, parameters, singleRow)
-            else
-                if outputColumns.IsEmpty
-                then 
-                    this.GetExecuteNonQuery(allParametersOptional, parameters)
-                elif resultType = ResultType.DataTable
-                then 
-                    this.DataTable(propertyType, allParametersOptional, parameters, twoPartsName, outputColumns, singleRow)
-                else
-                    let rowType, executeMethodBody = 
-                        if List.length outputColumns = 1
-                        then
-                            let singleCol = outputColumns.Head
-                            let column0Type = singleCol.ClrTypeConsideringNullable
-                            column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, allParametersOptional, parameters, singleRow, singleCol)
-                        else 
-                            if resultType = ResultType.Tuples
-                            then this.Tuples(allParametersOptional, parameters, outputColumns, singleRow)
-                            else this.Records(propertyType, allParametersOptional, parameters, outputColumns, singleRow)
-                    let returnType = if singleRow then rowType else ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
-                           
-                    returnType, executeMethodBody
-
-        let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ syncReturnType ])
-        let execute = ProvidedMethod("AsyncExecute", execArgs, asyncReturnType)
-        execute.InvokeCode <- executeMethodBody
-        execute        
-
      member internal this.GetExecuteNonQuery(allParametersOptional, paramInfos)  = 
         let body expr =
             <@@

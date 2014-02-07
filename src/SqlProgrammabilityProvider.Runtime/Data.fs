@@ -1,9 +1,9 @@
-﻿namespace FSharp.Data.Experimental
+﻿namespace FSharp.Data.Experimental.Runtime
 
 open System
 open System.Data
 
-type internal Column = {
+type Column = {
     Name : string
     Ordinal : int
     TypeInfo : TypeInfo
@@ -15,7 +15,7 @@ type internal Column = {
         then typedefof<_ option>.MakeGenericType this.TypeInfo.ClrType
         else this.TypeInfo.ClrType
 
-and internal TypeInfo = {
+and TypeInfo = {
     TypeName : string
     SqlEngineTypeId : int
     SqlDbTypeId : int
@@ -28,7 +28,7 @@ and internal TypeInfo = {
     member this.ClrType : Type = Type.GetType this.ClrTypeFullName
     member this.TableType = this.SqlDbType = SqlDbType.Structured
 
-type internal Parameter = {
+type Parameter = {
     Name : string
     TypeInfo : TypeInfo
     Direction : ParameterDirection 

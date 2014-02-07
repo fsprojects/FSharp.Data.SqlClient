@@ -11,6 +11,7 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
 
 open FSharp.Data.Experimental
+open FSharp.Data.Experimental.Runtime
 
 type QuotationsFactory private() = 
 
@@ -139,7 +140,7 @@ type QuotationsFactory private() =
             )
         @@>
     
-    static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> SqlClient.DbNull @@>    
+    static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> DbNull @@>    
 
     static member internal MapArrayOptionItemToObj<'T>(arr, index) =
         <@

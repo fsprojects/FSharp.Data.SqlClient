@@ -10,7 +10,7 @@ open FSharp.Data.Experimental
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
  
 
-type AdventureWorks2012 = SqlProgrammability<connectionString, ResultType = ResultType.Maps>
+type AdventureWorks2012 = SqlProgrammability<connectionString>
 
 let db = AdventureWorks2012()
-db.StoredProcedures.``dbo.Get``.AsyncExecute() |> Async.RunSynchronously
+db.StoredProcedures.``dbo.uspGetWhereUsedProductID``.AsyncExecute(DateTime(2013,1,1), 1) |> Async.RunSynchronously |> Array.ofSeq
