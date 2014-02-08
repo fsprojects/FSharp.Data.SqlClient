@@ -60,6 +60,8 @@
   <ItemGroup>
     <Compile Include="SMO.fs" />
     <None Include="packages.config" />
+    <Compile Include="SqlClientExtensionsTest.fs" />
+    <Compile Include="Schema.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.SqlServer.ConnectionInfo, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91" />
@@ -79,6 +81,13 @@
       <HintPath>..\packages\xunit.1.9.2\lib\net20\xunit.dll</HintPath>
       <Private>True</Private>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\src\SqlProgrammabilityProvider.Runtime\SqlProgrammabilityProvider.Runtime.fsproj">
+      <Name>SqlProgrammabilityProvider.Runtime</Name>
+      <Project>{60532e40-56bb-4a89-a486-6b95f0a94ba9}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

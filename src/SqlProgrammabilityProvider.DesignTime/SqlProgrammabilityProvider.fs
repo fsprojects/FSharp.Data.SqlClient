@@ -89,6 +89,46 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         conn.CheckVersion()
         conn.LoadDataTypesMap()
 
+        //UDTTs
+        let spHostType = ProvidedTypeDefinition("User-Defined Table Types", baseType = Some typeof<obj>, HideObjectMethods = true)
+        let ctor = ProvidedConstructor( [], InvokeCode = fun _ -> <@@ obj() @@>)        
+        spHostType.AddMember ctor   
+        databaseRootType.AddMember spHostType
+
+        let udttTypes = 
+            [
+                for t in UDTTs() do
+                    let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<SqlDataRecord>)
+                    let parameters, metaData = 
+                        [
+                            for p in t.TvpColumns do
+                                let name, dbType, maxLength = p.Name, p.TypeInfo.SqlDbTypeId, int64 p.MaxLength
+                                let paramMeta = 
+                                    match p.TypeInfo.IsFixedLength with 
+                                    | Some true -> <@@ SqlMetaData(name, enum dbType) @@>
+                                    | Some false -> <@@ SqlMetaData(name, enum dbType, maxLength) @@>
+                                    | _ -> failwith "Unexpected"
+                                let param = 
+                                    if p.IsNullable
+                                    then ProvidedParameter(p.Name, p.TypeInfo.ClrType, optionalValue = null)
+                                    else ProvidedParameter(p.Name, p.TypeInfo.ClrType)
+                                yield param, paramMeta
+                        ] |> List.unzip
+
+                    let ctor = ProvidedConstructor(parameters)
+                    ctor.InvokeCode <- fun args -> 
+                        let values = Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
+                        <@@ 
+                            let result = SqlDataRecord(metaData = %%Expr.NewArray(typeof<SqlMetaData>, metaData)) 
+                            let count = result.SetValues(%%values)
+                            Debug.Assert(%%Expr.Value(args.Length) = count, "Unexpected return value from SqlDataRecord.SetValues.")
+                            result
+                        @@>
+                    rowType.AddMember ctor
+                    yield rowType
+            ]
+        spHostType.AddMembers udttTypes
+                
         let procedures = conn.GetProcedures()
 
         //Stored procedures
@@ -96,15 +136,14 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         databaseRootType.AddMember spHostType
 
         let ctor = ProvidedConstructor( [], InvokeCode = fun _ -> <@@ obj() @@>)
-        
-        
+                
         spHostType.AddMember ctor             
 
         spHostType.AddMembers
             [
                 for twoPartsName, isFunction, parameters in procedures do                    
                     if not isFunction then                        
-                        let ctor = ProvidedConstructor( [])
+                        let ctor = ProvidedConstructor([])
                         ctor.InvokeCode <- fun args -> 
                             <@@ 
                                 let runTimeConnectionString = 
@@ -125,7 +164,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         propertyType.AddMember ctor
                     
                         propertyType.AddMemberDelayed <| 
-                            this.AddExecuteMethod(designTimeConnectionString, propertyType, false, parameters, twoPartsName, isFunction, resultType, false)
+                            this.AddExecuteMethod(udttTypes, designTimeConnectionString, propertyType, false, parameters, twoPartsName, isFunction, resultType, false)
 
                         let property = ProvidedProperty(twoPartsName, propertyType)
                         property.GetterCode <- fun _ -> Expr.NewObject( ctor, []) 
@@ -134,17 +173,18 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         yield property :> MemberInfo
             ]
 
-        databaseRootType.AddMember <| ProvidedProperty( "StoredProcedures", spHostType, GetterCode = fun _ -> Expr.NewObject( ctor, []))
+        databaseRootType.AddMember <| ProvidedProperty( "Stored Procedures", spHostType, GetterCode = fun _ -> Expr.NewObject( ctor, []))
+               
         databaseRootType           
 
-     member internal __.AddExecuteMethod(designTimeConnectionString, propertyType, allParametersOptional, parameters, twoPartsName, isFunction, resultType, singleRow) = 
+     member internal __.AddExecuteMethod(udttTypes, designTimeConnectionString, propertyType, allParametersOptional, parameters, twoPartsName, isFunction, resultType, singleRow) = 
         fun() -> 
             let outputColumns = 
                 if resultType <> ResultType.Maps 
                 then this.GetOutputColumns(designTimeConnectionString, twoPartsName, isFunction, parameters)
                 else []
         
-            let execArgs = this.GetExecuteArgsForSqlParameters(propertyType, parameters, false)
+            let execArgs = this.GetExecuteArgsForSqlParameters(udttTypes, parameters, false)
 
             let syncReturnType, executeMethodBody = 
                 if resultType = ResultType.Maps then
@@ -237,7 +277,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             @@>
         typeof<int>, body
 
-     member internal __.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters, allParametersOptional) = [
+     member internal __.GetExecuteArgsForSqlParameters(udttTypes, sqlParameters, allParametersOptional) = [
         for p in sqlParameters do
             let parameterName = p.Name
 
@@ -249,35 +289,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     p.TypeInfo.ClrType
                 else
                     assert(p.Direction = ParameterDirection.Input)
-                    let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<SqlDataRecord>)
-                    providedCommandType.AddMember rowType
-                    let parameters, metaData = 
-                        [
-                            for p in p.TypeInfo.TvpColumns do
-                                let name, dbType, maxLength = p.Name, p.TypeInfo.SqlDbTypeId, int64 p.MaxLength
-                                let paramMeta = 
-                                    match p.TypeInfo.IsFixedLength with 
-                                    | Some true -> <@@ SqlMetaData(name, enum dbType) @@>
-                                    | Some false -> <@@ SqlMetaData(name, enum dbType, maxLength) @@>
-                                    | _ -> failwith "Unexpected"
-                                let param = 
-                                    if p.IsNullable
-                                    then ProvidedParameter(p.Name, p.TypeInfo.ClrType, optionalValue = null)
-                                    else ProvidedParameter(p.Name, p.TypeInfo.ClrType)
-                                yield param, paramMeta
-                        ] |> List.unzip
-
-                    let ctor = ProvidedConstructor(parameters)
-                    ctor.InvokeCode <- fun args -> 
-                        let values = Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
-                        <@@ 
-                            let result = SqlDataRecord(metaData = %%Expr.NewArray(typeof<SqlMetaData>, metaData)) 
-                            let count = result.SetValues(%%values)
-                            Debug.Assert(%%Expr.Value(args.Length) = count, "Unexpected return value from SqlDataRecord.SetValues.")
-                            result
-                        @@>
-                    rowType.AddMember ctor
-
+                    let rowType = udttTypes |> List.find(fun x -> x.Name = p.TypeInfo.UdttName)
                     ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
 
             yield ProvidedParameter(

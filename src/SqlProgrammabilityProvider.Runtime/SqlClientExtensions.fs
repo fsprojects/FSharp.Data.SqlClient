@@ -5,7 +5,6 @@ open System
 open System.Data
 open System.Data.SqlClient
 open Microsoft.FSharp.Reflection
-open Microsoft.SqlServer.Management.Smo
 
 let DbNull = box DBNull.Value
 
@@ -30,6 +29,9 @@ let findTypeInfoBySqlEngineTypeId id =
 
 let internal findBySqlEngineTypeIdAndUdt(id, udttName) = 
     !dataTypeMappings |> List.tryFind(fun x -> x.SqlEngineTypeId = id && (not x.TableType || x.UdttName = udttName))
+
+let UDTTs() = 
+    !dataTypeMappings |> List.filter(fun x -> x.TableType ) |> Array.ofList
     
 let findTypeInfoByProviderType(sqlDbType, udttName)  = 
     !dataTypeMappings  
