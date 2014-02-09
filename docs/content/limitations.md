@@ -13,12 +13,13 @@ Among others are:
 
  - Parameters in a query may only be used once. You can work around this by declaring a local variable in Sql, and assigning the @param to that local variable:
     
-	[lang=sql]
-	DECLARE @input int
-	SET @input = @param
-    SELECT *
-    FROM sys.indexes
-    WHERE @input = 1 or @input = 2
+<div class="row">	
+DECLARE @input int</br>
+SET @input = @param</br>
+SELECT *</br>
+FROM sys.indexes</br>
+WHERE @input = 1 or @input = 2</br>
+</div>	
 
 Look online for more details on sys.sp_describe_undeclared_parameters and sys.sp_describe_first_result_set.
 

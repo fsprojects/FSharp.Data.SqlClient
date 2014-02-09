@@ -2,7 +2,7 @@
 #r "../../bin/FSharp.Data.Experimental.SqlCommandProvider.dll"
 
 (**
-Bridging the gap between T-SQL queries and F# type system
+Bridging the gap between T-SQL scripting and F# type system
 ===================
 
 SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.
@@ -56,24 +56,29 @@ System requirements
 -------------------------------------
 
  * SQL Server 2012 and up or SQL Azure Database at compile-time. 
- * .NET 4.0 or higher
+ * .NET 4.0 and higher
 
 Features at glance:
 -------------------------------------
 
-* Static type per SqlCommand<...> with 2 methods:
+* Static type with 2 methods per SqlCommand<...> declaration:
     * AsyncExecute - for scalability scenarios 
     * Execute - convenience when needed
 * Configuration
-    * Command text (sql script) provided either as literal or path to *.sql file
-    * Connection string is either literal or from config file
-    * Connection string can be overridden at run time via constructor  
-* Statically typed input/output:
+    * Command text (sql script) can be either inline or path to *.sql file
+    * Connection string is either inline or name from config file (app.config is default for config file)
+    * Connection string can be overridden at run time via constructor optional parameter
+* Input:
+    * Statically typed
     * Unbound sql variables/input parameters mapped to mandatory arguments for AsyncExecute/Execute
-    * Inferred type for output. Choice of `seq<Tuples>`, `seq<Records>`, `DataTable` or `seq<Maps>`. Each column mapped to item/property/key.
+    * Set AllParametersOptional to true to make all parameters optional (nullable).
+* Output:
+    * Inferred static type for output. Configurable choice of `seq<Tuples>`, `seq<Records>`, `DataTable` or `seq<Maps>`. Each column mapped to item/property/key.
+    * Nullable output columns translate to the F# Option type.
 * Extra configuration options:
     * SingleRow hint forces singleton output instead of sequence
-    * Set AllParametersOptional to true to make all parameters optional (nullable).
-* Set CommandType parameter to CommandType.StoredProcedure to specify it directly by name. 
+* Stored procedures: set CommandType parameter to CommandType.StoredProcedure to specify it directly by name. 
+
+
 *)
 

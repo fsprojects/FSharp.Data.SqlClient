@@ -49,8 +49,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
                 ProvidedStaticParameter("CommandType", typeof<CommandType>, CommandType.Text) 
                 ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Tuples) 
-                ProvidedStaticParameter("SingleRow", typeof<bool>, false) 
-                ProvidedStaticParameter("ConfigFile", typeof<string>, "app.config") 
+                ProvidedStaticParameter("SingleRow", typeof<bool>, false)   
+                ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
@@ -101,7 +101,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         let sqlParameters = this.ExtractSqlParameters(conn, commandText, commandType)
 
-        let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = null) ])
+        let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
         ctor.InvokeCode <- fun args -> 
             <@@ 
                 let runTimeConnectionString = 

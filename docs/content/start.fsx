@@ -218,7 +218,7 @@ sp.AsyncExecute(BusinessEntityID = 2, NationalIDNumber = "245797967",
 
 *)
 
-type CommandFromFile = SqlCommand<"sampleCommand.sql", connectionString>
+type CommandFromFile = SqlCommand<"GetDate.sql", connectionString>
 let cmd = CommandFromFile()
 cmd.Execute() |> ignore
 

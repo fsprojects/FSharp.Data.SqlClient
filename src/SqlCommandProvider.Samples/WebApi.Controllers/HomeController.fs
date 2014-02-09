@@ -1,13 +1,10 @@
 ﻿namespace WebApi
 
-open System
 open System.Data.SqlClient
 open System.Net
 open System.Net.Http
 open System.Web.Http
 open System.Web.Configuration
-open System.Dynamic
-open System.Collections.Generic
 
 open DataAccess
 
@@ -15,25 +12,27 @@ module SqlCommand =
     let inline create() : 'a = 
         let designTimeConnectionString = (^a : (static member get_ConnectionStringOrName : unit -> string) ())
 
-        let database = SqlConnectionStringBuilder(designTimeConnectionString).InitialCatalog
-
-        if database = "AdventureWorks2012"
-        then 
+        match designTimeConnectionString with
+        | DataAccess.AdventureWorks2012 -> 
+            //get connection string at run-time
             let adventureWorks = WebConfigurationManager.ConnectionStrings.["AdventureWorks2012"].ConnectionString
-            (^a : (new : string -> ^a) adventureWorks)    
-        else failwithf "Unrecognized command type %s" typeof<'a>.FullName
+            //create command instance with connection string override
+            (^a : (new : string -> ^a) adventureWorks) 
+
+        | _ -> failwithf "Unrecognized command type %s" typeof<'a>.FullName   
+
 
 type HomeController() =
     inherit ApiController()
-
-    let connectionString = WebConfigurationManager.ConnectionStrings.["AdventureWorks2012"].ConnectionString
 
     member this.Get() = this.Get(7L, System.DateTime.Parse "2002-06-01")
 
     //http://localhost:61594/?top=4&sellStartDate=2002-07-01
     member this.Get(top, sellStartDate) =
         async {
-            let cmd : QueryProductsAsTuples = SqlCommand.create()
+            let cmd : QueryProducts = SqlCommand.create()
+            //or get connnection info from web.config
+            //let cmd = QueryProducts()
             let! data = cmd.AsyncExecute(top = top, SellStartDate = sellStartDate)
             return this.Request.CreateResponse(HttpStatusCode.OK, data)
         } |> Async.StartAsTask

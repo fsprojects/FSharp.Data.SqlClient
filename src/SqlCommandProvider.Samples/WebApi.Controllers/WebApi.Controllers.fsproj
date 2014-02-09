@@ -53,8 +53,10 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="T-SQL\Products.sql" />
     <Compile Include="DataAccess.fs" />
     <Compile Include="HomeController.fs" />
+    <None Include="user.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data.Experimental.SqlCommandProvider">

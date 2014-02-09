@@ -118,3 +118,8 @@ open System.Security.Principal
 let cmdInsert = InsertCommand()
 let user = WindowsIdentity.GetCurrent().Name
 cmdInsert.Execute(user, 121, 16, 3, "insert test", int __LINE__, "failed insert")
+
+
+type Test = SqlCommand<"select 1 where 1 = 0", connectionString, SingleRow = true>
+Test().Execute()
+
