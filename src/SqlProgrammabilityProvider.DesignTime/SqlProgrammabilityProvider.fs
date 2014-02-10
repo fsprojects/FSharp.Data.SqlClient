@@ -41,7 +41,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
                 ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Tuples) 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
-                ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
             instantiationFunction = this.CreateType
         )
@@ -51,7 +50,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         let connectionStringOrName : string = unbox parameters.[0] 
         let resultType : ResultType = unbox parameters.[1] 
         let configFile : string = unbox parameters.[2] 
-        let dataDirectory : string = unbox parameters.[3] 
 
         let resolutionFolder = config.ResolutionFolder
 
@@ -74,11 +72,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     if not( String.IsNullOrEmpty(%%args.[0]))
                     then %%args.[0]
                     elif byName then Configuration.GetConnectionStringRunTimeByName(connectionStringOrName)
-                    else designTimeConnectionString
-                        
-                do
-                    if dataDirectory <> ""
-                    then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
+                    else designTimeConnectionString                        
                 box(new SqlConnection( runTimeConnectionString))
             @@>
 
@@ -150,10 +144,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                     if byName then Configuration.GetConnectionStringRunTimeByName(value)
                                     else designTimeConnectionString
                         
-                                do
-                                    if dataDirectory <> ""
-                                    then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
-
                                 let this = new SqlCommand(twoPartsName, new SqlConnection(runTimeConnectionString)) 
                                 this.CommandType <- CommandType.StoredProcedure
                                 let xs = %%Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
