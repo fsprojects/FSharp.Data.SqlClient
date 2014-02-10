@@ -31,8 +31,8 @@ let ``List stored procedures``() =
     |> Seq.filter (fun c -> not c.IsSystemObject)
     |> Seq.iter (printfn "%A")
 
-//[<Fact>]
+[<Fact>]
 let Parameters() = 
-    db().StoredProcedures.["MyProc"].Parameters
+    db().StoredProcedures.["uspLogError"].Parameters
     |> Seq.cast<StoredProcedureParameter>     
-    |> Seq.iter (fun p -> printfn "%A %A" p.Name p.DataType )
+    |> Seq.iter (fun p -> printfn "%A %A %A" p.Name p.DataType p.DefaultValue )
