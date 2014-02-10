@@ -51,5 +51,24 @@ let columnsShouldNotBeNull2() =
     let _,_,_,_,precision = cmd.Execute()
     Assert.Equal(None, precision)    
 
+[<Literal>]
+let bitCoinCode = "BTC"
+[<Literal>]
+let bitCoinName = "Bitcoin"
+
+type DeleteBitCoin = SqlCommand<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code", connectionString>
+type InsertBitCoin = SqlCommand<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", connectionString>
+type GetBitCoin = SqlCommand<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", connectionString>
+
+open System.Transactions
+
+[<Fact>]
+let transactionScope() = 
+    DeleteBitCoin().Execute(bitCoinCode) |> ignore
+    use tran = new TransactionScope()
+    Assert.Equal(1, InsertBitCoin().Execute(bitCoinCode, bitCoinName))
+    Assert.Equal(1, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
+    tran.Dispose()
+    Assert.Equal(0, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
 
 

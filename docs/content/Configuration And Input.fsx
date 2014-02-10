@@ -3,7 +3,7 @@
 
 (**
 
-Configuration
+Configuration and Input
 ===================
 
 Provider parameters 
@@ -19,7 +19,6 @@ Provider parameters
   <tr><td class="title">SingleRow</td><td>false</td><td>true/false</td></tr></thead>
   <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>valid file name</td></tr></thead>
   <tr><td class="title">AllParametersOptional</td><td>false</td><td>true/false</td></tr></thead>
-  <tr><td class="title">DataDirectory</td><td>""</td><td>valid file system path</td></tr></thead>
 </tbody>
 </table>
 
@@ -87,6 +86,13 @@ It has the following benefits:
 Having all data access layer logic in bunch of files in one location has clear advantage. 
 For example, it can be handed over to DBA team for optimization. It's harder to do when applicatoin and data access
 mixed together (LINQ).
+*)
+
+type CommandFromFile = SqlCommand<"GetDate.sql", connectionString>
+let cmd = CommandFromFile()
+cmd.Execute() |> ignore
+
+(**
 
 Extrating T-SQL into external files is not the only way to scale application development. 
 The other alternative is to push logic into programmable objects. 
@@ -188,11 +194,99 @@ Let me give you couple examples to clarify:
 
 ### Overriding connection string at run-time
 
-  Run-time database connectivity configuration is rarely (almost never) the same as design-time. 
-  All SqlCommand<...> generated types can be re-configured at run-time via optional constructor paramater.
-  The parameter is optional because config file + name approach is acceptable way to have run-time configuration different from design-time.
-
-Input
-===================
+Run-time database connectivity configuration is rarely (almost never) the same as design-time. 
+All SqlCommand<...> generated types can be re-configured at run-time via optional constructor paramater.
+The parameter is optional because config file + name approach is acceptable way to have run-time configuration different from design-time.
+Several use cases are possible.
 *)
+
+//Case 1: pass run-time connection string into ctor
+let runTimeConnStr = "..." //somehow get connection string at run-time
+let get42 = Get42(runTimeConnStr)
+
+//Case 2: Bunch of command types. Single database. 
+//Factory or IOC of choice to avoid logic duplication. Use F# ctor static constraints.
+module DB = 
+    [<Literal>]
+    let connStr = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+
+    type MyCmd1 = SqlCommand<"SELECT 42", connStr>
+    type MyCmd2 = SqlCommand<"SELECT 42", connStr>
+
+    let inline createCommand() : 'a = 
+        let connStr = "..." //somehow get connection string at run-time
+        //invoke ctor
+        (^a : (new : string -> ^a) connStr) 
+
+let dbCmd1: DB.MyCmd1 = DB.createCommand()
+let dbCmd2: DB.MyCmd2 = DB.createCommand()
+
+//Case 3: multiple databases
+//It gets tricky because we need to distinguish between command types associated with different database. 
+//Static type property ConnectionStringOrName that has exactly same value as passed into SqlCommandProvider helps.
+module DataAccess = 
+    [<Literal>]
+    let adventureWorks = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+    [<Literal>]
+    let master = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
+
+    type MyCmd1 = SqlCommand<"SELECT 42", adventureWorks>
+    type MyCmd2 = SqlCommand<"SELECT 42", master>
+
+    let inline createCommand() : 'a = 
+        let designTimeConnectionString = (^a : (static member get_ConnectionStringOrName : unit -> string) ())
+        let connStr = 
+            if designTimeConnectionString = adventureWorks  
+            then "..." //somehow get AdventureWorks connection string at run-time
+            elif designTimeConnectionString = master
+            then "..." //somehow get master connection string at run-time
+            else failwith "Unexpected"
+        //invoke ctor
+        (^a : (new : string -> ^a) connStr) 
+
+let adventureWorksCmd: DataAccess.MyCmd1 = DataAccess.createCommand()
+let masterCmd: DataAccess.MyCmd2 = DataAccess.createCommand()
+
+(**
+
+It worth noting that because of "erased types" nature of this type provider reflection and other dynamic techniques cannot be used 
+to create command instances.
+  
+### Stored procedures
+
+  - Set CommandType parameter to CommandType.StoredProcedure to specify it directly by name. 
+  - Stored procedures out parameters and return value are not supported 
+
+*)
+
+open System.Data
+
+type UpdateEmplInfoCommandSp = 
+    SqlCommand<
+        "HumanResources.uspUpdateEmployeePersonalInfo", 
+        connectionString, 
+        CommandType = CommandType.StoredProcedure >
+
+let sp = new UpdateEmplInfoCommandSp()
+
+sp.AsyncExecute(BusinessEntityID = 2, NationalIDNumber = "245797967", 
+    BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F") 
+|> Async.RunSynchronously
+
+(**
+
+### Optional input parameters
+    
+By default all input parameters to AsyncExecute/Execute are mandatory. 
+But there are rare cases when you prefer to handle NULL input values inside T-SQL script. 
+AllParametersOptional set to true makes all parameters (guess what) optional.
+
+*)
+
+type IncrBy = SqlCommand<"SELECT @x + ISNULL(CAST(@y AS INT), 1) ", connectionString, AllParametersOptional = true, SingleRow = true>
+let incrBy = IncrBy()
+//pass both params passed 
+incrBy.Execute(Some 10, Some 2) = Some 12 //true
+//omit second parameter. default to 1
+incrBy.Execute(Some 10) = Some 11 //true
 

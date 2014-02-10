@@ -3,17 +3,13 @@
 
 (**
 
-Features
+Controlling output
 ===============================================
 
- * Typed access to the result of running a query.
- * Typed access to @parameters needed for running a query
- * Sync/Async execution
  * Results as tuples, records, or DataTable
  * Fields that can be NULL translate to the F# Option type, forcing you to deal with the issue of null values directly.
  * Sql is invalid -> Compiler error!
- * Sql can be inline, or in an external file
-
+ 
 Examples 
 ===============================================
 *)
@@ -31,10 +27,8 @@ let productsSql = "
 "
 
 (**
-
  * Sync execution
  * Seq of tuples is default result set type
-
 *)
 
 type QueryProductSync = SqlCommand<productsSql, connectionString>
@@ -45,43 +39,31 @@ for productName, sellStartDate, size in tuples do
     printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size
 
 (**
-
  * Sequence of custom records as result set
- * ConnectionString can be overridden via constructor
-
 *)
 
 type QueryProductAsRecords = SqlCommand<productsSql, connectionString, ResultType = ResultType.Records>
+let queryProductAsRecords = QueryProductAsRecords()
 
-let recordsCmd = QueryProductAsRecords(connectionString = 
-    "Data Source=(local);Initial Catalog=AdventureWorks2012;Integrated Security=True")
-
-recordsCmd.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
+queryProductAsRecords.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 |> Async.RunSynchronously 
 |> Seq.iter (fun x -> 
     printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
 
 (**
-
  * Typed data table as result set
- * Typed data table can be used to send updates back to database and for data-binding scenarios
-
 *)
 
 type QueryProductDataTable = SqlCommand<productsSql, connectionString, ResultType = ResultType.DataTable>
 
-let dataTableCmd = QueryProductDataTable() 
-
-dataTableCmd.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") 
+QueryProductDataTable().Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") 
 |> Seq.iter (fun row -> 
     printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
 
 (**
-
  * Single row hint. Must be provided explicitly. Cannot be inferred. 
  * Nullable columns mapped to Option<_> type
  * Calling SQL Table-Valued Function
-
 *)
 
 type QueryPersonInfoSingletoneAsRecords = 
@@ -91,17 +73,15 @@ type QueryPersonInfoSingletoneAsRecords =
         ResultType = ResultType.Records, 
         SingleRow = true>
 
-let singletone = new QueryPersonInfoSingletoneAsRecords()
+let singleton = new QueryPersonInfoSingletoneAsRecords()
 
-let person = singletone.AsyncExecute(PersonId = 2) |> Async.RunSynchronously 
+let person = singleton.AsyncExecute(PersonId = 2) |> Async.RunSynchronously 
 match person.FirstName, person.LastName with
 | Some first, Some last -> printfn "Person id: %i, name: %s %s" person.PersonID first last 
 | _ -> printfn "What's your name %i?" person.PersonID
 
 (**
-
  * Same as previous but using tuples as result type
-
 *)
 
 [<Literal>]
@@ -190,37 +170,6 @@ let rowsAffected =
     nonQuery.Execute(
         BusinessEntityID = 2, NationalIDNumber = "245797967", 
         BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F") 
-
-(**
-
- * Stored procedure by name only.
-
-*)
-
-open System.Data
-
-type UpdateEmplInfoCommandSp = 
-    SqlCommand<
-        "HumanResources.uspUpdateEmployeePersonalInfo", 
-        connectionString, 
-        CommandType = CommandType.StoredProcedure >
-
-let sp = new UpdateEmplInfoCommandSp()
-
-sp.AsyncExecute(BusinessEntityID = 2, NationalIDNumber = "245797967", 
-    BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F") 
-|> Async.RunSynchronously
-
-(**
-
- * Command from file.
- * Sql files can be edited in Visual Studio or SQL management studio. Both provides IntelliSense with proper setup. 
-
-*)
-
-type CommandFromFile = SqlCommand<"GetDate.sql", connectionString>
-let cmd = CommandFromFile()
-cmd.Execute() |> ignore
 
 (**
 

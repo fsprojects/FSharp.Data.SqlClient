@@ -31,8 +31,10 @@ type HomeController() =
     member this.Get(top, sellStartDate) =
         async {
             let cmd : QueryProducts = SqlCommand.create()
+
             //or get connnection info from web.config
             //let cmd = QueryProducts()
+
             let! data = cmd.AsyncExecute(top = top, SellStartDate = sellStartDate)
             return this.Request.CreateResponse(HttpStatusCode.OK, data)
         } |> Async.StartAsTask

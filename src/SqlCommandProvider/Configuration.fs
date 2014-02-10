@@ -3,12 +3,13 @@
 open System.Configuration
 open System.IO
 open System
+open System.Collections.Generic
 
 type Configuration() =    
-    static let invalidChars = Path.GetInvalidPathChars() |> set
+    static let isInvalidPathChars = HashSet(Path.GetInvalidPathChars())
 
     static member ParseTextAtDesignTime(commandTextOrPath : string, resolutionFolder, invalidateCallback) =
-        if commandTextOrPath |> Seq.exists (fun c-> invalidChars.Contains c)
+        if isInvalidPathChars.Overlaps( commandTextOrPath)         
         then commandTextOrPath, None
         else
             let path = Path.Combine(resolutionFolder, commandTextOrPath)
@@ -20,6 +21,12 @@ type Configuration() =
                 watcher.Changed.Add(fun _ -> invalidateCallback())
                 watcher.EnableRaisingEvents <- true                    
                 File.ReadAllText(path), Some watcher
+
+    static member ParseConnectionStringName(s: string) =
+        assert(s.Trim() <> "")
+        match s.Trim().Split([|'='|], 2, StringSplitOptions.RemoveEmptyEntries) with
+        | [| prefix; tail |] when prefix.Trim().ToLower() = "name" -> tail.Trim()
+        | _ -> null
 
     static member ReadConnectionStringFromConfigFileByName(name: string, resolutionFolder, fileName) =
 

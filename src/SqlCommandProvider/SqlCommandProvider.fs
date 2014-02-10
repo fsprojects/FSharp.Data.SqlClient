@@ -52,7 +52,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false)   
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
-                ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
             instantiationFunction = this.CreateType
         )
@@ -63,7 +62,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
            if watcher <> null
            then try watcher.Dispose() with _ -> ()
 
-
     member internal this.CreateType typeName parameters = 
         let commandText : string = unbox parameters.[0] 
         let connectionStringOrName : string = unbox parameters.[1] 
@@ -72,27 +70,25 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let singleRow : bool = unbox parameters.[4] 
         let configFile : string = unbox parameters.[5] 
         let allParametersOptional : bool = unbox parameters.[6] 
-        let dataDirectory : string = unbox parameters.[7] 
 
         let resolutionFolder = config.ResolutionFolder
 
         let commandText, watcher' = Configuration.ParseTextAtDesignTime(commandText, resolutionFolder, this.Invalidate)
         watcher' |> Option.iter (fun x -> watcher <- x)
 
-        let value, byName = 
-            match connectionStringOrName.Trim().Split([|'='|], 2, StringSplitOptions.RemoveEmptyEntries) with
-            | [| "" |] -> invalidArg "ConnectionStringOrName" "Value is empty!"
-            | [| prefix; tail |] when prefix.Trim().ToLower() = "name" -> tail.Trim(), true
-            | _ -> connectionStringOrName, false
+        if connectionStringOrName.Trim() = ""
+        then invalidArg "ConnectionStringOrName" "Value is empty!" 
 
+        let name = Configuration.ParseConnectionStringName connectionStringOrName
+            
         let designTimeConnectionString = 
-            if byName 
-            then Configuration.ReadConnectionStringFromConfigFileByName(value, resolutionFolder, configFile)
-            else value
+            if name <> null 
+            then Configuration.ReadConnectionStringFromConfigFileByName(name, resolutionFolder, configFile)
+            else connectionStringOrName
 
         let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
         
-        providedCommandType.AddMember <| ProvidedProperty( "ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ value @@>)
+        providedCommandType.AddMember <| ProvidedProperty( "ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>)
 
         use conn = new SqlConnection(designTimeConnectionString)
         conn.Open()
@@ -107,13 +103,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 let runTimeConnectionString = 
                     if not( String.IsNullOrEmpty(%%args.[0]))
                     then %%args.[0]
-                    elif byName then Configuration.GetConnectionStringRunTimeByName value
+                    elif name <> null then Configuration.GetConnectionStringRunTimeByName name
                     else designTimeConnectionString
                         
-                do
-                    if dataDirectory <> ""
-                    then AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory)
-
                 let this = new SqlCommand(commandText, new SqlConnection(runTimeConnectionString)) 
                 this.CommandType <- commandType
                 let xs = %%Expr.NewArray( typeof<SqlParameter>, sqlParameters |> List.map QuotationsFactory.ToSqlParam)

@@ -2,7 +2,7 @@
 #r "../../bin/FSharp.Data.Experimental.SqlCommandProvider.dll"
 
 (**
-Bridging the gap between T-SQL scripting and F# type system
+Bridging the gap between F# types and T-SQL scripting
 ===================
 
 SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.
@@ -58,7 +58,7 @@ System requirements
  * SQL Server 2012 and up or SQL Azure Database at compile-time. 
  * .NET 4.0 and higher
 
-Features at glance:
+Features at glance
 -------------------------------------
 
 * Static type with 2 methods per SqlCommand<...> declaration:
@@ -77,8 +77,14 @@ Features at glance:
     * Nullable output columns translate to the F# Option type.
 * Extra configuration options:
     * SingleRow hint forces singleton output instead of sequence
-* Stored procedures: set CommandType parameter to CommandType.StoredProcedure to specify it directly by name. 
 
+* SqlCommandProvider is "erased types" kind. It can be used only from F#. 
+
+Limitations
+-------------------------------------
+In addition to system requirements listed above SqlCommandProvider constraint by same limitations as two system meta-stored procedures 
+it uses in implementation: [sys.sp\_describe\_undeclared\_parameters](http://technet.microsoft.com/en-us/library/ff878260.aspx) 
+and [sys.sp\_describe\_first\_result\_set](http://technet.microsoft.com/en-us/library/ff878602.aspx). Look online for more details.
 
 *)
 
