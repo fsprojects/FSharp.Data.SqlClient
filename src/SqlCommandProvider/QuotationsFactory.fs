@@ -12,6 +12,12 @@ open Microsoft.FSharp.Reflection
 
 open FSharp.Data.Experimental
 
+type ResultExpectedRows = 
+  |Many
+  |ExactlyOne
+  |OneOrZero
+
+
 type QuotationsFactory private() = 
 
     //The entry point
@@ -57,8 +63,9 @@ type QuotationsFactory private() =
             sqlCommand
         @>
 
-    static member internal GetDataReader(exprArgs, allParametersOptional, paramInfos, singleRow) = 
-        let commandBehavior = if singleRow then CommandBehavior.SingleRow  else CommandBehavior.Default 
+    static member internal GetDataReader(exprArgs, allParametersOptional, paramInfos, resultRows : ResultExpectedRows) = 
+        //TODO: Should OneOrZero be SingleRow as well?
+        let commandBehavior = if resultRows = ResultExpectedRows.ExactlyOne then CommandBehavior.SingleRow  else CommandBehavior.Default 
         <@@ 
             async {
                 let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet(exprArgs, allParametersOptional, paramInfos)
@@ -73,11 +80,11 @@ type QuotationsFactory private() =
             }
         @@>
 
-    static member internal GetRows<'Row>(exprArgs, allParametersOptional, paramInfos, mapper : Expr<(SqlDataReader -> 'Row)>, singleRow) = 
+    static member internal GetRows<'Row>(exprArgs, allParametersOptional, paramInfos, mapper : Expr<(SqlDataReader -> 'Row)>, resultRows : ResultExpectedRows) = 
         <@@ 
             async {
                 let! token = Async.CancellationToken
-                let! (reader : SqlDataReader) = %%QuotationsFactory.GetDataReader(exprArgs, allParametersOptional, paramInfos, singleRow)
+                let! (reader : SqlDataReader) = %%QuotationsFactory.GetDataReader(exprArgs, allParametersOptional, paramInfos, resultRows)
                 return seq {
                     try 
                         while(not token.IsCancellationRequested && reader.Read()) do
@@ -89,7 +96,7 @@ type QuotationsFactory private() =
         @@>
 
     //API
-    static member internal GetTypedSequence<'Row>(exprArgs, allParametersOptional, paramInfos, rowMapper, singleRow, columns : Column list) = 
+    static member internal GetTypedSequence<'Row>(exprArgs, allParametersOptional, paramInfos, rowMapper, resultRows : ResultExpectedRows, columns : Column list) = 
         let columnTypes, isNullableColumn = columns |> List.map (fun c -> c.TypeInfo.ClrTypeFullName, c.IsNullable) |> List.unzip
         let mapper = 
             <@
@@ -101,25 +108,32 @@ type QuotationsFactory private() =
                     (%%rowMapper : obj[] -> 'Row) values
             @>
 
-        let getTypedSeqAsync = QuotationsFactory.GetRows(exprArgs, allParametersOptional, paramInfos, mapper, singleRow)
-        if singleRow
-        then 
-            <@@ 
-                async { 
-                    let! (xs : 'Row seq) = %%getTypedSeqAsync
-                    return Seq.exactlyOne xs
-                }
-            @@>
-        else
+        let getTypedSeqAsync = QuotationsFactory.GetRows(exprArgs, allParametersOptional, paramInfos, mapper, resultRows)
+        match resultRows with
+        |ResultExpectedRows.ExactlyOne ->
+          <@@ 
+              async { 
+                  let! (xs : 'Row seq) = %%getTypedSeqAsync
+                  return Seq.exactlyOne xs
+              }
+          @@>
+        |ResultExpectedRows.Many  -> 
             getTypedSeqAsync
+        |ResultExpectedRows.OneOrZero ->
+          <@@ 
+              async { 
+                  let! (xs : 'Row seq) = %%getTypedSeqAsync 
+                  return Seq.tryPick Some xs
+              }
+          @@>
         
-    static member internal SelectOnlyColumn0<'Row>(exprArgs, allParametersOptional, paramInfos, singleRow, column : Column) = 
-        QuotationsFactory.GetTypedSequence<'Row>(exprArgs, allParametersOptional, paramInfos, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow, [ column ])
+    static member internal SelectOnlyColumn0<'Row>(exprArgs, allParametersOptional, paramInfos, resultRows, column : Column) = 
+        QuotationsFactory.GetTypedSequence<'Row>(exprArgs, allParametersOptional, paramInfos, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, resultRows, [ column ])
 
-    static member internal GetTypedDataTable<'T when 'T :> DataRow>(exprArgs, allParametersOptional, paramInfos, singleRow)  = 
+    static member internal GetTypedDataTable<'T when 'T :> DataRow>(exprArgs, allParametersOptional, paramInfos, resultRows)  = 
         <@@
             async {
-                use! reader = %%QuotationsFactory.GetDataReader(exprArgs, allParametersOptional, paramInfos, singleRow) : Async<SqlDataReader >
+                use! reader = %%QuotationsFactory.GetDataReader(exprArgs, allParametersOptional, paramInfos, resultRows) : Async<SqlDataReader >
                 let table = new DataTable<'T>() 
                 table.Load reader
                 return table

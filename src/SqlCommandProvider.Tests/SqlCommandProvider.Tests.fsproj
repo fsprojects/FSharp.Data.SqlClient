@@ -58,6 +58,7 @@
     <Compile Include="Input.Test.fs" />
     <Compile Include="TypeProvider.Test.fs" />
     <Compile Include="ResultType.fs" />
+    <Compile Include="ExpectedRows.fs" />
     <None Include="app.config" />
     <None Include="Test.fsx" />
     <None Include="sampleCommand.sql" />
