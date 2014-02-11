@@ -11,5 +11,6 @@
 * 1.1.24 - Fix issue #34. Inferred reference types assumed to be non-nullable.
 * 1.1.25 - Fix issue #38. Support for serialization in WebAPI. ResultType.Records erased to ExpandoObject.
 * 1.1.27 - Fix issues #39 and #40. Mandatory ConnectionStringOrName parameter. ConnectionStringOrName static property.
+* 1.1.28 - Issue #43. SingleRow = true now returns option<_> instead of just value. 
 
 
