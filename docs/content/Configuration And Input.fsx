@@ -108,7 +108,8 @@ type GetContactInformation = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformat
 (**
 ### Syntax erros
 
-In case of syntax errors in T-SQL the type provider shows fairly clear error message.
+In case of syntax errors in T-SQL the type provider shows fairly clear error message. 
+An instantaneous feedback is one of most handy features of SqlCommandProvider. 
 
 ### Limitation: a single parameter in a query may only be used once. 
 
@@ -289,4 +290,29 @@ let incrBy = IncrBy()
 incrBy.Execute(Some 10, Some 2) = Some 12 //true
 //omit second parameter. default to 1
 incrBy.Execute(Some 10) = Some 11 //true
+
+(**
+
+ * Table-valued parameters.
+
+When using TVPs, the Sql command needs to be calling a stored procedure or user-defined function that takes the table type as a parameter. 
+
+Set up sample type and sproc:
+
+CREATE TYPE myTableType AS TABLE (myId int not null, myName nvarchar(30) null) </br>
+GO </br>
+CREATE PROCEDURE myProc </br>
+   @p1 myTableType readonly </br>
+AS </br>
+BEGIN </br>
+   SELECT myName from @p1 p </br>
+END </br>
+
+*)
+
+type TableValuedSample = SqlCommand<"exec myProc @x", connectionString>
+type TVP = TableValuedSample.MyTableType
+let tvpSp = new TableValuedSample()
+//nullable columns mapped to optional ctor params
+tvpSp.Execute(x = [ TVP(myId = 1, myName = "monkey"); TVP(myId = 2) ]) 
 

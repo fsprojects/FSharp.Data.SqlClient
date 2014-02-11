@@ -5,16 +5,11 @@
 
 Controlling output
 ===============================================
-
- * Results as tuples, records, or DataTable
- * Fields that can be NULL translate to the F# Option type, forcing you to deal with the issue of null values directly.
- * Sql is invalid -> Compiler error!
- 
-Examples 
-===============================================
 *)
 
 open FSharp.Data.Experimental
+
+//Connection and query definition are shared for most of the examples below
 
 [<Literal>]
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
@@ -172,45 +167,24 @@ let rowsAffected =
         BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F") 
 
 (**
+### Result sequence is un-buffered by default. 
 
- * Table-valued parameters.
-
-When using TVPs, the Sql command needs to be calling a stored procedure or user-defined function that takes the table type as a parameter. 
-Set up sample type and sproc
-
-CREATE TYPE myTableType AS TABLE (myId int not null, myName nvarchar(30) null)
-
-GO
-
-CREATE PROCEDURE myProc 
-
-   @p1 myTableType readonly
-
-AS
-
-BEGIN
-
-   SELECT myName from @p1 p
-
-END
-
-
+Although it implements standard seq<_> (IEnumerable<_>) interface it can be evaluated only once. 
+It is done mostly for memory efficiency. It behaves as forward-only cursor similar to underlying SqlDataReader. 
+If multiple passes over the sequence required use standard `Seq.cache` combinator. 
 *)
 
-type TableValuedSample = SqlCommand<"exec myProc @x", connectionString>
-type TVP = TableValuedSample.MyTableType
-let tvpSp = new TableValuedSample()
-//nullable columns mapped to optional ctor params
-tvpSp.Execute(x = [ TVP(myId = 1, myName = "monkey"); TVP(myId = 2) ]) 
+type Get42 = SqlCommand<"SELECT * FROM (VALUES (42), (43)) AS T(N)", connectionString>
+let xs = Get42().Execute() |> Seq.cache 
+printfn "#1: %i " <| Seq.nth 0 xs 
+printfn "#2: %i " <| Seq.nth 1 xs //see it fails here if result is not piped into Seq.cache 
 
-(*
-
-Draft
-
-    * Tuples. Default. Mostly convenient in F# combined with pattern matching
-    * Records. .NET-style class with read-only properties. WebAPI/Json.NET/WPF/ASP.NET MVC.
-    * DataTable with inferred data rows similar to Records. Update scenarios. WPF data binding.
-    * Maps. For rare cases when structure of output cannot be inferred.
-
+(**
+### Output result types summary:
+    
+* Tuples. Default. Mostly convenient in F# combined with pattern matching
+* Records. .NET-style class with read-only properties. WebAPI/ASP.NET MVC/Json.NET/WPF, Data Binding.
+* DataTable with inferred data rows similar to Records. Update scenarios. WPF data binding.
+* Maps. For rare cases when structure of output cannot be inferred.
 
 *)
