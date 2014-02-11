@@ -76,15 +76,15 @@ Visual Studio has rich tooling support for *.sql files. (via SQL Server Data Too
 <img src="img/sql_file_As_CommandText_2.png"/>
 
 
-It has the following benefits:
+It offers following benefits:
 
   * Intellisense in both F# and T-SQL code (it cannot get better)
   * T-SQL syntax highlighting and verification
-  * Testing: query execution gives immediate feedback (small trick required. see the picture above)
+  * Testing: query execution gives immediate feedback (small trick required - see the picture above)
   * Clean separation between T-SQL and F# code
 
 Having all data access layer logic in bunch of files in one location has clear advantage. 
-For example, it can be handed over to DBA team for optimization. It's harder to do when applicatoin and data access
+For example, it can be handed over to DBA team for optimization. It's harder to do when application and data access
 mixed together (LINQ).
 *)
 
@@ -94,13 +94,13 @@ cmd.Execute() |> ignore
 
 (**
 
-Extrating T-SQL into external files is not the only way to scale application development. 
+Extracting T-SQL into external files is not the only way to scale application development. 
 The other alternative is to push logic into programmable objects. 
 I strongly recommend T-SQL functions because they have typical benefits of functional-first
 programming style: composition (therefore reuse), restricted side-effects and simple substitution model (easy to reason about).
 Stored procedures can be used too but they resemble imperative programming with all drawbacks attached.
 
-Below is example of SQL Table-Valued Function usage. 
+Below is an example of SQL Table-Valued Function usage. 
 *)
 
 type GetContactInformation = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString>
@@ -109,20 +109,16 @@ type GetContactInformation = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformat
 ### Syntax erros
 
 In case of syntax errors in T-SQL the type provider shows fairly clear error message. 
-An instantaneous feedback is one of most handy features of SqlCommandProvider. 
+An instantaneous feedback is one of the most handy features of SqlCommandProvider. 
 
 ### Limitation: a single parameter in a query may only be used once. 
 
 For example attempt to use following query will fail:
-<div class="row">	
-SELECT </br>
-	CASE </br>
-	    WHEN @x % 3 = 0 AND @x % 5 = 0 THEN 'FizzBuzz' </br>
-	    WHEN @x % 3 = 0 THEN 'Fizz' </br>
-	    WHEN @x % 5 = 0 THEN 'Buzz' </br>
-	    ELSE CAST(@x AS NVARCHAR) </br>
-	END </br>
-</div>	
+        [lnag=sql]
+	    WHEN @x % 3 = 0 AND @x % 5 = 0 THEN 'FizzBuzz' 
+	    WHEN @x % 3 = 0 THEN 'Fizz' 
+	    WHEN @x % 5 = 0 THEN 'Buzz' 
+	    ELSE CAST(@x AS NVARCHAR) 
 
 You can work around this by declaring a local intermediate variable in t-sql script and assigning a paramater in question to that variable.
 *)
