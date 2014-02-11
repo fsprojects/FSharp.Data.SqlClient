@@ -42,22 +42,22 @@ cmd2.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> Se
 type QueryPersonInfoSingletone = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultType = ResultType.Records, SingleRow=true>
 let cmd3 = new QueryPersonInfoSingletone()
 let result3 = cmd3.AsyncExecute(PersonId = 2) 
-result3 |> Async.RunSynchronously |> fun x -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
-cmd3.Execute(PersonId = 2) |> fun x -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
+result3 |> Async.RunSynchronously |> Option.get |> fun x -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
+cmd3.Execute(PersonId = 2).Value |> fun x -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
 
 //Single row hint and optional output columns. Tuple result type.
 type QueryPersonInfoSingletoneTuples = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, SingleRow=true>
 let cmd35 = new QueryPersonInfoSingletoneTuples()
 let result35 : Async<_> = cmd35.AsyncExecute(PersonId = 2) 
-result35 |> Async.RunSynchronously |> fun(personId, firstName, lastName, jobTitle, businessEntityType) -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" personId firstName lastName jobTitle businessEntityType
-cmd35.Execute(PersonId = 2) |> fun(personId, firstName, lastName, jobTitle, businessEntityType) -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" personId firstName lastName jobTitle businessEntityType
+result35 |> Async.RunSynchronously |> Option.get |> fun(personId, firstName, lastName, jobTitle, businessEntityType) -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" personId firstName lastName jobTitle businessEntityType
+cmd35.Execute(PersonId = 2).Value |> fun(personId, firstName, lastName, jobTitle, businessEntityType) -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" personId firstName lastName jobTitle businessEntityType
 
 //Single row hint and optional output columns. Single value.
 type QueryPersonInfoSingleValue = SqlCommand<"SELECT FirstName FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, SingleRow=true>
 let cmd36 = new QueryPersonInfoSingleValue()
 let result36 : Async<_> = cmd36.AsyncExecute(PersonId = 2) 
-result36 |> Async.RunSynchronously |> (function | Some firstName -> printfn "FirstName - %s" firstName | None -> printfn "Nothing to print" )
-cmd36.Execute(PersonId = 2) |> (function | Some firstName -> printfn "FirstName - %s" firstName | None -> printfn "Nothing to print" )
+result36 |> Async.RunSynchronously |> (function | Some(Some firstName) -> printfn "FirstName - %s" firstName | _ -> printfn "Nothing to print" )
+cmd36.Execute(PersonId = 2) |> (function | Some(Some firstName) -> printfn "FirstName - %s" firstName | _ -> printfn "Nothing to print" )
 
 //Single row hint and optional output columns. Data table result type.
 type QueryPersonInfoSingletoneDataTable = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultType = ResultType.DataTable>
@@ -74,7 +74,7 @@ cmd37.Execute(PersonId = 2) |> Seq.iter printPersonInfo
 //Single value
 type GetServerTime = SqlCommand<"IF @IsUtc = CAST(1 AS BIT) SELECT GETUTCDATE() ELSE SELECT GETDATE()", connectionString, SingleRow=true>
 let getSrvTime = new GetServerTime()
-let result5 : Async<DateTime> = getSrvTime.AsyncExecute(IsUtc = true)
+let result5 = getSrvTime.AsyncExecute(IsUtc = true) 
 result5 |> Async.RunSynchronously |> printfn "%A"
 getSrvTime.Execute(IsUtc = false) |> printfn "%A"
 
@@ -120,6 +120,4 @@ let user = WindowsIdentity.GetCurrent().Name
 cmdInsert.Execute(user, 121, 16, 3, "insert test", int __LINE__, "failed insert")
 
 
-type Test = SqlCommand<"select 1 where 1 = 0", connectionString, SingleRow = true>
-Test().Execute()
 

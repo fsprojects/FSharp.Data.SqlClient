@@ -12,32 +12,32 @@ type QueryWithTinyInt = SqlCommand<"SELECT CAST(10 AS TINYINT) AS Value", connec
 [<Fact>]
 let TinyIntConversion() = 
     let cmd = QueryWithTinyInt()
-    Assert.Equal(Some 10uy, cmd.Execute())    
+    Assert.Equal(Some 10uy, cmd.Execute().Value)    
 
 type GetServerTime = SqlCommand<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'", connectionString, SingleRow=true>
 
 [<Fact>]
 let SqlCommandClone() = 
     let cmd = new GetServerTime()
-    Assert.Equal<string>("TRUE", cmd.Execute(Bit = 1))    
+    Assert.Equal(Some "TRUE", cmd.Execute(Bit = 1))    
     let cmdClone = cmd.AsSqlCommand()
     cmdClone.Connection.Open()
     Assert.Throws<SqlClient.SqlException>(cmdClone.ExecuteScalar) |> ignore
     cmdClone.Parameters.["@Bit"].Value <- 1
     Assert.Equal(box "TRUE", cmdClone.ExecuteScalar())    
-    Assert.Equal(cmdClone.ExecuteScalar(), cmd.Execute(Bit = 1))    
-    Assert.Equal<string>("FALSE", cmd.Execute(Bit = 0))    
+    Assert.Equal(cmdClone.ExecuteScalar(), cmd.Execute(Bit = 1).Value)    
+    Assert.Equal(Some "FALSE", cmd.Execute(Bit = 0))    
     Assert.Equal(box "TRUE", cmdClone.ExecuteScalar())    
     cmdClone.CommandText <- "SELECT 0"
-    Assert.Equal<string>("TRUE", cmd.Execute(Bit = 1))    
+    Assert.Equal(Some "TRUE", cmd.Execute(Bit = 1))    
 
 type ConditionalQuery = SqlCommand<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", connectionString, SingleRow=true>
 
 [<Fact>]
 let ConditionalQuery() = 
     let cmd = ConditionalQuery()
-    Assert.Equal((1, "monkey"), cmd.Execute(flag = 0))    
-    Assert.Equal((2, "donkey"), cmd.Execute(flag = 1))    
+    Assert.Equal(Some(1, "monkey"), cmd.Execute(flag = 0))    
+    Assert.Equal(Some(2, "donkey"), cmd.Execute(flag = 1))    
 
 type ColumnsShouldNotBeNull2 = 
     SqlCommand<"SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION
@@ -48,7 +48,7 @@ type ColumnsShouldNotBeNull2 =
 [<Fact>]
 let columnsShouldNotBeNull2() = 
     let cmd = new ColumnsShouldNotBeNull2()
-    let _,_,_,_,precision = cmd.Execute()
+    let _,_,_,_,precision = cmd.Execute() |> Option.get
     Assert.Equal(None, precision)    
 
 [<Literal>]
@@ -62,7 +62,7 @@ type GetBitCoin = SqlCommand<"SELECT CurrencyCode, Name FROM Sales.Currency WHER
 
 open System.Transactions
 
-[<Fact>]
+[<Fact(Skip ="What do we do about TransactionScope propagation?")>]
 let transactionScope() = 
     DeleteBitCoin().Execute(bitCoinCode) |> ignore
     use tran = new TransactionScope()
@@ -70,5 +70,14 @@ let transactionScope() =
     Assert.Equal(1, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
     tran.Dispose()
     Assert.Equal(0, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
+
+type NoneSingleton = SqlCommand<"select 1 where 1 = 0", connectionString, SingleRow = true>
+type SomeSingleton = SqlCommand<"select 1", connectionString, SingleRow = true>
+
+[<Fact>]
+let singleRowOption() =
+    Assert.True(NoneSingleton().Execute().IsNone)
+    Assert.Equal(Some 1, SomeSingleton().Execute())
+     
 
 

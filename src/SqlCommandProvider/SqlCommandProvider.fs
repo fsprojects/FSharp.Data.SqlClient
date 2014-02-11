@@ -316,13 +316,15 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                             if resultType = ResultType.Tuples
                             then this.Tuples(allParametersOptional, paramInfos, outputColumns, singleRow)
                             else this.Records(providedCommandType, allParametersOptional, paramInfos, outputColumns, singleRow)
-                    let returnType = if singleRow then rowType else ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
+                    let returnType = 
+                        if singleRow 
+                        then ProvidedTypeBuilder.MakeGenericType(typedefof<_ option>, [ rowType ])  
+                        else ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
                            
                     returnType, executeMethodBody
                     
         let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ syncReturnType ])
         let asyncExecute = ProvidedMethod("AsyncExecute", executeArgs, asyncReturnType)
-        //asyncExecute.InvokeCode <- fun expr -> QuotationsFactory.MapExecuteArgs(paramInfos, expr) |> executeMethodBody
         asyncExecute.InvokeCode <- executeMethodBody
         providedCommandType.AddMember asyncExecute
 

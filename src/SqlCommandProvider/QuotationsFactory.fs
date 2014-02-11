@@ -107,7 +107,11 @@ type QuotationsFactory private() =
             <@@ 
                 async { 
                     let! (xs : 'Row seq) = %%getTypedSeqAsync
-                    return Seq.exactlyOne xs
+                    return 
+                        match List.ofSeq xs with
+                        | [] -> None
+                        | [ x ]  -> Some x 
+                        | _ as ys -> raise <| InvalidOperationException(sprintf "Single row was expected but got %i." ys.Length)
                 }
             @@>
         else

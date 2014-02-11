@@ -16,7 +16,7 @@ let tableValuedTupleValue() =
         MyTableType(myId = 1, myName = "monkey")
         MyTableType(myId = 2, myName = "donkey")
     ]
-    Assert.Equal((1, Some "monkey"), cmd.Execute(x = p))    
+    Assert.Equal(Some(1, Some "monkey"), cmd.Execute(x = p))    
 
 [<Fact>] 
 let tvpInputIsEnumeratedExactlyOnce() = 
@@ -37,7 +37,7 @@ let tableValuedSprocTupleNull() =
         MyTableType(myId = 1)
         MyTableType(myId = 2, myName = "donkey")
     ]
-    Assert.Equal((1, None), cmd.Execute p)    
+    Assert.Equal(Some(1, None), cmd.Execute p)    
 
 
 type TableValuedSingle = SqlCommand<"exec SingleElementProc @x", ConnectionStringOrName = "name=AdventureWorks2012">
@@ -61,7 +61,7 @@ let tableValuedSprocTupleValue() =
         TableValuedSprocTuple.MyTableType(myId = 1, myName = "monkey")
         TableValuedSprocTuple.MyTableType(myId = 2, myName = "donkey")
     ]
-    let actual = cmd.Execute(p1 = p)
+    let actual = cmd.Execute(p1 = p).Value
     Assert.Equal((1, Some "monkey"), actual)    
 
 
