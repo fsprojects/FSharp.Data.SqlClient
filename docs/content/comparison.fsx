@@ -12,7 +12,7 @@ Type providers + Query Expressions
  and [SqlEntityConnection][ef]/[EdmxFile][edmx].  
  
  But I would like to point out some reasons you might prefer SqlCommandProvider over those. 
- Take a look at this  [StackOverflow issue][soissue]. There are dozens of similar questions (hundreds if you include C# LINQ which is essential 
+ Take a look at this  [StackOverflow issue][soissue]. There are dozens of similar questions (hundreds if you include C# LINQ which is essentially 
  the same issue). 
  
  So, what's a deal? The thing is, you can have perfectly valid F# code that compiles but still fails at run-time because of

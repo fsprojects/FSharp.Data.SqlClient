@@ -85,7 +85,7 @@ It offers following benefits:
 
 Having all data access layer logic in bunch of files in one location has clear advantage. 
 For example, it can be handed over to DBA team for optimization. It's harder to do when application and data access
-mixed together (LINQ).
+are mixed together (LINQ).
 *)
 
 type CommandFromFile = SqlCommand<"GetDate.sql", connectionString>
@@ -98,7 +98,7 @@ Extracting T-SQL into external files is not the only way to scale application de
 The other alternative is to push logic into programmable objects. 
 I strongly recommend T-SQL functions because they have typical benefits of functional-first
 programming style: composition (therefore reuse), restricted side-effects and simple substitution model (easy to reason about).
-Stored procedures can be used too but they resemble imperative programming with all drawbacks attached.
+Stored procedures can be used too but they resemble imperative programming with all the drawbacks attached.
 
 Below is an example of SQL Table-Valued Function usage. 
 *)
@@ -113,12 +113,16 @@ An instantaneous feedback is one of the most handy features of SqlCommandProvide
 
 ### Limitation: a single parameter in a query may only be used once. 
 
-For example attempt to use following query will fail:
-        [lnag=sql]
-	    WHEN @x % 3 = 0 AND @x % 5 = 0 THEN 'FizzBuzz' 
-	    WHEN @x % 3 = 0 THEN 'Fizz' 
-	    WHEN @x % 5 = 0 THEN 'Buzz' 
-	    ELSE CAST(@x AS NVARCHAR) 
+For example, an attempt to use following query will fail:
+
+<pre>
+<code>
+WHEN @x % 3 = 0 AND @x % 5 = 0 THEN 'FizzBuzz' 
+WHEN @x % 3 = 0 THEN 'Fizz' 
+WHEN @x % 5 = 0 THEN 'Buzz' 
+ELSE CAST(@x AS NVARCHAR) 
+</code>
+</pre>
 
 You can work around this by declaring a local intermediate variable in t-sql script and assigning a paramater in question to that variable.
 *)
@@ -151,7 +155,7 @@ type Get42 = SqlCommand<"SELECT 42", @"Data Source=(LocalDb)\v11.0;Initial Catal
 
 (**
 
-The literal version is more practical because connection string definition can be shared between different declarations of SqlCommand<...>.
+The literal version is more practical because connection string definition can be shared between different declarations of `SqlCommand<...>`.
 
 ### By name
 
@@ -165,43 +169,44 @@ type Get43 = SqlCommand<"SELECT 43", "name=AdventureWorks2012">
 type Get44 = SqlCommand<"SELECT 44", "name=AdventureWorks2012", ConfigFile = "user.config">
 
 (**
-I would like to emphasize that _ConfigFile_ is about ***design time only*. 
+I would like to emphasize that `ConfigFile` is about ***design time only*. 
 Let me give you couple examples to clarify:
 
   * You build Windows Service or WPF application. 
     </br></br>
     <img src="img/ConnStrByNameAppConfig.png"/>
     </br></br> 
-    Assuming it's purely F# project and default app.config there _ConfigFile_ parameter can be omitted. 
-    Still during runtime connection string with the same name should be available via .NET configuration infrastructure (ConfigurationManager)
-    It means that either you have packaging/deplyment system that knows to fix connection string in config file to point to 
-    production database or you do it manually after application deployed.
+    If it is a purely F# project and default app.config is there `ConfigFile` parameter can be omitted. 
+    Still, in runtime the connection string with the same name should be available via .NET configuration infrastructure (ConfigurationManager).
+    It means that either you have packaging/deployment system that knows how to fix connection string in config file to point to 
+    production database (for example, [Slow Cheetah](http://visualstudiogallery.msdn.microsoft.com/69023d00-a4f9-4a34-a6cd-7e854ba318b5)),
+    or you do it manually after application is deployed.
 
-  * You have mixed ASP.NET WebAPI solution: C# hosting project and F# contollers implementation project.
+  * You have mixed ASP.NET WebAPI solution: C# hosting project and F# controllers implementation project.
     </br></br>
     <img src="img/ConnStrByNameUserConfig.png"/>
     </br></br> 
-    F# controllers project is simple library project. It has data access layer module.
-    `SqlCommand<...>` defintions refer to connection string by name form user.config file.  
+    F# controllers project is a simple library project. It has data access layer module.
+    `SqlCommand<...>` definitions refer to connection string by name form user.config file.  
     </br></br>
     <img src="img/ConnStrByNameUserConfig2.png"/>
     </br></br> 
     It's completely legitimate not to check-in this user.config file into source control system if it's developer specific.  
-    Similar setup can be applied inside single project to separate user specific configuration from common production config.
+    Similar setup can be applied inside single project to separate user-specific configuration from common production config.
 
 ### Overriding connection string at run-time
 
 Run-time database connectivity configuration is rarely (almost never) the same as design-time. 
-All SqlCommand<...> generated types can be re-configured at run-time via optional constructor paramater.
-The parameter is optional because config file + name approach is acceptable way to have run-time configuration different from design-time.
-Several use cases are possible.
+All `SqlCommand<_>`-generated types can be re-configured at run-time via optional constructor parameter.
+The parameter is optional because "config file + name" approach is an acceptable way to have run-time configuration different from design-time.
+Several use cases are possible:
 *)
 
 //Case 1: pass run-time connection string into ctor
 let runTimeConnStr = "..." //somehow get connection string at run-time
 let get42 = Get42(runTimeConnStr)
 
-//Case 2: Bunch of command types. Single database. 
+//Case 2: bunch of command types, single database
 //Factory or IOC of choice to avoid logic duplication. Use F# ctor static constraints.
 module DB = 
     [<Literal>]
@@ -219,7 +224,7 @@ let dbCmd1: DB.MyCmd1 = DB.createCommand()
 let dbCmd2: DB.MyCmd2 = DB.createCommand()
 
 //Case 3: multiple databases
-//It gets tricky because we need to distinguish between command types associated with different database. 
+//It gets tricky because we need to distinguish between command types associated with different databases. 
 //Static type property ConnectionStringOrName that has exactly same value as passed into SqlCommandProvider helps.
 module DataAccess = 
     [<Literal>]
@@ -246,13 +251,13 @@ let masterCmd: DataAccess.MyCmd2 = DataAccess.createCommand()
 
 (**
 
-It worth noting that because of "erased types" nature of this type provider reflection and other dynamic techniques cannot be used 
+It is worth noting that because of "erased types" nature of this type provider reflection and other dynamic techniques cannot be used 
 to create command instances.
   
 ### Stored procedures
 
-  - Set CommandType parameter to CommandType.StoredProcedure to specify it directly by name. 
-  - Stored procedures out parameters and return value are not supported 
+  - Set `CommandType` parameter to `CommandType.StoredProcedure` to specify it directly by name
+  - Stored procedures' out parameters and return value are not supported 
 
 *)
 
@@ -274,9 +279,9 @@ sp.AsyncExecute(BusinessEntityID = 2, NationalIDNumber = "245797967",
 
 ### Optional input parameters
     
-By default all input parameters to AsyncExecute/Execute are mandatory. 
+By default all input parameters to `AsyncExecute/Execute` are mandatory. 
 But there are rare cases when you prefer to handle NULL input values inside T-SQL script. 
-AllParametersOptional set to true makes all parameters (guess what) optional.
+`AllParametersOptional` set to true makes all parameters (guess what) optional.
 
 *)
 
@@ -289,21 +294,24 @@ incrBy.Execute(Some 10) = Some 11 //true
 
 (**
 
- * Table-valued parameters.
+### Table-valued parameters (TVPs)
 
-When using TVPs, the Sql command needs to be calling a stored procedure or user-defined function that takes the table type as a parameter. 
+Sql command needs to call a stored procedure or user-defined function that takes a parameter of table-valued type. 
 
 Set up sample type and sproc:
 
-CREATE TYPE myTableType AS TABLE (myId int not null, myName nvarchar(30) null) </br>
-GO </br>
-CREATE PROCEDURE myProc </br>
-   @p1 myTableType readonly </br>
-AS </br>
-BEGIN </br>
-   SELECT myName from @p1 p </br>
-END </br>
-
+<pre>
+<code>
+CREATE TYPE myTableType AS TABLE (myId int not null, myName nvarchar(30) null) 
+GO 
+CREATE PROCEDURE myProc 
+   @p1 myTableType readonly 
+AS 
+BEGIN 
+   SELECT myName from @p1 p 
+END 
+</code>
+</pre>
 *)
 
 type TableValuedSample = SqlCommand<"exec myProc @x", connectionString>

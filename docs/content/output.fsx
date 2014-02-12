@@ -56,8 +56,8 @@ QueryProductDataTable().Execute(top = 7L, SellStartDate = System.DateTime.Parse 
     printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
 
 (**
- * Single row hint. Must be provided explicitly. Cannot be inferred. 
- * Nullable columns mapped to Option<_> type
+ * Single row hint. Must be provided explicitly. Cannot be inferred
+ * Nullable columns mapped to `Option<_>` type
  * Calling SQL Table-Valued Function
 *)
 
@@ -111,8 +111,8 @@ for row in table do
 
 (**
 
- * One column only result set inferred. Combined with SingleRow hint gives single value as result.
- * AsyncExecute/Execute are just regular F# methods. So args can be passed by name or by position.
+ * One column only result set inferred. Combined with `SingleRow` hint gives single value as result
+ * `AsyncExecute/Execute` are just regular F# methods. So args can be passed by name or by position
 
 *)
 
@@ -128,8 +128,8 @@ QueryPersonInfoSingleValue().Execute(personId)
 
 (**
 
- * Single value.
- * Running the same command more than ones with diff params.
+ * Single value
+ * Running the same command more than once with diff params
 
 *)
 
@@ -146,7 +146,7 @@ getSrvTime.Execute(IsUtc = false) |> printfn "%A"
 
 (**
 
- * Non-query.
+ * Non-query
 
 *)
 
@@ -167,9 +167,9 @@ let rowsAffected =
         BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F") 
 
 (**
-### Result sequence is un-buffered by default. 
+### Result sequence is un-buffered by default 
 
-Although it implements standard seq<_> (IEnumerable<_>) interface it can be evaluated only once. 
+Although it implements standard `seq<_>` (`IEnumerable<_>`) interface it can be evaluated only once. 
 It is done mostly for memory efficiency. It behaves as forward-only cursor similar to underlying SqlDataReader. 
 If multiple passes over the sequence required use standard `Seq.cache` combinator. 
 *)
@@ -183,8 +183,8 @@ printfn "#2: %i " <| Seq.nth 1 xs //see it fails here if result is not piped int
 ### Output result types summary:
     
 * Tuples. Default. Mostly convenient in F# combined with pattern matching
-* Records. .NET-style class with read-only properties. WebAPI/ASP.NET MVC/Json.NET/WPF, Data Binding.
-* DataTable with inferred data rows similar to Records. Update scenarios. WPF data binding.
-* Maps. For rare cases when structure of output cannot be inferred.
+* Records. .NET-style class with read-only properties. WebAPI/ASP.NET MVC/Json.NET/WPF, Data Binding
+* DataTable with inferred data rows similar to Records. Update scenarios. WPF data binding
+* Maps. For rare cases when structure of output cannot be inferred
 
 *)

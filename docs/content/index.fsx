@@ -55,34 +55,34 @@ seq
 System requirements
 -------------------------------------
 
- * SQL Server 2012 and up or SQL Azure Database at compile-time. 
+ * SQL Server 2012 and up or SQL Azure Database at compile-time 
  * .NET 4.0 and higher
 
 Features at glance
 -------------------------------------
 
-* Static type with 2 methods per SqlCommand<...> declaration:
-    * AsyncExecute - for scalability scenarios 
-    * Execute - convenience when needed
+* Static type with 2 methods per `SqlCommand<...>` declaration:
+    * `AsyncExecute` - for scalability scenarios 
+    * `Execute` - convenience when needed
 * Configuration
     * Command text (sql script) can be either inline or path to *.sql file
     * Connection string is either inline or name from config file (app.config is default for config file)
-    * Connection string can be overridden at run time via constructor optional parameter
+    * Connection string can be overridden at run-time via constructor optional parameter
 * Input:
     * Statically typed
-    * Unbound sql variables/input parameters mapped to mandatory arguments for AsyncExecute/Execute
-    * Set AllParametersOptional to true to make all parameters optional (nullable).
+    * Unbound sql variables/input parameters mapped to mandatory arguments for `AsyncExecute/Execute`
+    * Set `AllParametersOptional` to true to make all parameters optional (nullable)
 * Output:
-    * Inferred static type for output. Configurable choice of `seq<Tuples>`, `seq<Records>`, `DataTable` or `seq<Maps>`. Each column mapped to item/property/key.
-    * Nullable output columns translate to the F# Option type.
+    * Inferred static type for output. Configurable choice of `seq<Tuples>`, `seq<Records>`, `DataTable` or `seq<Maps>`. Each column mapped to item/property/key
+    * Nullable output columns translate to the F# Option type
 * Extra configuration options:
-    * SingleRow hint forces singleton output instead of sequence
+    * `SingleRow` hint forces singleton output instead of sequence
 
-* SqlCommandProvider is "erased types" kind. It can be used only from F#. 
+* SqlCommandProvider is of "erased types" kind. It can be used only from F#. 
 
 Limitations
 -------------------------------------
-In addition to system requirements listed above SqlCommandProvider constraint by same limitations as two system meta-stored procedures 
+In addition to system requirements listed above SqlCommandProvider constrained by same limitations as two system meta-stored procedures 
 it uses in implementation: [sys.sp\_describe\_undeclared\_parameters](http://technet.microsoft.com/en-us/library/ff878260.aspx) 
 and [sys.sp\_describe\_first\_result\_set](http://technet.microsoft.com/en-us/library/ff878602.aspx). Look online for more details.
 
