@@ -70,7 +70,7 @@ type QueryPersonInfoSingletoneAsRecords =
 
 let singleton = new QueryPersonInfoSingletoneAsRecords()
 
-let person = singleton.AsyncExecute(PersonId = 2) |> Async.RunSynchronously 
+let person = singleton.AsyncExecute(PersonId = 2) |> Async.RunSynchronously |> Option.get
 match person.FirstName, person.LastName with
 | Some first, Some last -> printfn "Person id: %i, name: %s %s" person.PersonID first last 
 | _ -> printfn "What's your name %i?" person.PersonID
@@ -86,7 +86,7 @@ let queryPersonInfoSingletoneQuery =
 type QueryPersonInfoSingletoneTuples = 
     SqlCommand<queryPersonInfoSingletoneQuery, connectionString, SingleRow=true>
 
-QueryPersonInfoSingletoneTuples().Execute(PersonId = 2) 
+QueryPersonInfoSingletoneTuples().Execute(PersonId = 2).Value
     |> (function
         | id, Some first, Some last -> printfn "Person id: %i, name: %s %s" person.PersonID first last 
         | id, _, _ -> printfn "What's your name %i?" person.PersonID
@@ -123,8 +123,8 @@ type QueryPersonInfoSingleValue =
         SingleRow=true>
 
 let personId = 2
-QueryPersonInfoSingleValue().Execute(personId) 
-|> Option.iter (fun name -> printf "Person with id %i has name %s" personId name)
+QueryPersonInfoSingleValue().Execute(personId)
+|> Option.iter (fun name -> printf "Person with id %i has name %s" personId name.Value)
 
 (**
 

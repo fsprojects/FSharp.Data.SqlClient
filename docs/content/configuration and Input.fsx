@@ -288,9 +288,9 @@ But there are rare cases when you prefer to handle NULL input values inside T-SQ
 type IncrBy = SqlCommand<"SELECT @x + ISNULL(CAST(@y AS INT), 1) ", connectionString, AllParametersOptional = true, SingleRow = true>
 let incrBy = IncrBy()
 //pass both params passed 
-incrBy.Execute(Some 10, Some 2) = Some 12 //true
+incrBy.Execute(Some 10, Some 2) = Some( Some 12) //true
 //omit second parameter. default to 1
-incrBy.Execute(Some 10) = Some 11 //true
+incrBy.Execute(Some 10) = Some( Some 11) //true
 
 (**
 
