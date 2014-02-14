@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Bridging the gap between T-SQL queries and F# type system
+    <title>Bridging the gap between F# types and T-SQL scripting
 </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.">
@@ -34,7 +34,7 @@
         <div class="row">
             <div class="span9" id="main">
                 
-<h1>Bridging the gap between T-SQL queries and F# type system</h1>
+<h1>Bridging the gap between F# types and T-SQL scripting</h1>
 
 <p>SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.</p>
 
@@ -106,15 +106,50 @@
      (<span class="s">&quot;</span><span class="s">Tete</span><span class="s">&quot;</span>, <span class="s">&quot;</span><span class="s">Mensa</span><span class="s">-</span><span class="s">Annan</span><span class="s">&quot;</span>, <span class="n">1576562.1966M</span>)]</pre>
 </td>
 </tr>
-</table><p>Note how T-SQL unbound variables are mapped into parameters of AsyncExecute method. Output is a sequence of tuples. 
-Tuple elemens match the columns of query result set.</p>
-
-<h2>System requirements</h2>
+</table><h2>System requirements</h2>
 
 <ul>
-<li>SQL Server 2012 and up or SQL Azure Database at compile-time.</li>
-<li>.NET 4.0 or higher</li>
+<li>SQL Server 2012 and up or SQL Azure Database at compile-time</li>
+<li>.NET 4.0 and higher</li>
 </ul>
+
+<h2>Features at glance</h2>
+
+<ul>
+<li>Static type with 2 methods per <code>SqlCommand&lt;...&gt;</code> declaration:
+<ul>
+<li><code>AsyncExecute</code> - for scalability scenarios</li>
+<li><code>Execute</code> - convenience when needed</li>
+</ul></li>
+<li>Configuration
+<ul>
+<li>Command text (sql script) can be either inline or path to *.sql file</li>
+<li>Connection string is either inline or name from config file (app.config is default for config file)</li>
+<li>Connection string can be overridden at run-time via constructor optional parameter</li>
+</ul></li>
+<li>Input:
+<ul>
+<li>Statically typed</li>
+<li>Unbound sql variables/input parameters mapped to mandatory arguments for <code>AsyncExecute/Execute</code></li>
+<li>Set <code>AllParametersOptional</code> to true to make all parameters optional (nullable)</li>
+</ul></li>
+<li>Output:
+<ul>
+<li>Inferred static type for output. Configurable choice of <code>seq&lt;Tuples&gt;</code>, <code>seq&lt;Records&gt;</code>, <code>DataTable</code> or <code>seq&lt;Maps&gt;</code>. Each column mapped to item/property/key</li>
+<li>Nullable output columns translate to the F# Option type</li>
+</ul></li>
+<li>Extra configuration options:
+<ul>
+<li><p><code>SingleRow</code> hint forces singleton output instead of sequence</p></li>
+</ul></li>
+<li><p>SqlCommandProvider is of "erased types" kind. It can be used only from F#.</p></li>
+</ul>
+
+<h2>Limitations</h2>
+
+<p>In addition to system requirements listed above SqlCommandProvider constrained by same limitations as two system meta-stored procedures 
+it uses in implementation: <a href="http://technet.microsoft.com/en-us/library/ff878260.aspx">sys.sp_describe_undeclared_parameters</a> 
+and <a href="http://technet.microsoft.com/en-us/library/ff878602.aspx">sys.sp_describe_first_result_set</a>. Look online for more details.</p>
 
 <div class="tip" id="fs1">namespace FSharp</div>
 <div class="tip" id="fs2">namespace FSharp.Data</div>
@@ -146,15 +181,17 @@ Tuple elemens match the columns of query result set.</p>
                     <li><a href="https://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
 
                     <li class="nav-header">Documentation</li>
-                    <li><a href="http://fsprojects.github.io/FSharp.Data.Experimental.SqlCommandProvider//start.html">Getting started</a></li>
-                    <li><a href="http://fsprojects.github.io/FSharp.Data.Experimental.SqlCommandProvider//limitations.html">Limitations</a></li>
+                    <li><a href="http://fsprojects.github.io/FSharp.Data.Experimental.SqlCommandProvider//configuration and input.html">Configuration and Input</a></li>
+                    <li><a href="http://fsprojects.github.io/FSharp.Data.Experimental.SqlCommandProvider//output.html">Output</a></li>
+                    <li><a href="http://fsprojects.github.io/FSharp.Data.Experimental.SqlCommandProvider//data binding and updates.html">Data binding and updates</a></li>
                     <li><a href="http://fsprojects.github.io/FSharp.Data.Experimental.SqlCommandProvider//comparison.html">Comparison</a></li>
-                    <li><a href="http://fsprojects.github.io/FSharp.Data.Experimental.SqlCommandProvider//design.html">Design notes</a></li>
+                    <li><a href="http://fsprojects.github.io/FSharp.Data.Experimental.SqlCommandProvider//reference architecture.html">Reference architecture</a></li>
+                    <li><a href="http://fsprojects.github.io/FSharp.Data.Experimental.SqlCommandProvider//samples.html">Sample applications</a></li>
 
                     <li class="nav-header">Tools</li>
                     <li><a href="http://tpetricek.github.io/FSharp.Formatting/">F# Formatting</a></li>
                     <li><a href="http://fsharp.github.io/FAKE/">FAKE</a></li>
-                    <li><a href="http://github.com/pblasucci/FSharp.ProjectScaffold">F# open-source project scaffolding</a></li>
+                    <li><a href="http://fsprojects.github.io/FSharp.ProjectScaffold/">F# open-source project scaffolding</a></li>
                     <li><a href="http://tomasp.net/blog/2013/great-open-source/index.html">Building great open-source libraries</a></li>
                 </ul>
             </div>
