@@ -44,6 +44,14 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             ],             
             instantiationFunction = this.CreateType
         )
+
+        providerType.AddXmlDoc """
+<summary>Typed access to SQL Server programmable objects: stored procedures, function, user defined table types etc.</summary> 
+<param name='ConnectionStringOrName'>String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&lt;connection string name&gt;”.</param>
+<param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable or Maps.</param>
+<param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
+"""
+
         this.AddNamespace(nameSpace, [ providerType ])
     
     member internal this.CreateType typeName parameters = 
