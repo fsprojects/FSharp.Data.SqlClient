@@ -22,10 +22,15 @@ open FSharp.Data.Experimental.Internals
 
 open Samples.FSharp.ProvidedTypes
 
+///<summary>Enum describing output type<\summary>
 type ResultType =
-    | Tuples = 0
-    | Records = 1
+///<summary>Sequence of custom records with properties matching column names and types<\summary>
+    | Records = 0
+///<summary>Sequence of tuples matching column types with the same order<\summary>
+    | Tuples = 1
+///<summary><see cref="DataTable{T}">Typed DataTable<\cref><\summary>
     | DataTable = 2
+///<summary>Sequence of maps indexed by column names<\summary>
     | Maps = 3
 
 [<assembly:TypeProviderAssembly()>]
@@ -48,7 +53,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("CommandText", typeof<string>) 
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
                 ProvidedStaticParameter("CommandType", typeof<CommandType>, CommandType.Text) 
-                ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Tuples) 
+                ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Records) 
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false)   
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 

@@ -18,14 +18,14 @@ WHERE SellStartDate > @SellStartDate
 "
 
 //Tuples
-type QueryProductsAsTuples = SqlCommand<queryProductsSql, connectionString>
+type QueryProductsAsTuples = SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.Tuples>
 let cmd = QueryProductsAsTuples()
 let result = cmd.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 result |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
 cmd.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
 
 //Custom record types and connection string override
-type QueryProducts = SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.Records>
+type QueryProducts = SqlCommand<queryProductsSql, connectionString>
 let cmd1 = QueryProducts(connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
 let result1 : Async<QueryProducts.Record seq> = cmd1.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
@@ -46,7 +46,7 @@ result3 |> Async.RunSynchronously |> Option.get |> fun x -> printfn "Person info
 cmd3.Execute(PersonId = 2).Value |> fun x -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
 
 //Single row hint and optional output columns. Tuple result type.
-type QueryPersonInfoSingletoneTuples = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, SingleRow=true>
+type QueryPersonInfoSingletoneTuples = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, SingleRow=true, ResultType = ResultType.Tuples>
 let cmd35 = new QueryPersonInfoSingletoneTuples()
 let result35 : Async<_> = cmd35.AsyncExecute(PersonId = 2) 
 result35 |> Async.RunSynchronously |> Option.get |> fun(personId, firstName, lastName, jobTitle, businessEntityType) -> printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" personId firstName lastName jobTitle businessEntityType
