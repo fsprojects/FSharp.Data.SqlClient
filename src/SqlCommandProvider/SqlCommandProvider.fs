@@ -22,15 +22,15 @@ open FSharp.Data.Experimental.Internals
 
 open Samples.FSharp.ProvidedTypes
 
-///<summary>Enum describing output type<\summary>
+///<summary>Enum describing output type</summary>
 type ResultType =
-///<summary>Sequence of custom records with properties matching column names and types<\summary>
+///<summary>Sequence of custom records with properties matching column names and types</summary>
     | Records = 0
-///<summary>Sequence of tuples matching column types with the same order<\summary>
+///<summary>Sequence of tuples matching column types with the same order</summary>
     | Tuples = 1
-///<summary><see cref="DataTable{T}">Typed DataTable<\cref><\summary>
+///<summary>Typed DataTable <see cref='T:FSharp.Data.Experimental.DataTable`1'/></summary>
     | DataTable = 2
-///<summary>Sequence of maps indexed by column names<\summary>
+///<summary>Sequence of maps indexed by column names</summary>
     | Maps = 3
 
 [<assembly:TypeProviderAssembly()>]
