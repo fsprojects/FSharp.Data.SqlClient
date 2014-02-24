@@ -31,7 +31,7 @@ let SqlCommandClone() =
     cmdClone.CommandText <- "SELECT 0"
     Assert.Equal(Some "TRUE", cmd.Execute(Bit = 1))    
 
-type ConditionalQuery = SqlCommand<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", connectionString, SingleRow=true>
+type ConditionalQuery = SqlCommand<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", connectionString, SingleRow=true, ResultType = ResultType.Tuples>
 
 [<Fact>]
 let ConditionalQuery() = 
@@ -43,7 +43,7 @@ type ColumnsShouldNotBeNull2 =
     SqlCommand<"SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_NAME = 'DatabaseLog' and numeric_precision is null
-            ORDER BY ORDINAL_POSITION", connectionString, SingleRow = true>
+            ORDER BY ORDINAL_POSITION", connectionString, SingleRow = true, ResultType = ResultType.Tuples>
 
 [<Fact>]
 let columnsShouldNotBeNull2() = 
