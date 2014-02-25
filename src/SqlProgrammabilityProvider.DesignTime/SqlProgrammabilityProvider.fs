@@ -292,7 +292,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
             yield ProvidedParameter(
                 parameterName, 
-                parameterType = (if allParametersOptional then typedefof<_ option>.MakeGenericType( parameterType) else parameterType), 
+                parameterType = (if allParametersOptional && parameterType.IsValueType then typedefof<_ option>.MakeGenericType( parameterType) else parameterType), 
                 ?optionalValue = optionalValue
             )
     ]

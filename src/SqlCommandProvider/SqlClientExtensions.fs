@@ -16,11 +16,6 @@ type SqlCommand with
     member this.AsyncExecuteNonQuery() =
         Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) 
 
-    //address an issue when regular Dispose on SqlConnection needed for async computation wipes out all properties like ConnectionString in addition to closing connection to db
-    member this.CloseConnectionOnly() = {
-        new IDisposable with
-            member __.Dispose() = this.Connection.Close()
-    }
 
 let private dataTypeMappings = ref List.empty
 
@@ -36,6 +31,14 @@ let internal findTypeInfoByProviderType(sqlDbType, udttName)  =
 
 type SqlConnection with
 
+
+    //address an issue when regular Dispose on SqlConnection needed for async computation wipes out all properties like ConnectionString in addition to closing connection to db
+    member this.UseConnection() =
+        if this.State = ConnectionState.Closed then 
+            this.Open()
+            { new IDisposable with member __.Dispose() = this.Close() }
+        else { new IDisposable with member __.Dispose() = () }
+    
     member internal this.CheckVersion() = 
         assert (this.State = ConnectionState.Open)
         let majorVersion = this.ServerVersion.Split('.').[0]

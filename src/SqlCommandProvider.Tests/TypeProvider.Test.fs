@@ -62,13 +62,15 @@ type GetBitCoin = SqlCommand<"SELECT CurrencyCode, Name FROM Sales.Currency WHER
 
 open System.Transactions
 
-[<Fact(Skip ="What do we do about TransactionScope propagation?")>]
-let transactionScope() = 
+[<Fact>]
+let transactionScope() =
     DeleteBitCoin().Execute(bitCoinCode) |> ignore
-    use tran = new TransactionScope()
-    Assert.Equal(1, InsertBitCoin().Execute(bitCoinCode, bitCoinName))
-    Assert.Equal(1, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
-    tran.Dispose()
+    use conn = new System.Data.SqlClient.SqlConnection(connectionString)
+    conn.Open()
+    let tran = conn.BeginTransaction()
+    Assert.Equal(1, InsertBitCoin(tran).Execute(bitCoinCode, bitCoinName))
+    Assert.Equal(1, GetBitCoin(tran).Execute(bitCoinCode) |> Seq.length)
+    tran.Rollback()
     Assert.Equal(0, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
 
 type NoneSingleton = SqlCommand<"select 1 where 1 = 0", connectionString, SingleRow = true>

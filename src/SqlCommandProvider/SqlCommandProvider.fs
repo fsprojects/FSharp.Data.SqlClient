@@ -47,6 +47,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     let assembly = Assembly.GetExecutingAssembly()
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommand", Some typeof<obj>, HideObjectMethods = true)
 
+    let cache = Dictionary()
+
     do 
         providerType.DefineStaticParameters(
             parameters = [ 
@@ -58,7 +60,16 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
             ],             
-            instantiationFunction = this.CreateType 
+            instantiationFunction = (fun typeName args ->
+                let key = typeName, String.Join(";", args)
+                match cache.TryGetValue(key) with
+                | false, _ ->
+                    let v = this.CreateType typeName args
+                    cache.[key] <- v
+                    v
+                | true, v -> v
+            ) 
+            
         )
 
         providerType.AddXmlDoc """
@@ -90,7 +101,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         let resolutionFolder = config.ResolutionFolder
 
-        let commandText, watcher' = Configuration.ParseTextAtDesignTime(commandText, resolutionFolder, this.Invalidate)
+        let key = typeName, String.Join(";", parameters)
+        let invalidator () =
+            cache.Remove(key) |> ignore 
+            this.Invalidate()
+        let commandText, watcher' = Configuration.ParseTextAtDesignTime(commandText, resolutionFolder, invalidator)
         watcher' |> Option.iter (fun x -> watcher <- x)
 
         if connectionStringOrName.Trim() = ""
@@ -113,6 +128,19 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         conn.LoadDataTypesMap()
 
         let sqlParameters = this.ExtractSqlParameters(conn, commandText, commandType)
+
+        let ctor = ProvidedConstructor( [ ProvidedParameter("transaction", typeof<SqlTransaction>) ])
+        ctor.InvokeCode <- fun args -> 
+            <@@ 
+                let tran : SqlTransaction = %%args.[0]
+                let this = new SqlCommand(commandText, tran.Connection, tran) 
+                this.CommandType <- commandType
+                let xs = %%Expr.NewArray( typeof<SqlParameter>, sqlParameters |> List.map QuotationsFactory.ToSqlParam)
+                this.Parameters.AddRange xs
+                this
+            @@>
+
+        providedCommandType.AddMember ctor
 
         let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
         ctor.InvokeCode <- fun args -> 
@@ -292,7 +320,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
             yield ProvidedParameter(
                 parameterName, 
-                parameterType = (if allParametersOptional then typedefof<_ option>.MakeGenericType( parameterType) else parameterType), 
+                parameterType = (if allParametersOptional && parameterType.IsValueType then typedefof<_ option>.MakeGenericType( parameterType) else parameterType), 
                 ?optionalValue = optionalValue
             )
     ]
@@ -303,10 +331,10 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 async {
                     let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet(expr, allParametersOptional, paramInfos)
                     //open connection async on .NET 4.5
-                    sqlCommand.Connection.Open()
-                    use ensureConnectionClosed = sqlCommand.CloseConnectionOnly()
-                    let rowsAffected = sqlCommand.AsyncExecuteNonQuery()
-                    return! rowsAffected  
+                    if sqlCommand.Connection.State <> ConnectionState.Open then
+                        sqlCommand.Connection.Open()
+                    use disposable = sqlCommand.Connection.UseConnection()
+                    return! sqlCommand.AsyncExecuteNonQuery()
                 }
             @@>
         typeof<int>, body

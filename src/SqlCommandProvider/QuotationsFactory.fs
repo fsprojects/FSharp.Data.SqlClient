@@ -63,10 +63,12 @@ type QuotationsFactory private() =
             async {
                 let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet(exprArgs, allParametersOptional, paramInfos)
                 //open connection async on .NET 4.5
-                sqlCommand.Connection.Open()
+                if sqlCommand.Connection.State <> ConnectionState.Open then
+                    let commandBehavior = commandBehavior ||| CommandBehavior.CloseConnection  
+                    sqlCommand.Connection.Open()
                 return!
                     try 
-                        sqlCommand.AsyncExecuteReader(commandBehavior ||| CommandBehavior.CloseConnection ||| CommandBehavior.SingleResult)
+                        sqlCommand.AsyncExecuteReader(commandBehavior ||| CommandBehavior.SingleResult)
                     with _ ->
                         sqlCommand.Connection.Close()
                         reraise()

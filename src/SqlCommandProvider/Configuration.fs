@@ -19,6 +19,7 @@ type Configuration() =
                 if  Path.GetExtension(commandTextOrPath) <> ".sql" then failwith "Only files with .sql extension are supported"
                 let watcher = new FileSystemWatcher(Filter = commandTextOrPath, Path = resolutionFolder)
                 watcher.Changed.Add(fun _ -> invalidateCallback())
+                watcher.Renamed.Add(fun _ -> invalidateCallback())
                 watcher.EnableRaisingEvents <- true                    
                 File.ReadAllText(path), Some watcher
 

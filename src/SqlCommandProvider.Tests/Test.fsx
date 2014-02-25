@@ -17,6 +17,14 @@ FROM Production.Product
 WHERE SellStartDate > @SellStartDate
 "
 
+//Two parallel executions
+type cmdType = SqlCommand<queryProductsSql, connectionString>
+let par = cmdType()
+let reader1 = par.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
+let reader2 = par.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
+reader1 |> Async.RunSynchronously |> Seq.head |> printfn "%A"
+reader2 |> Async.RunSynchronously |> Seq.head |> printfn "%A"
+
 //Tuples
 type QueryProductsAsTuples = SqlCommand<queryProductsSql, connectionString, ResultType = ResultType.Tuples>
 let cmd = QueryProductsAsTuples()
