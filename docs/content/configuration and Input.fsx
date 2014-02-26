@@ -248,6 +248,28 @@ module DataAccess =
 
 let adventureWorksCmd: DataAccess.MyCmd1 = DataAccess.createCommand()
 let masterCmd: DataAccess.MyCmd2 = DataAccess.createCommand()
+(**
+
+Another related case, albeit not that common, is local transaction.
+  
+*)
+[<Literal>]
+let bitCoinCode = "BTC"
+[<Literal>]
+let bitCoinName = "Bitcoin"
+
+type DeleteBitCoin = SqlCommand<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code", connectionString>
+type InsertBitCoin = SqlCommand<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", connectionString>
+type GetBitCoin = SqlCommand<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", connectionString>
+
+DeleteBitCoin().Execute(bitCoinCode) |> ignore
+let conn = new System.Data.SqlClient.SqlConnection(connectionString)
+conn.Open()
+let tran = conn.BeginTransaction()
+InsertBitCoin(tran).Execute(bitCoinCode, bitCoinName) = 1
+(GetBitCoin(tran).Execute(bitCoinCode) |> Seq.length) = 1
+tran.Rollback()
+(GetBitCoin(tran).Execute(bitCoinCode) |> Seq.length) = 0
 
 (**
 

@@ -63,7 +63,7 @@ type GetBitCoin = SqlCommand<"SELECT CurrencyCode, Name FROM Sales.Currency WHER
 open System.Transactions
 
 [<Fact>]
-let transactionScope() =
+let transaction() =
     DeleteBitCoin().Execute(bitCoinCode) |> ignore
     use conn = new System.Data.SqlClient.SqlConnection(connectionString)
     conn.Open()

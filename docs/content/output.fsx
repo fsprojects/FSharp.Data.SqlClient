@@ -22,28 +22,28 @@ let productsSql = "
 "
 
 (**
- * Sync execution
- * Seq of tuples is default result set type
+ * Sequence of custom records is default result set type
 *)
 
-type QueryProductSync = SqlCommand<productsSql, connectionString>
-
-let tuples = QueryProductSync().Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
-
-for productName, sellStartDate, size in tuples do
-    printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size
-
-(**
- * Sequence of custom records as result set
-*)
-
-type QueryProductAsRecords = SqlCommand<productsSql, connectionString, ResultType = ResultType.Records>
+type QueryProductAsRecords = SqlCommand<productsSql, connectionString>
 let queryProductAsRecords = QueryProductAsRecords()
 
 queryProductAsRecords.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 |> Async.RunSynchronously 
 |> Seq.iter (fun x -> 
     printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
+
+(**
+ * Sync execution
+ * Seq of tuples as result set type
+*)
+
+type QueryProductSync = SqlCommand<productsSql, connectionString, ResultType = ResultType.Tuples>
+
+let tuples = QueryProductSync().Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
+
+for productName, sellStartDate, size in tuples do
+    printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size
 
 (**
  * Typed data table as result set
@@ -62,11 +62,7 @@ QueryProductDataTable().Execute(top = 7L, SellStartDate = System.DateTime.Parse 
 *)
 
 type QueryPersonInfoSingletoneAsRecords = 
-    SqlCommand<
-        "SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", 
-        connectionString, 
-        ResultType = ResultType.Records, 
-        SingleRow = true>
+    SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, SingleRow = true>
 
 let singleton = new QueryPersonInfoSingletoneAsRecords()
 
@@ -84,7 +80,7 @@ let queryPersonInfoSingletoneQuery =
     "SELECT PersonID, FirstName, LastName FROM dbo.ufnGetContactInformation(@PersonId)"
 
 type QueryPersonInfoSingletoneTuples = 
-    SqlCommand<queryPersonInfoSingletoneQuery, connectionString, SingleRow=true>
+    SqlCommand<queryPersonInfoSingletoneQuery, connectionString, SingleRow=true, ResultType = ResultType.Tuples>
 
 QueryPersonInfoSingletoneTuples().Execute(PersonId = 2).Value
     |> (function

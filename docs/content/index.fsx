@@ -68,6 +68,7 @@ Features at glance
     * Command text (sql script) can be either inline or path to *.sql file
     * Connection string is either inline or name from config file (app.config is default for config file)
     * Connection string can be overridden at run-time via constructor optional parameter
+    * Constructor optionally accepts `SqlTransaction` and uses associated connection to execute command
 * Input:
     * Statically typed
     * Unbound sql variables/input parameters mapped to mandatory arguments for `AsyncExecute/Execute`
