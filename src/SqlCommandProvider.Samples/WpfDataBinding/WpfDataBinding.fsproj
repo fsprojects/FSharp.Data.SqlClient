@@ -40,7 +40,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data.Experimental.SqlCommandProvider">
-      <HintPath>..\..\..\packages\FSharp.Data.Experimental.SqlCommandProvider.1.1.27\lib\net40\FSharp.Data.Experimental.SqlCommandProvider.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.Experimental.SqlCommandProvider.1.1.30\lib\net40\FSharp.Data.Experimental.SqlCommandProvider.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.Types">
+      <HintPath>..\..\..\packages\FSharp.Data.Experimental.SqlCommandProvider.1.1.30\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
@@ -66,6 +70,8 @@
     </Resource>
     <Compile Include="Program.fs" />
     <None Include="App.config" />
+    <None Include="SqlServerTypes\readme.htm" />
+    <None Include="SqlServerTypes\Loader.cs" />
     <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup>

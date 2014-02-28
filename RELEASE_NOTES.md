@@ -12,5 +12,6 @@
 * 1.1.27 - Fix issues #39 and #40. Mandatory ConnectionStringOrName parameter. ConnectionStringOrName static property.
 * 1.1.28 - BREKAING CHANGE: default ResultType is now Records. Additional xml docs. Fix Issue #43. SingleRow = true now returns option<_> instead of just value. Bugfix for FileWatcher on VS 2013. Transaction support in SqlCommand constructor. Design-time performace improvements with caching.
 * 1.1.29 - Fix issue #46 : support for SqlTypes - note that additional Nuget package is now required. Minor improvement in design-time opening of the command file.
+* 1.1.30 - Adding SqlTypes dll for design-time support
 
 

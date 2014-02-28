@@ -80,14 +80,14 @@ type SomeSingleton = SqlCommand<"select 1", connectionString, SingleRow = true>
 let singleRowOption() =
     Assert.True(NoneSingleton().Execute().IsNone)
     Assert.Equal(Some 1, SomeSingleton().Execute())
-     
-open Microsoft.SqlServer.Types
-
-type Spacial = SqlCommand<"select top 5 SpatialLocation from Person.Address", connectionString>
-
-[<Fact>]
-let nativeTypes() =
-    let result = Spacial().Execute()
-    result |> Seq.iter (printfn "%A")
+//     
+//open Microsoft.SqlServer.Types
+//
+//type Spacial = SqlCommand<"select top 5 SpatialLocation from Person.Address", connectionString>
+//
+//[<Fact>]
+//let nativeTypes() =
+//    let result = Spacial().Execute()
+//    result |> Seq.iter (printfn "%A")
 
 

@@ -25,5 +25,6 @@
     <file src="..\bin\FSharp.Data.Experimental.SqlCommandProvider.dll" target="lib/net40\FSharp.Data.Experimental.SqlCommandProvider.dll" />
     <file src="..\bin\FSharp.Data.Experimental.SqlCommandProvider.pdb" target="lib/net40\FSharp.Data.Experimental.SqlCommandProvider.pdb" />
     <file src="..\bin\FSharp.Data.Experimental.SqlCommandProvider.xml" target="lib/net40\FSharp.Data.Experimental.SqlCommandProvider.xml" />
+    <file src="..\bin\Microsoft.SqlServer.Types.dll" target="lib/net40\Microsoft.SqlServer.Types.dll" />    
   </files>
 </package>

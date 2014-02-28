@@ -28,7 +28,7 @@
     </DocumentationFile>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE\devenv.exe</StartProgram>
-    <StartArguments>..\SqlCommandProvider.Tests.sln</StartArguments>
+    <StartArguments>..\SqlCommandProvider.sample.sln</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -69,9 +69,6 @@
     <None Include="SqlServerTypes\readme.htm" />
     <None Include="SqlServerTypes\Loader.cs" />
     <None Include="packages.config" />
-    <None Include="nuspec.2011.8.xsd" />
-    <None Include="nuspec.2010.7.xsd" />
-    <None Include="MyPackage.1.0.0.nuspec" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>

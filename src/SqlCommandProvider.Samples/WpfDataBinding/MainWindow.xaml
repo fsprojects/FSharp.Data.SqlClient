@@ -8,8 +8,9 @@
         </Grid.RowDefinitions>
         <DataGrid Name="Grid" AutoGenerateColumns="False">
             <DataGrid.Columns>
-                <DataGridTextColumn Binding="{Binding Name}" Header="Name" Width="2.5*"/>
-                <DataGridTextColumn Binding="{Binding SellStartDate}" Header="SelStartDate" Width="*"/>
+                <DataGridTextColumn Binding="{Binding AddressLine1}" Header="AddressLine1" Width="2.5*"/>
+                <DataGridTextColumn Binding="{Binding City}" Header="City" Width="*"/>
+                <DataGridTextColumn Binding="{Binding SpatialLocation}" Header="SpatialLocation" Width="*"/>
             </DataGrid.Columns>
         </DataGrid>
         <StackPanel Orientation="Horizontal" Grid.Row="1" FlowDirection="RightToLeft">
