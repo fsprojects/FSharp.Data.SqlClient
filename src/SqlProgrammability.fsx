@@ -1,10 +1,12 @@
 
 #r "../bin/SqlProgrammabilityProvider.Runtime.dll"
 #r "../bin/SqlProgrammabilityProvider.dll"
+#r "../bin/Microsoft.SqlServer.Types.dll"
 
 open System
 open System.Data
 open FSharp.Data.Experimental
+open Microsoft.SqlServer.Types
 
 [<Literal>] 
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
@@ -32,3 +34,7 @@ let m = [
 ]
 
 db.``Stored Procedures``.``dbo.MyProc``.AsyncExecute(m) |> Async.RunSynchronously |> Array.ofSeq
+
+db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
+    .AsyncExecute(291, true, DateTime(2013,1,1), "mudak", "adventure-works\mud0", SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")))
+    |> Async.RunSynchronously 

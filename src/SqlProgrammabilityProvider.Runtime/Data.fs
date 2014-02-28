@@ -18,6 +18,7 @@ type Column = {
 and TypeInfo = {
     TypeName : string
     SqlEngineTypeId : int
+    UserTypeId : int
     SqlDbTypeId : int
     IsFixedLength : bool option
     ClrTypeFullName : string

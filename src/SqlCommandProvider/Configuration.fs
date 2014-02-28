@@ -20,8 +20,10 @@ type Configuration() =
                 let watcher = new FileSystemWatcher(Filter = commandTextOrPath, Path = resolutionFolder)
                 watcher.Changed.Add(fun _ -> invalidateCallback())
                 watcher.Renamed.Add(fun _ -> invalidateCallback())
-                watcher.EnableRaisingEvents <- true                    
-                File.ReadAllText(path), Some watcher
+                watcher.EnableRaisingEvents <- true   
+                use stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                use reader = new StreamReader(stream)
+                reader.ReadToEnd(), Some watcher
 
     static member ParseConnectionStringName(s: string) =
         assert(s.Trim() <> "")

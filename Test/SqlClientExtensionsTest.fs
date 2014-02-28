@@ -16,4 +16,22 @@ do
 
 [<Fact>]
 let TestUDTTs() =
-    UDTTs() |> Seq.iter (fun x -> printfn "%A" x.UdttName)
+    UDTTs() 
+    |> Seq.collect (fun x -> x.TvpColumns)
+    |> Seq.iter (printfn "%A")    
+
+[<Fact>]
+let TestAssemblyTypes() =
+    SqlClrTypes() 
+    |> Seq.groupBy(fun t->t.SqlEngineTypeId)
+    |> Seq.iter (printfn "%A")
+
+[<Fact>]
+let GetFullQualityColumnInfo() =
+    conn.GetFullQualityColumnInfo("dbo.uspGetWhereUsedProductID") 
+    |> Seq.iter (printfn "%A") 
+
+[<Fact>]
+let GetAllSPs() =
+    conn.GetProcedures()
+    |> Seq.iter (fun x -> printfn "%A" x)

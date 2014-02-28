@@ -4,7 +4,6 @@
 * 1.0.018 - Parametrized queries that can fallback to SET FMTONLY ON
 * 1.0.019 - Removing FallbackToProbeResultTypeInTransaction
 * 1.0.020 - Support ResultType.Maps for untyped output data
-* 1.0.020 - Support ResultType.Maps for untyped output data
 * 1.1.21 - Preserve original exception thrown by sys.spdescribefirstresult_set.
 * 1.1.22 - Change TVP representation from tuples to custom types with ctor
 * 1.1.23 - Fix issue #35. Change lazy ctor generation to eager.
@@ -12,6 +11,6 @@
 * 1.1.25 - Fix issue #38. Support for serialization in WebAPI. ResultType.Records erased to ExpandoObject.
 * 1.1.27 - Fix issues #39 and #40. Mandatory ConnectionStringOrName parameter. ConnectionStringOrName static property.
 * 1.1.28 - BREKAING CHANGE: default ResultType is now Records. Additional xml docs. Fix Issue #43. SingleRow = true now returns option<_> instead of just value. Bugfix for FileWatcher on VS 2013. Transaction support in SqlCommand constructor. Design-time performace improvements with caching.
-
+* 1.1.29 - Fix issue #46 : support for SqlTypes - note that additional Nuget package is now required. Minor improvement in design-time opening of the command file.
 
 

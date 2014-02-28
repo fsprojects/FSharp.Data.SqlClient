@@ -16,7 +16,9 @@ type internal Column = {
         else this.TypeInfo.ClrType
 
 and internal TypeInfo = {
+    TypeName : string
     SqlEngineTypeId : int
+    UserTypeId : int
     SqlDbTypeId : int
     IsFixedLength : bool option
     ClrTypeFullName : string

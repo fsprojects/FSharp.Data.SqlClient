@@ -34,6 +34,6 @@ let Procedures() =
 let DataTypes() = 
     seq { 
                 for row in conn.GetSchema("DataTypes").Rows do
-                    yield string row.["TypeName"],  unbox<int> row.["ProviderDbType"], string row.["DataType"], row.ItemArray
+                    yield string row.["TypeName"],  unbox<int> row.["ProviderDbType"], string row.["DataType"]
     }
     |> Seq.iter (printfn "%A")

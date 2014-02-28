@@ -218,49 +218,14 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         use connection = new SqlConnection(designTimeConnectionString)
         try
             connection.Open() 
-            this.GetFullQualityColumnInfo(connection, commandText) 
+            connection.GetFullQualityColumnInfo(commandText) 
         with :? SqlException as why ->
             try 
-                this.FallbackToSETFMONLY(connection, commandText, isFunction, sqlParameters) 
+                connection.FallbackToSETFMONLY(commandText, isFunction, sqlParameters) 
             with :? SqlException ->
                 raise why
 
-     member internal __.GetFullQualityColumnInfo(connection, commandText) = [
-        use cmd = new SqlCommand("sys.sp_describe_first_result_set", connection, CommandType = CommandType.StoredProcedure)
-        cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
-        use reader = cmd.ExecuteReader()
-
-        while reader.Read() do
-            yield { 
-                Column.Name = string reader.["name"]
-                Ordinal = unbox reader.["column_ordinal"]
-                TypeInfo = reader.["system_type_id"] |> unbox |> findTypeInfoBySqlEngineTypeId
-                IsNullable = unbox reader.["is_nullable"]
-                MaxLength = reader.["max_length"] |> unbox<int16> |> int
-            }
-    ] 
-
-    member internal __.FallbackToSETFMONLY(connection, commandText, isFunction, sqlParameters) = 
-        let commandType = if isFunction then CommandType.Text else CommandType.StoredProcedure
-        use cmd = new SqlCommand(commandText, connection, CommandType = commandType)
-        for p in sqlParameters do
-            cmd.Parameters.Add(p.Name, p.TypeInfo.SqlDbType) |> ignore
-        use reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly)
-        match reader.GetSchemaTable() with
-        | null -> []
-        | columnSchema -> 
-            [
-                for row in columnSchema.Rows do
-                    yield { 
-                        Column.Name = unbox row.["ColumnName"]
-                        Ordinal = unbox row.["ColumnOrdinal"]
-                        TypeInfo =
-                            let t = Enum.Parse(typeof<SqlDbType>, string row.["ProviderType"]) |> unbox
-                            findTypeInfoByProviderType(unbox t, "").Value
-                        IsNullable = unbox row.["AllowDBNull"]
-                        MaxLength = unbox row.["ColumnSize"]
-                    }
-            ]
+    
      member internal this.GetExecuteNonQuery(allParametersOptional, paramInfos)  = 
         let body expr =
             <@@

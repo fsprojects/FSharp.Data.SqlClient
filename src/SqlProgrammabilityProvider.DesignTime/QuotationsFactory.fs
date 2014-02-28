@@ -132,12 +132,15 @@ type QuotationsFactory private() =
         let name = p.Name
         let dbType = p.TypeInfo.SqlDbTypeId
         <@@ 
-            SqlParameter(
-                name, 
-                enum dbType, 
-                Direction = %%Expr.Value p.Direction,
-                TypeName = %%Expr.Value p.TypeInfo.UdttName
-            )
+            let r =SqlParameter(
+                        name, 
+                        enum dbType, 
+                        Direction = %%Expr.Value p.Direction,
+                        TypeName = %%Expr.Value p.TypeInfo.UdttName
+                    )
+            if 240 = %%Expr.Value p.TypeInfo.SqlEngineTypeId then
+                r.UdtTypeName <- %%Expr.Value p.TypeInfo.TypeName
+            r
         @@>
     
     static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> DbNull @@>    
