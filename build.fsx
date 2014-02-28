@@ -36,6 +36,7 @@ let release =
 
 let version = release.AssemblyVersion
 let releaseNotes = release.Notes |> String.concat "\n"
+let testDir = "src/SqlCommandProvider.Tests/bin/Release"
 
 // --------------------------------------------------------------------------------------
 // Generate assembly info files with the right version & up-to-date information
@@ -84,17 +85,14 @@ Target "BuildTests" (fun _ ->
 
 // --------------------------------------------------------------------------------------
 // Run the unit tests 
-let testDir = "src/SqlCommandProvider.Tests/*/bin/Release"
-let testDlls = !! (testDir + "/FSharp.Data.Experimental.SqlCommandProvider.Tests.dll")
-
 Target "RunTests" (fun _ ->
-    testDlls
+    !! (testDir + "/*.Tests.dll")
         |> xUnit (fun p -> 
             {p with 
                 ShadowCopy = false;
                 HtmlOutput = true;
                 XmlOutput = true;
-                OutputDir = testDir })
+                OutputDir = testDir})
 )
 
 // --------------------------------------------------------------------------------------
