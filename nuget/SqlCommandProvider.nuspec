@@ -17,6 +17,9 @@
       <frameworkAssembly assemblyName="System.Data" targetFramework=".NETFramework4.0" />
       <frameworkAssembly assemblyName="System.Xml" targetFramework=".NETFramework4.0" />
     </frameworkAssemblies>
+    <dependencies>
+      <dependency id="Microsoft.SqlServer.Types"/>
+    </dependencies>
   </metadata>
   <files>
     <file src="..\bin\FSharp.Data.Experimental.SqlCommandProvider.dll" target="lib/net40\FSharp.Data.Experimental.SqlCommandProvider.dll" />

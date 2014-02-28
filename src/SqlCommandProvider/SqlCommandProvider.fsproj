@@ -69,6 +69,9 @@
     <None Include="SqlServerTypes\readme.htm" />
     <None Include="SqlServerTypes\Loader.cs" />
     <None Include="packages.config" />
+    <None Include="nuspec.2011.8.xsd" />
+    <None Include="nuspec.2010.7.xsd" />
+    <None Include="MyPackage.1.0.0.nuspec" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
