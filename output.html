@@ -341,12 +341,42 @@ If multiple passes over the sequence required use standard <code>Seq.cache</code
 </table><h3>Output result types summary:</h3>
 
 <ul>
-<li>Tuples. Default. Mostly convenient in F# combined with pattern matching</li>
-<li>Records. .NET-style class with read-only properties. WebAPI/ASP.NET MVC/Json.NET/WPF, Data Binding</li>
+<li>Records (default) .NET-style class with read-only properties. WebAPI/ASP.NET MVC/Json.NET/WPF, Data Binding</li>
+<li>Tuples - convenient option for F# combined with pattern matching</li>
 <li>DataTable with inferred data rows similar to Records. Update scenarios. WPF data binding</li>
-<li>Maps. For rare cases when structure of output cannot be inferred</li>
+<li>DataReader - for rare cases when structure of output cannot be inferred</li>
 </ul>
 
+<p>In later case, resulting <code>SqlDataReader</code> can be wrapped into something like that:</p>
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs75', 193)" onmouseover="showTip(event, 'fs75', 193)" class="i">ReadToMaps</span>(<span onmouseout="hideTip(event, 'fs76', 194)" onmouseover="showTip(event, 'fs76', 194)" class="i">reader</span> <span class="o">:</span> <span onmouseout="hideTip(event, 'fs11', 195)" onmouseover="showTip(event, 'fs11', 195)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs77', 196)" onmouseover="showTip(event, 'fs77', 196)" class="i">Data</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs78', 197)" onmouseover="showTip(event, 'fs78', 197)" class="i">SqlClient</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs79', 198)" onmouseover="showTip(event, 'fs79', 198)" class="i">SqlDataReader</span>) <span class="o">=</span> <span onmouseout="hideTip(event, 'fs80', 199)" onmouseover="showTip(event, 'fs80', 199)" class="i">seq</span>{
+            <span class="k">try</span> 
+                <span class="k">while</span>(<span onmouseout="hideTip(event, 'fs76', 200)" onmouseover="showTip(event, 'fs76', 200)" class="i">reader</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs81', 201)" onmouseover="showTip(event, 'fs81', 201)" class="i">Read</span>()) <span class="k">do</span>
+                    <span class="k">yield</span>   <span onmouseout="hideTip(event, 'fs82', 202)" onmouseover="showTip(event, 'fs82', 202)" class="i">Map</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs83', 203)" onmouseover="showTip(event, 'fs83', 203)" class="i">ofArray</span><span class="o">&lt;</span><span onmouseout="hideTip(event, 'fs84', 204)" onmouseover="showTip(event, 'fs84', 204)" class="i">string</span>, <span onmouseout="hideTip(event, 'fs85', 205)" onmouseover="showTip(event, 'fs85', 205)" class="i">obj</span><span class="o">&gt;</span> [| 
+                                <span class="k">for</span> <span onmouseout="hideTip(event, 'fs86', 206)" onmouseover="showTip(event, 'fs86', 206)" class="i">i</span> <span class="o">=</span> <span class="n">0</span> <span class="k">to</span> <span onmouseout="hideTip(event, 'fs76', 207)" onmouseover="showTip(event, 'fs76', 207)" class="i">reader</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs87', 208)" onmouseover="showTip(event, 'fs87', 208)" class="i">FieldCount</span> <span class="o">-</span> <span class="n">1</span> <span class="k">do</span>
+                                        <span class="k">if</span> <span onmouseout="hideTip(event, 'fs88', 209)" onmouseover="showTip(event, 'fs88', 209)" class="i">not</span>(<span onmouseout="hideTip(event, 'fs76', 210)" onmouseover="showTip(event, 'fs76', 210)" class="i">reader</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs89', 211)" onmouseover="showTip(event, 'fs89', 211)" class="i">IsDBNull</span>(<span onmouseout="hideTip(event, 'fs86', 212)" onmouseover="showTip(event, 'fs86', 212)" class="i">i</span>)) <span class="k">then</span> <span class="k">yield</span> <span onmouseout="hideTip(event, 'fs76', 213)" onmouseover="showTip(event, 'fs76', 213)" class="i">reader</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs90', 214)" onmouseover="showTip(event, 'fs90', 214)" class="i">GetName</span>(<span onmouseout="hideTip(event, 'fs86', 215)" onmouseover="showTip(event, 'fs86', 215)" class="i">i</span>), <span onmouseout="hideTip(event, 'fs76', 216)" onmouseover="showTip(event, 'fs76', 216)" class="i">reader</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs91', 217)" onmouseover="showTip(event, 'fs91', 217)" class="i">GetValue</span>(<span onmouseout="hideTip(event, 'fs86', 218)" onmouseover="showTip(event, 'fs86', 218)" class="i">i</span>)
+                            |]  
+
+            <span class="k">finally</span>
+                <span onmouseout="hideTip(event, 'fs76', 219)" onmouseover="showTip(event, 'fs76', 219)" class="i">reader</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs92', 220)" onmouseover="showTip(event, 'fs92', 220)" class="i">Close</span>()
+           }</pre>
+</td>
+</tr>
+</table>
 <div class="tip" id="fs1">namespace FSharp</div>
 <div class="tip" id="fs2">namespace FSharp.Data</div>
 <div class="tip" id="fs3">namespace FSharp.Data.Experimental</div>
@@ -354,7 +384,7 @@ If multiple passes over the sequence required use standard <code>Seq.cache</code
 <div class="tip" id="fs5">val connectionString : string<br /><br />Full name: Output.connectionString</div>
 <div class="tip" id="fs6">val productsSql : string<br /><br />Full name: Output.productsSql</div>
 <div class="tip" id="fs7">type QueryProductAsRecords = SqlCommand&lt;...&gt;<br /><br />Full name: Output.QueryProductAsRecords</div>
-<div class="tip" id="fs8">type SqlCommand<br /><br />Full name: FSharp.Data.Experimental.SqlCommand<br /><em><br /><br /><br />&lt;summary&gt;Typed representation of a T-SQL statement to execute against a SQL Server database.&lt;/summary&gt; <br />&lt;param name=&#39;CommandText&#39;&gt;Transact-SQL statement to execute at the data source.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;CommandType&#39;&gt;Obsolete. A value indicating how the CommandText property is to be interpreted.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable or Maps.&lt;/param&gt;<br />&lt;param name=&#39;SingleRow&#39;&gt;If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;AllParametersOptional&#39;&gt;If set all parameters become optional. NULL input values must be handled inside T-SQL.&lt;/param&gt;<br /></em></div>
+<div class="tip" id="fs8">type SqlCommand<br /><br />Full name: FSharp.Data.Experimental.SqlCommand<br /><em><br /><br /><br />&lt;summary&gt;Typed representation of a T-SQL statement to execute against a SQL Server database.&lt;/summary&gt; <br />&lt;param name=&#39;CommandText&#39;&gt;Transact-SQL statement to execute at the data source.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;CommandType&#39;&gt;Obsolete. A value indicating how the CommandText property is to be interpreted.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable or DataReader.&lt;/param&gt;<br />&lt;param name=&#39;SingleRow&#39;&gt;If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;AllParametersOptional&#39;&gt;If set all parameters become optional. NULL input values must be handled inside T-SQL.&lt;/param&gt;<br /></em></div>
 <div class="tip" id="fs9">val queryProductAsRecords : SqlCommand&lt;...&gt;<br /><br />Full name: Output.queryProductAsRecords</div>
 <div class="tip" id="fs10">SqlCommand&lt;...&gt;.AsyncExecute(top: int64, SellStartDate: System.DateTime) : Async&lt;System.Collections.Generic.IEnumerable&lt;SqlCommand&lt;...&gt;.Record&gt;&gt;</div>
 <div class="tip" id="fs11">namespace System</div>
@@ -370,7 +400,7 @@ If multiple passes over the sequence required use standard <code>Seq.cache</code
 <div class="tip" id="fs21">property SqlCommand&lt;...&gt;.Record.SellStartDate: System.DateTime</div>
 <div class="tip" id="fs22">property SqlCommand&lt;...&gt;.Record.Size: Option&lt;string&gt;</div>
 <div class="tip" id="fs23">type QueryProductSync = SqlCommand&lt;...&gt;<br /><br />Full name: Output.QueryProductSync</div>
-<div class="tip" id="fs24">type ResultType =<br />&#160;&#160;|  Records  =  0<br />&#160;&#160;|  Tuples  =  1<br />&#160;&#160;|  DataTable  =  2<br />&#160;&#160;|  Maps  =  3<br /><br />Full name: FSharp.Data.Experimental.ResultType</div>
+<div class="tip" id="fs24">type ResultType =<br />&#160;&#160;|  Records  =  0<br />&#160;&#160;|  Tuples  =  1<br />&#160;&#160;|  DataTable  =  2<br />&#160;&#160;|  DataReader  =  3<br /><br />Full name: FSharp.Data.Experimental.ResultType</div>
 <div class="tip" id="fs25">ResultType.Tuples: ResultType = 1</div>
 <div class="tip" id="fs26">val tuples : System.Collections.Generic.IEnumerable&lt;string * System.DateTime * Option&lt;string&gt;&gt;<br /><br />Full name: Output.tuples</div>
 <div class="tip" id="fs27">val productName : string</div>
@@ -421,6 +451,24 @@ If multiple passes over the sequence required use standard <code>Seq.cache</code
 <div class="tip" id="fs72">val xs : seq&lt;int&gt;<br /><br />Full name: Output.xs</div>
 <div class="tip" id="fs73">val cache : source:seq&lt;&#39;T&gt; -&gt; seq&lt;&#39;T&gt;<br /><br />Full name: Microsoft.FSharp.Collections.Seq.cache</div>
 <div class="tip" id="fs74">val nth : index:int -&gt; source:seq&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Collections.Seq.nth</div>
+<div class="tip" id="fs75">val ReadToMaps : reader:System.Data.SqlClient.SqlDataReader -&gt; seq&lt;Map&lt;string,obj&gt;&gt;<br /><br />Full name: Output.ReadToMaps</div>
+<div class="tip" id="fs76">val reader : System.Data.SqlClient.SqlDataReader</div>
+<div class="tip" id="fs77">namespace System.Data</div>
+<div class="tip" id="fs78">namespace System.Data.SqlClient</div>
+<div class="tip" id="fs79">type SqlDataReader =<br />&#160;&#160;inherit DbDataReader<br />&#160;&#160;member Close : unit -&gt; unit<br />&#160;&#160;member Depth : int<br />&#160;&#160;member FieldCount : int<br />&#160;&#160;member GetBoolean : i:int -&gt; bool<br />&#160;&#160;member GetByte : i:int -&gt; byte<br />&#160;&#160;member GetBytes : i:int * dataIndex:int64 * buffer:byte[] * bufferIndex:int * length:int -&gt; int64<br />&#160;&#160;member GetChar : i:int -&gt; char<br />&#160;&#160;member GetChars : i:int * dataIndex:int64 * buffer:char[] * bufferIndex:int * length:int -&gt; int64<br />&#160;&#160;member GetDataTypeName : i:int -&gt; string<br />&#160;&#160;member GetDateTime : i:int -&gt; DateTime<br />&#160;&#160;...<br /><br />Full name: System.Data.SqlClient.SqlDataReader</div>
+<div class="tip" id="fs80">Multiple items<br />val seq : sequence:seq&lt;&#39;T&gt; -&gt; seq&lt;&#39;T&gt;<br /><br />Full name: Microsoft.FSharp.Core.Operators.seq<br /><br />--------------------<br />type seq&lt;&#39;T&gt; = System.Collections.Generic.IEnumerable&lt;&#39;T&gt;<br /><br />Full name: Microsoft.FSharp.Collections.seq&lt;_&gt;</div>
+<div class="tip" id="fs81">System.Data.SqlClient.SqlDataReader.Read() : bool</div>
+<div class="tip" id="fs82">Multiple items<br />module Map<br /><br />from Microsoft.FSharp.Collections<br /><br />--------------------<br />type Map&lt;&#39;Key,&#39;Value (requires comparison)&gt; =<br />&#160;&#160;interface IEnumerable<br />&#160;&#160;interface IComparable<br />&#160;&#160;interface IEnumerable&lt;KeyValuePair&lt;&#39;Key,&#39;Value&gt;&gt;<br />&#160;&#160;interface ICollection&lt;KeyValuePair&lt;&#39;Key,&#39;Value&gt;&gt;<br />&#160;&#160;interface IDictionary&lt;&#39;Key,&#39;Value&gt;<br />&#160;&#160;new : elements:seq&lt;&#39;Key * &#39;Value&gt; -&gt; Map&lt;&#39;Key,&#39;Value&gt;<br />&#160;&#160;member Add : key:&#39;Key * value:&#39;Value -&gt; Map&lt;&#39;Key,&#39;Value&gt;<br />&#160;&#160;member ContainsKey : key:&#39;Key -&gt; bool<br />&#160;&#160;override Equals : obj -&gt; bool<br />&#160;&#160;member Remove : key:&#39;Key -&gt; Map&lt;&#39;Key,&#39;Value&gt;<br />&#160;&#160;...<br /><br />Full name: Microsoft.FSharp.Collections.Map&lt;_,_&gt;<br /><br />--------------------<br />new : elements:seq&lt;&#39;Key * &#39;Value&gt; -&gt; Map&lt;&#39;Key,&#39;Value&gt;</div>
+<div class="tip" id="fs83">val ofArray : elements:(&#39;Key * &#39;T) [] -&gt; Map&lt;&#39;Key,&#39;T&gt; (requires comparison)<br /><br />Full name: Microsoft.FSharp.Collections.Map.ofArray</div>
+<div class="tip" id="fs84">Multiple items<br />val string : value:&#39;T -&gt; string<br /><br />Full name: Microsoft.FSharp.Core.Operators.string<br /><br />--------------------<br />type string = System.String<br /><br />Full name: Microsoft.FSharp.Core.string</div>
+<div class="tip" id="fs85">type obj = System.Object<br /><br />Full name: Microsoft.FSharp.Core.obj</div>
+<div class="tip" id="fs86">val i : int</div>
+<div class="tip" id="fs87">property System.Data.SqlClient.SqlDataReader.FieldCount: int</div>
+<div class="tip" id="fs88">val not : value:bool -&gt; bool<br /><br />Full name: Microsoft.FSharp.Core.Operators.not</div>
+<div class="tip" id="fs89">System.Data.SqlClient.SqlDataReader.IsDBNull(i: int) : bool</div>
+<div class="tip" id="fs90">System.Data.SqlClient.SqlDataReader.GetName(i: int) : string</div>
+<div class="tip" id="fs91">System.Data.SqlClient.SqlDataReader.GetValue(i: int) : obj</div>
+<div class="tip" id="fs92">System.Data.SqlClient.SqlDataReader.Close() : unit</div>
 
             </div>
 
