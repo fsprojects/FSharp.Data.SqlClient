@@ -30,8 +30,8 @@ type ResultType =
     | Tuples = 1
 ///<summary>Typed DataTable <see cref='T:FSharp.Data.Experimental.DataTable`1'/></summary>
     | DataTable = 2
-///<summary>Sequence of maps indexed by column names</summary>
-    | Maps = 3
+///<summary>raw DataReader</summary>
+    | DataReader = 3
 
 [<assembly:TypeProviderAssembly()>]
 [<assembly:InternalsVisibleTo("FSharp.Data.Experimental.SqlCommandProvider.Tests")>]
@@ -77,7 +77,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 <param name='CommandText'>Transact-SQL statement to execute at the data source.</param>
 <param name='ConnectionStringOrName'>String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&lt;connection string name&gt;”.</param>
 <param name='CommandType'>Obsolete. A value indicating how the CommandText property is to be interpreted.</param>
-<param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable or Maps.</param>
+<param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable or DataReader.</param>
 <param name='SingleRow'>If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
 <param name='AllParametersOptional'>If set all parameters become optional. NULL input values must be handled inside T-SQL.</param>
@@ -162,7 +162,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         let executeArgs = this.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters, allParametersOptional) 
         let outputColumns = 
-            if resultType <> ResultType.Maps 
+            if resultType <> ResultType.DataReader
             then this.GetOutputColumns(conn, commandText, commandType, sqlParameters)
             else []
 
@@ -305,8 +305,10 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
     member internal __.AddExecuteMethod(allParametersOptional, paramInfos, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) = 
         let syncReturnType, executeMethodBody = 
-            if resultType = ResultType.Maps then
-                this.Maps(allParametersOptional, paramInfos, singleRow)
+            if resultType = ResultType.DataReader then
+                let getExecuteBody(args : Expr list) = 
+                    QuotationsFactory.GetDataReader(args, allParametersOptional, paramInfos, singleRow)
+                typeof<SqlDataReader>, getExecuteBody
             else
                 if outputColumns.IsEmpty
                 then 
@@ -416,19 +418,4 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let returnType = typedefof<_ DataTable>.MakeGenericType rowType
 
         returnType, body
-
-    member internal this.Maps(allParametersOptional, paramInfos, singleRow) =
-        let readerToMap = 
-            <@
-                fun(reader : SqlDataReader) -> 
-                    Map.ofArray<string, obj> [| 
-                        for i = 0 to reader.FieldCount - 1 do
-                             if not( reader.IsDBNull(i)) then yield reader.GetName(i), reader.GetValue(i)
-                    |]  
-            @>
-
-        let getExecuteBody(args : Expr list) = 
-            QuotationsFactory.GetRows(args, allParametersOptional, paramInfos, readerToMap, singleRow)
-            
-        typeof<Map<string, obj> seq>, getExecuteBody
 

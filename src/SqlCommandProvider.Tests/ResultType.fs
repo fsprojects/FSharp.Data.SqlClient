@@ -2,45 +2,39 @@
 
 open FSharp.Data.Experimental
 open Xunit
+open FsUnit.Xunit
 
 [<Literal>]
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
-type ResultTypeMaps = 
-    SqlCommand<"SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003)) AS T(lang, DOB)", "name=AdventureWorks2012", ResultType = ResultType.Maps>
+type ResultTypeReader = 
+    SqlCommand<"SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003), ('foo bar',NULL))  AS T(lang, DOB)", "name=AdventureWorks2012", ResultType = ResultType.DataReader>
 
+let ReadToMaps(reader : System.Data.SqlClient.SqlDataReader) = seq{
+            try 
+                while(reader.Read()) do
+                    yield   Map.ofArray<string, obj> [| 
+                                for i = 0 to reader.FieldCount - 1 do
+                                        if not(reader.IsDBNull(i)) then yield reader.GetName(i), reader.GetValue(i)
+                            |]  
+
+            finally
+                reader.Close()
+           }
 [<Fact>]
-let ResultTypeMaps() = 
-    let cmd = ResultTypeMaps()
+let ResultTypeReader() = 
+    let cmd = ResultTypeReader()
     let expected = 
         [| 
-            "F#", 2005
-            "Scala", 2003 
-        |] 
-        |> Array.map (fun(lang, dob) ->
-            Map.ofList [ "lang", box lang; "DOB", box dob]
-        )
-
-    Assert.Equal<Map<string, obj>[]>(expected, cmd.Execute() |> Seq.toArray)
-
-type ResultTypeMapsWithNullableCols = 
-    SqlCommand<"SELECT * FROM (VALUES ('abc', 123), ('def', 456), ('xyz', NULL)) AS T(name, value)", "name=AdventureWorks2012", ResultType = ResultType.Maps>
-
-[<Fact>]
-let ResultTypeMapsWithNullableCols() = 
-    let cmd = ResultTypeMapsWithNullableCols()
-    let expected = 
-        [| 
-            "abc", Some 123 
-            "def", Some 456
-            "xyz", None
+            "F#", Some 2005 
+            "Scala", Some 2003
+            "foo bar", None
         |] 
         |> Array.map (fun(name, value) ->
-            let result = Map.ofList [ "name", box name ]
+            let result = Map.ofList [ "lang", box name ]
             match value with
-            | Some x -> result.Add("value", box x)
+            | Some x -> result.Add("DOB", box x)
             | None -> result
         )
 
-    Assert.Equal<Map<string, obj>[]>(expected, cmd.Execute() |> Seq.toArray)
-
+    Assert.Equal<Map<string, obj>[]>(expected, ReadToMaps(cmd.Execute()) |> Seq.toArray)

@@ -178,9 +178,22 @@ printfn "#2: %i " <| Seq.nth 1 xs //see it fails here if result is not piped int
 (**
 ### Output result types summary:
     
-* Tuples. Default. Mostly convenient in F# combined with pattern matching
-* Records. .NET-style class with read-only properties. WebAPI/ASP.NET MVC/Json.NET/WPF, Data Binding
+* Records (default) .NET-style class with read-only properties. WebAPI/ASP.NET MVC/Json.NET/WPF, Data Binding
+* Tuples - convenient option for F# combined with pattern matching
 * DataTable with inferred data rows similar to Records. Update scenarios. WPF data binding
-* Maps. For rare cases when structure of output cannot be inferred
+* DataReader - for rare cases when structure of output cannot be inferred
 
+In later case, resulting `SqlDataReader` can be wrapped into something like that:
 *)
+
+let ReadToMaps(reader : System.Data.SqlClient.SqlDataReader) = seq{
+            try 
+                while(reader.Read()) do
+                    yield   Map.ofArray<string, obj> [| 
+                                for i = 0 to reader.FieldCount - 1 do
+                                        if not(reader.IsDBNull(i)) then yield reader.GetName(i), reader.GetValue(i)
+                            |]  
+
+            finally
+                reader.Close()
+           }

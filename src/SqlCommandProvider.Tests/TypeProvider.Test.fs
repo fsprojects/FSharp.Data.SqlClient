@@ -83,11 +83,11 @@ let singleRowOption() =
 //     
 //open Microsoft.SqlServer.Types
 //
-//type Spacial = SqlCommand<"select top 5 SpatialLocation from Person.Address", connectionString>
+//type Spatial = SqlCommand<"select top 5 SpatialLocation from Person.Address", connectionString>
 //
 //[<Fact>]
 //let nativeTypes() =
-//    let result = Spacial().Execute()
+//    let result = Spatial().Execute()
 //    result |> Seq.iter (printfn "%A")
 
 

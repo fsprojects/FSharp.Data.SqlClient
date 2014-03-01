@@ -45,13 +45,13 @@ let internal findTypeInfoByName(name) =
 
 type SqlDataReader with
     
-    member this.toOption<'a> (key:string) =
+    member internal this.toOption<'a> (key:string) =
         let v = this.[key] 
         if v = DbNull then None else Some(unbox<'a> v)
 
 type DataRow with
 
-    member this.toOption<'a> (key:string) = 
+    member internal this.toOption<'a> (key:string) = 
         if this.IsNull(key) then None else Some(unbox<'a> this.[key])
 
 type SqlConnection with

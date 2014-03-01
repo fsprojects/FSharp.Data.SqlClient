@@ -111,9 +111,9 @@ let useFMTONLY = UseFMTONLY()
 useFMTONLY.Execute()
 
 //Runtime column names and Map<string,obj> as a row type
-type UseGet = SqlCommand<"dbo.[Get]", connectionString, CommandType = CommandType.StoredProcedure, ResultType = ResultType.Maps >
+type UseGet = SqlCommand<"dbo.[Get]", connectionString, CommandType = CommandType.StoredProcedure, ResultType = ResultType.DataReader >
 let useGet = UseGet()
-useGet.Execute()
+useGet.Execute().NextResult() = false
 
 //Insert command
 type InsertCommand = 
