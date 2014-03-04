@@ -35,7 +35,6 @@ type QuotationsFactory private() =
             then 
                 exprArgs.Tail
             else
-                let types = paramInfos |> List.map (fun p -> p.TypeInfo.ClrTypeFullName)
                 (exprArgs.Tail, paramInfos)
                 ||> List.map2 (fun expr info ->
                     typeof<QuotationsFactory>
@@ -132,7 +131,7 @@ type QuotationsFactory private() =
         let name = p.Name
         let dbType = p.TypeInfo.SqlDbTypeId
         <@@ 
-            let r =SqlParameter(
+            let r = SqlParameter(
                         name, 
                         enum dbType, 
                         Direction = %%Expr.Value p.Direction,

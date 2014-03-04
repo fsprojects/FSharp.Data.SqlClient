@@ -39,14 +39,14 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         providerType.DefineStaticParameters(
             parameters = [ 
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
-                ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Tuples) 
+                ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Records) 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
             ],             
             instantiationFunction = this.CreateType
         )
 
         providerType.AddXmlDoc """
-<summary>Typed access to SQL Server programmable objects: stored procedures, function, user defined table types etc.</summary> 
+<summary>Typed access to SQL Server programmable objects: stored procedures, functions and user defined table types.</summary> 
 <param name='ConnectionStringOrName'>String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&lt;connection string name&gt;”.</param>
 <param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable or Maps.</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
@@ -178,7 +178,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
      member internal __.AddExecuteMethod(udttTypes, designTimeConnectionString, propertyType, allParametersOptional, parameters, twoPartsName, isFunction, resultType, singleRow) = 
         fun() -> 
             let outputColumns = 
-                if resultType <> ResultType.Maps 
+                let anyOutputParameters = parameters |> Seq.exists(fun p -> p.Direction <> ParameterDirection.Input)
+                if resultType <> ResultType.Maps && not anyOutputParameters
                 then this.GetOutputColumns(designTimeConnectionString, twoPartsName, isFunction, parameters)
                 else []
         
@@ -190,7 +191,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 else
                     if outputColumns.IsEmpty
                     then 
-                        this.GetExecuteNonQuery(allParametersOptional, parameters)
+                        this.GetExecuteNonQuery(propertyType, allParametersOptional, parameters)
                     elif resultType = ResultType.DataTable
                     then 
                         this.DataTable(propertyType, allParametersOptional, parameters, twoPartsName, outputColumns, singleRow)
@@ -226,69 +227,42 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 raise why
 
     
-     member internal this.GetExecuteNonQuery(allParametersOptional, paramInfos)  = 
+     member internal this.GetExecuteNonQuery(providedCommandType, allParametersOptional, paramInfos)  = 
+        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
+        let returnValue = ReturnValue()
+        for param in returnValue::paramInfos do
+            if param.Direction <> ParameterDirection.Input then
+                let paramName = param.Name
+                let property = ProvidedProperty(paramName.Substring(1), propertyType = param.TypeInfo.ClrType)
+                property.GetterCode <- fun args -> 
+                    <@@ 
+                        let coll : SqlParameterCollection = %%Expr.Coerce(args.[0], typeof<SqlParameterCollection>)
+                        let param = coll |> Seq.cast<SqlParameter> |> Seq.find(fun p -> p.ParameterName = paramName)
+                        param.Value
+                    @@>
+                recordType.AddMember property
+
+        providedCommandType.AddMember recordType
+
+        let inputParamters = [for p in paramInfos do if p.Direction <> ParameterDirection.Output then yield p]
+
+        let returnName = returnValue.Name
         let body expr =
             <@@
                 async {
-                    let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet(expr, allParametersOptional, paramInfos)
+                    let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet(expr, allParametersOptional, inputParamters)
+                    sqlCommand.Parameters.Add(SqlParameter(returnName, SqlDbType.Int, Direction = ParameterDirection.ReturnValue)) |> ignore
                     //open connection async on .NET 4.5
                     sqlCommand.Connection.Open()
                     use ensureConnectionClosed = sqlCommand.CloseConnectionOnly()
-                    let rowsAffected = sqlCommand.AsyncExecuteNonQuery()
-                    return! rowsAffected  
+                    let! rowsAffected = sqlCommand.AsyncExecuteNonQuery()
+                    return box sqlCommand.Parameters                     
                 }
             @@>
-        typeof<int>, body
-
-     member internal __.GetExecuteArgsForSqlParameters(udttTypes, sqlParameters, allParametersOptional) = [
-        for p in sqlParameters do
-            let parameterName = p.Name
-
-            let optionalValue = if allParametersOptional then Some null else None
-
-            let parameterType = 
-                if not p.TypeInfo.TableType 
-                then
-                    p.TypeInfo.ClrType
-                else
-                    assert(p.Direction = ParameterDirection.Input)
-                    let rowType = udttTypes |> List.find(fun x -> x.Name = p.TypeInfo.UdttName)
-                    ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
-
-            yield ProvidedParameter(
-                parameterName, 
-                parameterType = (if allParametersOptional && parameterType.IsValueType then typedefof<_ option>.MakeGenericType( parameterType) else parameterType), 
-                ?optionalValue = optionalValue
-            )
-    ]
-
-     member internal this.Tuples(allParametersOptional, paramInfos, columns, singleRow) =
-        let tupleType = match Seq.toArray columns with
-                        | [| x |] -> x.ClrTypeConsideringNullable
-                        | xs' -> FSharpType.MakeTupleType [| for x in xs' -> x.ClrTypeConsideringNullable|]
-
-        let rowMapper = 
-            let values = Var("values", typeof<obj[]>)
-            let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
-            Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [ Expr.Var values; getTupleType ]), tupleType))
-
-        tupleType, QuotationsFactory.GetBody("GetTypedSequence", tupleType, allParametersOptional, paramInfos, rowMapper, singleRow, columns)
-
+        upcast recordType, body
+           
     member internal this.Records( providedCommandType, allParametersOptional, paramInfos,  columns, singleRow) =
-        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
-        for col in columns do
-            let propertyName = col.Name
-            if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
-
-            let property = ProvidedProperty(propertyName, propertyType = col.ClrTypeConsideringNullable)
-            property.GetterCode <- fun args -> 
-                <@@ 
-                    let dict : IDictionary<string, obj> = %%Expr.Coerce(args.[0], typeof<IDictionary<string, obj>>)
-                    dict.[propertyName] 
-                @@>
-
-            recordType.AddMember property
-
+        let recordType = this.RecordType(columns)
         providedCommandType.AddMember recordType
 
         let getExecuteBody (args : Expr list) = 
@@ -304,6 +278,57 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                          
         upcast recordType, getExecuteBody
     
+    member internal this.RecordType(columns) =
+        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
+        for col in columns do
+            let propertyName = col.Name
+            if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
+
+            let property = ProvidedProperty(propertyName, propertyType = col.ClrTypeConsideringNullable)
+            property.GetterCode <- fun args -> 
+                <@@ 
+                    let dict : IDictionary<string, obj> = %%Expr.Coerce(args.[0], typeof<IDictionary<string, obj>>)
+                    dict.[propertyName] 
+                @@>
+
+            recordType.AddMember property
+        recordType
+
+    member internal __.GetExecuteArgsForSqlParameters(udttTypes, sqlParameters, allParametersOptional) = [
+        for p in sqlParameters do
+            if p.Direction <> ParameterDirection.Output then
+                let parameterName = p.Name
+
+                let optionalValue = if allParametersOptional then Some null else None
+
+                let parameterType = 
+                    if not p.TypeInfo.TableType 
+                    then
+                        p.TypeInfo.ClrType
+                    else
+                        assert(p.Direction = ParameterDirection.Input)
+                        let rowType = udttTypes |> List.find(fun x -> x.Name = p.TypeInfo.UdttName)
+                        ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
+
+                yield ProvidedParameter(
+                    parameterName, 
+                    parameterType = (if allParametersOptional && parameterType.IsValueType then typedefof<_ option>.MakeGenericType( parameterType) else parameterType), 
+                    ?optionalValue = optionalValue
+                )
+    ]
+
+     member internal this.Tuples(allParametersOptional, paramInfos, columns, singleRow) =
+        let tupleType = match Seq.toArray columns with
+                        | [| x |] -> x.ClrTypeConsideringNullable
+                        | xs' -> FSharpType.MakeTupleType [| for x in xs' -> x.ClrTypeConsideringNullable|]
+
+        let rowMapper = 
+            let values = Var("values", typeof<obj[]>)
+            let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
+            Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [ Expr.Var values; getTupleType ]), tupleType))
+
+        tupleType, QuotationsFactory.GetBody("GetTypedSequence", tupleType, allParametersOptional, paramInfos, rowMapper, singleRow, columns)
+
     member internal this.DataTable(providedCommandType, allParametersOptional, paramInfos, commandText, outputColumns, singleRow) =
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
         for col in outputColumns do

@@ -46,6 +46,11 @@ let findTypeInfoByProviderType(sqlDbType, udttName)  =
 let findTypeInfoByName(name) = 
     !dataTypeMappings |> List.find(fun x -> x.TypeName = name || x.UdttName = name)
 
+let ReturnValue () = { 
+    Name = "@ReturnValue" 
+    Direction = ParameterDirection.ReturnValue
+    TypeInfo = findTypeInfoByName "int"  }
+
 type SqlDataReader with
     
     member this.toOption<'a> (key:string) =
@@ -130,18 +135,13 @@ type SqlConnection with
                             for catalog, name, param in rows do
                             where (catalog = this.Database)
                             groupBy name into g
-                            let parameters = [ for p,_,_ in g -> p ]
-                            let unsupported = parameters |> Seq.exists (fun p -> p.Direction <> ParameterDirection.Input)
-                            select (g.Key, (unsupported, parameters))
+                            select (g.Key, [ for p,_,_ in g -> p ])
                          } |> Map.ofSeq
         [ 
             for r in this.GetSchema("Procedures").Rows do
                 let name = fullName r
                 let isFunction = string r.["routine_type"] = "FUNCTION"
-                match parameters.TryFind(name) with
-                | Some (false, ps) -> yield name, isFunction, ps
-                | None -> yield name, isFunction, []
-                | _ -> ()
+                yield name, isFunction, defaultArg (parameters.TryFind(name)) []
         ]
     
     member this.GetDataTypesMapping() = 

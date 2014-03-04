@@ -35,6 +35,12 @@ let m = [
 
 db.``Stored Procedures``.``dbo.MyProc``.AsyncExecute(m) |> Async.RunSynchronously |> Array.ofSeq
 
-db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
-    .AsyncExecute(291, true, DateTime(2013,1,1), "mudak", "adventure-works\mud0", SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")))
-    |> Async.RunSynchronously 
+let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
+            .AsyncExecute(291, true, DateTime(2013,1,1), "gatekeeper", "adventure-works\gat0", SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")))
+            |> Async.RunSynchronously 
+res.ReturnValue
+
+let a = db.``Stored Procedures``.``dbo.Swap``.AsyncExecute(2,1,1) |> Async.RunSynchronously 
+a.inputOutput
+a.output
+a.ReturnValue

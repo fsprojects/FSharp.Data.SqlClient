@@ -33,6 +33,6 @@ let ``List stored procedures``() =
 
 [<Fact>]
 let Parameters() = 
-    db().StoredProcedures.["uspLogError"].Parameters
+    db().StoredProcedures.["Swap"].Parameters
     |> Seq.cast<StoredProcedureParameter>     
-    |> Seq.iter (fun p -> printfn "%A %A %A" p.Name p.DataType p.DefaultValue )
+    |> Seq.iter (fun p -> printfn "%A" (p.IsReadOnly, p.DataType, p.DefaultValue, p.Name))

@@ -78,12 +78,11 @@
     <Reference Include="System.Transactions" />
     <Reference Include="System.Xml" />
     <Reference Include="xunit">
-      <HintPath>..\packages\xunit.1.9.2\lib\net20\xunit.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\..\packages\xunit.1.9.2\lib\net20\xunit.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\src\SqlProgrammabilityProvider.Runtime\SqlProgrammabilityProvider.Runtime.fsproj">
+    <ProjectReference Include="..\SqlProgrammabilityProvider.Runtime\SqlProgrammabilityProvider.Runtime.fsproj">
       <Name>SqlProgrammabilityProvider.Runtime</Name>
       <Project>{60532e40-56bb-4a89-a486-6b95f0a94ba9}</Project>
       <Private>True</Private>

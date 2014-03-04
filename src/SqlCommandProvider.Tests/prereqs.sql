@@ -5,9 +5,21 @@ DROP PROCEDURE MyProc
 DROP PROCEDURE SingleElementProc
 DROP PROCEDURE [Init]
 DROP PROCEDURE [Get]
+DROP PROCEDURE [Swap]
 DROP TYPE MyTableType
 DROP TYPE SingleElementType
 GO
+
+create procedure [dbo].[Swap]
+	@input int,
+	@inputOutput int output,
+    @output int output
+as
+begin
+    set @inputOutput = @input
+	set @output = @input
+	return @input
+end
 
 CREATE TYPE MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
 GO

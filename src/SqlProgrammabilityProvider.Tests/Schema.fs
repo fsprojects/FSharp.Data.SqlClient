@@ -14,8 +14,8 @@ do conn.Open()
 let ProcedureParameters() = 
     seq { 
                 for r in conn.GetSchema("ProcedureParameters").Rows do
-                if string r.["specific_catalog"] = conn.Database && string r.["specific_name"] = "uspUpdateEmployeeLogin" then
-                    yield r.["specific_name"], r.["parameter_name"], r.["data_type"], r.["specific_schema"]
+                if string r.["specific_catalog"] = conn.Database && string r.["specific_name"] = "Swap" then
+                    yield r.["specific_name"], r.["parameter_name"], r.["data_type"], r.["specific_schema"], r.ItemArray
 
     }
     |> Seq.iter (printfn "%A")

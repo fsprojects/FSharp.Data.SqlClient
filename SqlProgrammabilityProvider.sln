@@ -14,11 +14,10 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlProgrammabilityProvider.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D3B59002-0312-4045-BFFE-DB33070CC0C4}"
 	ProjectSection(SolutionItems) = preProject
-		DefaultParameters.sql = DefaultParameters.sql
 		src\SqlProgrammability.fsx = src\SqlProgrammability.fsx
 	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Test", "Test\Test.fsproj", "{C966B256-9A31-45FB-A1DB-DC4F8B33803A}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Test", "src\SqlProgrammabilityProvider.Tests\Test.fsproj", "{C966B256-9A31-45FB-A1DB-DC4F8B33803A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

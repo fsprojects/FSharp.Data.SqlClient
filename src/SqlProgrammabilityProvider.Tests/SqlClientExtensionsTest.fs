@@ -35,3 +35,8 @@ let GetFullQualityColumnInfo() =
 let GetAllSPs() =
     conn.GetProcedures()
     |> Seq.iter (fun x -> printfn "%A" x)
+
+[<Fact>]
+let GetParameters() =
+    conn.GetProcedures()
+    |> Seq.iter (fun x -> printfn "%A" x)
