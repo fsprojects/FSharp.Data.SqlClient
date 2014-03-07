@@ -6,6 +6,8 @@ open System.Text
 open System.Data
 open System.Data.SqlClient
 open Microsoft.FSharp.Reflection
+open Microsoft.SqlServer.Management.Smo
+open Microsoft.SqlServer.Management.Common
 
 let DbNull = box DBNull.Value
 
@@ -24,6 +26,7 @@ type SqlCommand with
     }
 
 let private dataTypeMappings = ref List.empty
+let privite db = ref null
 
 let findTypeInfoBySqlEngineTypeId (systemId, userId : int option) = 
     match !dataTypeMappings 
@@ -114,8 +117,19 @@ type SqlConnection with
             }
     ] 
 
+    member this.GetDefaults(twoPartsName : string, isFunction) =         
+        assert (this.State = ConnectionState.Open)
+        let db  = Server( ServerConnection(this)).Databases.[this.Database]
+        let parts = twoPartsName.Split('.')
+        let schema, name =  parts.[0], parts.[1]
+        let coll = if isFunction 
+                   then db.UserDefinedFunctions.[name, schema].Parameters :> ParameterCollectionBase 
+                   else db.StoredProcedures.[name, schema].Parameters :> ParameterCollectionBase 
+        seq {for p in coll |> Seq.cast<Parameter> -> p.Name, p.DefaultValue } |> Map.ofSeq
+
     member this.GetParameters(twoPartsName, isFunction) =         
         assert (this.State = ConnectionState.Open)
+        let defaults = this.GetDefaults(twoPartsName, isFunction)
         [
             for r in this.GetSchema("ProcedureParameters").Rows do
                 let fullName = sprintf "%s.%s" (string r.["specific_schema"]) (string r.["specific_name"]) 
@@ -131,7 +145,7 @@ type SqlConnection with
                         Name = name 
                         TypeInfo = findTypeInfoByName(udt) 
                         Direction = direction 
-                        DefaultValue = ""}
+                        DefaultValue = defaultArg (defaults.TryFind(name)) ""}
         ]
 
     member this.GetProcedures() = 
@@ -215,8 +229,8 @@ type SqlConnection with
         |> Seq.toList
 
     member this.LoadDataTypesMap() = 
-        if List.isEmpty !dataTypeMappings 
-        then
+        if List.isEmpty !dataTypeMappings then
             dataTypeMappings := this.GetDataTypesMapping()
+
 
 

@@ -31,18 +31,17 @@ type QuotationsFactory private() =
     static member internal GetSqlCommandWithParamValuesSet(exprArgs : Expr list, allParametersOptional, paramInfos : Parameter list) = 
         assert(exprArgs.Length - 1 = paramInfos.Length)
         let mappedParamValues = 
-            if  allParametersOptional
-            then 
-                (exprArgs.Tail, paramInfos)
-                ||> List.map2 (fun expr info ->
+            (exprArgs.Tail, paramInfos)
+            ||> List.map2 (fun expr info ->
+                if allParametersOptional || info.Direction <> ParameterDirection.Input then
                     typeof<QuotationsFactory>
                         .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
                         .MakeGenericMethod(info.TypeInfo.ClrType)
                         .Invoke(null, [| box expr|])
                         |> unbox
-                )
-            else
-                exprArgs.Tail             
+                else 
+                    expr
+            )
 
         <@
             let sqlCommand : SqlCommand = %%Expr.Coerce(exprArgs.[0], typeof<SqlCommand>)
@@ -55,7 +54,8 @@ type QuotationsFactory private() =
             for i = 0 to paramValues.Length - 1 do
                 let p = sqlCommand.Parameters.[i]
                 p.Value <- paramValues.[i]
-
+                if p.Value = DbNull && (p.SqlDbType = SqlDbType.NVarChar || p.SqlDbType = SqlDbType.VarChar)
+                then p.Size <- if  p.SqlDbType = SqlDbType.NVarChar then 4000 else 8000
             sqlCommand
         @>
 

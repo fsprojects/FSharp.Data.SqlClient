@@ -290,17 +290,17 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         assert(p.Direction = ParameterDirection.Input)
                         let rowType = udttTypes |> List.find(fun x -> x.Name = p.TypeInfo.UdttName)
                         ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
-                
-                let parType = if allParametersOptional && parameterType.IsValueType 
+
+                let optionalValue = if String.IsNullOrWhiteSpace(p.DefaultValue) 
+                                    then if allParametersOptional || p.Direction <> ParameterDirection.Input then Some null else None
+                                    else Some (Convert.ChangeType(p.DefaultValue, parameterType))
+
+                let parType = if (allParametersOptional && parameterType.IsValueType) || p.Direction <> ParameterDirection.Input
                               then typedefof<_ option>.MakeGenericType( parameterType) 
                               else parameterType
 
-                let optionalValue = if String.IsNullOrWhiteSpace(p.DefaultValue) 
-                                    then if allParametersOptional then Some null else None
-                                    else Some (Convert.ChangeType(p.DefaultValue, parameterType))
-
                 yield ProvidedParameter(
-                    p.Name, 
+                    p.Name.Substring(1), 
                     parameterType = parType, 
                     ?optionalValue = optionalValue
                 )

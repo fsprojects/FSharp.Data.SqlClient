@@ -23,6 +23,13 @@ type seType = AdventureWorks2012.``User-Defined Table Types``.SingleElementType
 type myType = AdventureWorks2012.``User-Defined Table Types``.MyTableType
 
 let db = AdventureWorks2012()
+
+let a = db.``Stored Procedures``.``dbo.Swap``.AsyncExecute(5) |> Async.RunSynchronously 
+a.output
+a.nullStringOutput
+a.ReturnValue
+a.nullOutput
+
 db.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(DateTime(2013,1,1), 1) |> Async.RunSynchronously |> Array.ofSeq
     
 let p = [ 
@@ -44,8 +51,3 @@ let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
             |> Async.RunSynchronously 
 res.ReturnValue
 
-let a = db.``Stored Procedures``.``dbo.Swap``.AsyncExecute(2,true, "", 0) |> Async.RunSynchronously 
-a.output
-a.nullStringOutput
-a.ReturnValue
-a.nullOutput
