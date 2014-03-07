@@ -31,10 +31,8 @@ type QuotationsFactory private() =
     static member internal GetSqlCommandWithParamValuesSet(exprArgs : Expr list, allParametersOptional, paramInfos : Parameter list) = 
         assert(exprArgs.Length - 1 = paramInfos.Length)
         let mappedParamValues = 
-            if not allParametersOptional
+            if  allParametersOptional
             then 
-                exprArgs.Tail
-            else
                 (exprArgs.Tail, paramInfos)
                 ||> List.map2 (fun expr info ->
                     typeof<QuotationsFactory>
@@ -43,9 +41,13 @@ type QuotationsFactory private() =
                         .Invoke(null, [| box expr|])
                         |> unbox
                 )
+            else
+                exprArgs.Tail             
 
         <@
             let sqlCommand : SqlCommand = %%Expr.Coerce(exprArgs.[0], typeof<SqlCommand>)
+            let xs = %%Expr.NewArray( typeof<SqlParameter>, paramInfos |> List.map QuotationsFactory.ToSqlParam)
+            sqlCommand.Parameters.AddRange xs
 
             let paramValues : obj[] = %%Expr.NewArray(typeof<obj>, elements = [for x in mappedParamValues -> Expr.Coerce(x, typeof<obj>)])
 
@@ -137,12 +139,14 @@ type QuotationsFactory private() =
                         Direction = %%Expr.Value p.Direction,
                         TypeName = %%Expr.Value p.TypeInfo.UdttName
                     )
-            if 240 = %%Expr.Value p.TypeInfo.SqlEngineTypeId then
+            if %%Expr.Value p.TypeInfo.SqlEngineTypeId = 240 then
                 r.UdtTypeName <- %%Expr.Value p.TypeInfo.TypeName
             r
         @@>
     
-    static member internal GetOutParameter (paramName, clrType) =
+    static member internal GetOutParameter (param : Parameter) =
+        let paramName = param.Name
+        let clrType = param.TypeInfo.ClrType
         let arr = Var("_", typeof<obj>)
         let body = typeof<QuotationsFactory>
                         .GetMethod("ObjToOption", BindingFlags.NonPublic ||| BindingFlags.Static)
@@ -150,12 +154,14 @@ type QuotationsFactory private() =
                         .Invoke(null, [| box (Expr.Var arr) |])
                         |> unbox
         let converter = Expr.Lambda(arr, body)
-        let isValueType = clrType.IsValueType
-        fun (args : Expr list) ->
+
+        let needsConversion = clrType.IsValueType && param.Direction <> ParameterDirection.ReturnValue
+        let resultType = if needsConversion then typedefof<_ option>.MakeGenericType clrType else clrType
+        resultType, fun (args : Expr list) ->
         <@@ 
             let coll : SqlParameterCollection = %%Expr.Coerce(args.[0], typeof<SqlParameterCollection>)
             let param = coll |> Seq.cast<SqlParameter> |> Seq.find(fun p -> p.ParameterName = paramName)
-            if isValueType then
+            if needsConversion then
                 let c : obj->obj = %%converter
                 c param.Value
             elif param.Value = DbNull then null else param.Value

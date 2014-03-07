@@ -34,9 +34,9 @@ let GetFullQualityColumnInfo() =
 [<Fact>]
 let GetAllSPs() =
     conn.GetProcedures()
-    |> Seq.iter (fun x -> printfn "%A" x)
+    |> Seq.iter (printfn "%A")
 
 [<Fact>]
 let GetParameters() =
-    conn.GetProcedures()
-    |> Seq.iter (fun x -> printfn "%A" x)
+    conn.GetParameters("dbo.Swap", false)
+    |> Seq.iter (printfn "%A")

@@ -49,7 +49,8 @@ let findTypeInfoByName(name) =
 let ReturnValue() = { 
     Name = "@ReturnValue" 
     Direction = ParameterDirection.ReturnValue
-    TypeInfo = findTypeInfoByName "int"  }
+    TypeInfo = findTypeInfoByName "int" 
+    DefaultValue = "" }
 
 type SqlDataReader with
     
@@ -113,35 +114,33 @@ type SqlConnection with
             }
     ] 
 
+    member this.GetParameters(twoPartsName, isFunction) =         
+        assert (this.State = ConnectionState.Open)
+        [
+            for r in this.GetSchema("ProcedureParameters").Rows do
+                let fullName = sprintf "%s.%s" (string r.["specific_schema"]) (string r.["specific_name"]) 
+                if  string r.["specific_catalog"] = this.Database && fullName = twoPartsName then
+                    let name = string r.["parameter_name"]
+                    let direction = match string r.["parameter_mode"] with 
+                                    | "IN" -> ParameterDirection.Input 
+                                    | "OUT" -> ParameterDirection.Output
+                                    | "INOUT" -> ParameterDirection.InputOutput
+                                    | _ -> failwithf "Parameter %s has unsupported direction %O" name r.["parameter_mode"]
+                    let udt = string r.["data_type"]
+                    yield { 
+                        Name = name 
+                        TypeInfo = findTypeInfoByName(udt) 
+                        Direction = direction 
+                        DefaultValue = ""}
+        ]
+
     member this.GetProcedures() = 
         assert (this.State = ConnectionState.Open)
-        
-        let fullName (r:DataRow) = sprintf "%s.%s" (string r.["specific_schema"]) (string r.["specific_name"])
-
-        let parseParam (r:DataRow) =
-            let name = string r.["parameter_name"]
-            let direction = match string r.["parameter_mode"] with 
-                            | "IN" -> ParameterDirection.Input 
-                            | "OUT" -> ParameterDirection.Output
-                            | "INOUT" -> ParameterDirection.InputOutput
-                            | _ -> failwithf "Parameter %s has unsupported direction %O" name r.["parameter_mode"]
-            let udt = string r.["data_type"]
-            let param =  { Name = name; TypeInfo = findTypeInfoByName(udt); Direction = direction }
-            string r.["specific_catalog"], fullName r, param
-
-        let rows = this.GetSchema("ProcedureParameters").Rows |> Seq.cast<DataRow> |> Seq.map parseParam
-        
-        let parameters = query { 
-                            for catalog, name, param in rows do
-                            where (catalog = this.Database)
-                            groupBy name into g
-                            select (g.Key, [ for p,_,_ in g -> p ])
-                         } |> Map.ofSeq
         [ 
             for r in this.GetSchema("Procedures").Rows do
-                let name = fullName r
+                let name = sprintf "%s.%s" (string r.["specific_schema"]) (string r.["specific_name"])
                 let isFunction = string r.["routine_type"] = "FUNCTION"
-                yield name, isFunction, defaultArg (parameters.TryFind(name)) []
+                yield name, isFunction
         ]
     
     member this.GetDataTypesMapping() = 

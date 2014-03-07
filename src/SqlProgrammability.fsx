@@ -16,8 +16,7 @@ let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;
 
 type AdventureWorks2012 = SqlProgrammability<connectionString>
 
-let db = AdventureWorks2012(prodConnectionString)
-
+//let db = AdventureWorks2012(prodConnectionString)
 
 type seType = AdventureWorks2012.``User-Defined Table Types``.SingleElementType
 
