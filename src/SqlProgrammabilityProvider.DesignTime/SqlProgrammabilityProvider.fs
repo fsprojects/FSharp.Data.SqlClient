@@ -76,8 +76,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = null) ])
         ctor.InvokeCode <- fun args -> 
             <@@
-                if not( String.IsNullOrEmpty(%%args.[0] : string))
-                then %%args.[0] : string
+                let input = %%args.[0] : string
+                if not(String.IsNullOrEmpty(input)) then input
                 elif byName then Configuration.GetConnectionStringRunTimeByName(connectionStringOrName)
                 else designTimeConnectionString                        
             @@>
@@ -223,19 +223,23 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     
      member internal this.GetExecuteNonQuery(providedCommandType, allParametersOptional, paramInfos)  = 
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
-        let returnValue = ReturnValue()
-        for param in returnValue::paramInfos do
+        for param in paramInfos do
             if param.Direction <> ParameterDirection.Input then
                 let paramName = param.Name
-                let property = ProvidedProperty(paramName.Substring(1), propertyType = param.TypeInfo.ClrType)
-                property.GetterCode <- fun args -> 
-                    <@@ 
-                        let coll : SqlParameterCollection = %%Expr.Coerce(args.[0], typeof<SqlParameterCollection>)
-                        let param = coll |> Seq.cast<SqlParameter> |> Seq.find(fun p -> p.ParameterName = paramName)
-                        param.Value
-                    @@>
+                let clrType = param.TypeInfo.ClrType
+                let propType = if clrType.IsValueType then typedefof<_ option>.MakeGenericType clrType else clrType
+                let property = ProvidedProperty(paramName.Substring(1), propertyType = propType)
+                property.GetterCode <- QuotationsFactory.GetOutParameter(param.Name, param.TypeInfo.ClrType)
                 recordType.AddMember property
-
+        let returnValue = ReturnValue()
+        let property = ProvidedProperty(returnValue.Name.Substring(1), propertyType = returnValue.TypeInfo.ClrType)
+        property.GetterCode <- fun args -> 
+            <@@ 
+                let coll : SqlParameterCollection = %%Expr.Coerce(args.[0], typeof<SqlParameterCollection>)
+                let param = coll |> Seq.cast<SqlParameter> |> Seq.find(fun p -> p.Direction = ParameterDirection.ReturnValue)
+                param.Value 
+            @@>
+        recordType.AddMember property
         providedCommandType.AddMember recordType
 
         let inputParamters = [for p in paramInfos do if p.Direction <> ParameterDirection.Output then yield p]

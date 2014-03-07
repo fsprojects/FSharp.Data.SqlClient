@@ -46,7 +46,7 @@ let findTypeInfoByProviderType(sqlDbType, udttName)  =
 let findTypeInfoByName(name) = 
     !dataTypeMappings |> List.find(fun x -> x.TypeName = name || x.UdttName = name)
 
-let ReturnValue () = { 
+let ReturnValue() = { 
     Name = "@ReturnValue" 
     Direction = ParameterDirection.ReturnValue
     TypeInfo = findTypeInfoByName "int"  }

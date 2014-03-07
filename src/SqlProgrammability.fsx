@@ -49,4 +49,4 @@ let a = db.``Stored Procedures``.``dbo.Swap``.AsyncExecute(2,true, "", 0) |> Asy
 a.output
 a.nullStringOutput
 a.ReturnValue
-
+a.nullOutput

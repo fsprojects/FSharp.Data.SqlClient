@@ -142,7 +142,32 @@ type QuotationsFactory private() =
             r
         @@>
     
+    static member internal GetOutParameter (paramName, clrType) =
+        let arr = Var("_", typeof<obj>)
+        let body = typeof<QuotationsFactory>
+                        .GetMethod("ObjToOption", BindingFlags.NonPublic ||| BindingFlags.Static)
+                        .MakeGenericMethod([|clrType|])
+                        .Invoke(null, [| box (Expr.Var arr) |])
+                        |> unbox
+        let converter = Expr.Lambda(arr, body)
+        let isValueType = clrType.IsValueType
+        fun (args : Expr list) ->
+        <@@ 
+            let coll : SqlParameterCollection = %%Expr.Coerce(args.[0], typeof<SqlParameterCollection>)
+            let param = coll |> Seq.cast<SqlParameter> |> Seq.find(fun p -> p.ParameterName = paramName)
+            if isValueType then
+                let c : obj->obj = %%converter
+                c param.Value
+            elif param.Value = DbNull then null else param.Value
+        @@> 
+
     static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> DbNull @@>    
+
+    static member internal ObjToOption<'T> value = 
+        <@@ 
+            let result = if Convert.IsDBNull(%%value) then None else Some(unbox<'T> %%value)
+            box result 
+        @@>    
 
     static member internal MapArrayOptionItemToObj<'T>(arr, index) =
         <@
