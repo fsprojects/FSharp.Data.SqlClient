@@ -11,8 +11,13 @@ open Microsoft.SqlServer.Types
 [<Literal>] 
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
  
+[<Literal>] 
+let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
 
 type AdventureWorks2012 = SqlProgrammability<connectionString>
+
+let db = AdventureWorks2012(prodConnectionString)
+
 
 type seType = AdventureWorks2012.``User-Defined Table Types``.SingleElementType
 
@@ -40,7 +45,8 @@ let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
             |> Async.RunSynchronously 
 res.ReturnValue
 
-let a = db.``Stored Procedures``.``dbo.Swap``.AsyncExecute(2,1,1) |> Async.RunSynchronously 
-a.inputOutput
+let a = db.``Stored Procedures``.``dbo.Swap``.AsyncExecute(2,true, "", 0) |> Async.RunSynchronously 
 a.output
+a.nullStringOutput
 a.ReturnValue
+

@@ -11,12 +11,12 @@ DROP TYPE SingleElementType
 GO
 
 create procedure [dbo].[Swap]
-	@input int,
-	@inputOutput int output,
-    @output int output
+	@input int = 4 ,
+    @output int output,
+	@nullOutput bit output,
+	@nullStringOutput varchar output
 as
 begin
-    set @inputOutput = @input
 	set @output = @input
 	return @input
 end

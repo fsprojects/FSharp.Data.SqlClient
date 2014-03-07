@@ -76,12 +76,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = null) ])
         ctor.InvokeCode <- fun args -> 
             <@@
-                let runTimeConnectionString = 
-                    if not( String.IsNullOrEmpty(%%args.[0]))
-                    then %%args.[0]
-                    elif byName then Configuration.GetConnectionStringRunTimeByName(connectionStringOrName)
-                    else designTimeConnectionString                        
-                box(new SqlConnection( runTimeConnectionString))
+                if not( String.IsNullOrEmpty(%%args.[0] : string))
+                then %%args.[0] : string
+                elif byName then Configuration.GetConnectionStringRunTimeByName(connectionStringOrName)
+                else designTimeConnectionString                        
             @@>
 
         databaseRootType.AddMember ctor
@@ -137,7 +135,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         let spHostType = ProvidedTypeDefinition("StoredProcedures", baseType = Some typeof<obj>, HideObjectMethods = true)
         databaseRootType.AddMember spHostType
 
-        let ctor = ProvidedConstructor( [], InvokeCode = fun _ -> <@@ obj() @@>)
+        let ctor = ProvidedConstructor( [ProvidedParameter("connectionString", typeof<string>)], InvokeCode = fun args -> <@@ %%args.[0] : string @@>)
                 
         spHostType.AddMember ctor             
 
@@ -145,14 +143,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             [
                 for twoPartsName, isFunction, parameters in procedures do                    
                     if not isFunction then                        
-                        let ctor = ProvidedConstructor([])
+                        let ctor = ProvidedConstructor([ProvidedParameter("connectionString", typeof<string>)])
                         ctor.InvokeCode <- fun args -> 
                             <@@ 
-                                let runTimeConnectionString = 
-                                    if byName then Configuration.GetConnectionStringRunTimeByName(value)
-                                    else designTimeConnectionString
-                        
-                                let this = new SqlCommand(twoPartsName, new SqlConnection(runTimeConnectionString)) 
+                                let this = new SqlCommand(twoPartsName, new SqlConnection(%%args.[0]:string)) 
                                 this.CommandType <- CommandType.StoredProcedure
                                 let xs = %%Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
                                 this.Parameters.AddRange xs
@@ -165,13 +159,13 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             this.AddExecuteMethod(udttTypes, designTimeConnectionString, propertyType, false, parameters, twoPartsName, isFunction, resultType, false)
 
                         let property = ProvidedProperty(twoPartsName, propertyType)
-                        property.GetterCode <- fun _ -> Expr.NewObject( ctor, []) 
+                        property.GetterCode <- fun args -> Expr.NewObject( ctor, [ <@@ string %%args.[0] @@> ]) 
                         
                         yield propertyType :> MemberInfo
                         yield property :> MemberInfo
             ]
 
-        databaseRootType.AddMember <| ProvidedProperty( "Stored Procedures", spHostType, GetterCode = fun _ -> Expr.NewObject( ctor, []))
+        databaseRootType.AddMember <| ProvidedProperty( "Stored Procedures", spHostType, GetterCode = fun args -> Expr.NewObject( ctor, [ <@@ string %%args.[0] @@>]))
                
         databaseRootType           
 
