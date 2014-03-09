@@ -120,7 +120,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         propertyType.AddMember ctor
                     
                         propertyType.AddMemberDelayed <| 
-                            this.AddExecuteMethod(udttTypes, designTimeConnectionString, propertyType, false, twoPartsName, isFunction, resultType, false)
+                            this.AddExecuteMethod(udttTypes, designTimeConnectionString, propertyType, twoPartsName, isFunction, resultType, false)
 
                         let property = ProvidedProperty(twoPartsName, propertyType)
                         property.GetterCode <- fun args -> Expr.NewObject( ctor, [ <@@ string %%args.[0] @@> ]) 
@@ -163,7 +163,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     yield rowType
             ]
 
-     member internal __.AddExecuteMethod(udttTypes, designTimeConnectionString, propertyType, allParametersOptional, twoPartsName, isFunction, resultType, singleRow) = 
+     member internal __.AddExecuteMethod(udttTypes, designTimeConnectionString, propertyType, twoPartsName, isFunction, resultType, singleRow) = 
         fun() -> 
             use connection = new SqlConnection(designTimeConnectionString)
             connection.Open() 
@@ -174,29 +174,29 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 then this.GetOutputColumns(connection, twoPartsName, isFunction, parameters)
                 else []
         
-            let execArgs = this.GetExecuteArgsForSqlParameters(udttTypes, parameters, false)
+            let execArgs = this.GetExecuteArgsForSqlParameters(udttTypes, parameters)
 
             let syncReturnType, executeMethodBody = 
                 if resultType = ResultType.Maps then
-                    this.Maps(allParametersOptional, parameters, singleRow)
+                    this.Maps(parameters, singleRow)
                 else
                     if outputColumns.IsEmpty
                     then 
-                        this.GetExecuteNonQuery(propertyType, allParametersOptional, parameters)
+                        this.GetExecuteNonQuery(propertyType, parameters)
                     elif resultType = ResultType.DataTable
                     then 
-                        this.DataTable(propertyType, allParametersOptional, parameters, twoPartsName, outputColumns, singleRow)
+                        this.DataTable(propertyType, parameters, twoPartsName, outputColumns, singleRow)
                     else
                         let rowType, executeMethodBody = 
                             if List.length outputColumns = 1
                             then
                                 let singleCol : Column = outputColumns.Head
                                 let column0Type = singleCol.ClrTypeConsideringNullable
-                                column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, allParametersOptional, parameters, singleRow, singleCol)
+                                column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, parameters, singleRow, singleCol)
                             else 
                                 if resultType = ResultType.Tuples
-                                then this.Tuples(allParametersOptional, parameters, outputColumns, singleRow)
-                                else this.Records(propertyType, allParametersOptional, parameters, outputColumns, singleRow)
+                                then this.Tuples(parameters, outputColumns, singleRow)
+                                else this.Records(propertyType, parameters, outputColumns, singleRow)
                         let returnType = if singleRow then rowType else ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
                            
                         returnType, executeMethodBody
@@ -225,7 +225,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 recordType.AddMember property        
         recordType
     
-     member internal this.GetExecuteNonQuery(providedCommandType, allParametersOptional, paramInfos)  = 
+     member internal this.GetExecuteNonQuery(providedCommandType, paramInfos)  = 
         let recordType = this.GetOutputRecord(paramInfos)
         providedCommandType.AddMember recordType
 
@@ -235,7 +235,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         let body expr =
             <@@
                 async {
-                    let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet(expr, allParametersOptional, inputParamters)
+                    let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet(expr, inputParamters)
                     sqlCommand.Parameters.Add(SqlParameter(returnName, SqlDbType.Int, Direction = ParameterDirection.ReturnValue)) |> ignore
                     //open connection async on .NET 4.5
                     sqlCommand.Connection.Open()
@@ -246,7 +246,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             @@>
         upcast recordType, body
            
-    member internal this.Records( providedCommandType, allParametersOptional, paramInfos,  columns, singleRow) =
+    member internal this.Records( providedCommandType, paramInfos,  columns, singleRow) =
         let recordType = this.RecordType(columns)
         providedCommandType.AddMember recordType
 
@@ -259,7 +259,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         (names, values) ||> Array.iter2 (fun name value -> dict.Add(name, value))
                         box dict 
                 @>
-            QuotationsFactory.GetTypedSequence(args, allParametersOptional, paramInfos, arrayToRecord, singleRow, columns)
+            QuotationsFactory.GetTypedSequence(args, paramInfos, arrayToRecord, singleRow, columns)
                          
         upcast recordType, getExecuteBody
     
@@ -279,7 +279,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             recordType.AddMember property
         recordType
 
-    member internal __.GetExecuteArgsForSqlParameters(udttTypes, sqlParameters, allParametersOptional) = [
+    member internal __.GetExecuteArgsForSqlParameters(udttTypes, sqlParameters) = [
         for p in sqlParameters do
             if p.Direction <> ParameterDirection.Output then
                 let parameterType = 
@@ -292,10 +292,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
 
                 let optionalValue = if String.IsNullOrWhiteSpace(p.DefaultValue) 
-                                    then if allParametersOptional || p.Direction <> ParameterDirection.Input then Some null else None
+                                    then if p.Direction <> ParameterDirection.Input then Some null else None
                                     else Some (Convert.ChangeType(p.DefaultValue, parameterType))
 
-                let parType = if (allParametersOptional && parameterType.IsValueType) || p.Direction <> ParameterDirection.Input
+                let parType = if p.Direction <> ParameterDirection.Input
                               then typedefof<_ option>.MakeGenericType( parameterType) 
                               else parameterType
 
@@ -306,7 +306,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 )
     ]
 
-     member internal this.Tuples(allParametersOptional, paramInfos, columns, singleRow) =
+     member internal this.Tuples(paramInfos, columns, singleRow) =
         let tupleType = match Seq.toArray columns with
                         | [| x |] -> x.ClrTypeConsideringNullable
                         | xs' -> FSharpType.MakeTupleType [| for x in xs' -> x.ClrTypeConsideringNullable|]
@@ -316,9 +316,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
             Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [ Expr.Var values; getTupleType ]), tupleType))
 
-        tupleType, QuotationsFactory.GetBody("GetTypedSequence", tupleType, allParametersOptional, paramInfos, rowMapper, singleRow, columns)
+        tupleType, QuotationsFactory.GetBody("GetTypedSequence", tupleType, paramInfos, rowMapper, singleRow, columns)
 
-    member internal this.DataTable(providedCommandType, allParametersOptional, paramInfos, commandText, outputColumns, singleRow) =
+    member internal this.DataTable(providedCommandType, paramInfos, commandText, outputColumns, singleRow) =
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
         for col in outputColumns do
             let name = col.Name
@@ -343,12 +343,12 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         providedCommandType.AddMember rowType
 
-        let body = QuotationsFactory.GetBody("GetTypedDataTable", typeof<DataRow>, allParametersOptional, paramInfos, singleRow)
+        let body = QuotationsFactory.GetBody("GetTypedDataTable", typeof<DataRow>, paramInfos, singleRow)
         let returnType = typedefof<_ DataTable>.MakeGenericType rowType
 
         returnType, body
 
-    member internal this.Maps(allParametersOptional, paramInfos, singleRow) =
+    member internal this.Maps(paramInfos, singleRow) =
         let readerToMap = 
             <@
                 fun(reader : SqlDataReader) -> 
@@ -359,7 +359,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             @>
 
         let getExecuteBody(args : Expr list) = 
-            QuotationsFactory.GetRows(args, allParametersOptional, paramInfos, readerToMap, singleRow)
+            QuotationsFactory.GetRows(args, paramInfos, readerToMap, singleRow)
             
         typeof<Map<string, obj> seq>, getExecuteBody
 
