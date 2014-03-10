@@ -21,7 +21,7 @@ let TestUDTTs() =
     |> Seq.iter (printfn "%A")    
 
 [<Fact>]
-let TestAssemblyTypes() =
+let AllTypes() =
     SqlClrTypes() 
     |> Seq.groupBy(fun t->t.SqlEngineTypeId)
     |> Seq.iter (printfn "%A")
@@ -29,6 +29,17 @@ let TestAssemblyTypes() =
 [<Fact>]
 let GetFullQualityColumnInfo() =
     conn.GetFullQualityColumnInfo("dbo.uspGetWhereUsedProductID") 
+    |> Seq.iter (printfn "%A") 
+
+    
+[<Fact>]
+let GetFunctionColumns() =
+    conn.GetFunctionColumns("dbo.ufnGetContactInformation") 
+    |> Seq.iter (printfn "%A") 
+
+[<Fact>]
+let GetFunctions() =
+    conn.GetFunctions() 
     |> Seq.iter (printfn "%A") 
 
 [<Fact>]

@@ -26,7 +26,6 @@ type SqlCommand with
     }
 
 let private dataTypeMappings = ref List.empty
-let privite db = ref null
 
 let findTypeInfoBySqlEngineTypeId (systemId, userId : int option) = 
     match !dataTypeMappings 
@@ -49,6 +48,10 @@ let findTypeInfoByProviderType(sqlDbType, udttName)  =
 let findTypeInfoByName(name) = 
     !dataTypeMappings |> List.find(fun x -> x.TypeName = name || x.UdttName = name)
 
+let splitName (twoPartsName : string) =
+   let parts = twoPartsName.Split('.')
+   parts.[0], parts.[1]
+     
 let ReturnValue() = { 
     Name = "@ReturnValue" 
     Direction = ParameterDirection.ReturnValue
@@ -74,11 +77,10 @@ type SqlConnection with
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
 
-    member this.FallbackToSETFMONLY(commandText, isFunction, sqlParameters) = 
+    member this.FallbackToSETFMONLY(commandText, sqlParameters) = 
         assert (this.State = ConnectionState.Open)
         
-        let commandType = if isFunction then CommandType.Text else CommandType.StoredProcedure
-        use cmd = new SqlCommand(commandText, this, CommandType = commandType)
+        use cmd = new SqlCommand(commandText, this, CommandType = CommandType.StoredProcedure)
         for p in sqlParameters do
             cmd.Parameters.Add(p.Name, p.TypeInfo.SqlDbType) |> ignore
         use reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly)
@@ -120,12 +122,28 @@ type SqlConnection with
     member this.GetDefaults(twoPartsName : string, isFunction) =         
         assert (this.State = ConnectionState.Open)
         let db  = Server( ServerConnection(this)).Databases.[this.Database]
-        let parts = twoPartsName.Split('.')
-        let schema, name =  parts.[0], parts.[1]
+        let schema, name =  splitName twoPartsName
         let coll = if isFunction 
                    then db.UserDefinedFunctions.[name, schema].Parameters :> ParameterCollectionBase 
                    else db.StoredProcedures.[name, schema].Parameters :> ParameterCollectionBase 
         seq {for p in coll |> Seq.cast<Parameter> -> p.Name, p.DefaultValue } |> Map.ofSeq
+
+    member this.GetFunctionColumns(twoPartsName : string) = 
+        let db  = Server( ServerConnection(this)).Databases.[this.Database]
+        let schema, name =  splitName twoPartsName
+        let types = db.UserDefinedDataTypes |> Seq.cast<UserDefinedDataType> |> Seq.map(fun t -> t.Name, t.SystemType) |> Map.ofSeq
+        db.UserDefinedFunctions.[name, schema].Columns
+        |> Seq.cast<Column>
+        |> Seq.mapi ( fun i c ->
+                let dataType = defaultArg (types.TryFind(c.DataType.Name)) c.DataType.Name
+                {
+                    Name = c.Name 
+                    TypeInfo =  findTypeInfoByName dataType
+                    IsNullable = c.Nullable
+                    Ordinal = i
+                    MaxLength = c.DataType.MaximumLength
+                })
+        |> List.ofSeq
 
     member this.GetParameters(twoPartsName, isFunction) =         
         assert (this.State = ConnectionState.Open)
@@ -148,13 +166,21 @@ type SqlConnection with
                         DefaultValue = defaultArg (defaults.TryFind(name)) ""}
         ]
 
+    member this.GetFunctions() = 
+        assert (this.State = ConnectionState.Open)
+        let db  = Server( ServerConnection(this)).Databases.[this.Database]
+        [ 
+            for f in db.UserDefinedFunctions do
+                if not f.IsSystemObject && f.DataType = null then 
+                    yield sprintf "%s.%s" f.Schema f.Name
+        ]
+
     member this.GetProcedures() = 
         assert (this.State = ConnectionState.Open)
         [ 
             for r in this.GetSchema("Procedures").Rows do
-                let name = sprintf "%s.%s" (string r.["specific_schema"]) (string r.["specific_name"])
-                let isFunction = string r.["routine_type"] = "FUNCTION"
-                yield name, isFunction
+                if string r.["routine_type"] = "PROCEDURE" then 
+                    yield sprintf "%s.%s" (string r.["specific_schema"]) (string r.["specific_name"])
         ]
     
     member this.GetDataTypesMapping() = 

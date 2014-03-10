@@ -33,18 +33,22 @@ type QuotationsFactory private() =
         let mappedParamValues = 
             (exprArgs.Tail, paramInfos)
             ||> List.map2 (fun expr info ->
-                if info.Direction <> ParameterDirection.Input then
+                if info.Direction = ParameterDirection.Input then
+                    expr                    
+                else 
                     typeof<QuotationsFactory>
                         .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
                         .MakeGenericMethod(info.TypeInfo.ClrType)
                         .Invoke(null, [| box expr|])
                         |> unbox
-                else 
-                    expr
             )
+
+        let sqlParams = String.Join(",", seq{ for p in paramInfos -> p.Name })
 
         <@
             let sqlCommand : SqlCommand = %%Expr.Coerce(exprArgs.[0], typeof<SqlCommand>)
+            if sqlCommand.CommandType = CommandType.Text then
+                sqlCommand.CommandText <- sprintf "SELECT * FROM %s(%s)" sqlCommand.CommandText sqlParams
             let xs = %%Expr.NewArray( typeof<SqlParameter>, paramInfos |> List.map QuotationsFactory.ToSqlParam)
             sqlCommand.Parameters.AddRange xs
 

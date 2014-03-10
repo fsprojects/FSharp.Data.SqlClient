@@ -12,17 +12,20 @@ let conn = new SqlConnection(connectionString)
 do conn.Open()
 let db()  = Server( ServerConnection(conn)).Databases.[conn.Database]
 
-//[<Fact>]
+[<Fact>]
 let UDTs() =
     db().UserDefinedDataTypes
-    |> Seq.cast<UserDefinedDataType>     
-    |> Seq.iter (fun p -> printfn "%A %A" p.Name p.SystemType )
+    |> Seq.cast<UserDefinedDataType>
+    |> Seq.map(fun p -> p.ID, p.Name, p.SystemType)    
+    |> Seq.iter (printfn "%A")
 
-//[<Fact>]
-let UDTTs() =
-    db().UserDefinedTableTypes
-    |> Seq.cast<UserDefinedTableType>     
-    |> Seq.iter (fun p -> printfn "%A %A" p.Name p.Columns )
+[<Fact>]
+let UDTFs() =
+    db().UserDefinedFunctions
+    |> Seq.cast<UserDefinedFunction> 
+    |> Seq.where(fun p->not p.IsSystemObject)
+    |> Seq.map(fun p -> p.Name, p.Columns, p.DataType)    
+    |> Seq.iter (printfn "%A")
 
 //[<Fact>]
 let ``List stored procedures``() = 
