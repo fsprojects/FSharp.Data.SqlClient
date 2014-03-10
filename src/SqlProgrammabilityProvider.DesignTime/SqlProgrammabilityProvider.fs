@@ -1,4 +1,5 @@
-﻿namespace FSharp.Data.Experimental
+﻿namespace FSharp.Data
+
 
 open System
 open System.Collections.Generic
@@ -17,10 +18,10 @@ open Microsoft.SqlServer.Server
 
 open Samples.FSharp.ProvidedTypes
 
-open FSharp.Data.Experimental.Internals
-open FSharp.Data.Experimental.Runtime
+open FSharp.Data.Internals
 
 [<assembly:TypeProviderAssembly()>]
+[<assembly:System.Runtime.CompilerServices.InternalsVisibleTo("SqlProgrammabilityProvider.Tests")>]
 do()
 
 [<TypeProvider>]

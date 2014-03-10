@@ -1,6 +1,6 @@
-﻿module FSharp.Data.Experimental.Tests.TVP
+﻿module FSharp.Data.Tests.TVP
 
-open FSharp.Data.Experimental
+open FSharp.Data
 open System.Data
 open Xunit
 

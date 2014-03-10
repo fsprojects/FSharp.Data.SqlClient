@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-module FSharp.Data.Experimental.Runtime.Sqlclient
+module FSharp.Data.Sqlclient
 
 open System
 open System.Text
@@ -71,13 +71,13 @@ type DataRow with
 
 type SqlConnection with
 
-    member this.CheckVersion() = 
+    member internal this.CheckVersion() = 
         assert (this.State = ConnectionState.Open)
         let majorVersion = this.ServerVersion.Split('.').[0]
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
 
-    member this.FallbackToSETFMONLY(commandText, sqlParameters) = 
+    member internal this.FallbackToSETFMONLY(commandText, sqlParameters : FSharp.Data.Parameter list) = 
         assert (this.State = ConnectionState.Open)
         
         use cmd = new SqlCommand(commandText, this, CommandType = CommandType.StoredProcedure)
@@ -100,7 +100,7 @@ type SqlConnection with
                     }
             ]
 
-    member this.GetFullQualityColumnInfo commandText = [
+    member internal this.GetFullQualityColumnInfo commandText = [
         assert (this.State = ConnectionState.Open)
         
         use cmd = new SqlCommand("sys.sp_describe_first_result_set", this, CommandType = CommandType.StoredProcedure)
@@ -119,7 +119,7 @@ type SqlConnection with
             }
     ] 
 
-    member this.GetDefaults(twoPartsName : string, isFunction) =         
+    member internal this.GetDefaults(twoPartsName : string, isFunction) =         
         assert (this.State = ConnectionState.Open)
         let db  = Server( ServerConnection(this)).Databases.[this.Database]
         let schema, name =  splitName twoPartsName
@@ -128,7 +128,7 @@ type SqlConnection with
                    else db.StoredProcedures.[name, schema].Parameters :> ParameterCollectionBase 
         seq {for p in coll |> Seq.cast<Parameter> -> p.Name, p.DefaultValue } |> Map.ofSeq
 
-    member this.GetFunctionColumns(twoPartsName : string) = 
+    member internal this.GetFunctionColumns(twoPartsName : string) = 
         let db  = Server( ServerConnection(this)).Databases.[this.Database]
         let schema, name =  splitName twoPartsName
         let types = db.UserDefinedDataTypes |> Seq.cast<UserDefinedDataType> |> Seq.map(fun t -> t.Name, t.SystemType) |> Map.ofSeq
@@ -145,7 +145,7 @@ type SqlConnection with
                 })
         |> List.ofSeq
 
-    member this.GetParameters(twoPartsName, isFunction) =         
+    member internal this.GetParameters(twoPartsName, isFunction) =         
         assert (this.State = ConnectionState.Open)
         let defaults = this.GetDefaults(twoPartsName, isFunction)
         [
@@ -166,7 +166,7 @@ type SqlConnection with
                         DefaultValue = defaultArg (defaults.TryFind(name)) ""}
         ]
 
-    member this.GetFunctions() = 
+    member internal this.GetFunctions() = 
         assert (this.State = ConnectionState.Open)
         let db  = Server( ServerConnection(this)).Databases.[this.Database]
         [ 
@@ -175,7 +175,7 @@ type SqlConnection with
                     yield sprintf "%s.%s" f.Schema f.Name
         ]
 
-    member this.GetProcedures() = 
+    member internal this.GetProcedures() = 
         assert (this.State = ConnectionState.Open)
         [ 
             for r in this.GetSchema("Procedures").Rows do
@@ -183,7 +183,7 @@ type SqlConnection with
                     yield sprintf "%s.%s" (string r.["specific_schema"]) (string r.["specific_name"])
         ]
     
-    member this.GetDataTypesMapping() = 
+    member private this.GetDataTypesMapping() = 
         assert (this.State = ConnectionState.Open)
         let providerTypes = [| 
             for row in this.GetSchema("DataTypes").Rows do

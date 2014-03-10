@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.Experimental
+﻿namespace FSharp.Data
 
 type ResultType =
     | Records = 0
@@ -6,8 +6,6 @@ type ResultType =
     | DataTable = 2
     | DataReader = 3
     
-namespace FSharp.Data.Experimental.Runtime
-
 open System.IO
 open System.Configuration
 

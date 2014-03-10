@@ -1,11 +1,12 @@
 
-#r "../bin/SqlProgrammabilityProvider.Runtime.dll"
-#r "../bin/SqlProgrammabilityProvider.dll"
-#r "../bin/Microsoft.SqlServer.Types.dll"
+#r "../../bin/SqlProgrammabilityProvider.Runtime.dll"
+#r "../../bin/SqlProgrammabilityProvider.Designtime.dll"
+#r "../../bin/SqlProgrammabilityProvider.dll"
+#r "../../bin/Microsoft.SqlServer.Types.dll"
 
 open System
 open System.Data
-open FSharp.Data.Experimental
+open FSharp.Data
 open Microsoft.SqlServer.Types
 
 [<Literal>] 

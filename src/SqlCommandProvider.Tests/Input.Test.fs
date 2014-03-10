@@ -1,4 +1,4 @@
-﻿module FSharp.Data.Experimental.InputTest
+﻿module FSharp.Data.InputTest
 
 open System
 open System.Data

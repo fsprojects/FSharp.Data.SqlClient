@@ -1,4 +1,4 @@
-﻿module FSharp.Data.Experimental.Internals.ConfigurationTest
+﻿module FSharp.Data.Internals.ConfigurationTest
 
 open Xunit
 open FsUnit.Xunit

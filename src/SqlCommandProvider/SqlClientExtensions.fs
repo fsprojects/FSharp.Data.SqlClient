@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-module FSharp.Data.Experimental.Internals.SqlClient
+module FSharp.Data.Internals.SqlClient
 
 open System
 open System.Text

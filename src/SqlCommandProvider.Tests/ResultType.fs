@@ -1,6 +1,6 @@
-﻿module FSharp.Data.Experimental.Tests.ResultType 
+﻿module FSharp.Data.Tests.ResultType 
 
-open FSharp.Data.Experimental
+open FSharp.Data
 open Xunit
 open FsUnit.Xunit
 

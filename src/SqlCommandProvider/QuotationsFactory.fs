@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.Experimental.Internals
+﻿namespace FSharp.Data.Internals
 
 open System
 open System.Data
@@ -10,7 +10,7 @@ open System.Diagnostics
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
 
-open FSharp.Data.Experimental
+open FSharp.Data
 
 type QuotationsFactory private() = 
 

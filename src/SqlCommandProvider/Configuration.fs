@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.Experimental.Internals
+﻿namespace FSharp.Data.Internals
 
 open System.Configuration
 open System.IO

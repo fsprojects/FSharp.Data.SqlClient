@@ -1,4 +1,4 @@
-module FSharp.Data.Experimental.TypeProviderTest
+module FSharp.Data.TypeProviderTest
 
 open System
 open System.Data

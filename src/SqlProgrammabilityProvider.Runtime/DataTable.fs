@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.Experimental.Runtime
+﻿namespace FSharp.Data
 
 open System.Data
 open System.Collections.Generic

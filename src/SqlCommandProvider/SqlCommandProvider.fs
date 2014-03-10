@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.Experimental
+﻿namespace FSharp.Data
 
 open System
 open System.Data
@@ -18,7 +18,7 @@ open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
 
-open FSharp.Data.Experimental.Internals
+open FSharp.Data.Internals
 
 open Samples.FSharp.ProvidedTypes
 
@@ -28,13 +28,13 @@ type ResultType =
     | Records = 0
 ///<summary>Sequence of tuples matching column types with the same order</summary>
     | Tuples = 1
-///<summary>Typed DataTable <see cref='T:FSharp.Data.Experimental.DataTable`1'/></summary>
+///<summary>Typed DataTable <see cref='T:FSharp.Data.DataTable`1'/></summary>
     | DataTable = 2
 ///<summary>raw DataReader</summary>
     | DataReader = 3
 
 [<assembly:TypeProviderAssembly()>]
-[<assembly:InternalsVisibleTo("FSharp.Data.Experimental.SqlCommandProvider.Tests")>]
+[<assembly:InternalsVisibleTo("FSharp.Data.SqlCommandProvider.Tests")>]
 do()
 
 [<TypeProvider>]
