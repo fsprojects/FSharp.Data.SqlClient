@@ -1,11 +1,11 @@
 ﻿namespace FSharp.Data.Experimental
 
 type ResultType =
-    | Tuples = 0
-    | Records = 1
+    | Records = 0
+    | Tuples = 1
     | DataTable = 2
-    | Maps = 3
-
+    | DataReader = 3
+    
 namespace FSharp.Data.Experimental.Runtime
 
 open System.IO

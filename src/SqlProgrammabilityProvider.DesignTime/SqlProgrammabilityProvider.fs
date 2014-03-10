@@ -134,6 +134,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         use connection = new SqlConnection(designTimeConnectionString)
                         connection.Open() 
                         let columns = connection.GetFunctionColumns(twoPartsName) 
+                        assert(not columns.IsEmpty)
                         let parameters = connection.GetParameters(twoPartsName, true)
                         this.AddExecuteMethod(udttTypes, propertyType, twoPartsName, resultType, false, columns, parameters)
 
@@ -160,7 +161,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let parameters = connection.GetParameters(twoPartsName, false)
                         let outputColumns = 
                             let anyOutputParameters = parameters |> Seq.exists(fun p -> p.Direction <> ParameterDirection.Input)
-                            if resultType <> ResultType.Maps && not anyOutputParameters
+                            if resultType <> ResultType.DataReader && not anyOutputParameters
                             then this.GetOutputColumns(connection, twoPartsName, parameters)
                             else []
         
@@ -208,8 +209,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
      member internal __.AddExecuteMethod(udttTypes, propertyType, twoPartsName, resultType, singleRow, outputColumns, parameters) = 
         let syncReturnType, executeMethodBody = 
-            if resultType = ResultType.Maps then
-                this.Maps(parameters, singleRow)
+            if resultType = ResultType.DataReader then
+                let getExecuteBody(args : Expr list) = 
+                    QuotationsFactory.GetDataReader(args, parameters, singleRow)
+                typeof<SqlDataReader>, getExecuteBody
             else
                 if outputColumns.IsEmpty
                 then 
