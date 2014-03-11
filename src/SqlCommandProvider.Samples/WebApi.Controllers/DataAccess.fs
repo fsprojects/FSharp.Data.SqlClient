@@ -1,6 +1,6 @@
 ﻿module WebApi.DataAccess
 
-open FSharp.Data.Experimental
+open FSharp.Data
 [<Literal>]
 
 let queryProductsSql = " 

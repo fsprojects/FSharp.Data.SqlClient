@@ -43,13 +43,12 @@
     <Reference Include="FSharp.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <Private>True</Private>
     </Reference>
-    <Reference Include="FSharp.Data.Experimental.SqlCommandProvider, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\packages\FSharp.Data.Experimental.SqlCommandProvider.1.1.30\lib\net40\FSharp.Data.Experimental.SqlCommandProvider.dll</HintPath>
+    <Reference Include="FSharp.Data.Experimental.SqlCommandProvider">
+      <HintPath>..\..\..\packages\FSharp.Data.Experimental.SqlCommandProvider.1.1.31\lib\net40\FSharp.Data.Experimental.SqlCommandProvider.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Types, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
       <Private>True</Private>
-      <HintPath>..\..\..\packages\FSharp.Data.Experimental.SqlCommandProvider.1.1.30\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.Experimental.SqlCommandProvider.1.1.31\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Newtonsoft.Json.4.5.11\lib\net40\Newtonsoft.Json.dll</HintPath>

@@ -7,7 +7,7 @@ Controlling output
 ===============================================
 *)
 
-open FSharp.Data.Experimental
+open FSharp.Data
 
 //Connection and query definition are shared for most of the examples below
 

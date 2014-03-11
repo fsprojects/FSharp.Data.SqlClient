@@ -25,7 +25,7 @@ The query below retrieves top 3 sales representatives from North American region
 
 *)
 
-open FSharp.Data.Experimental
+open FSharp.Data
 
 [<Literal>]
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"

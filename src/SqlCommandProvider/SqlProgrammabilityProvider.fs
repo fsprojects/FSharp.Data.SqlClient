@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.Experimental
+﻿namespace FSharp.Data
 
 //open System
 open System.Reflection
@@ -14,7 +14,7 @@ open System.Data.SqlClient
 
 open Microsoft.FSharp.Core.CompilerServices
 
-open FSharp.Data.Experimental.Internals
+open FSharp.Data.Internals
 
 open Samples.FSharp.ProvidedTypes
 

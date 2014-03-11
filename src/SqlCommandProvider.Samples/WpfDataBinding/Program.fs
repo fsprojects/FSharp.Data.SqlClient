@@ -1,11 +1,11 @@
-﻿module FSharp.Data.Experimental.Application
+﻿module FSharp.Data.Application
 
 open System
 open System.Windows
 open System.Windows.Controls
 open System.Data.SqlClient
 
-open FSharp.Data.Experimental
+open FSharp.Data
 
 [<Literal>]
 let queryTableSql = "select top 5 AddressLine1, City, SpatialLocation from Person.Address where AddressLine1 like @startsWith"
