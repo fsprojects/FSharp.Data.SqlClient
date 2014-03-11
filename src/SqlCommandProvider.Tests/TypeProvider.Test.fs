@@ -7,15 +7,17 @@ open Xunit
 [<Literal>]
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
-type QueryWithTinyInt = SqlCommand<"SELECT CAST(10 AS TINYINT) AS Value", connectionString, SingleRow = true>
+type GetOddNumbers = SqlCommand<"select * from (values (2), (4), (8), (24)) as T(value)", connectionString>
 
 [<Fact>]
 let ConnectionClose() = 
-    let cmd = QueryWithTinyInt()
+    let cmd = GetOddNumbers()
     let nativeCmd = cmd |> box |> unbox<System.Data.SqlClient.SqlCommand>
     Assert.Equal(ConnectionState.Closed, nativeCmd.Connection.State)
-    Assert.Equal(Some 10uy, cmd.Execute().Value)    
+    Assert.Equal<int[]>([| 2; 4; 8;  24 |], cmd.Execute() |> Seq.toArray)    
     Assert.Equal(ConnectionState.Closed, nativeCmd.Connection.State)
+
+type QueryWithTinyInt = SqlCommand<"SELECT CAST(10 AS TINYINT) AS Value", connectionString, SingleRow = true>
 
 [<Fact>]
 let TinyIntConversion() = 
