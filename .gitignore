@@ -112,6 +112,7 @@ _TeamCity*
 # NCrunch
 *.ncrunch*
 .*crunch*.local.xml
+_NCrunch_*
 
 # Installshield output folder
 [Ee]xpress/
@@ -220,4 +221,3 @@ pip-log.txt
 .mr.developer.cfg
 /packages
 /.nuget
-/_NCrunch_SqlProgrammabilityProvider/StoredText
