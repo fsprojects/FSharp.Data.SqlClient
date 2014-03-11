@@ -58,17 +58,26 @@ type QuotationsFactory private() =
         @>
 
     static member internal GetDataReader(exprArgs, allParametersOptional, paramInfos, singleRow) = 
-        let commandBehavior = if singleRow then CommandBehavior.SingleRow  else CommandBehavior.Default 
         <@@ 
             async {
                 let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet(exprArgs, allParametersOptional, paramInfos)
                 //open connection async on .NET 4.5
-                if sqlCommand.Connection.State <> ConnectionState.Open then
-                    let commandBehavior = commandBehavior ||| CommandBehavior.CloseConnection  
-                    sqlCommand.Connection.Open()
+                let connBehavior = 
+                    if sqlCommand.Connection.State <> ConnectionState.Open then
+                        //sqlCommand.Connection.StateChange.Add <| fun args -> printfn "Connection %i state change: %O -> %O" (sqlCommand.Connection.GetHashCode()) args.OriginalState args.CurrentState
+                        sqlCommand.Connection.Open()
+                        CommandBehavior.CloseConnection
+                    else
+                        CommandBehavior.Default 
+
+                let overallBehavior = 
+                    connBehavior
+                    ||| (if singleRow then CommandBehavior.SingleRow else CommandBehavior.Default)
+                    ||| CommandBehavior.SingleResult
+
                 return!
                     try 
-                        sqlCommand.AsyncExecuteReader(commandBehavior ||| CommandBehavior.SingleResult)
+                        sqlCommand.AsyncExecuteReader( overallBehavior)
                     with _ ->
                         sqlCommand.Connection.Close()
                         reraise()

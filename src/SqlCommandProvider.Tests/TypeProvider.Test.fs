@@ -10,15 +10,23 @@ let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWo
 type QueryWithTinyInt = SqlCommand<"SELECT CAST(10 AS TINYINT) AS Value", connectionString, SingleRow = true>
 
 [<Fact>]
+let ConnectionClose() = 
+    let cmd = QueryWithTinyInt()
+    let nativeCmd = cmd |> box |> unbox<System.Data.SqlClient.SqlCommand>
+    Assert.Equal(ConnectionState.Closed, nativeCmd.Connection.State)
+    Assert.Equal(Some 10uy, cmd.Execute().Value)    
+    Assert.Equal(ConnectionState.Closed, nativeCmd.Connection.State)
+
+[<Fact>]
 let TinyIntConversion() = 
     let cmd = QueryWithTinyInt()
     Assert.Equal(Some 10uy, cmd.Execute().Value)    
 
-type GetServerTime = SqlCommand<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'", connectionString, SingleRow=true>
+type ConvertToBool = SqlCommand<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'", connectionString, SingleRow=true>
 
 [<Fact>]
 let SqlCommandClone() = 
-    let cmd = new GetServerTime()
+    let cmd = new ConvertToBool()
     Assert.Equal(Some "TRUE", cmd.Execute(Bit = 1))    
     let cmdClone = cmd.AsSqlCommand()
     cmdClone.Connection.Open()
