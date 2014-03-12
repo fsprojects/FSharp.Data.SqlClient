@@ -12,7 +12,8 @@ open FSharp.Data
 //Connection and query definition are shared for most of the examples below
 
 [<Literal>]
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString = 
+    @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 [<Literal>]
 let productsSql = " 
@@ -49,7 +50,8 @@ for productName, sellStartDate, size in tuples do
  * Typed data table as result set
 *)
 
-type QueryProductDataTable = SqlCommandProvider<productsSql, connectionString, ResultType = ResultType.DataTable>
+type QueryProductDataTable = 
+    SqlCommandProvider<productsSql, connectionString, ResultType = ResultType.DataTable>
 
 QueryProductDataTable().Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") 
 |> Seq.iter (fun row -> 
@@ -62,7 +64,9 @@ QueryProductDataTable().Execute(top = 7L, SellStartDate = System.DateTime.Parse 
 *)
 
 type QueryPersonInfoSingletoneAsRecords = 
-    SqlCommandProvider<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, SingleRow = true>
+    SqlCommandProvider<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)"
+                        , connectionString
+                        , SingleRow = true>
 
 let singleton = new QueryPersonInfoSingletoneAsRecords()
 
@@ -107,8 +111,23 @@ for row in table do
 
 (**
 
- * One column only result set inferred. Combined with `SingleRow` hint gives single value as result
- * `AsyncExecute/Execute` are just regular F# methods. So args can be passed by name or by position
+ * Same as previous but using `SqlProgrammabilityProvider<...>`
+
+*)
+
+type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
+
+let db = AdventureWorks2012()
+
+let f = db.Functions.``dbo.ufnGetContactInformation``.AsyncExecute(1) 
+        |> Async.RunSynchronously 
+        |> Seq.exactlyOne
+printfn "Person info:Id - %i,FirstName - %O,LastName - %O" f.PersonID f.FirstName f.LastName 
+
+(**
+
+ * One column only result set is inferred. Combined with `SingleRow` hint it gives single value as result
+ * `AsyncExecute/Execute` are just regular F# methods, so args can be passed by name or by position
 
 *)
 
@@ -163,6 +182,23 @@ let rowsAffected =
         BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F") 
 
 (**
+
+ * Non-query with MS SQL HierarchyId using `SqlProgrammabilityProvider<...>`
+
+*)
+#r "../../bin/Microsoft.SqlServer.Types.dll"
+
+open System
+open System.Data
+open Microsoft.SqlServer.Types
+
+let hierarchyId = SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/"))
+let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
+            .AsyncExecute(291, true, DateTime(2013,1,1), "gatekeeper", "adventure-works\gat0", hierarchyId)
+            |> Async.RunSynchronously 
+res.ReturnValue
+
+(**
 ### Result sequence is un-buffered by default 
 
 Although it implements standard `seq<_>` (`IEnumerable<_>`) interface it can be evaluated only once. 
@@ -191,7 +227,8 @@ let ReadToMaps(reader : System.Data.SqlClient.SqlDataReader) = seq{
                 while(reader.Read()) do
                     yield   Map.ofArray<string, obj> [| 
                                 for i = 0 to reader.FieldCount - 1 do
-                                        if not(reader.IsDBNull(i)) then yield reader.GetName(i), reader.GetValue(i)
+                                        if not(reader.IsDBNull(i)) 
+                                        then yield reader.GetName(i), reader.GetValue(i)
                             |]  
 
             finally

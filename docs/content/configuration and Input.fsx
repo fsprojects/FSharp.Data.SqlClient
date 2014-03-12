@@ -1,12 +1,12 @@
 (*** hide ***)
 #r "../../bin/FSharp.Data.SqlClient.dll"
-
+#r "../../bin/Microsoft.SqlServer.Types.dll"
 (**
 
 Configuration and Input
 ===================
 
-Provider parameters 
+SQlCommandProvider parameters 
 -------------------------------------
 
 <table class="table table-bordered table-striped">
@@ -14,13 +14,25 @@ Provider parameters
 <tbody>
   <tr><td class="title">CommandText</td><td>-</td><td>T-SQL script or *.sql file</td></tr></thead>
   <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr></thead>
-  <tr><td class="title">CommandType</td><td>CommandType.Text</td><td>Text or StoredProcedure</td></tr></thead>
-  <tr><td class="title">ResultType</td><td>ResultType.Tuples</td><td>Tuples, Records, DataTable or Maps</td></tr></thead>
+  <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable or DataReader</td></tr></thead>
   <tr><td class="title">SingleRow</td><td>false</td><td>true/false</td></tr></thead>
   <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>valid file name</td></tr></thead>
   <tr><td class="title">AllParametersOptional</td><td>false</td><td>true/false</td></tr></thead>
 </tbody>
 </table>
+
+SQlProgrammabilityProvider parameters 
+-------------------------------------
+
+<table class="table table-bordered table-striped">
+<thead><tr><td>Name</td><td>Default</td><td>Accepted values</td></tr></thead>
+<tbody>
+  <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr></thead>
+  <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable or DataReader</td></tr></thead>
+  <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>valid file name</td></tr></thead>
+</tbody>
+</table>
+
 
 CommandText
 -------------------------------------
@@ -103,13 +115,14 @@ Stored procedures can be used too but they resemble imperative programming with 
 Below is an example of SQL Table-Valued Function usage. 
 *)
 
-type GetContactInformation = SqlCommandProvider<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString>
+type GetContactInformation = 
+    SqlCommandProvider<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString>
 
 (**
 ### Syntax erros
 
-In case of syntax errors in T-SQL the type provider shows fairly clear error message. 
-An instantaneous feedback is one of the most handy features of SqlCommandProvider. 
+The type provider shows fairly clear error message if there are any syntax errors in T-SQL. 
+An instantaneous feedback is one of the most handy features of `SqlCommandProvider`. 
 
 ### Limitation: a single parameter in a query may only be used once. 
 
@@ -151,7 +164,9 @@ Connection string can be provided either via literal (all examples above) or inl
 *)
 
 //Inline 
-type Get42 = SqlCommandProvider<"SELECT 42", @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True">
+type Get42 = 
+    SqlCommandProvider<"SELECT 42", 
+                       @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True">
 
 (**
 
@@ -258,9 +273,15 @@ let bitCoinCode = "BTC"
 [<Literal>]
 let bitCoinName = "Bitcoin"
 
-type DeleteBitCoin = SqlCommandProvider<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code", connectionString>
-type InsertBitCoin = SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", connectionString>
-type GetBitCoin = SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", connectionString>
+type DeleteBitCoin = 
+    SqlCommandProvider<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code"
+                        , connectionString>
+type InsertBitCoin = 
+    SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())"
+                        , connectionString>
+type GetBitCoin = 
+    SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code"
+                        , connectionString>
 
 DeleteBitCoin().Execute(bitCoinCode) |> ignore
 let conn = new System.Data.SqlClient.SqlConnection(connectionString)
@@ -275,39 +296,61 @@ tran.Rollback()
 
 It is worth noting that because of "erased types" nature of this type provider reflection and other dynamic techniques cannot be used 
 to create command instances.
-  
+
+`SqlProgrammabilityProvider<...>` supports connection name syntax as well. 
+It is also possible to pass run-time connection string to database constructor:
+*)
+type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
+
+open System
+
+let dbRuntime = AdventureWorks2012(runTimeConnStr)
+
+dbRuntime.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(DateTime(2013,1,1), 1) 
+|> Async.RunSynchronously
+
+(**  
 ### Stored procedures
 
-  - Set `CommandType` parameter to `CommandType.StoredProcedure` to specify it directly by name
-  - Stored procedures' out parameters and return value are not supported 
-
+  Stored procedures are supported by `SqlProgrammabilityProvider<...>`
 *)
 
+let db = AdventureWorks2012()
+
+db.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(DateTime(2013,1,1), 1) 
+|> Async.RunSynchronously 
+|> Array.ofSeq
+
+(**
+   If Stored Procedure contains any output parameters, the result of the call is a record with all output parameters and return value. 
+   Note that SqlServer-specific types are also supported.
+*)
+open Microsoft.SqlServer.Types
 open System.Data
 
-type UpdateEmplInfoCommandSp = 
-    SqlCommandProvider<
-        "HumanResources.uspUpdateEmployeePersonalInfo", 
-        connectionString, 
-        CommandType = CommandType.StoredProcedure >
-
-let sp = new UpdateEmplInfoCommandSp()
-
-sp.AsyncExecute(BusinessEntityID = 2, NationalIDNumber = "245797967", 
-    BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F") 
-|> Async.RunSynchronously
+let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
+            .AsyncExecute(  291, 
+                            true, 
+                            DateTime(2013,1,1), 
+                            "gatekeeper", 
+                            "adventure-works\gat0", 
+                            SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")))
+            |> Async.RunSynchronously 
+res.ReturnValue
 
 (**
 
 ### Optional input parameters
     
-By default all input parameters to `AsyncExecute/Execute` are mandatory. 
+By default all input parameters of `AsyncExecute/Execute` generated by `SqlCommandProvider<...>` are mandatory. 
 But there are rare cases when you prefer to handle NULL input values inside T-SQL script. 
 `AllParametersOptional` set to true makes all parameters (guess what) optional.
-
 *)
 
-type IncrBy = SqlCommandProvider<"SELECT @x + ISNULL(CAST(@y AS INT), 1) ", connectionString, AllParametersOptional = true, SingleRow = true>
+type IncrBy = SqlCommandProvider<"SELECT @x + ISNULL(CAST(@y AS INT), 1) ", 
+                                    connectionString, 
+                                    AllParametersOptional = true, 
+                                    SingleRow = true>
 let incrBy = IncrBy()
 //pass both params passed 
 incrBy.Execute(Some 10, Some 2) = Some( Some 12) //true
@@ -315,6 +358,8 @@ incrBy.Execute(Some 10, Some 2) = Some( Some 12) //true
 incrBy.Execute(Some 10) = Some( Some 11) //true
 
 (**
+Note that `AllParametersOptional` is not supported by `SQlProgrammabilityProvider<...>` as it is able to 
+infer default values for Stored Procedures and UDFs so `AsyncExecute` signature makes corresponding parameters optional.
 
 ### Table-valued parameters (TVPs)
 
@@ -342,3 +387,22 @@ let tvpSp = new TableValuedSample()
 //nullable columns mapped to optional ctor params
 tvpSp.Execute(x = [ TVP(myId = 1, myName = "monkey"); TVP(myId = 2) ]) 
 
+(**
+Same with `SqlProgrammabilityProvider<...>`
+*)
+
+type myType = AdventureWorks2012.``User-Defined Table Types``.MyTableType
+
+let m = [ 
+    myType(myId = 2)
+    myType(myId = 1) 
+]
+
+let myArray = 
+    db.``Stored Procedures``.``dbo.MyProc``.AsyncExecute(m) 
+    |> Async.RunSynchronously 
+    |> Array.ofSeq
+
+let myRes = myArray.[0]
+myRes.myId
+myRes.myName

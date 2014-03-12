@@ -72,20 +72,26 @@ Features at glance
 * Input:
     * Statically typed
     * Unbound sql variables/input parameters mapped to mandatory arguments for `AsyncExecute/Execute`
-    * Set `AllParametersOptional` to true to make all parameters optional (nullable)
+    * Set `AllParametersOptional` to true to make all parameters optional (nullable) (`SqlCommandProvider<...>` only)
+    * Stored Procedures and Table-valued User-defined Functions can be discovered and executed with `SqlProgrammabilityProvider<...>`
+    * `SqlProgrammabilityProvider<...>` infers default values for input parameters and exposes them in AsyncExecute
 * Output:
-    * Inferred static type for output. Configurable choice of `seq<Tuples>`, `seq<Records>`, `DataTable` or `seq<Maps>`. Each column mapped to item/property/key
+    * Inferred static type for output. Configurable choice of `seq<Tuples>`, `seq<Records>`, `DataTable`, or raw `SqlReader` for custom parsing. 
+        For `seq<Tuples>` and `seq<Records>` each column mapped to corresponding item/property
     * Nullable output columns translate to the F# Option type
+    * For Stored Procedures, output parameters exposed as custom .Net type with corresponding properties plus Return Value.
 * Extra configuration options:
     * `SingleRow` hint forces singleton output instead of sequence
 
+* [Microsoft.SqlServer.Types (Spatial on Azure)](http://blogs.msdn.com/b/adonet/archive/2013/12/09/microsoft-sqlserver-types-nuget-package-spatial-on-azure.aspx) is supported.
 * SqlCommandProvider is of "erased types" kind. It can be used only from F#. 
 
 Limitations
 -------------------------------------
-In addition to system requirements listed above SqlCommandProvider constrained by same limitations as two system meta-stored procedures 
+In addition to system requirements listed above `SqlCommandProvider` constrained by same limitations as two system meta-stored procedures 
 it uses in implementation: [sys.sp\_describe\_undeclared\_parameters](http://technet.microsoft.com/en-us/library/ff878260.aspx) 
 and [sys.sp\_describe\_first\_result\_set](http://technet.microsoft.com/en-us/library/ff878602.aspx). Look online for more details.
-
+Additionally, `SqlProgrammabilityProvider` employs [SMO](http://technet.microsoft.com/en-us/library/ms162169.aspx) to identify default parameters of stored procedures
+which might affect design-time responsiveness at times.
 *)
 
