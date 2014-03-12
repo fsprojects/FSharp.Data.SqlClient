@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data
+﻿namespace FSharp.Data.SqlProgrammability
 
 open System
 open System.Data

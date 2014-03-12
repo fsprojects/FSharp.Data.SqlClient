@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data
+﻿namespace FSharp.Data.SqlProgrammability
 
 type ResultType =
     | Records = 0

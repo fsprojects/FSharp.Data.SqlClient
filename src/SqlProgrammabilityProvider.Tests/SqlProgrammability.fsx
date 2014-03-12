@@ -1,10 +1,11 @@
 
-#r "../../bin/SqlProgrammabilityProvider.dll"
+#r "../../bin/Fsharp.Data.SqlProgrammabilityProvider.dll"
 #r "../../bin/Microsoft.SqlServer.Types.dll"
 
 open System
 open System.Data
 open FSharp.Data
+open FSharp.Data.SqlProgrammability
 open Microsoft.SqlServer.Types
 
 [<Literal>] 
@@ -13,7 +14,7 @@ let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWo
 [<Literal>] 
 let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
 
-type AdventureWorks2012 = SqlProgrammability<connectionString>
+type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
 
 //let db = AdventureWorks2012(prodConnectionString)
 

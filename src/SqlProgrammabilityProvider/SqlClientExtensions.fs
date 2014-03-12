@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-module FSharp.Data.Sqlclient
+module FSharp.Data.SqlClient
 
 open System
 open System.Text
@@ -8,6 +8,7 @@ open System.Data.SqlClient
 open Microsoft.FSharp.Reflection
 open Microsoft.SqlServer.Management.Smo
 open Microsoft.SqlServer.Management.Common
+open FSharp.Data.SqlProgrammability
 
 let DbNull = box DBNull.Value
 
@@ -77,7 +78,7 @@ type SqlConnection with
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
 
-    member internal this.FallbackToSETFMONLY(commandText, sqlParameters : FSharp.Data.Parameter list) = 
+    member internal this.FallbackToSETFMONLY(commandText, sqlParameters : Parameter list) = 
         assert (this.State = ConnectionState.Open)
         
         use cmd = new SqlCommand(commandText, this, CommandType = CommandType.StoredProcedure)
@@ -126,14 +127,14 @@ type SqlConnection with
         let coll = if isFunction 
                    then db.UserDefinedFunctions.[name, schema].Parameters :> ParameterCollectionBase 
                    else db.StoredProcedures.[name, schema].Parameters :> ParameterCollectionBase 
-        seq {for p in coll |> Seq.cast<Parameter> -> p.Name, p.DefaultValue } |> Map.ofSeq
+        seq {for p in coll |> Seq.cast<Microsoft.SqlServer.Management.Smo.Parameter> -> p.Name, p.DefaultValue } |> Map.ofSeq
 
     member internal this.GetFunctionColumns(twoPartsName : string) = 
         let db  = Server( ServerConnection(this)).Databases.[this.Database]
         let schema, name =  splitName twoPartsName
         let types = db.UserDefinedDataTypes |> Seq.cast<UserDefinedDataType> |> Seq.map(fun t -> t.Name, t.SystemType) |> Map.ofSeq
         db.UserDefinedFunctions.[name, schema].Columns
-        |> Seq.cast<Column>
+        |> Seq.cast<Microsoft.SqlServer.Management.Smo.Column>
         |> Seq.mapi ( fun i c ->
                 let dataType = defaultArg (types.TryFind(c.DataType.Name)) c.DataType.Name
                 {

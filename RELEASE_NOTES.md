@@ -15,3 +15,4 @@
 * 1.1.30 - Adding SqlTypes dll for design-time support
 * 1.1.31 - Connection management issue. Upgdate ASAP.
 * 1.2.0 - Dropping Experimental from the name, adding Programmability to nuget.
+* 1.2.1 - Separating namespaces for the providers.

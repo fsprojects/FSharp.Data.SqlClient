@@ -19,6 +19,7 @@ open Microsoft.SqlServer.Server
 open Samples.FSharp.ProvidedTypes
 
 open FSharp.Data.Internals
+open FSharp.Data.SqlProgrammability
 
 [<assembly:TypeProviderAssembly()>]
 [<assembly:System.Runtime.CompilerServices.InternalsVisibleTo("SqlProgrammabilityProvider.Tests")>]

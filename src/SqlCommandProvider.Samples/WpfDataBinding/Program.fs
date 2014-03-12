@@ -10,7 +10,7 @@ open FSharp.Data
 [<Literal>]
 let queryTableSql = "select top 5 AddressLine1, City, SpatialLocation from Person.Address where AddressLine1 like @startsWith"
 
-type Query = SqlCommand<queryTableSql, ConnectionStringOrName="name=AdventureWorks2012", ResultType=ResultType.DataTable>
+type Query = SqlCommandProvider<queryTableSql, ConnectionStringOrName="name=AdventureWorks2012", ResultType=ResultType.DataTable>
 
 [<STAThread>]
 [<EntryPoint>]
