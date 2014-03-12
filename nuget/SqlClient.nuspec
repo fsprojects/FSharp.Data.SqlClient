@@ -22,9 +22,9 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="..\bin\FSharp.Data.SqlClient.dll" target="lib/net40\FSharp.Data.SqlCommandProvider.dll" />
-    <file src="..\bin\FSharp.Data.SqlClient.pdb" target="lib/net40\FSharp.Data.SqlCommandProvider.pdb" />
-    <file src="..\bin\FSharp.Data.SqlClient.xml" target="lib/net40\FSharp.Data.SqlCommandProvider.xml" />
+    <file src="..\bin\FSharp.Data.SqlClient.dll" target="lib/net40\FSharp.Data.SqlClient.dll" />
+    <file src="..\bin\FSharp.Data.SqlClient.pdb" target="lib/net40\FSharp.Data.SqlClient.pdb" />
+    <file src="..\bin\FSharp.Data.SqlClient.xml" target="lib/net40\FSharp.Data.SqlClient.xml" />
     <file src="..\bin\Microsoft.SqlServer.*.dll" target="lib/net40" />
   </files>
 </package>

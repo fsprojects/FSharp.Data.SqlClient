@@ -17,3 +17,4 @@
 * 1.2.0 - Dropping Experimental from the name, adding Programmability to nuget.
 * 1.2.1 - Separating namespaces for the providers.
 * 1.2.2 - Merging assemblies.
+* 1.2.3 - Fixing nuget package.
