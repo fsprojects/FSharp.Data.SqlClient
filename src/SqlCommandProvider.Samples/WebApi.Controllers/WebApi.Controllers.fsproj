@@ -62,27 +62,27 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data.SqlCommandProvider">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.0\lib\net40\FSharp.Data.SqlCommandProvider.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.1\lib\net40\FSharp.Data.SqlCommandProvider.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.Data.SqlProgrammabilityProvider">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.0\lib\net40\FSharp.Data.SqlProgrammabilityProvider.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.1\lib\net40\FSharp.Data.SqlProgrammabilityProvider.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.ConnectionInfo">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.0\lib\net40\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.1\lib\net40\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.0\lib\net40\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.1\lib\net40\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Smo">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.0\lib\net40\Microsoft.SqlServer.Smo.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.1\lib\net40\Microsoft.SqlServer.Smo.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Types">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.0\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.1\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
