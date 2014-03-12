@@ -46,10 +46,6 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlCommandProvider", "src\S
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlProgrammabilityProvider", "src\SqlProgrammabilityProvider\SqlProgrammabilityProvider.fsproj", "{E16643D1-3825-4571-BE41-3FDA49A7A6D5}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlProgrammabilityProvider.DesignTime", "src\SqlProgrammabilityProvider.DesignTime\SqlProgrammabilityProvider.DesignTime.fsproj", "{5C446259-5D6E-40DB-9998-3BF0863AA69C}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlProgrammabilityProvider.Runtime", "src\SqlProgrammabilityProvider.Runtime\SqlProgrammabilityProvider.Runtime.fsproj", "{60532E40-56BB-4A89-A486-6B95F0A94BA9}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -64,14 +60,6 @@ Global
 		{E16643D1-3825-4571-BE41-3FDA49A7A6D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E16643D1-3825-4571-BE41-3FDA49A7A6D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E16643D1-3825-4571-BE41-3FDA49A7A6D5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5C446259-5D6E-40DB-9998-3BF0863AA69C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5C446259-5D6E-40DB-9998-3BF0863AA69C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5C446259-5D6E-40DB-9998-3BF0863AA69C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5C446259-5D6E-40DB-9998-3BF0863AA69C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{60532E40-56BB-4A89-A486-6B95F0A94BA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{60532E40-56BB-4A89-A486-6B95F0A94BA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{60532E40-56BB-4A89-A486-6B95F0A94BA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{60532E40-56BB-4A89-A486-6B95F0A94BA9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

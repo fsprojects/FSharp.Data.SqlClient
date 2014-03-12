@@ -1,6 +1,4 @@
 
-#r "../../bin/SqlProgrammabilityProvider.Runtime.dll"
-#r "../../bin/SqlProgrammabilityProvider.Designtime.dll"
 #r "../../bin/SqlProgrammabilityProvider.dll"
 #r "../../bin/Microsoft.SqlServer.Types.dll"
 
