@@ -63,7 +63,7 @@
     <Compile Include="SMO.fs" />
     <Compile Include="Schema.fs" />
     <None Include="app.config" />
-    <None Include="Test.fsx" />
+    <None Include="SqlCommand.fsx" />
     <None Include="SqlProgrammability.fsx" />
     <None Include="sampleCommand.sql" />
     <None Include="prereqs.sql" />

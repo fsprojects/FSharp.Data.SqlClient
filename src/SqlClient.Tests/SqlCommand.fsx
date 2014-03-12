@@ -94,24 +94,18 @@ let rowsAffected = result4 |> Async.RunSynchronously
 let cmd45 = new UpdateEmplInfoCommand()
 cmd45.Execute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "M")
 
-//Stored procedure by name only
-type UpdateEmplInfoCommandSp = SqlCommandProvider<"HumanResources.uspUpdateEmployeePersonalInfo", connectionString, CommandType.StoredProcedure >
-let cmdSp = new UpdateEmplInfoCommandSp()
-cmdSp.AsyncExecute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F") |> Async.RunSynchronously
-cmdSp.Execute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F")
-
 //Command from file
 type q = SqlCommandProvider<"sampleCommand.sql", connectionString>
 let cmdFromFile = q()
 cmdFromFile.Execute() |> ignore
 
 //Fallback to metadata retrieval through FMTONLY
-type UseFMTONLY = SqlCommandProvider<"dbo.[Init]", connectionString, CommandType = CommandType.StoredProcedure >
+type UseFMTONLY = SqlCommandProvider<"exec dbo.[Init]", connectionString>
 let useFMTONLY = UseFMTONLY()
 useFMTONLY.Execute()
 
 //Runtime column names and Map<string,obj> as a row type
-type UseGet = SqlCommandProvider<"dbo.[Get]", connectionString, CommandType = CommandType.StoredProcedure, ResultType = ResultType.DataReader >
+type UseGet = SqlCommandProvider<"exec dbo.[Get]", connectionString, ResultType = ResultType.DataReader >
 let useGet = UseGet()
 useGet.Execute().NextResult() = false
 

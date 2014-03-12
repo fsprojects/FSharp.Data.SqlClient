@@ -52,7 +52,7 @@ let tableValuedSingle() =
     let result = cmd.Execute(x = p) |> List.ofSeq
     Assert.Equal<int list>([1;2], result)    
 
-type TableValuedSprocTuple  = SqlCommandProvider<"myProc", ConnectionStringOrName = "name=AdventureWorks2012", SingleRow = true, CommandType = CommandType.StoredProcedure, ResultType = ResultType.Tuples>
+type TableValuedSprocTuple  = SqlCommandProvider<"exec myProc @x", ConnectionStringOrName = "name=AdventureWorks2012", SingleRow = true, ResultType = ResultType.Tuples>
 
 [<Fact>]
 let tableValuedSprocTupleValue() = 
@@ -61,7 +61,7 @@ let tableValuedSprocTupleValue() =
         TableValuedSprocTuple.MyTableType(myId = 1, myName = "monkey")
         TableValuedSprocTuple.MyTableType(myId = 2, myName = "donkey")
     ]
-    let actual = cmd.Execute(p1 = p).Value
+    let actual = cmd.Execute(p).Value
     Assert.Equal((1, Some "monkey"), actual)    
 
 

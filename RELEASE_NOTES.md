@@ -18,3 +18,4 @@
 * 1.2.1 - Separating namespaces for the providers.
 * 1.2.2 - Merging assemblies.
 * 1.2.3 - Fixing nuget package.
+* 1.2.4 - CommandType removed from SqlCommandProvider.

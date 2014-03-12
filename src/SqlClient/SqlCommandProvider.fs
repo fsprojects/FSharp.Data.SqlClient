@@ -54,7 +54,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             parameters = [ 
                 ProvidedStaticParameter("CommandText", typeof<string>) 
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
-                ProvidedStaticParameter("CommandType", typeof<CommandType>, CommandType.Text) 
                 ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Records) 
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false)   
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
@@ -76,7 +75,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 <summary>Typed representation of a T-SQL statement to execute against a SQL Server database.</summary> 
 <param name='CommandText'>Transact-SQL statement to execute at the data source.</param>
 <param name='ConnectionStringOrName'>String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&lt;connection string name&gt;”.</param>
-<param name='CommandType'>Obsolete. A value indicating how the CommandText property is to be interpreted.</param>
 <param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable or DataReader.</param>
 <param name='SingleRow'>If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
@@ -93,11 +91,10 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     member internal this.CreateType typeName parameters = 
         let commandText : string = unbox parameters.[0] 
         let connectionStringOrName : string = unbox parameters.[1] 
-        let commandType : CommandType = unbox parameters.[2] 
-        let resultType : ResultType = unbox parameters.[3] 
-        let singleRow : bool = unbox parameters.[4] 
-        let configFile : string = unbox parameters.[5] 
-        let allParametersOptional : bool = unbox parameters.[6] 
+        let resultType : ResultType = unbox parameters.[2] 
+        let singleRow : bool = unbox parameters.[3] 
+        let configFile : string = unbox parameters.[4] 
+        let allParametersOptional : bool = unbox parameters.[5] 
 
         let resolutionFolder = config.ResolutionFolder
 
@@ -127,14 +124,13 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         conn.CheckVersion()
         conn.LoadDataTypesMap()
 
-        let sqlParameters = this.ExtractSqlParameters(conn, commandText, commandType)
+        let sqlParameters = this.ExtractSqlParameters(conn, commandText)
 
         let ctor = ProvidedConstructor( [ ProvidedParameter("transaction", typeof<SqlTransaction>) ])
         ctor.InvokeCode <- fun args -> 
             <@@ 
                 let tran : SqlTransaction = %%args.[0]
-                let this = new SqlCommand(commandText, tran.Connection, tran) 
-                this.CommandType <- commandType
+                let this = new SqlCommand(commandText, tran.Connection, tran, CommandType = CommandType.Text) 
                 let xs = %%Expr.NewArray( typeof<SqlParameter>, sqlParameters |> List.map QuotationsFactory.ToSqlParam)
                 this.Parameters.AddRange xs
                 this
@@ -151,8 +147,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     elif name <> null then Configuration.GetConnectionStringRunTimeByName name
                     else designTimeConnectionString
                         
-                let this = new SqlCommand(commandText, new SqlConnection(runTimeConnectionString)) 
-                this.CommandType <- commandType
+                let this = new SqlCommand(commandText, new SqlConnection(runTimeConnectionString), CommandType = CommandType.Text) 
                 let xs = %%Expr.NewArray( typeof<SqlParameter>, sqlParameters |> List.map QuotationsFactory.ToSqlParam)
                 this.Parameters.AddRange xs
                 this
@@ -163,7 +158,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let executeArgs = this.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters, allParametersOptional) 
         let outputColumns = 
             if resultType <> ResultType.DataReader
-            then this.GetOutputColumns(conn, commandText, commandType, sqlParameters)
+            then this.GetOutputColumns(conn, commandText, sqlParameters)
             else []
 
         this.AddExecuteMethod(allParametersOptional, sqlParameters, executeArgs, outputColumns, providedCommandType, resultType, singleRow, commandText) 
@@ -180,63 +175,43 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         providedCommandType
 
-    member internal this.GetOutputColumns(connection, commandText, commandType, sqlParameters) = 
+    member internal this.GetOutputColumns(connection, commandText, sqlParameters) = 
         try
             connection.GetFullQualityColumnInfo(commandText) 
         with :? SqlException as why ->
             try 
-                connection.FallbackToSETFMONLY(commandText, commandType, sqlParameters) 
+                connection.FallbackToSETFMONLY(commandText, CommandType.Text, sqlParameters) 
             with :? SqlException ->
                 raise why
         
-    member internal this.ExtractSqlParameters(connection, commandText, commandType) =  [
+    member internal this.ExtractSqlParameters(connection, commandText) =  [
+            use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", connection, CommandType = CommandType.StoredProcedure)
+            cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
+            use reader = cmd.ExecuteReader()
+            while(reader.Read()) do
 
-            match commandType with 
+                let paramName = string reader.["name"]
+                let sqlEngineTypeId = unbox<int> reader.["suggested_system_type_id"]
 
-            | CommandType.StoredProcedure ->
-                //quick solution for now. Maybe better to use conn.GetSchema("ProcedureParameters")
-                use cmd = new SqlCommand(commandText, connection, CommandType = CommandType.StoredProcedure)
-                SqlCommandBuilder.DeriveParameters cmd
-
-                let xs = cmd.Parameters |> Seq.cast<SqlParameter> |> Seq.toList
-                assert(xs.Head.Direction = ParameterDirection.ReturnValue)
-                for p in xs.Tail do
-                    if p.Direction <> ParameterDirection.Input then failwithf "Only input parameters are supported. Parameter %s has direction %O" p.ParameterName p.Direction
-                    yield p.ToParameter()
-
-                // skip RETURN_VALUE
-                //yield xs.Head.ToParameter()
-
-            | CommandType.Text -> 
-                use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", connection, CommandType = CommandType.StoredProcedure)
-                cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
-                use reader = cmd.ExecuteReader()
-                while(reader.Read()) do
-
-                    let paramName = string reader.["name"]
-                    let sqlEngineTypeId = unbox<int> reader.["suggested_system_type_id"]
-
-                    let udtName = Convert.ToString(value = reader.["suggested_user_type_name"])
-                    let direction = 
-                        let output = unbox reader.["suggested_is_output"]
-                        let input = unbox reader.["suggested_is_input"]
-                        if input && output then ParameterDirection.InputOutput
-                        elif output then ParameterDirection.Output
-                        else ParameterDirection.Input
+                let udtName = Convert.ToString(value = reader.["suggested_user_type_name"])
+                let direction = 
+                    let output = unbox reader.["suggested_is_output"]
+                    let input = unbox reader.["suggested_is_input"]
+                    if input && output then ParameterDirection.InputOutput
+                    elif output then ParameterDirection.Output
+                    else ParameterDirection.Input
                     
-                    let typeInfo = 
-                        match findBySqlEngineTypeIdAndUdt(sqlEngineTypeId, udtName) with
-                        | Some x -> x
-                        | None -> failwithf "Cannot map unbound variable of sql engine type %i and UDT %s to CLR/SqlDbType type. Parameter name: %s" sqlEngineTypeId udtName paramName
+                let typeInfo = 
+                    match findBySqlEngineTypeIdAndUdt(sqlEngineTypeId, udtName) with
+                    | Some x -> x
+                    | None -> failwithf "Cannot map unbound variable of sql engine type %i and UDT %s to CLR/SqlDbType type. Parameter name: %s" sqlEngineTypeId udtName paramName
 
-                    yield { 
-                        Name = paramName
-                        TypeInfo = typeInfo 
-                        Direction = direction 
-                        DefaultValue = ""
-                    }
-
-            | _ -> failwithf "Unsupported command type: %O" commandType    
+                yield { 
+                    Name = paramName
+                    TypeInfo = typeInfo 
+                    Direction = direction 
+                    DefaultValue = ""
+                }
     ]
 
     member internal __.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters, allParametersOptional) = [
