@@ -8,7 +8,7 @@
     <ProjectGuid>e16643d1-3825-4571-be41-3fda49a7a6d5</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>SqlProgrammability</RootNamespace>
-    <AssemblyName>SqlProgrammabilityProvider</AssemblyName>
+    <AssemblyName>FSharp.Data.SqlProgrammabilityProvider</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFSharpCoreVersion>4.3.0.0</TargetFSharpCoreVersion>
     <Name>SqlProgrammabilityProvider</Name>
@@ -24,8 +24,7 @@
     <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>
-    </DocumentationFile>
+    <DocumentationFile>..\..\bin\FSharp.Data.SqlProgrammabilityProvider.XML</DocumentationFile>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE\devenv.exe</StartProgram>
     <StartArguments>..\SqlProgrammabilityProvider.sln</StartArguments>
@@ -37,7 +36,7 @@
     <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\bin\SqlProgrammability.XML</DocumentationFile>
+    <DocumentationFile>..\..\bin\FSharp.Data.SqlProgrammabilityProvider.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
@@ -69,12 +68,15 @@
   <ItemGroup>
     <Reference Include="Microsoft.SqlServer.ConnectionInfo">
       <HintPath>..\..\lib\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc">
       <HintPath>..\..\lib\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Smo">
       <HintPath>..\..\lib\Microsoft.SqlServer.Smo.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Types">
       <HintPath>..\..\packages\Microsoft.SqlServer.Types.11.0.1\lib\net20\Microsoft.SqlServer.Types.dll</HintPath>

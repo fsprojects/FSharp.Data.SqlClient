@@ -1,5 +1,5 @@
 (*** hide ***)
-#r "../../bin/FSharp.Data.Experimental.SqlCommandProvider.dll"
+#r "../../bin/FSharp.Data.SqlCommandProvider.dll"
 
 (**
 Bridging the gap between F# types and T-SQL scripting
@@ -11,8 +11,8 @@ SqlCommandProvider provides statically typed access to input parameters and resu
   <div class="span1"></div>
   <div class="span6">
     <div class="well well-small" id="nuget">
-      The FSharp.Data.Experimental.SqlCommandProvider library can be <a href="http://www.nuget.org/packages/FSharp.Data.Experimental.SqlCommandProvider">installed from NuGet</a>:
-      <pre>PM> Install-Package FSharp.Data.Experimental.SqlCommandProvider</pre>
+      The FSharp.Data.SqlClient library can be <a href="http://www.nuget.org/packages/FSharp.Data.SqlClient">installed from NuGet</a>:
+      <pre>PM> Install-Package FSharp.Data.SqlClient</pre>
     </div>
   </div>
   <div class="span1"></div>
@@ -38,7 +38,7 @@ let query = "
     ORDER BY SalesYTD
 " 
 
-type SalesPersonQuery = SqlCommand<query, connectionString>
+type SalesPersonQuery = SqlCommandProvider<query, connectionString>
 let cmd = SalesPersonQuery()
 
 cmd.AsyncExecute(TopN = 3L, regionName = "United States", salesMoreThan = 1000000M) 
@@ -61,7 +61,7 @@ System requirements
 Features at glance
 -------------------------------------
 
-* Static type with 2 methods per `SqlCommand<...>` declaration:
+* Static type with 2 methods per `SqlCommandProvider<...>` declaration:
     * `AsyncExecute` - for scalability scenarios 
     * `Execute` - convenience when needed
 * Configuration

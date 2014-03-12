@@ -8,7 +8,7 @@ open FsUnit.Xunit
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 type ResultTypeReader = 
-    SqlCommand<"SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003), ('foo bar',NULL))  AS T(lang, DOB)", "name=AdventureWorks2012", ResultType = ResultType.DataReader>
+    SqlCommandProvider<"SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003), ('foo bar',NULL))  AS T(lang, DOB)", "name=AdventureWorks2012", ResultType = ResultType.DataReader>
 
 let ReadToMaps(reader : System.Data.SqlClient.SqlDataReader) = seq{
             try 

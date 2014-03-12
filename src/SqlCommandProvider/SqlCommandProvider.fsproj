@@ -8,7 +8,7 @@
     <ProjectGuid>8974ce2e-79b4-4887-859a-b853c2624138</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>SqlCommandTypeProvider</RootNamespace>
-    <AssemblyName>FSharp.Data.Experimental.SqlCommandProvider</AssemblyName>
+    <AssemblyName>FSharp.Data.SqlCommandProvider</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <Name>SqlCommandProvider</Name>
     <TargetFrameworkProfile />
@@ -24,8 +24,7 @@
     <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>
-    </DocumentationFile>
+    <DocumentationFile>..\..\bin\FSharp.Data.SqlCommandProvider.XML</DocumentationFile>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\devenv.exe</StartProgram>
     <StartArguments>..\SqlCommandProvider.tests.sln</StartArguments>
@@ -37,7 +36,7 @@
     <OutputPath>..\..\bin</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\bin\FSharp.Data.Experimental.SqlCommandProvider.xml</DocumentationFile>
+    <DocumentationFile>..\..\bin\FSharp.Data.SqlCommandProvider.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">

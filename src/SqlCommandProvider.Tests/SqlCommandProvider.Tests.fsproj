@@ -8,7 +8,7 @@
     <ProjectGuid>624c31ff-2003-4334-b02e-ad5a79fe9ed8</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Tests</RootNamespace>
-    <AssemblyName>FSharp.Data.Experimental.SqlCommandProvider.Tests</AssemblyName>
+    <AssemblyName>SqlCommandProvider.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <Name>SqlCommandProvider.Tests</Name>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
@@ -21,7 +21,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>bin\Debug</OutputPath>
+    <OutputPath>..\..\bin</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>
@@ -69,8 +69,8 @@
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Private>True</Private>
     </Reference>
-    <Reference Include="FSharp.Data.Experimental.SqlCommandProvider">
-      <HintPath>..\..\bin\FSharp.Data.Experimental.SqlCommandProvider.dll</HintPath>
+    <Reference Include="FSharp.Data.SqlCommandProvider">
+      <HintPath>..\..\bin\FSharp.Data.SqlCommandProvider.dll</HintPath>
     </Reference>
     <Reference Include="FsUnit.CustomMatchers">
       <HintPath>..\..\packages\FsUnit.xUnit.1.2.1.2\Lib\Net40\FsUnit.CustomMatchers.dll</HintPath>

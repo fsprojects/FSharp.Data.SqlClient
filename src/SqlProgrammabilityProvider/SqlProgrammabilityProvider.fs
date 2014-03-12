@@ -42,7 +42,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     do 
         this.RegisterRuntimeAssemblyLocationAsProbingFolder( config) 
 
-        let providerType = ProvidedTypeDefinition(runtimeAssembly, nameSpace, "SqlProgrammability", Some typeof<obj>, HideObjectMethods = true)
+        let providerType = ProvidedTypeDefinition(runtimeAssembly, nameSpace, "SqlProgrammabilityProvider", Some typeof<obj>, HideObjectMethods = true)
 
         providerType.DefineStaticParameters(
             parameters = [ 

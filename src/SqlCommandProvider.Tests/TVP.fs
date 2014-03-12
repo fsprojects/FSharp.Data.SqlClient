@@ -5,7 +5,7 @@ open System.Data
 open Xunit
 
 // If compile fails here, check prereqs.sql
-type TableValuedTuple = SqlCommand<"exec myProc @x", "name=AdventureWorks2012", SingleRow = true, ResultType = ResultType.Tuples>
+type TableValuedTuple = SqlCommandProvider<"exec myProc @x", "name=AdventureWorks2012", SingleRow = true, ResultType = ResultType.Tuples>
 type MyTableType = TableValuedTuple.MyTableType
 
 [<Fact>]
@@ -40,7 +40,7 @@ let tableValuedSprocTupleNull() =
     Assert.Equal(Some(1, None), cmd.Execute p)    
 
 
-type TableValuedSingle = SqlCommand<"exec SingleElementProc @x", ConnectionStringOrName = "name=AdventureWorks2012">
+type TableValuedSingle = SqlCommandProvider<"exec SingleElementProc @x", ConnectionStringOrName = "name=AdventureWorks2012">
 
 [<Fact>]
 let tableValuedSingle() = 
@@ -52,7 +52,7 @@ let tableValuedSingle() =
     let result = cmd.Execute(x = p) |> List.ofSeq
     Assert.Equal<int list>([1;2], result)    
 
-type TableValuedSprocTuple  = SqlCommand<"myProc", ConnectionStringOrName = "name=AdventureWorks2012", SingleRow = true, CommandType = CommandType.StoredProcedure, ResultType = ResultType.Tuples>
+type TableValuedSprocTuple  = SqlCommandProvider<"myProc", ConnectionStringOrName = "name=AdventureWorks2012", SingleRow = true, CommandType = CommandType.StoredProcedure, ResultType = ResultType.Tuples>
 
 [<Fact>]
 let tableValuedSprocTupleValue() = 

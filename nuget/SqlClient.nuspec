@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>@project@</id>
+    <version>@build.number@</version>
+    <authors>@authors@</authors>
+    <owners>@authors@</owners>
+    <licenseUrl>http://github.com/fsprojects/FSharp.Data.SqlClient/blob/master/LICENSE.md</licenseUrl>
+    <projectUrl>http://fsprojects.github.io/FSharp.Data.SqlClient/</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>@description@</description>
+    <summary>@summary@</summary>
+    <releaseNotes>@releaseNotes@</releaseNotes>
+    <copyright>Copyright 2013</copyright>
+    <tags>@tags@</tags>
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="System.Data" targetFramework=".NETFramework4.0" />
+      <frameworkAssembly assemblyName="System.Xml" targetFramework=".NETFramework4.0" />
+    </frameworkAssemblies>
+    <dependencies>
+      <dependency id="Microsoft.SqlServer.Types"/>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="..\bin\FSharp.Data.SqlCommandProvider.dll" target="lib/net40\FSharp.Data.SqlCommandProvider.dll" />
+    <file src="..\bin\FSharp.Data.SqlCommandProvider.pdb" target="lib/net40\FSharp.Data.SqlCommandProvider.pdb" />
+    <file src="..\bin\FSharp.Data.SqlCommandProvider.xml" target="lib/net40\FSharp.Data.SqlCommandProvider.xml" />
+    <file src="..\bin\FSharp.Data.SqlProgrammabilityProvider.dll" target="lib/net40\FSharp.Data.SqlProgrammabilityProvider.dll" />
+    <file src="..\bin\FSharp.Data.SqlProgrammabilityProvider.pdb" target="lib/net40\FSharp.Data.SqlProgrammabilityProvider.pdb" />
+    <file src="..\bin\FSharp.Data.SqlProgrammabilityProvider.xml" target="lib/net40\FSharp.Data.SqlProgrammabilityProvider.xml" />
+    <file src="..\bin\Microsoft.SqlServer.*.dll" target="lib/net40" />
+  </files>
+</package>

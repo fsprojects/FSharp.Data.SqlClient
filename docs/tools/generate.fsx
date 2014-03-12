@@ -1,16 +1,16 @@
 ﻿// Binaries that have XML documentation (in a corresponding generated XML file)
 let referenceBinaries = [  ]
 // Web site location for the generated documentation
-let website = "http://fsprojects.github.io/FSharp.Data.Experimental.SqlCommandProvider/"
+let website = "http://fsprojects.github.io/FSharp.Data.SqlClient/"
 
 // Specify more information about your project
 let info =
-  [ "project-name", "SqlCommandProvider"
+  [ "project-name", "SqlClient"
     "project-logo-url", "img/logo.png"
     "project-author", "Dmitry Morozov, Dmitry Sevastianov"
-    "project-summary", "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way."
-    "project-github", "https://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider"
-    "project-nuget", "http://www.nuget.org/packages/FSharp.Data.Experimental.SqlCommandProvider" ]
+    "project-summary", "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way. SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code. SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code."
+    "project-github", "https://github.com/fsprojects/FSharp.Data.SqlClient"
+    "project-nuget", "http://www.nuget.org/packages/FSharp.Data.SqlClient" ]
 
 #I "../../packages/FSharp.Formatting.2.1.6/lib/net40"
 #I "../../packages/RazorEngine.3.3.0/lib/net40/"

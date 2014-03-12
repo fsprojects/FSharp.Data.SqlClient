@@ -1,9 +1,9 @@
 
 (**
 
-[WPF Databinding](http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider/src/SqlCommandProvider.Samples/WpfDataBindingSamples)
+[WPF Databinding](http://github.com/fsprojects/FSharp.Data.SqlClient/tree/master/src/SqlCommandProvider.Samples/WpfDataBinding)
 
-[Web API](http://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider/src/SqlCommandProvider.Samples/WebApi)
+[Web API](http://github.com/fsprojects/FSharp.Data.SqlClient/tree/master/src/SqlCommandProvider.Samples/WebApi)
 
 *)
 

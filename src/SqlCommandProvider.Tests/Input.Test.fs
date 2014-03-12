@@ -5,7 +5,7 @@ open System.Data
 open Xunit
 
 type QueryWithNullableParam = 
-    SqlCommand<"declare @yCopy as int = @y
+    SqlCommandProvider<"declare @yCopy as int = @y
         SELECT Result = @x + CASE WHEN @yCopy IS NULL THEN 1 ELSE @yCopy END
     ","name=AdventureWorks2012", SingleRow = true, AllParametersOptional = true>
 

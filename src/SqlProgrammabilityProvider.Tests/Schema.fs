@@ -10,7 +10,7 @@ let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWo
 let conn = new SqlConnection(connectionString)
 do conn.Open()
 
-[<Fact>]
+//[<Fact>]
 let ProcedureParameters() = 
     seq { 
                 for r in conn.GetSchema("ProcedureParameters").Rows do
@@ -20,7 +20,7 @@ let ProcedureParameters() =
     }
     |> Seq.iter (printfn "%A")
 
-[<Fact>]
+//[<Fact>]
 let Procedures() = 
     seq { 
                 for r in conn.GetSchema("Procedures").Rows do
@@ -30,7 +30,7 @@ let Procedures() =
     }
     |> Seq.iter (printfn "%A")
 
-[<Fact>]
+//[<Fact>]
 let DataTypes() = 
     seq { 
                 for row in conn.GetSchema("DataTypes").Rows do

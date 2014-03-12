@@ -14,5 +14,4 @@
 * 1.1.29 - Fix issue #46 : support for SqlTypes - note that additional Nuget package is now required. Minor improvement in design-time opening of the command file.
 * 1.1.30 - Adding SqlTypes dll for design-time support
 * 1.1.31 - Connection management issue. Upgdate ASAP.
-
-
+* 1.2.0 - Dropping Experimental from the name, adding Programmability to nuget.

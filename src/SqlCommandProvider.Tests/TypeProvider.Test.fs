@@ -7,7 +7,7 @@ open Xunit
 [<Literal>]
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
-type GetOddNumbers = SqlCommand<"select * from (values (2), (4), (8), (24)) as T(value)", connectionString>
+type GetOddNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (24)) as T(value)", connectionString>
 
 [<Fact>]
 let ConnectionClose() = 
@@ -17,14 +17,14 @@ let ConnectionClose() =
     Assert.Equal<int[]>([| 2; 4; 8;  24 |], cmd.Execute() |> Seq.toArray)    
     Assert.Equal(ConnectionState.Closed, nativeCmd.Connection.State)
 
-type QueryWithTinyInt = SqlCommand<"SELECT CAST(10 AS TINYINT) AS Value", connectionString, SingleRow = true>
+type QueryWithTinyInt = SqlCommandProvider<"SELECT CAST(10 AS TINYINT) AS Value", connectionString, SingleRow = true>
 
 [<Fact>]
 let TinyIntConversion() = 
     let cmd = QueryWithTinyInt()
     Assert.Equal(Some 10uy, cmd.Execute().Value)    
 
-type ConvertToBool = SqlCommand<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'", connectionString, SingleRow=true>
+type ConvertToBool = SqlCommandProvider<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'", connectionString, SingleRow=true>
 
 [<Fact>]
 let SqlCommandClone() = 
@@ -41,7 +41,7 @@ let SqlCommandClone() =
     cmdClone.CommandText <- "SELECT 0"
     Assert.Equal(Some "TRUE", cmd.Execute(Bit = 1))    
 
-type ConditionalQuery = SqlCommand<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", connectionString, SingleRow=true, ResultType = ResultType.Tuples>
+type ConditionalQuery = SqlCommandProvider<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", connectionString, SingleRow=true, ResultType = ResultType.Tuples>
 
 [<Fact>]
 let ConditionalQuery() = 
@@ -50,7 +50,7 @@ let ConditionalQuery() =
     Assert.Equal(Some(2, "donkey"), cmd.Execute(flag = 1))    
 
 type ColumnsShouldNotBeNull2 = 
-    SqlCommand<"SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION
+    SqlCommandProvider<"SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_NAME = 'DatabaseLog' and numeric_precision is null
             ORDER BY ORDINAL_POSITION", connectionString, SingleRow = true, ResultType = ResultType.Tuples>
@@ -66,9 +66,9 @@ let bitCoinCode = "BTC"
 [<Literal>]
 let bitCoinName = "Bitcoin"
 
-type DeleteBitCoin = SqlCommand<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code", connectionString>
-type InsertBitCoin = SqlCommand<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", connectionString>
-type GetBitCoin = SqlCommand<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", connectionString>
+type DeleteBitCoin = SqlCommandProvider<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code", connectionString>
+type InsertBitCoin = SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", connectionString>
+type GetBitCoin = SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", connectionString>
 
 open System.Transactions
 
@@ -83,8 +83,8 @@ let transaction() =
     tran.Rollback()
     Assert.Equal(0, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
 
-type NoneSingleton = SqlCommand<"select 1 where 1 = 0", connectionString, SingleRow = true>
-type SomeSingleton = SqlCommand<"select 1", connectionString, SingleRow = true>
+type NoneSingleton = SqlCommandProvider<"select 1 where 1 = 0", connectionString, SingleRow = true>
+type SomeSingleton = SqlCommandProvider<"select 1", connectionString, SingleRow = true>
 
 [<Fact>]
 let singleRowOption() =
@@ -93,7 +93,7 @@ let singleRowOption() =
 //     
 //open Microsoft.SqlServer.Types
 //
-//type Spatial = SqlCommand<"select top 5 SpatialLocation from Person.Address", connectionString>
+//type Spatial = SqlCommandProvider<"select top 5 SpatialLocation from Person.Address", connectionString>
 //
 //[<Fact>]
 //let nativeTypes() =

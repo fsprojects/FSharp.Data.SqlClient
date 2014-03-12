@@ -19,15 +19,14 @@ let files includes =
     Excludes = [] } 
 
 // Information about the project to be used at NuGet and in AssemblyInfo files
-let project = "FSharp.Data.Experimental.SqlCommandProvider"
+let project = "FSharp.Data.SqlClient"
 let authors = ["Dmitry Morozov, Dmitry Sevastianov"]
-let summary = "SqlCommand F# type provider"
-let description = 
-    "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way."
+let summary = "SqlClient F# type providers"
+let description = "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code."
 let tags = "F# fsharp data typeprovider sql"
       
 let gitHome = "https://github.com/fsprojects"
-let gitName = "FSharp.Data.Experimental.SqlCommandProvider"
+let gitName = "FSharp.Data.SqlClient"
 
 // Read release notes & version info from RELEASE_NOTES.md
 let release = 
@@ -42,7 +41,9 @@ let testDir = "bin"
 // Generate assembly info files with the right version & up-to-date information
 
 Target "AssemblyInfo" (fun _ ->
-    [ "src/SqlCommandProvider/AssemblyInfo.fs", "SqlCommandProvider", project, summary ]
+    [ "src/SqlCommandProvider/AssemblyInfo.fs", "SqlCommandProvider", project, summary 
+      "src/SqlProgrammabilityProvider/AssemblyInfo.fs", "SqlProgrammabilityProvider", project, summary
+    ]
     |> Seq.iter (fun (fileName, title, project, summary) ->
         CreateFSharpAssemblyInfo fileName
            [ Attribute.Title title
@@ -72,13 +73,13 @@ Target "CleanDocs" (fun _ ->
 // of the runtime library & desktop + Silverlight version of design time library)
 
 Target "Build" (fun _ ->
-    files (["SqlCommandProvider.sln"])
+    files (["SqlClient.sln"])
     |> MSBuildRelease "" "Rebuild"
     |> ignore
 )
 
 Target "BuildTests" (fun _ ->
-    files ["SqlCommandProvider.Tests.sln"]
+    files ["Tests.sln"]
     |> MSBuildReleaseExt "" ([]) "Rebuild"
     |> ignore
 )
@@ -118,7 +119,7 @@ Target "NuGet" (fun _ ->
             AccessKey = getBuildParamOrDefault "nugetkey" ""
             Publish = hasBuildParam "nugetkey"
             Dependencies = [] })
-        "nuget/SqlCommandProvider.nuspec"
+        "nuget/SqlClient.nuspec"
 )
 
 // --------------------------------------------------------------------------------------
@@ -154,10 +155,13 @@ Target "All" DoNothing
   ==> "All"
 
 "All" 
-  ==> "CleanDocs"
-  ==> "GenerateDocs"
   ==> "NuGet"
   ==> "Release"
+
+"All" 
+  ==> "CleanDocs"
+  ==> "GenerateDocs"
+  ==> "ReleaseDocs"
 
 RunTargetOrDefault "All"
 

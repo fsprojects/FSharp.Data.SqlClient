@@ -12,14 +12,14 @@ let conn = new SqlConnection(connectionString)
 do conn.Open()
 let db()  = Server( ServerConnection(conn)).Databases.[conn.Database]
 
-[<Fact>]
+//[<Fact>]
 let UDTs() =
     db().UserDefinedDataTypes
     |> Seq.cast<UserDefinedDataType>
     |> Seq.map(fun p -> p.ID, p.Name, p.SystemType)    
     |> Seq.iter (printfn "%A")
 
-[<Fact>]
+//[<Fact>]
 let UDTFs() =
     db().UserDefinedFunctions
     |> Seq.cast<UserDefinedFunction> 
@@ -34,7 +34,7 @@ let ``List stored procedures``() =
     |> Seq.filter (fun c -> not c.IsSystemObject)
     |> Seq.iter (printfn "%A")
 
-[<Fact>]
+//[<Fact>]
 let Parameters() = 
     db().StoredProcedures.["Swap","dbo"].Parameters
     |> Seq.cast<StoredProcedureParameter>     

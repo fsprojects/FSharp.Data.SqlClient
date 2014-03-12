@@ -1,5 +1,5 @@
 (*** hide ***)
-#r "../../bin/FSharp.Data.Experimental.SqlCommandProvider.dll"
+#r "../../bin/FSharp.Data.SqlCommandProvider.dll"
 
 (**
 
@@ -34,7 +34,7 @@ open FSharp.Data
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 //Inline T-SQL text convinient for short queries 
-type GetDate = SqlCommand<"SELECT GETDATE() AS Now", connectionString>
+type GetDate = SqlCommandProvider<"SELECT GETDATE() AS Now", connectionString>
 
 //More complex queries are better off extracted to stand-alone literals
 
@@ -56,7 +56,7 @@ let fibonacci = "
     FROM Fibonacci
 "
 
-type FibonacciQuery = SqlCommand<fibonacci, connectionString>
+type FibonacciQuery = SqlCommandProvider<fibonacci, connectionString>
 
 FibonacciQuery()
     .Execute(10L) 
@@ -88,7 +88,7 @@ For example, it can be handed over to DBA team for optimization. It's harder to 
 are mixed together (LINQ).
 *)
 
-type CommandFromFile = SqlCommand<"GetDate.sql", connectionString>
+type CommandFromFile = SqlCommandProvider<"GetDate.sql", connectionString>
 let cmd = CommandFromFile()
 cmd.Execute() |> ignore
 
@@ -103,7 +103,7 @@ Stored procedures can be used too but they resemble imperative programming with 
 Below is an example of SQL Table-Valued Function usage. 
 *)
 
-type GetContactInformation = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString>
+type GetContactInformation = SqlCommandProvider<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString>
 
 (**
 ### Syntax erros
@@ -127,7 +127,7 @@ ELSE CAST(@x AS NVARCHAR)
 You can work around this by declaring a local intermediate variable in t-sql script and assigning a paramater in question to that variable.
 *)
     
-type FizzOrBuzz = SqlCommand<"
+type FizzOrBuzz = SqlCommandProvider<"
     DECLARE @x AS INT = @xVal
     SELECT 
 	    CASE 
@@ -151,11 +151,11 @@ Connection string can be provided either via literal (all examples above) or inl
 *)
 
 //Inline 
-type Get42 = SqlCommand<"SELECT 42", @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True">
+type Get42 = SqlCommandProvider<"SELECT 42", @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True">
 
 (**
 
-The literal version is more practical because connection string definition can be shared between different declarations of `SqlCommand<...>`.
+The literal version is more practical because connection string definition can be shared between different declarations of `SqlCommandProvider<...>`.
 
 ### By name
 
@@ -163,10 +163,10 @@ The other option is to supply connection string name from config file.
 *)
 
 //default config file name is app.config or web.config
-type Get43 = SqlCommand<"SELECT 43", "name=AdventureWorks2012">
+type Get43 = SqlCommandProvider<"SELECT 43", "name=AdventureWorks2012">
 
 //specify ANY other file name (including web.config) explicitly
-type Get44 = SqlCommand<"SELECT 44", "name=AdventureWorks2012", ConfigFile = "user.config">
+type Get44 = SqlCommandProvider<"SELECT 44", "name=AdventureWorks2012", ConfigFile = "user.config">
 
 (**
 I would like to emphasize that `ConfigFile` is about ***design time only*. 
@@ -187,7 +187,7 @@ Let me give you couple examples to clarify:
     <img src="img/ConnStrByNameUserConfig.png"/>
     </br></br> 
     F# controllers project is a simple library project. It has data access layer module.
-    `SqlCommand<...>` definitions refer to connection string by name form user.config file.  
+    `SqlCommandProvider<...>` definitions refer to connection string by name form user.config file.  
     </br></br>
     <img src="img/ConnStrByNameUserConfig2.png"/>
     </br></br> 
@@ -197,7 +197,7 @@ Let me give you couple examples to clarify:
 ### Overriding connection string at run-time
 
 Run-time database connectivity configuration is rarely (almost never) the same as design-time. 
-All `SqlCommand<_>`-generated types can be re-configured at run-time via optional constructor parameter.
+All `SqlCommandProvider<_>`-generated types can be re-configured at run-time via optional constructor parameter.
 The parameter is optional because "config file + name" approach is an acceptable way to have run-time configuration different from design-time.
 Several use cases are possible:
 *)
@@ -212,8 +212,8 @@ module DB =
     [<Literal>]
     let connStr = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
-    type MyCmd1 = SqlCommand<"SELECT 42", connStr>
-    type MyCmd2 = SqlCommand<"SELECT 42", connStr>
+    type MyCmd1 = SqlCommandProvider<"SELECT 42", connStr>
+    type MyCmd2 = SqlCommandProvider<"SELECT 42", connStr>
 
     let inline createCommand() : 'a = 
         let connStr = "..." //somehow get connection string at run-time
@@ -232,8 +232,8 @@ module DataAccess =
     [<Literal>]
     let master = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
 
-    type MyCmd1 = SqlCommand<"SELECT 42", adventureWorks>
-    type MyCmd2 = SqlCommand<"SELECT 42", master>
+    type MyCmd1 = SqlCommandProvider<"SELECT 42", adventureWorks>
+    type MyCmd2 = SqlCommandProvider<"SELECT 42", master>
 
     let inline createCommand() : 'a = 
         let designTimeConnectionString = (^a : (static member get_ConnectionStringOrName : unit -> string) ())
@@ -258,9 +258,9 @@ let bitCoinCode = "BTC"
 [<Literal>]
 let bitCoinName = "Bitcoin"
 
-type DeleteBitCoin = SqlCommand<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code", connectionString>
-type InsertBitCoin = SqlCommand<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", connectionString>
-type GetBitCoin = SqlCommand<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", connectionString>
+type DeleteBitCoin = SqlCommandProvider<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code", connectionString>
+type InsertBitCoin = SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", connectionString>
+type GetBitCoin = SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", connectionString>
 
 DeleteBitCoin().Execute(bitCoinCode) |> ignore
 let conn = new System.Data.SqlClient.SqlConnection(connectionString)
@@ -286,7 +286,7 @@ to create command instances.
 open System.Data
 
 type UpdateEmplInfoCommandSp = 
-    SqlCommand<
+    SqlCommandProvider<
         "HumanResources.uspUpdateEmployeePersonalInfo", 
         connectionString, 
         CommandType = CommandType.StoredProcedure >
@@ -307,7 +307,7 @@ But there are rare cases when you prefer to handle NULL input values inside T-SQ
 
 *)
 
-type IncrBy = SqlCommand<"SELECT @x + ISNULL(CAST(@y AS INT), 1) ", connectionString, AllParametersOptional = true, SingleRow = true>
+type IncrBy = SqlCommandProvider<"SELECT @x + ISNULL(CAST(@y AS INT), 1) ", connectionString, AllParametersOptional = true, SingleRow = true>
 let incrBy = IncrBy()
 //pass both params passed 
 incrBy.Execute(Some 10, Some 2) = Some( Some 12) //true
@@ -336,7 +336,7 @@ END
 </pre>
 *)
 
-type TableValuedSample = SqlCommand<"exec myProc @x", connectionString>
+type TableValuedSample = SqlCommandProvider<"exec myProc @x", connectionString>
 type TVP = TableValuedSample.MyTableType
 let tvpSp = new TableValuedSample()
 //nullable columns mapped to optional ctor params

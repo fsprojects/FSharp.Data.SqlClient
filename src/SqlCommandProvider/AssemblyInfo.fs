@@ -2,11 +2,11 @@
 open System.Reflection
 
 [<assembly: AssemblyTitleAttribute("SqlCommandProvider")>]
-[<assembly: AssemblyProductAttribute("FSharp.Data.Experimental.SqlCommandProvider")>]
-[<assembly: AssemblyDescriptionAttribute("SqlCommand F# type provider")>]
-[<assembly: AssemblyVersionAttribute("1.1.31")>]
-[<assembly: AssemblyFileVersionAttribute("1.1.31")>]
+[<assembly: AssemblyProductAttribute("FSharp.Data.SqlClient")>]
+[<assembly: AssemblyDescriptionAttribute("SqlClient F# type providers")>]
+[<assembly: AssemblyVersionAttribute("1.2.0")>]
+[<assembly: AssemblyFileVersionAttribute("1.2.0")>]
 do ()
 
 module internal AssemblyVersionInformation =
-    let [<Literal>] Version = "1.1.31"
+    let [<Literal>] Version = "1.2.0"

@@ -1,5 +1,5 @@
 (*** hide ***)
-#r "../../bin/FSharp.Data.Experimental.SqlCommandProvider.dll"
+#r "../../bin/FSharp.Data.SqlCommandProvider.dll"
 
 (**
 
@@ -25,7 +25,7 @@ let productsSql = "
  * Sequence of custom records is default result set type
 *)
 
-type QueryProductAsRecords = SqlCommand<productsSql, connectionString>
+type QueryProductAsRecords = SqlCommandProvider<productsSql, connectionString>
 let queryProductAsRecords = QueryProductAsRecords()
 
 queryProductAsRecords.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
@@ -38,7 +38,7 @@ queryProductAsRecords.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Par
  * Seq of tuples as result set type
 *)
 
-type QueryProductSync = SqlCommand<productsSql, connectionString, ResultType = ResultType.Tuples>
+type QueryProductSync = SqlCommandProvider<productsSql, connectionString, ResultType = ResultType.Tuples>
 
 let tuples = QueryProductSync().Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 
@@ -49,7 +49,7 @@ for productName, sellStartDate, size in tuples do
  * Typed data table as result set
 *)
 
-type QueryProductDataTable = SqlCommand<productsSql, connectionString, ResultType = ResultType.DataTable>
+type QueryProductDataTable = SqlCommandProvider<productsSql, connectionString, ResultType = ResultType.DataTable>
 
 QueryProductDataTable().Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") 
 |> Seq.iter (fun row -> 
@@ -62,7 +62,7 @@ QueryProductDataTable().Execute(top = 7L, SellStartDate = System.DateTime.Parse 
 *)
 
 type QueryPersonInfoSingletoneAsRecords = 
-    SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, SingleRow = true>
+    SqlCommandProvider<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, SingleRow = true>
 
 let singleton = new QueryPersonInfoSingletoneAsRecords()
 
@@ -80,7 +80,7 @@ let queryPersonInfoSingletoneQuery =
     "SELECT PersonID, FirstName, LastName FROM dbo.ufnGetContactInformation(@PersonId)"
 
 type QueryPersonInfoSingletoneTuples = 
-    SqlCommand<queryPersonInfoSingletoneQuery, connectionString, SingleRow=true, ResultType = ResultType.Tuples>
+    SqlCommandProvider<queryPersonInfoSingletoneQuery, connectionString, SingleRow=true, ResultType = ResultType.Tuples>
 
 QueryPersonInfoSingletoneTuples().Execute(PersonId = 2).Value
     |> (function
@@ -95,7 +95,7 @@ QueryPersonInfoSingletoneTuples().Execute(PersonId = 2).Value
 *)
 
 type QueryPersonInfoSingletoneDataTable = 
-    SqlCommand<
+    SqlCommandProvider<
         "SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", 
         connectionString, 
         ResultType = ResultType.DataTable>
@@ -113,7 +113,7 @@ for row in table do
 *)
 
 type QueryPersonInfoSingleValue = 
-    SqlCommand<
+    SqlCommandProvider<
         "SELECT FirstName + ' '  + LastName FROM dbo.ufnGetContactInformation(@PersonId)", 
         connectionString, 
         SingleRow=true>
@@ -130,7 +130,7 @@ QueryPersonInfoSingleValue().Execute(personId)
 *)
 
 type GetServerTime = 
-    SqlCommand<
+    SqlCommandProvider<
         "IF @IsUtc = CAST(1 AS BIT) SELECT GETUTCDATE() ELSE SELECT GETDATE()", 
         connectionString, 
         SingleRow=true>
@@ -155,7 +155,7 @@ let invokeSp = "
         @MaritalStatus, 
         @Gender
 "
-type UpdateEmplInfoCommand = SqlCommand<invokeSp, connectionString>
+type UpdateEmplInfoCommand = SqlCommandProvider<invokeSp, connectionString>
 let nonQuery = new UpdateEmplInfoCommand()
 let rowsAffected = 
     nonQuery.Execute(
@@ -170,7 +170,7 @@ It is done mostly for memory efficiency. It behaves as forward-only cursor simil
 If multiple passes over the sequence required use standard `Seq.cache` combinator. 
 *)
 
-type Get42 = SqlCommand<"SELECT * FROM (VALUES (42), (43)) AS T(N)", connectionString>
+type Get42 = SqlCommandProvider<"SELECT * FROM (VALUES (42), (43)) AS T(N)", connectionString>
 let xs = Get42().Execute() |> Seq.cache 
 printfn "#1: %i " <| Seq.nth 0 xs 
 printfn "#2: %i " <| Seq.nth 1 xs //see it fails here if result is not piped into Seq.cache 
