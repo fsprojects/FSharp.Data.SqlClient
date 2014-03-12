@@ -1,12 +1,12 @@
 ﻿namespace System
 open System.Reflection
 
-[<assembly: AssemblyTitleAttribute("SqlCommandProvider")>]
+[<assembly: AssemblyTitleAttribute("SqlClient")>]
 [<assembly: AssemblyProductAttribute("FSharp.Data.SqlClient")>]
 [<assembly: AssemblyDescriptionAttribute("SqlClient F# type providers")>]
-[<assembly: AssemblyVersionAttribute("1.2.1")>]
-[<assembly: AssemblyFileVersionAttribute("1.2.1")>]
+[<assembly: AssemblyVersionAttribute("1.2.2")>]
+[<assembly: AssemblyFileVersionAttribute("1.2.2")>]
 do ()
 
 module internal AssemblyVersionInformation =
-    let [<Literal>] Version = "1.2.1"
+    let [<Literal>] Version = "1.2.2"

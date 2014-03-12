@@ -1,10 +1,10 @@
-﻿module Test.SqlClientExtensionstest
+﻿module FSharp.Data.SqlClientExtensionsTest
 
 open System.Data
 open System.Data.SqlClient
 open Xunit
 
-open FSharp.Data
+open FSharp.Data.Internals.SqlClient
 
 [<Literal>]
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"

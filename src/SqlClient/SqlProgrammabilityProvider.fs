@@ -19,11 +19,6 @@ open Microsoft.SqlServer.Server
 open Samples.FSharp.ProvidedTypes
 
 open FSharp.Data.Internals
-open FSharp.Data.SqlProgrammability
-
-[<assembly:TypeProviderAssembly()>]
-[<assembly:System.Runtime.CompilerServices.InternalsVisibleTo("SqlProgrammabilityProvider.Tests")>]
-do()
 
 [<TypeProvider>]
 type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this = 
@@ -213,7 +208,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         let syncReturnType, executeMethodBody = 
             if resultType = ResultType.DataReader then
                 let getExecuteBody(args : Expr list) = 
-                    QuotationsFactory.GetDataReader(args, parameters, singleRow)
+                    ProgrammabilityQuotationsFactory.GetDataReader(args, parameters, singleRow)
                 typeof<SqlDataReader>, getExecuteBody
             else
                 if outputColumns.IsEmpty
@@ -228,7 +223,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         then
                             let singleCol : Column = outputColumns.Head
                             let column0Type = singleCol.ClrTypeConsideringNullable
-                            column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, parameters, singleRow, singleCol)
+                            column0Type, ProgrammabilityQuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, parameters, singleRow, singleCol)
                         else 
                             if resultType = ResultType.Tuples
                             then this.Tuples(parameters, outputColumns, singleRow)
@@ -248,7 +243,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             connection.GetFullQualityColumnInfo commandText
         with :? SqlException as why ->
             try 
-                connection.FallbackToSETFMONLY(commandText, sqlParameters) 
+                connection.FallbackToSETFMONLY(commandText, CommandType.StoredProcedure, sqlParameters) 
             with :? SqlException ->
                 raise why
 
@@ -256,7 +251,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
         for param in ReturnValue()::paramInfos do
             if param.Direction <> ParameterDirection.Input then
-                let propType, getter = QuotationsFactory.GetOutParameter param
+                let propType, getter = ProgrammabilityQuotationsFactory.GetOutParameter param
                 let property = ProvidedProperty(param.Name.Substring(1), propertyType = propType)
                 property.GetterCode <- getter
                 recordType.AddMember property        
@@ -272,11 +267,12 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         let body expr =
             <@@
                 async {
-                    let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet(expr, inputParamters)
+                    let sqlCommand = %ProgrammabilityQuotationsFactory.GetSqlCommandWithParamValuesSet(expr, inputParamters)
                     sqlCommand.Parameters.Add(SqlParameter(returnName, SqlDbType.Int, Direction = ParameterDirection.ReturnValue)) |> ignore
                     //open connection async on .NET 4.5
-                    sqlCommand.Connection.Open()
-                    use ensureConnectionClosed = sqlCommand.CloseConnectionOnly()
+                    if sqlCommand.Connection.State <> ConnectionState.Open then
+                        sqlCommand.Connection.Open()
+                    use disposable = sqlCommand.Connection.UseConnection()
                     let! rowsAffected = sqlCommand.AsyncExecuteNonQuery()
                     return box sqlCommand.Parameters                     
                 }
@@ -296,7 +292,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         (names, values) ||> Array.iter2 (fun name value -> dict.Add(name, value))
                         box dict 
                 @>
-            QuotationsFactory.GetTypedSequence(args, paramInfos, arrayToRecord, singleRow, columns)
+            ProgrammabilityQuotationsFactory.GetTypedSequence(args, paramInfos, arrayToRecord, singleRow, columns)
                          
         upcast recordType, getExecuteBody
     
@@ -353,7 +349,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
             Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [ Expr.Var values; getTupleType ]), tupleType))
 
-        tupleType, QuotationsFactory.GetBody("GetTypedSequence", tupleType, paramInfos, rowMapper, singleRow, columns)
+        tupleType, ProgrammabilityQuotationsFactory.GetBody("GetTypedSequence", tupleType, paramInfos, rowMapper, singleRow, columns)
 
     member internal this.DataTable(providedCommandType, paramInfos, commandText, outputColumns, singleRow) =
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
@@ -367,8 +363,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 if col.IsNullable 
                 then
                     ProvidedProperty(name, propertyType = col.ClrTypeConsideringNullable,
-                        GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", col.TypeInfo.ClrType, name),
-                        SetterCode = QuotationsFactory.GetBody("SetNullableValueInDataRow", col.TypeInfo.ClrType, name)
+                        GetterCode = ProgrammabilityQuotationsFactory.GetBody("GetNullableValueFromDataRow", col.TypeInfo.ClrType, name),
+                        SetterCode = ProgrammabilityQuotationsFactory.GetBody("SetNullableValueInDataRow", col.TypeInfo.ClrType, name)
                     )
                 else
                     ProvidedProperty(name, propertyType, 
@@ -380,7 +376,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         providedCommandType.AddMember rowType
 
-        let body = QuotationsFactory.GetBody("GetTypedDataTable", typeof<DataRow>, paramInfos, singleRow)
+        let body = ProgrammabilityQuotationsFactory.GetBody("GetTypedDataTable", typeof<DataRow>, paramInfos, singleRow)
         let returnType = typedefof<_ DataTable>.MakeGenericType rowType
 
         returnType, body
@@ -396,7 +392,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             @>
 
         let getExecuteBody(args : Expr list) = 
-            QuotationsFactory.GetRows(args, paramInfos, readerToMap, singleRow)
+            ProgrammabilityQuotationsFactory.GetRows(args, paramInfos, readerToMap, singleRow)
             
         typeof<Map<string, obj> seq>, getExecuteBody
 

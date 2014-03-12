@@ -11,15 +11,14 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
 
 open FSharp.Data
-open FSharp.Data.SqlProgrammability
 
-type QuotationsFactory private() = 
+type ProgrammabilityQuotationsFactory private() = 
 
     //The entry point
     static member internal GetBody(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
         
         let bodyFactory =   
-            let mi = typeof<QuotationsFactory>.GetMethod(methodName, BindingFlags.NonPublic ||| BindingFlags.Static)
+            let mi = typeof<ProgrammabilityQuotationsFactory>.GetMethod(methodName, BindingFlags.NonPublic ||| BindingFlags.Static)
             assert(mi <> null)
             mi.MakeGenericMethod([| specialization |])
 
@@ -36,7 +35,7 @@ type QuotationsFactory private() =
                 if info.Direction = ParameterDirection.Input then
                     expr                    
                 else 
-                    typeof<QuotationsFactory>
+                    typeof<ProgrammabilityQuotationsFactory>
                         .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
                         .MakeGenericMethod(info.TypeInfo.ClrType)
                         .Invoke(null, [| box expr|])
@@ -49,7 +48,7 @@ type QuotationsFactory private() =
             let sqlCommand : SqlCommand = %%Expr.Coerce(exprArgs.[0], typeof<SqlCommand>)
             if sqlCommand.CommandType = CommandType.Text then
                 sqlCommand.CommandText <- sprintf "SELECT * FROM %s(%s)" sqlCommand.CommandText sqlParams
-            let xs = %%Expr.NewArray( typeof<SqlParameter>, paramInfos |> List.map QuotationsFactory.ToSqlParam)
+            let xs = %%Expr.NewArray( typeof<SqlParameter>, paramInfos |> List.map ProgrammabilityQuotationsFactory.ToSqlParam)
             sqlCommand.Parameters.AddRange xs
 
             let paramValues : obj[] = %%Expr.NewArray(typeof<obj>, elements = [for x in mappedParamValues -> Expr.Coerce(x, typeof<obj>)])
@@ -67,7 +66,7 @@ type QuotationsFactory private() =
         let commandBehavior = if singleRow then CommandBehavior.SingleRow  else CommandBehavior.Default 
         <@@ 
             async {
-                let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet(exprArgs, paramInfos)
+                let sqlCommand = %ProgrammabilityQuotationsFactory.GetSqlCommandWithParamValuesSet(exprArgs, paramInfos)
                 //open connection async on .NET 4.5
                 sqlCommand.Connection.Open()
                 return!
@@ -83,7 +82,7 @@ type QuotationsFactory private() =
         <@@ 
             async {
                 let! token = Async.CancellationToken
-                let! (reader : SqlDataReader) = %%QuotationsFactory.GetDataReader(exprArgs, paramInfos, singleRow)
+                let! (reader : SqlDataReader) = %%ProgrammabilityQuotationsFactory.GetDataReader(exprArgs, paramInfos, singleRow)
                 return seq {
                     try 
                         while(not token.IsCancellationRequested && reader.Read()) do
@@ -102,12 +101,12 @@ type QuotationsFactory private() =
                 fun(reader : SqlDataReader) ->
                     let values = Array.zeroCreate columnTypes.Length
                     reader.GetValues(values) |> ignore
-                    let mapNullables :  obj[] -> unit = %%QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption")
+                    let mapNullables :  obj[] -> unit = %%ProgrammabilityQuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption")
                     mapNullables values
                     (%%rowMapper : obj[] -> 'Row) values
             @>
 
-        let getTypedSeqAsync = QuotationsFactory.GetRows(exprArgs, paramInfos, mapper, singleRow)
+        let getTypedSeqAsync = ProgrammabilityQuotationsFactory.GetRows(exprArgs, paramInfos, mapper, singleRow)
         if singleRow
         then 
             <@@ 
@@ -120,12 +119,12 @@ type QuotationsFactory private() =
             getTypedSeqAsync
         
     static member internal SelectOnlyColumn0<'Row>(exprArgs, paramInfos, singleRow, column : Column) = 
-        QuotationsFactory.GetTypedSequence<'Row>(exprArgs, paramInfos, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow, [ column ])
+        ProgrammabilityQuotationsFactory.GetTypedSequence<'Row>(exprArgs, paramInfos, <@ fun (values : obj[]) -> unbox<'Row> values.[0] @>, singleRow, [ column ])
 
     static member internal GetTypedDataTable<'T when 'T :> DataRow>(exprArgs, paramInfos, singleRow)  = 
         <@@
             async {
-                use! reader = %%QuotationsFactory.GetDataReader(exprArgs, paramInfos, singleRow) : Async<SqlDataReader >
+                use! reader = %%ProgrammabilityQuotationsFactory.GetDataReader(exprArgs, paramInfos, singleRow) : Async<SqlDataReader >
                 let table = new DataTable<'T>() 
                 table.Load reader
                 return table
@@ -152,7 +151,7 @@ type QuotationsFactory private() =
         let paramName = param.Name
         let clrType = param.TypeInfo.ClrType
         let arr = Var("_", typeof<obj>)
-        let body = typeof<QuotationsFactory>
+        let body = typeof<ProgrammabilityQuotationsFactory>
                         .GetMethod("ObjToOption", BindingFlags.NonPublic ||| BindingFlags.Static)
                         .MakeGenericMethod([|clrType|])
                         .Invoke(null, [| box (Expr.Var arr) |])
@@ -200,7 +199,7 @@ type QuotationsFactory private() =
             |> List.mapi(fun index (typeName, isNullableColumn) ->
                 if isNullableColumn 
                 then 
-                    typeof<QuotationsFactory>
+                    typeof<ProgrammabilityQuotationsFactory>
                         .GetMethod(mapper, BindingFlags.NonPublic ||| BindingFlags.Static)
                         .MakeGenericMethod(Type.GetType typeName)
                         .Invoke(null, [| box(Expr.Var arr); box index |])
@@ -216,10 +215,10 @@ type QuotationsFactory private() =
         Expr.Lambda(arr, body)
 
     static member internal MapOptionsToObjects(columnTypes, isNullableColumn) = 
-        QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayOptionItemToObj")
+        ProgrammabilityQuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayOptionItemToObj")
 
     static member internal MapObjectsToOptions(columnTypes, isNullableColumn) = 
-        QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption")
+        ProgrammabilityQuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption")
 
     static member internal GetNullableValueFromDataRow<'T>(exprArgs : Expr list, name : string) =
         <@

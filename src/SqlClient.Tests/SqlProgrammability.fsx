@@ -1,11 +1,10 @@
 
-#r "../../bin/Fsharp.Data.SqlProgrammabilityProvider.dll"
+#r "../../bin/Fsharp.Data.SqlClient.dll"
 #r "../../bin/Microsoft.SqlServer.Types.dll"
 
 open System
 open System.Data
 open FSharp.Data
-open FSharp.Data.SqlProgrammability
 open Microsoft.SqlServer.Types
 
 [<Literal>] 

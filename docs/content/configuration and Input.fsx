@@ -1,5 +1,5 @@
 (*** hide ***)
-#r "../../bin/FSharp.Data.SqlCommandProvider.dll"
+#r "../../bin/FSharp.Data.SqlClient.dll"
 
 (**
 

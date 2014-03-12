@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-module FSharp.Data.SqlClient
+module FSharp.Data.Internals.SqlClient
 
 open System
 open System.Text
@@ -8,7 +8,6 @@ open System.Data.SqlClient
 open Microsoft.FSharp.Reflection
 open Microsoft.SqlServer.Management.Smo
 open Microsoft.SqlServer.Management.Common
-open FSharp.Data.SqlProgrammability
 
 let DbNull = box DBNull.Value
 
@@ -20,15 +19,12 @@ type SqlCommand with
     member this.AsyncExecuteNonQuery() =
         Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) 
 
-    //address an issue when regular Dispose on SqlConnection needed for async computation wipes out all properties like ConnectionString in addition to closing connection to db
-    member this.CloseConnectionOnly() = {
-        new IDisposable with
-            member __.Dispose() = this.Connection.Close()
-    }
-
 let private dataTypeMappings = ref List.empty
 
-let findTypeInfoBySqlEngineTypeId (systemId, userId : int option) = 
+let internal findBySqlEngineTypeIdAndUdt(id, udttName) = 
+    !dataTypeMappings |> List.tryFind(fun x -> x.SqlEngineTypeId = id && (not x.TableType || x.UdttName = udttName))
+    
+let internal findTypeInfoBySqlEngineTypeId (systemId, userId : int option) = 
     match !dataTypeMappings 
             |> List.filter(fun x -> x.SqlEngineTypeId = systemId ) with
     | [v] -> v
@@ -36,24 +32,24 @@ let findTypeInfoBySqlEngineTypeId (systemId, userId : int option) =
               | [v] -> v
               | _-> failwithf "error resolving systemid %A and userid %A" systemId userId
 
-let UDTTs() = 
+let internal UDTTs() = 
     !dataTypeMappings |> List.filter(fun x -> x.TableType ) |> Array.ofList
 
-let SqlClrTypes() = 
+let internal SqlClrTypes() = 
     !dataTypeMappings |> Array.ofList
     
-let findTypeInfoByProviderType(sqlDbType, udttName)  = 
+let internal findTypeInfoByProviderType(sqlDbType, udttName)  = 
     !dataTypeMappings  
     |> List.tryFind (fun x -> x.SqlDbType = sqlDbType && x.UdttName = udttName)
 
-let findTypeInfoByName(name) = 
+let internal findTypeInfoByName(name) = 
     !dataTypeMappings |> List.find(fun x -> x.TypeName = name || x.UdttName = name)
 
 let splitName (twoPartsName : string) =
    let parts = twoPartsName.Split('.')
    parts.[0], parts.[1]
      
-let ReturnValue() = { 
+let internal ReturnValue() = { 
     Name = "@ReturnValue" 
     Direction = ParameterDirection.ReturnValue
     TypeInfo = findTypeInfoByName "int" 
@@ -72,16 +68,23 @@ type DataRow with
 
 type SqlConnection with
 
+ //address an issue when regular Dispose on SqlConnection needed for async computation wipes out all properties like ConnectionString in addition to closing connection to db
+    member this.UseConnection() =
+        if this.State = ConnectionState.Closed then 
+            this.Open()
+            { new IDisposable with member __.Dispose() = this.Close() }
+        else { new IDisposable with member __.Dispose() = () }
+    
     member internal this.CheckVersion() = 
         assert (this.State = ConnectionState.Open)
         let majorVersion = this.ServerVersion.Split('.').[0]
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
 
-    member internal this.FallbackToSETFMONLY(commandText, sqlParameters : Parameter list) = 
+    member internal this.FallbackToSETFMONLY(commandText, commandType, sqlParameters) = 
         assert (this.State = ConnectionState.Open)
         
-        use cmd = new SqlCommand(commandText, this, CommandType = CommandType.StoredProcedure)
+        use cmd = new SqlCommand(commandText, this, CommandType = commandType)
         for p in sqlParameters do
             cmd.Parameters.Add(p.Name, p.TypeInfo.SqlDbType) |> ignore
         use reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly)
@@ -119,7 +122,7 @@ type SqlConnection with
                 MaxLength = reader.["max_length"] |> unbox<int16> |> int
             }
     ] 
-
+    
     member internal this.GetDefaults(twoPartsName : string, isFunction) =         
         assert (this.State = ConnectionState.Open)
         let db  = Server( ServerConnection(this)).Databases.[this.Database]
@@ -128,23 +131,6 @@ type SqlConnection with
                    then db.UserDefinedFunctions.[name, schema].Parameters :> ParameterCollectionBase 
                    else db.StoredProcedures.[name, schema].Parameters :> ParameterCollectionBase 
         seq {for p in coll |> Seq.cast<Microsoft.SqlServer.Management.Smo.Parameter> -> p.Name, p.DefaultValue } |> Map.ofSeq
-
-    member internal this.GetFunctionColumns(twoPartsName : string) = 
-        let db  = Server( ServerConnection(this)).Databases.[this.Database]
-        let schema, name =  splitName twoPartsName
-        let types = db.UserDefinedDataTypes |> Seq.cast<UserDefinedDataType> |> Seq.map(fun t -> t.Name, t.SystemType) |> Map.ofSeq
-        db.UserDefinedFunctions.[name, schema].Columns
-        |> Seq.cast<Microsoft.SqlServer.Management.Smo.Column>
-        |> Seq.mapi ( fun i c ->
-                let dataType = defaultArg (types.TryFind(c.DataType.Name)) c.DataType.Name
-                {
-                    Name = c.Name 
-                    TypeInfo =  findTypeInfoByName dataType
-                    IsNullable = c.Nullable
-                    Ordinal = i
-                    MaxLength = c.DataType.MaximumLength
-                })
-        |> List.ofSeq
 
     member internal this.GetParameters(twoPartsName, isFunction) =         
         assert (this.State = ConnectionState.Open)
@@ -167,6 +153,23 @@ type SqlConnection with
                         DefaultValue = defaultArg (defaults.TryFind(name)) ""}
         ]
 
+    member internal this.GetFunctionColumns(twoPartsName : string) = 
+        let db  = Server( ServerConnection(this)).Databases.[this.Database]
+        let schema, name =  splitName twoPartsName
+        let types = db.UserDefinedDataTypes |> Seq.cast<UserDefinedDataType> |> Seq.map(fun t -> t.Name, t.SystemType) |> Map.ofSeq
+        db.UserDefinedFunctions.[name, schema].Columns
+        |> Seq.cast<Microsoft.SqlServer.Management.Smo.Column>
+        |> Seq.mapi ( fun i c ->
+                let dataType = defaultArg (types.TryFind(c.DataType.Name)) c.DataType.Name
+                {
+                    Name = c.Name 
+                    TypeInfo =  findTypeInfoByName dataType
+                    IsNullable = c.Nullable
+                    Ordinal = i
+                    MaxLength = c.DataType.MaximumLength
+                })
+        |> List.ofSeq
+
     member internal this.GetFunctions() = 
         assert (this.State = ConnectionState.Open)
         let db  = Server( ServerConnection(this)).Databases.[this.Database]
@@ -184,7 +187,7 @@ type SqlConnection with
                     yield sprintf "%s.%s" (string r.["specific_schema"]) (string r.["specific_name"])
         ]
     
-    member private this.GetDataTypesMapping() = 
+    member internal this.GetDataTypesMapping() = 
         assert (this.State = ConnectionState.Open)
         let providerTypes = [| 
             for row in this.GetSchema("DataTypes").Rows do
@@ -256,8 +259,16 @@ type SqlConnection with
         |> Seq.toList
 
     member this.LoadDataTypesMap() = 
-        if List.isEmpty !dataTypeMappings then
+        if List.isEmpty !dataTypeMappings 
+        then
             dataTypeMappings := this.GetDataTypesMapping()
 
 
-
+type SqlParameter with
+    member internal this.ToParameter() = 
+        let udt = if String.IsNullOrEmpty(this.TypeName) then "" else this.TypeName.Split('.') |> Seq.last
+        match findTypeInfoByProviderType(this.SqlDbType, udt) with
+        | Some x -> 
+            { Name = this.ParameterName; TypeInfo = x; Direction = this.Direction; DefaultValue = "" }
+        | None -> 
+            failwithf "Cannot map pair of SqlDbType '%O' and user definto type '%s' CLR type." this.SqlDbType udt

@@ -41,9 +41,7 @@ let testDir = "bin"
 // Generate assembly info files with the right version & up-to-date information
 
 Target "AssemblyInfo" (fun _ ->
-    [ "src/SqlCommandProvider/AssemblyInfo.fs", "SqlCommandProvider", project, summary 
-      "src/SqlProgrammabilityProvider/AssemblyInfo.fs", "SqlProgrammabilityProvider", project, summary
-    ]
+    [ "src/SqlClient/AssemblyInfo.fs", "SqlClient", project, summary ]
     |> Seq.iter (fun (fileName, title, project, summary) ->
         CreateFSharpAssemblyInfo fileName
            [ Attribute.Title title

@@ -1,7 +1,7 @@
 (**
     Use cases
 *)
-#r "../../bin/FSharp.Data.SqlCommandProvider.dll"
+#r "../../bin/FSharp.Data.SqlClient.dll"
 
 open System
 open System.Data
@@ -118,8 +118,7 @@ useGet.Execute().NextResult() = false
 //Insert command
 type InsertCommand = 
     SqlCommandProvider<"INSERT INTO dbo.ErrorLog
-                VALUES (GETDATE(), @UserName, @ErrorNumber, @ErrorSeverity, @ErrorState, @ErrorProcedure, @ErrorLine, @ErrorMessage)", 
-                connectionString, SingleRow = true>
+                VALUES (GETDATE(), @UserName, @ErrorNumber, @ErrorSeverity, @ErrorState, @ErrorProcedure, @ErrorLine, @ErrorMessage)", connectionString, SingleRow = true>
 
 open System.Security.Principal
 

@@ -34,7 +34,7 @@ type ResultType =
     | DataReader = 3
 
 [<assembly:TypeProviderAssembly()>]
-[<assembly:InternalsVisibleTo("FSharp.Data.SqlCommandProvider.Tests")>]
+[<assembly:InternalsVisibleTo("SqlClient.Tests")>]
 do()
 
 [<TypeProvider>]
@@ -233,6 +233,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                         Name = paramName
                         TypeInfo = typeInfo 
                         Direction = direction 
+                        DefaultValue = ""
                     }
 
             | _ -> failwithf "Unsupported command type: %O" commandType    

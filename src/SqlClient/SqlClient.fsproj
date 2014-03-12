@@ -8,9 +8,9 @@
     <ProjectGuid>8974ce2e-79b4-4887-859a-b853c2624138</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>SqlCommandTypeProvider</RootNamespace>
-    <AssemblyName>FSharp.Data.SqlCommandProvider</AssemblyName>
+    <AssemblyName>FSharp.Data.SqlClient</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <Name>SqlCommandProvider</Name>
+    <Name>SqlClient</Name>
     <TargetFrameworkProfile />
     <TargetFSharpCoreVersion>4.3.0.0</TargetFSharpCoreVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\</SolutionDir>
@@ -24,7 +24,7 @@
     <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\bin\FSharp.Data.SqlCommandProvider.XML</DocumentationFile>
+    <DocumentationFile>..\..\bin\FSharp.Data.SqlClient.XML</DocumentationFile>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\devenv.exe</StartProgram>
     <StartArguments>..\SqlCommandProvider.tests.sln</StartArguments>
@@ -36,10 +36,27 @@
     <OutputPath>..\..\bin</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\bin\FSharp.Data.SqlCommandProvider.xml</DocumentationFile>
+    <DocumentationFile>..\..\bin\FSharp.Data.SqlClient.XML</DocumentationFile>
+    <StartAction>Program</StartAction>
+    <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE\devenv.exe</StartProgram>
+    <StartArguments>..\Tests.sln</StartArguments>
+    <StartWorkingDirectory>
+    </StartWorkingDirectory>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.ConnectionInfo">
+      <HintPath>..\..\lib\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc">
+      <HintPath>..\..\lib\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.Smo">
+      <HintPath>..\..\lib\Microsoft.SqlServer.Smo.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Types, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91">
@@ -64,10 +81,12 @@
     <Compile Include="DataTable.fs" />
     <Compile Include="QuotationsFactory.fs" />
     <Compile Include="SqlCommandProvider.fs" />
+    <Compile Include="ProgrammabilityQuotationsFactory.fs" />
+    <Compile Include="SqlProgrammabilityProvider.fs" />
     <None Include="Scratchpad.fsx" />
+    <None Include="packages.config" />
     <None Include="SqlServerTypes\readme.htm" />
     <None Include="SqlServerTypes\Loader.cs" />
-    <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>

@@ -8,7 +8,7 @@ let info =
   [ "project-name", "SqlClient"
     "project-logo-url", "img/logo.png"
     "project-author", "Dmitry Morozov, Dmitry Sevastianov"
-    "project-summary", "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way. SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code. SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code."
+    "project-summary", "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way. SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code."
     "project-github", "https://github.com/fsprojects/FSharp.Data.SqlClient"
     "project-nuget", "http://www.nuget.org/packages/FSharp.Data.SqlClient" ]
 
