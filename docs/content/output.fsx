@@ -226,7 +226,7 @@ module SqlDataReader =
     open System.Data.SqlClient
     let toMaps (reader: SqlDataReader) = 
         seq {
-            use _ = reader
+            use __ = reader
             while reader.Read() do
                 yield [
                     for i = 0 to reader.FieldCount - 1 do

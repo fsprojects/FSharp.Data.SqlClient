@@ -20,9 +20,11 @@ let xs = seq {
 
 reader |> Seq.cast<IDataRecord> |> Seq.map( fun x -> Map.ofList [ for i = 0 to x.FieldCount - 1 do yield x.GetName(i), x.GetValue(i) ])
 conn.State
-//. reader.GetName(i), reader.GetValue(i))
-//    while reader.Read() do yield reader.GetInt32(0)
-//]
+
+let myFucc() = 
+    use __ = { new System.IDisposable with member __.Dispose() = printfn "Bye-bye!" }
+    ()
+myFucc()
 
 #r "Microsoft.SqlServer.ConnectionInfo"
 #r "Microsoft.SqlServer.Management.Sdk.Sfc" 
