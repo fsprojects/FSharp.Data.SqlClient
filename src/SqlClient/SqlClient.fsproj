@@ -27,7 +27,7 @@
     <DocumentationFile>..\..\bin\FSharp.Data.SqlClient.XML</DocumentationFile>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\devenv.exe</StartProgram>
-    <StartArguments>..\SqlCommandProvider.tests.sln</StartArguments>
+    <StartArguments>..\Tests.sln</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

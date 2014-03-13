@@ -6,11 +6,23 @@ let conn = new SqlConnection("""Data Source=(LocalDb)\v11.0;Initial Catalog=Adve
 conn.Close()
 conn.Open()
 
-let cmd = new SqlCommand("select 1 where 1 = 1", conn)
-let xs = [ 
-    let reader = cmd.ExecuteReader(CommandBehavior.CloseConnection ||| CommandBehavior.SingleRow)
-    while reader.Read() do yield reader.GetInt32(0)
-]
+let cmd = new SqlCommand("select 'HAHA' as name, 1 as val where 1 = 1", conn)
+let reader = cmd.ExecuteReader(CommandBehavior.CloseConnection ||| CommandBehavior.SingleRow)
+let xs = seq {
+    use closeReader = reader
+    while reader.Read() do
+        yield [
+            for i = 0 to reader.FieldCount - 1 do
+                if not(reader.IsDBNull(i)) 
+                then yield reader.GetName(i), reader.GetValue(i)
+        ] |> Map.ofList 
+}
+
+reader |> Seq.cast<IDataRecord> |> Seq.map( fun x -> Map.ofList [ for i = 0 to x.FieldCount - 1 do yield x.GetName(i), x.GetValue(i) ])
+conn.State
+//. reader.GetName(i), reader.GetValue(i))
+//    while reader.Read() do yield reader.GetInt32(0)
+//]
 
 #r "Microsoft.SqlServer.ConnectionInfo"
 #r "Microsoft.SqlServer.Management.Sdk.Sfc" 

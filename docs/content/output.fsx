@@ -222,15 +222,15 @@ printfn "#2: %i " <| Seq.nth 1 xs //see it fails here if result is not piped int
 In later case, resulting `SqlDataReader` can be wrapped into something like that:
 *)
 
-let ReadToMaps(reader : System.Data.SqlClient.SqlDataReader) = seq{
-            try 
-                while(reader.Read()) do
-                    yield   Map.ofArray<string, obj> [| 
-                                for i = 0 to reader.FieldCount - 1 do
-                                        if not(reader.IsDBNull(i)) 
-                                        then yield reader.GetName(i), reader.GetValue(i)
-                            |]  
-
-            finally
-                reader.Close()
-           }
+module SqlDataReader =  
+    open System.Data.SqlClient
+    let toMaps (reader: SqlDataReader) = 
+        seq {
+            use _ = reader
+            while reader.Read() do
+                yield [
+                    for i = 0 to reader.FieldCount - 1 do
+                        if not( reader.IsDBNull(i)) 
+                        then yield reader.GetName(i), reader.GetValue(i)
+                ] |> Map.ofList 
+        }
