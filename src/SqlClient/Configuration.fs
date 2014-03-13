@@ -3,6 +3,7 @@
 open System.Configuration
 open System.IO
 open System
+open System.Threading.Tasks
 open System.Collections.Generic
 
 type Configuration() =    
@@ -21,9 +22,12 @@ type Configuration() =
                 watcher.Changed.Add(fun _ -> invalidateCallback())
                 watcher.Renamed.Add(fun _ -> invalidateCallback())
                 watcher.EnableRaisingEvents <- true   
-                use stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
-                use reader = new StreamReader(stream)
-                reader.ReadToEnd(), Some watcher
+                let task = Task.Factory.StartNew(fun () -> 
+                        use stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                        use reader = new StreamReader(stream)
+                        reader.ReadToEnd())
+                if not (task.Wait(TimeSpan.FromSeconds(1.))) then failwithf "Couldn't read command from file %s" path
+                task.Result, Some watcher 
 
     static member ParseConnectionStringName(s: string) =
         assert(s.Trim() <> "")

@@ -1,1 +1,1 @@
-﻿PRINT 'foo bar.'
+﻿select a=2

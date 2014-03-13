@@ -97,7 +97,7 @@ cmd45.Execute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = 
 //Command from file
 type q = SqlCommandProvider<"sampleCommand.sql", connectionString>
 let cmdFromFile = q()
-cmdFromFile.Execute() |> ignore
+cmdFromFile.Execute() |> Seq.toArray
 
 //Fallback to metadata retrieval through FMTONLY
 type UseFMTONLY = SqlCommandProvider<"exec dbo.[Init]", connectionString>
