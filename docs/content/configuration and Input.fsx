@@ -266,7 +266,8 @@ let masterCmd: DataAccess.MyCmd2 = DataAccess.createCommand()
 (**
 
 Another related case, albeit not that common, is local transaction.
-  
+**Important:** `SqlConnection` associated with passed transaction, is not closed automatically in this case. 
+It is responsibility of the client code to close and dispose it.
 *)
 [<Literal>]
 let bitCoinCode = "BTC"

@@ -52,7 +52,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         providerType.AddXmlDoc """
 <summary>Typed access to SQL Server programmable objects: stored procedures, functions and user defined table types.</summary> 
 <param name='ConnectionStringOrName'>String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&lt;connection string name&gt;”.</param>
-<param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable or Maps.</param>
+<param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
 """
 
@@ -65,16 +65,12 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         let resolutionFolder = config.ResolutionFolder
 
-        let value, byName = 
-            match connectionStringOrName.Trim().Split([|'='|], 2, StringSplitOptions.RemoveEmptyEntries) with
-            | [| "" |] -> invalidArg "ConnectionStringOrName" "Value is empty!"
-            | [| prefix; tail |] when prefix.Trim().ToLower() = "name" -> tail.Trim(), true
-            | _ -> connectionStringOrName, false
+        let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
 
         let designTimeConnectionString = 
-            if byName 
-            then Configuration.ReadConnectionStringFromConfigFileByName(value, resolutionFolder, configFile)
-            else value
+            if isByName 
+            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, resolutionFolder, configFile)
+            else connectionStringOrName
 
         let databaseRootType = ProvidedTypeDefinition(runtimeAssembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
         let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = null) ])
@@ -82,7 +78,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             <@@
                 let input = %%args.[0] : string
                 if not(String.IsNullOrEmpty(input)) then input
-                elif byName then Configuration.GetConnectionStringRunTimeByName(connectionStringOrName)
+                elif isByName then Configuration.GetConnectionStringRunTimeByName connectionStringName
                 else designTimeConnectionString                        
             @@>
 
@@ -252,9 +248,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         for param in ReturnValue()::paramInfos do
             if param.Direction <> ParameterDirection.Input then
                 let propType, getter = ProgrammabilityQuotationsFactory.GetOutParameter param
-                let property = ProvidedProperty(param.Name.Substring(1), propertyType = propType)
-                property.GetterCode <- getter
-                recordType.AddMember property        
+                recordType.AddMember <| ProvidedProperty(param.Name.Substring(1), propertyType = propType, GetterCode = getter)
         recordType
     
      member internal this.GetExecuteNonQuery(providedCommandType, paramInfos)  = 
@@ -380,19 +374,4 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         let returnType = typedefof<_ DataTable>.MakeGenericType rowType
 
         returnType, body
-
-    member internal this.Maps(paramInfos, singleRow) =
-        let readerToMap = 
-            <@
-                fun(reader : SqlDataReader) -> 
-                    Map.ofArray<string, obj> [| 
-                        for i = 0 to reader.FieldCount - 1 do
-                             if not( reader.IsDBNull(i)) then yield reader.GetName(i), reader.GetValue(i)
-                    |]  
-            @>
-
-        let getExecuteBody(args : Expr list) = 
-            ProgrammabilityQuotationsFactory.GetRows(args, paramInfos, readerToMap, singleRow)
-            
-        typeof<Map<string, obj> seq>, getExecuteBody
 

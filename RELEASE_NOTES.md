@@ -19,3 +19,4 @@
 * 1.2.2 - Merging assemblies.
 * 1.2.3 - Fixing nuget package.
 * 1.2.4 - CommandType removed from SqlCommandProvider.
+* 1.2.5 - Timeout on reading command file.

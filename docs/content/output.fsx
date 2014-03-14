@@ -234,3 +234,10 @@ module SqlDataReader =
                         then yield reader.GetName(i), reader.GetValue(i)
                 ] |> Map.ofList 
         }
+
+(**
+Note that combined with `|> Map.tryFind(key)` this approach can be used to achieve `Option` semantics 
+for each row, in other words, such function will return `None` for `NULL` values. Obviously, it's up to you to make sure that 
+the names of the columns are correct.
+The same approach can be used to produce `ExpandoObject` for dynamic scenarios.
+*)

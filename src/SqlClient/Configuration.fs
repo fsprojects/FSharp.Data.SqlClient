@@ -30,10 +30,10 @@ type Configuration() =
                 task.Result, Some watcher 
 
     static member ParseConnectionStringName(s: string) =
-        assert(s.Trim() <> "")
         match s.Trim().Split([|'='|], 2, StringSplitOptions.RemoveEmptyEntries) with
-        | [| prefix; tail |] when prefix.Trim().ToLower() = "name" -> tail.Trim()
-        | _ -> null
+            | [| "" |] -> invalidArg "ConnectionStringOrName" "Value is empty!"
+            | [| prefix; tail |] when prefix.Trim().ToLower() = "name" -> tail.Trim(), true
+            | _ -> s, false
 
     static member ReadConnectionStringFromConfigFileByName(name: string, resolutionFolder, fileName) =
 
@@ -50,7 +50,7 @@ type Configuration() =
 
                 if File.Exists appConfig then appConfig
                 elif File.Exists webConfig then webConfig
-                else failwithf "Cannot find neither app.config nor web.config."
+                else failwithf "Cannot find either app.config or web.config."
         
         let map = ExeConfigurationFileMap()
         map.ExeConfigFilename <- configFilename

@@ -75,7 +75,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 <summary>Typed representation of a T-SQL statement to execute against a SQL Server database.</summary> 
 <param name='CommandText'>Transact-SQL statement to execute at the data source.</param>
 <param name='ConnectionStringOrName'>String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&lt;connection string name&gt;”.</param>
-<param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable or DataReader.</param>
+<param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.</param>
 <param name='SingleRow'>If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
 <param name='AllParametersOptional'>If set all parameters become optional. NULL input values must be handled inside T-SQL.</param>
@@ -108,11 +108,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         if connectionStringOrName.Trim() = ""
         then invalidArg "ConnectionStringOrName" "Value is empty!" 
 
-        let name = Configuration.ParseConnectionStringName connectionStringOrName
+        let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
             
         let designTimeConnectionString = 
-            if name <> null 
-            then Configuration.ReadConnectionStringFromConfigFileByName(name, resolutionFolder, configFile)
+            if isByName
+            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, resolutionFolder, configFile)
             else connectionStringOrName
 
         let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
@@ -144,7 +144,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 let runTimeConnectionString = 
                     if not( String.IsNullOrEmpty(%%args.[0]))
                     then %%args.[0]
-                    elif name <> null then Configuration.GetConnectionStringRunTimeByName name
+                    elif isByName then Configuration.GetConnectionStringRunTimeByName connectionStringName
                     else designTimeConnectionString
                         
                 let this = new SqlCommand(commandText, new SqlConnection(runTimeConnectionString), CommandType = CommandType.Text) 
