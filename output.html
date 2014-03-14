@@ -13,8 +13,8 @@
     <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
     <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet">
 
-    <link type="text/css" rel="stylesheet" href="http://fsprojects.github.io/FSharp.Data.SqlClient//content/style.css" />
-    <script type="text/javascript" src="http://fsprojects.github.io/FSharp.Data.SqlClient//content/tips.js"></script>
+    <link type="text/css" rel="stylesheet" href="/FSharp.Data.SqlClient/content/style.css" />
+    <script type="text/javascript" src="/FSharp.Data.SqlClient/content/tips.js"></script>
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
       <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
@@ -26,15 +26,16 @@
             <ul class="nav nav-pills pull-right">
                 <li><a href="http://fsharp.org">fsharp.org</a></li>
                 <li><a href="http://fsprojects.github.io/">fsprojects</a></li>
-                <li><a href="https://github.com/fsprojects/FSharp.Data.SqlClient">github page</a></li>
+                <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient">github page</a></li>
             </ul>
-            <h3 class="muted">SqlClient</h3>
+            <h3 class="muted">FSharp.Data.SqlClient</h3>
         </div>
         <hr />
         <div class="row">
             <div class="span9" id="main">
                 
 <h1>Controlling output</h1>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
 <span class="l"> 2: </span>
@@ -69,9 +70,12 @@
 <span class="s">&quot;</span></pre>
 </td>
 </tr>
-</table><ul>
+</table>
+
+<ul>
 <li>Sequence of custom records is default result set type</li>
 </ul>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
 <span class="l">2: </span>
@@ -92,10 +96,13 @@
     <span onmouseout="hideTip(event, 'fs18', 23)" onmouseover="showTip(event, 'fs18', 23)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Product</span><span class="s"> </span><span class="s">name</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">s</span><span class="s">.</span><span class="s"> </span><span class="s">Sells</span><span class="s"> </span><span class="s">start</span><span class="s"> </span><span class="s">date</span><span class="s"> </span><span class="s">%</span><span class="s">A</span><span class="s">,</span><span class="s"> </span><span class="s">size</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">A</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs17', 24)" onmouseover="showTip(event, 'fs17', 24)" class="i">x</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs19', 25)" onmouseover="showTip(event, 'fs19', 25)" class="i">ProductName</span> <span onmouseout="hideTip(event, 'fs17', 26)" onmouseover="showTip(event, 'fs17', 26)" class="i">x</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs20', 27)" onmouseover="showTip(event, 'fs20', 27)" class="i">SellStartDate</span> <span onmouseout="hideTip(event, 'fs17', 28)" onmouseover="showTip(event, 'fs17', 28)" class="i">x</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs21', 29)" onmouseover="showTip(event, 'fs21', 29)" class="i">Size</span>)</pre>
 </td>
 </tr>
-</table><ul>
+</table>
+
+<ul>
 <li>Sync execution</li>
 <li>Seq of tuples as result set type</li>
 </ul>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
 <span class="l">2: </span>
@@ -114,9 +121,12 @@
     <span onmouseout="hideTip(event, 'fs18', 46)" onmouseover="showTip(event, 'fs18', 46)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Product</span><span class="s"> </span><span class="s">name</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">s</span><span class="s">.</span><span class="s"> </span><span class="s">Sells</span><span class="s"> </span><span class="s">start</span><span class="s"> </span><span class="s">date</span><span class="s"> </span><span class="s">%</span><span class="s">A</span><span class="s">,</span><span class="s"> </span><span class="s">size</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">A</span><span class="s">&quot;</span> <span class="i">productName</span> <span class="i">sellStartDate</span> <span onmouseout="hideTip(event, 'fs28', 47)" onmouseover="showTip(event, 'fs28', 47)" class="i">size</span></pre>
 </td>
 </tr>
-</table><ul>
+</table>
+
+<ul>
 <li>Typed data table as result set</li>
 </ul>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
 <span class="l">2: </span>
@@ -135,11 +145,14 @@
     <span onmouseout="hideTip(event, 'fs18', 62)" onmouseover="showTip(event, 'fs18', 62)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Product</span><span class="s"> </span><span class="s">name</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">s</span><span class="s">.</span><span class="s"> </span><span class="s">Sells</span><span class="s"> </span><span class="s">start</span><span class="s"> </span><span class="s">date</span><span class="s"> </span><span class="s">%</span><span class="s">O</span><span class="s">,</span><span class="s"> </span><span class="s">size</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">A</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs31', 63)" onmouseover="showTip(event, 'fs31', 63)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs32', 64)" onmouseover="showTip(event, 'fs32', 64)" class="i">ProductName</span> <span onmouseout="hideTip(event, 'fs31', 65)" onmouseover="showTip(event, 'fs31', 65)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs33', 66)" onmouseover="showTip(event, 'fs33', 66)" class="i">SellStartDate</span> <span onmouseout="hideTip(event, 'fs31', 67)" onmouseover="showTip(event, 'fs31', 67)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs34', 68)" onmouseover="showTip(event, 'fs34', 68)" class="i">Size</span>)</pre>
 </td>
 </tr>
-</table><ul>
+</table>
+
+<ul>
 <li>Single row hint. Must be provided explicitly. Cannot be inferred</li>
 <li>Nullable columns mapped to <code>Option&lt;_&gt;</code> type</li>
 <li>Calling SQL Table-Valued Function</li>
 </ul>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
 <span class="l"> 2: </span>
@@ -168,9 +181,12 @@
 | _ <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs18', 93)" onmouseover="showTip(event, 'fs18', 93)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">What&#39;s</span><span class="s"> </span><span class="s">your</span><span class="s"> </span><span class="s">name</span><span class="s"> </span><span class="s">%</span><span class="s">i</span><span class="s">?</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs37', 94)" onmouseover="showTip(event, 'fs37', 94)" class="i">person</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs46', 95)" onmouseover="showTip(event, 'fs46', 95)" class="i">PersonID</span></pre>
 </td>
 </tr>
-</table><ul>
+</table>
+
+<ul>
 <li>Same as previous but using tuples as result type</li>
 </ul>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
 <span class="l"> 2: </span>
@@ -201,9 +217,12 @@
     ) </pre>
 </td>
 </tr>
-</table><ul>
+</table>
+
+<ul>
 <li>Same as previous but using typed DataTable as result type</li>
 </ul>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
 <span class="l"> 2: </span>
@@ -230,9 +249,12 @@
     <span onmouseout="hideTip(event, 'fs18', 131)" onmouseover="showTip(event, 'fs18', 131)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Person</span><span class="s"> </span><span class="s">info</span><span class="s">:</span><span class="s">Id</span><span class="s"> </span><span class="s">-</span><span class="s"> </span><span class="s">%</span><span class="s">i</span><span class="s">,</span><span class="s">FirstName</span><span class="s"> </span><span class="s">-</span><span class="s"> </span><span class="s">%</span><span class="s">O</span><span class="s">,</span><span class="s">LastName</span><span class="s"> </span><span class="s">-</span><span class="s"> </span><span class="s">%</span><span class="s">O</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs31', 132)" onmouseover="showTip(event, 'fs31', 132)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs52', 133)" onmouseover="showTip(event, 'fs52', 133)" class="i">PersonID</span> <span onmouseout="hideTip(event, 'fs31', 134)" onmouseover="showTip(event, 'fs31', 134)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs53', 135)" onmouseover="showTip(event, 'fs53', 135)" class="i">FirstName</span> <span onmouseout="hideTip(event, 'fs31', 136)" onmouseover="showTip(event, 'fs31', 136)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs54', 137)" onmouseover="showTip(event, 'fs54', 137)" class="i">LastName</span> </pre>
 </td>
 </tr>
-</table><ul>
+</table>
+
+<ul>
 <li>Same as previous but using <code>SqlProgrammabilityProvider&lt;...&gt;</code></li>
 </ul>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
 <span class="l">2: </span>
@@ -255,10 +277,13 @@
 <span onmouseout="hideTip(event, 'fs18', 150)" onmouseover="showTip(event, 'fs18', 150)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Person</span><span class="s"> </span><span class="s">info</span><span class="s">:</span><span class="s">Id</span><span class="s"> </span><span class="s">-</span><span class="s"> </span><span class="s">%</span><span class="s">i</span><span class="s">,</span><span class="s">FirstName</span><span class="s"> </span><span class="s">-</span><span class="s"> </span><span class="s">%</span><span class="s">O</span><span class="s">,</span><span class="s">LastName</span><span class="s"> </span><span class="s">-</span><span class="s"> </span><span class="s">%</span><span class="s">O</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs58', 151)" onmouseover="showTip(event, 'fs58', 151)" class="i">f</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs61', 152)" onmouseover="showTip(event, 'fs61', 152)" class="i">PersonID</span> <span onmouseout="hideTip(event, 'fs58', 153)" onmouseover="showTip(event, 'fs58', 153)" class="i">f</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs62', 154)" onmouseover="showTip(event, 'fs62', 154)" class="i">FirstName</span> <span onmouseout="hideTip(event, 'fs58', 155)" onmouseover="showTip(event, 'fs58', 155)" class="i">f</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs63', 156)" onmouseover="showTip(event, 'fs63', 156)" class="i">LastName</span> </pre>
 </td>
 </tr>
-</table><ul>
+</table>
+
+<ul>
 <li>One column only result set is inferred. Combined with <code>SingleRow</code> hint it gives single value as result</li>
 <li><code>AsyncExecute/Execute</code> are just regular F# methods, so args can be passed by name or by position</li>
 </ul>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
 <span class="l">2: </span>
@@ -283,10 +308,13 @@
 <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs39', 163)" onmouseover="showTip(event, 'fs39', 163)" class="i">Option</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs66', 164)" onmouseover="showTip(event, 'fs66', 164)" class="i">iter</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs67', 165)" onmouseover="showTip(event, 'fs67', 165)" class="i">name</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs68', 166)" onmouseover="showTip(event, 'fs68', 166)" class="i">printf</span> <span class="s">&quot;</span><span class="s">Person</span><span class="s"> </span><span class="s">with</span><span class="s"> </span><span class="s">id</span><span class="s"> </span><span class="s">%</span><span class="s">i</span><span class="s"> </span><span class="s">has</span><span class="s"> </span><span class="s">name</span><span class="s"> </span><span class="s">%</span><span class="s">s</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs65', 167)" onmouseover="showTip(event, 'fs65', 167)" class="i">personId</span> <span onmouseout="hideTip(event, 'fs67', 168)" onmouseover="showTip(event, 'fs67', 168)" class="i">name</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs69', 169)" onmouseover="showTip(event, 'fs69', 169)" class="i">Value</span>)</pre>
 </td>
 </tr>
-</table><ul>
+</table>
+
+<ul>
 <li>Single value</li>
 <li>Running the same command more than once with diff params</li>
 </ul>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
 <span class="l"> 2: </span>
@@ -313,9 +341,12 @@
 <span onmouseout="hideTip(event, 'fs71', 180)" onmouseover="showTip(event, 'fs71', 180)" class="i">getSrvTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs73', 181)" onmouseover="showTip(event, 'fs73', 181)" class="i">Execute</span>(<span class="i">IsUtc</span> <span class="o">=</span> <span class="k">false</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs18', 182)" onmouseover="showTip(event, 'fs18', 182)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">%</span><span class="s">A</span><span class="s">&quot;</span></pre>
 </td>
 </tr>
-</table><ul>
+</table>
+
+<ul>
 <li>Non-query</li>
 </ul>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
 <span class="l"> 2: </span>
@@ -352,9 +383,12 @@
         <span class="i">BirthDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs10', 194)" onmouseover="showTip(event, 'fs10', 194)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs11', 195)" onmouseover="showTip(event, 'fs11', 195)" class="i">DateTime</span>(<span class="n">1965</span>, <span class="n">09</span>, <span class="n">01</span>), <span class="i">MaritalStatus</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">S</span><span class="s">&quot;</span>, <span class="i">Gender</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">F</span><span class="s">&quot;</span>) </pre>
 </td>
 </tr>
-</table><ul>
+</table>
+
+<ul>
 <li>Non-query with MS SQL HierarchyId using <code>SqlProgrammabilityProvider&lt;...&gt;</code></li>
 </ul>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
 <span class="l"> 2: </span>
@@ -383,11 +417,14 @@
 <span onmouseout="hideTip(event, 'fs88', 213)" onmouseover="showTip(event, 'fs88', 213)" class="i">res</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs91', 214)" onmouseover="showTip(event, 'fs91', 214)" class="i">ReturnValue</span></pre>
 </td>
 </tr>
-</table><h3>Result sequence is un-buffered by default</h3>
+</table>
+
+<h3>Result sequence is un-buffered by default</h3>
 
 <p>Although it implements standard <code>seq&lt;_&gt;</code> (<code>IEnumerable&lt;_&gt;</code>) interface it can be evaluated only once. 
 It is done mostly for memory efficiency. It behaves as forward-only cursor similar to underlying SqlDataReader. 
 If multiple passes over the sequence required use standard <code>Seq.cache</code> combinator.</p>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
 <span class="l">2: </span>
@@ -402,7 +439,9 @@ If multiple passes over the sequence required use standard <code>Seq.cache</code
 <span onmouseout="hideTip(event, 'fs18', 226)" onmouseover="showTip(event, 'fs18', 226)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">#</span><span class="s">2</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">i</span><span class="s"> </span><span class="s">&quot;</span> <span class="o">&lt;|</span> <span onmouseout="hideTip(event, 'fs15', 227)" onmouseover="showTip(event, 'fs15', 227)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs95', 228)" onmouseover="showTip(event, 'fs95', 228)" class="i">nth</span> <span class="n">1</span> <span onmouseout="hideTip(event, 'fs93', 229)" onmouseover="showTip(event, 'fs93', 229)" class="i">xs</span> <span class="c">//see it fails here if result is not piped into Seq.cache </span></pre>
 </td>
 </tr>
-</table><h3>Output result types summary:</h3>
+</table>
+
+<h3>Output result types summary:</h3>
 
 <ul>
 <li>Records (default) .NET-style class with read-only properties. WebAPI/ASP.NET MVC/Json.NET/WPF, Data Binding</li>
@@ -412,6 +451,7 @@ If multiple passes over the sequence required use standard <code>Seq.cache</code
 </ul>
 
 <p>In later case, resulting <code>SqlDataReader</code> can be wrapped into something like that:</p>
+
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
 <span class="l"> 2: </span>
@@ -442,7 +482,9 @@ If multiple passes over the sequence required use standard <code>Seq.cache</code
         }</pre>
 </td>
 </tr>
-</table><p>Note that combined with <code>|&gt; Map.tryFind(key)</code> this approach can be used to achieve <code>Option</code> semantics 
+</table>
+
+<p>Note that combined with <code>|&gt; Map.tryFind(key)</code> this approach can be used to achieve <code>Option</code> semantics 
 for each row, in other words, such function will return <code>None</code> for <code>NULL</code> values. Keep in mind though that
 the incorrect column name will also return <code>None</code>.
 The same approach can be used to produce <code>ExpandoObject</code> for dynamic scenarios.</p>
@@ -566,21 +608,21 @@ The same approach can be used to produce <code>ExpandoObject</code> for dynamic 
                     <img src="img/logo.png" style="width: 200px; height: 200px; margin: 10px 0px 0px 35px; border-style: none;" />
                 </a>
                 <ul class="nav nav-list" id="menu">
-                    <li class="nav-header">SqlClient</li>
-                    <li><a href="http://fsprojects.github.io/FSharp.Data.SqlClient//index.html">Home page</a></li>
+                    <li class="nav-header">FSharp.Data.SqlClient</li>
+                    <li><a href="/FSharp.Data.SqlClient/index.html">Home page</a></li>
                     <li class="divider"></li>
                     <li><a href="http://www.nuget.org/packages/FSharp.Data.SqlClient">Get Library via NuGet</a></li>
-                    <li><a href="https://github.com/fsprojects/FSharp.Data.SqlClient">Source Code on GitHub</a></li>
-                    <li><a href="https://github.com/fsprojects/FSharp.Data.SqlClient/blob/master/LICENSE.md">License</a></li>
-                    <li><a href="https://github.com/fsprojects/FSharp.Data.SqlClient/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient">Source Code on GitHub</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient/blob/master/LICENSE.md">License</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
 
                     <li class="nav-header">Documentation</li>
-                    <li><a href="http://fsprojects.github.io/FSharp.Data.SqlClient//configuration and input.html">Configuration and Input</a></li>
-                    <li><a href="http://fsprojects.github.io/FSharp.Data.SqlClient//output.html">Output</a></li>
-                    <li><a href="http://fsprojects.github.io/FSharp.Data.SqlClient//data binding and updates.html">Data binding and updates</a></li>
-                    <li><a href="http://fsprojects.github.io/FSharp.Data.SqlClient//comparison.html">Comparison</a></li>
-                    <li><a href="http://fsprojects.github.io/FSharp.Data.SqlClient//reference architecture.html">Reference architecture</a></li>
-                    <li><a href="http://fsprojects.github.io/FSharp.Data.SqlClient//samples.html">Sample applications</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/configuration and input.html">Configuration and Input</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/output.html">Output</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/data binding and updates.html">Data binding and updates</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/comparison.html">Comparison</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/reference architecture.html">Reference architecture</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/samples.html">Sample applications</a></li>
 
                     <li class="nav-header">Tools</li>
                     <li><a href="http://tpetricek.github.io/FSharp.Formatting/">F# Formatting</a></li>
@@ -591,7 +633,7 @@ The same approach can be used to produce <code>ExpandoObject</code> for dynamic 
             </div>
         </div>
     </div>
-    <a href="https://github.com/fsprojects/FSharp.Data.SqlClient">
+    <a href="http://github.com/fsprojects/FSharp.Data.SqlClient">
         <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub">
     </a>
 </body>
