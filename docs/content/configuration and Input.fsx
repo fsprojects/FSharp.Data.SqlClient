@@ -14,7 +14,7 @@ SQlCommandProvider parameters
 <tbody>
   <tr><td class="title">CommandText</td><td>-</td><td>T-SQL script or *.sql file</td></tr></thead>
   <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr></thead>
-  <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable or DataReader</td></tr></thead>
+  <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable, or DataReader</td></tr></thead>
   <tr><td class="title">SingleRow</td><td>false</td><td>true/false</td></tr></thead>
   <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>valid file name</td></tr></thead>
   <tr><td class="title">AllParametersOptional</td><td>false</td><td>true/false</td></tr></thead>
@@ -28,7 +28,7 @@ SQlProgrammabilityProvider parameters
 <thead><tr><td>Name</td><td>Default</td><td>Accepted values</td></tr></thead>
 <tbody>
   <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr></thead>
-  <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable or DataReader</td></tr></thead>
+  <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable, or DataReader</td></tr></thead>
   <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>valid file name</td></tr></thead>
 </tbody>
 </table>
@@ -266,6 +266,7 @@ let masterCmd: DataAccess.MyCmd2 = DataAccess.createCommand()
 (**
 
 Another related case, albeit not that common, is local transaction.
+
 **Important:** `SqlConnection` associated with passed transaction, is not closed automatically in this case. 
 It is responsibility of the client code to close and dispose it.
 *)

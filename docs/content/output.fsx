@@ -237,7 +237,7 @@ module SqlDataReader =
 
 (**
 Note that combined with `|> Map.tryFind(key)` this approach can be used to achieve `Option` semantics 
-for each row, in other words, such function will return `None` for `NULL` values. Obviously, it's up to you to make sure that 
-the names of the columns are correct.
+for each row, in other words, such function will return `None` for `NULL` values. Keep in mind though that
+the incorrect column name will also return `None`.
 The same approach can be used to produce `ExpandoObject` for dynamic scenarios.
 *)
