@@ -48,6 +48,7 @@ for productName, sellStartDate, size in tuples do
 
 (**
  * Typed data table as result set
+ * DataTable result type is an enabler for update scenarios. Look at [data binding and updates](data binding and updates.html) for details.
 *)
 
 type QueryProductDataTable = 

@@ -2,6 +2,7 @@ module FSharp.Data.TypeProviderTest
 
 open System
 open System.Data
+open System.Data.SqlClient
 open Xunit
 
 [<Literal>]
@@ -12,7 +13,7 @@ type GetOddNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (2
 [<Fact>]
 let ConnectionClose() = 
     let cmd = GetOddNumbers()
-    let nativeCmd = cmd |> box |> unbox<System.Data.SqlClient.SqlCommand>
+    let nativeCmd: SqlCommand = unbox cmd 
     Assert.Equal(ConnectionState.Closed, nativeCmd.Connection.State)
     Assert.Equal<int[]>([| 2; 4; 8;  24 |], cmd.Execute() |> Seq.toArray)    
     Assert.Equal(ConnectionState.Closed, nativeCmd.Connection.State)
