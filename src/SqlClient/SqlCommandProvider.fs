@@ -219,8 +219,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             assert p.Name.StartsWith("@")
             let parameterName = p.Name.Substring 1
 
-            let optionalValue = if allParametersOptional then Some null else None
-
             let parameterType = 
                 if not p.TypeInfo.TableType 
                 then
@@ -258,6 +256,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
                     ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
 
+            let optionalValue = if allParametersOptional then Some null else None
             yield ProvidedParameter(
                 parameterName, 
                 parameterType = (if allParametersOptional && parameterType.IsValueType then typedefof<_ option>.MakeGenericType( parameterType) else parameterType), 

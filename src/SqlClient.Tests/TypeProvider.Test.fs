@@ -91,6 +91,19 @@ type SomeSingleton = SqlCommandProvider<"select 1", connectionString, SingleRow 
 let singleRowOption() =
     Assert.True(NoneSingleton().Execute().IsNone)
     Assert.Equal(Some 1, SomeSingleton().Execute())
+
+
+type NullableStringInput = SqlCommandProvider<"select  ISNULL(@P1, '')", connectionString, SingleRow = true, AllParametersOptional = true>
+type NullableStringInputStrict = SqlCommandProvider<"select  ISNULL(@P1, '')", connectionString, SingleRow = true>
+
+open System.Data.SqlClient
+
+[<Fact>]
+let NullableStringInputParameter() = 
+    Assert.Equal(Some "", NullableStringInput().Execute())
+    Assert.Equal(Some "", NullableStringInputStrict().Execute(null))
+
+
 //     
 //open Microsoft.SqlServer.Types
 //

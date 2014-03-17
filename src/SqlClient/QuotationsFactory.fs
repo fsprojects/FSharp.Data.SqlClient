@@ -34,16 +34,18 @@ type QuotationsFactory private() =
             then 
                 exprArgs.Tail
             else
-                let types = paramInfos |> List.map (fun p -> p.TypeInfo.ClrTypeFullName)
                 (exprArgs.Tail, paramInfos)
                 ||> List.map2 (fun expr info ->
-                    typeof<QuotationsFactory>
-                        .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
-                        .MakeGenericMethod(info.TypeInfo.ClrType)
-                        .Invoke(null, [| box expr|])
-                        |> unbox
+                    if info.TypeInfo.ClrType.IsValueType
+                    then 
+                        typeof<QuotationsFactory>
+                            .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
+                            .MakeGenericMethod(info.TypeInfo.ClrType)
+                            .Invoke(null, [| box expr|])
+                            |> unbox
+                    else
+                        expr
                 )
-
         <@
             let sqlCommand : SqlCommand = %%Expr.Coerce(exprArgs.[0], typeof<SqlCommand>)
 
@@ -53,7 +55,9 @@ type QuotationsFactory private() =
             for i = 0 to paramValues.Length - 1 do
                 let p = sqlCommand.Parameters.[i]
                 p.Value <- paramValues.[i]
-
+                if p.Value = null then p.Value <- DbNull
+                if p.Value = DbNull && (p.SqlDbType = SqlDbType.NVarChar || p.SqlDbType = SqlDbType.VarChar)
+                then p.Size <- if  p.SqlDbType = SqlDbType.NVarChar then 4000 else 8000
             sqlCommand
         @>
 
