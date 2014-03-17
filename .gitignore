@@ -221,3 +221,5 @@ pip-log.txt
 .mr.developer.cfg
 /packages
 /.nuget
+.vagrant/
+vagrantfile
