@@ -20,3 +20,4 @@
 * 1.2.3 - Fixing nuget package.
 * 1.2.4 - CommandType removed from SqlCommandProvider.
 * 1.2.5 - Timeout on reading command file.
+* 1.2.6 - Bugfix for nullable string iput parameters.
