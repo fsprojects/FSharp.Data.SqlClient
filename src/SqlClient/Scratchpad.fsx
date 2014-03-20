@@ -38,3 +38,19 @@ let sp = db.StoredProcedures.["uspSearchCandidateResumes"]
 for p in sp.Parameters do printfn "Name: %s. defaulf value: %s" p.Name p.DefaultValue
 sp.Parameters.[3].DefaultValue
 
+type ISqlCommand<'TResult> = 
+    abstract AsyncExecute : parameters: (string * obj)[] -> Async<'TResult>
+    abstract Execute : parameters: (string * obj)[] -> Async<'TResult>
+
+type SqlCommand<'TResult>(connection: SqlConnection, mapper: SqlDataReader -> 'TResult) = 
+
+    new(connectionStringOrName) = SqlCommand<'TResult>(new SqlConnection())
+    
+    //static factories
+    //static DataTable
+    //static Tuples
+    //static Records
+
+    interface ISqlCommand<'TResult> with 
+        member this.AsyncExecute parameters = raise <| NotImplementedException()
+        member this.Execute parameters = raise <| NotImplementedException()
