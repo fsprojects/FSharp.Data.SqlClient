@@ -268,7 +268,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let body expr =
             <@@
                 async {
-                    let sqlCommand = %QuotationsFactory.GetSqlCommandWithParamValuesSet(expr, allParametersOptional, paramInfos)
+                    let sqlCommand = %CommandQuotationsFactory.GetSqlCommandWithParamValuesSet(expr, allParametersOptional, paramInfos)
                     //open connection async on .NET 4.5
                     if sqlCommand.Connection.State <> ConnectionState.Open then
                         sqlCommand.Connection.Open()
@@ -282,7 +282,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let syncReturnType, executeMethodBody = 
             if resultType = ResultType.DataReader then
                 let getExecuteBody(args : Expr list) = 
-                    QuotationsFactory.GetDataReader(args, allParametersOptional, paramInfos, singleRow)
+                    CommandQuotationsFactory.GetDataReader(args, allParametersOptional, paramInfos, singleRow)
                 typeof<SqlDataReader>, getExecuteBody
             else
                 if outputColumns.IsEmpty
@@ -297,7 +297,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                         then
                             let singleCol = outputColumns.Head
                             let column0Type = singleCol.ClrTypeConsideringNullable
-                            column0Type, QuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, allParametersOptional, paramInfos, singleRow, singleCol)
+                            column0Type, CommandQuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, allParametersOptional, paramInfos, singleRow, singleCol)
                         else 
                             if resultType = ResultType.Tuples
                             then this.Tuples(allParametersOptional, paramInfos, outputColumns, singleRow)
@@ -332,7 +332,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
             Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [ Expr.Var values; getTupleType ]), tupleType))
 
-        tupleType, QuotationsFactory.GetBody("GetTypedSequence", tupleType, allParametersOptional, paramInfos, rowMapper, singleRow, columns)
+        tupleType, CommandQuotationsFactory.GetBody("GetTypedSequence", tupleType, allParametersOptional, paramInfos, rowMapper, singleRow, columns)
 
     member internal this.Records( providedCommandType, allParametersOptional, paramInfos,  columns, singleRow) =
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
@@ -360,7 +360,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                         (names, values) ||> Array.iter2 (fun name value -> dict.Add(name, value))
                         box dict 
                 @>
-            QuotationsFactory.GetTypedSequence(args, allParametersOptional, paramInfos, arrayToRecord, singleRow, columns)
+            CommandQuotationsFactory.GetTypedSequence(args, allParametersOptional, paramInfos, arrayToRecord, singleRow, columns)
                          
         upcast recordType, getExecuteBody
     
@@ -389,7 +389,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         providedCommandType.AddMember rowType
 
-        let body = QuotationsFactory.GetBody("GetTypedDataTable", typeof<DataRow>, allParametersOptional, paramInfos, singleRow)
+        let body = CommandQuotationsFactory.GetBody("GetTypedDataTable", typeof<DataRow>, allParametersOptional, paramInfos, singleRow)
         let returnType = typedefof<_ DataTable>.MakeGenericType rowType
 
         returnType, body

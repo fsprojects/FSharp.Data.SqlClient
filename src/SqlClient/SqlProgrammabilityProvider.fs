@@ -357,8 +357,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 if col.IsNullable 
                 then
                     ProvidedProperty(name, propertyType = col.ClrTypeConsideringNullable,
-                        GetterCode = ProgrammabilityQuotationsFactory.GetBody("GetNullableValueFromDataRow", col.TypeInfo.ClrType, name),
-                        SetterCode = ProgrammabilityQuotationsFactory.GetBody("SetNullableValueInDataRow", col.TypeInfo.ClrType, name)
+                        GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", col.TypeInfo.ClrType, name),
+                        SetterCode = QuotationsFactory.GetBody("SetNullableValueInDataRow", col.TypeInfo.ClrType, name)
                     )
                 else
                     ProvidedProperty(name, propertyType, 

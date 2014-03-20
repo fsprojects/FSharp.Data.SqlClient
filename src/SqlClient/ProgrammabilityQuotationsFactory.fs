@@ -35,7 +35,7 @@ type ProgrammabilityQuotationsFactory private() =
                 if info.Direction = ParameterDirection.Input then
                     expr                    
                 else 
-                    typeof<ProgrammabilityQuotationsFactory>
+                    typeof<QuotationsFactory>
                         .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
                         .MakeGenericMethod(info.TypeInfo.ClrType)
                         .Invoke(null, [| box expr|])
@@ -48,7 +48,7 @@ type ProgrammabilityQuotationsFactory private() =
             let sqlCommand : SqlCommand = %%Expr.Coerce(exprArgs.[0], typeof<SqlCommand>)
             if sqlCommand.CommandType = CommandType.Text then
                 sqlCommand.CommandText <- sprintf "SELECT * FROM %s(%s)" sqlCommand.CommandText sqlParams
-            let xs = %%Expr.NewArray( typeof<SqlParameter>, paramInfos |> List.map ProgrammabilityQuotationsFactory.ToSqlParam)
+            let xs = %%Expr.NewArray( typeof<SqlParameter>, paramInfos |> List.map QuotationsFactory.ToSqlParam)
             sqlCommand.Parameters.AddRange xs
 
             let paramValues : obj[] = %%Expr.NewArray(typeof<obj>, elements = [for x in mappedParamValues -> Expr.Coerce(x, typeof<obj>)])
@@ -78,7 +78,7 @@ type ProgrammabilityQuotationsFactory private() =
             }
         @@>
 
-    static member internal GetRows<'Row>(exprArgs, paramInfos, mapper : Expr<(SqlDataReader -> 'Row)>, singleRow) = 
+    static member private GetRows<'Row>(exprArgs, paramInfos, mapper : Expr<(SqlDataReader -> 'Row)>, singleRow) = 
         <@@ 
             async {
                 let! token = Async.CancellationToken
@@ -101,7 +101,7 @@ type ProgrammabilityQuotationsFactory private() =
                 fun(reader : SqlDataReader) ->
                     let values = Array.zeroCreate columnTypes.Length
                     reader.GetValues(values) |> ignore
-                    let mapNullables :  obj[] -> unit = %%ProgrammabilityQuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption")
+                    let mapNullables :  obj[] -> unit = %%QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption")
                     mapNullables values
                     (%%rowMapper : obj[] -> 'Row) values
             @>
@@ -132,21 +132,8 @@ type ProgrammabilityQuotationsFactory private() =
         @@>
 
     //Utility methods            
-    static member internal ToSqlParam(p : Parameter) = 
-        let name = p.Name
-        let dbType = p.TypeInfo.SqlDbTypeId
-        <@@ 
-            let r = SqlParameter(
-                        name, 
-                        enum dbType, 
-                        Direction = %%Expr.Value p.Direction,
-                        TypeName = %%Expr.Value p.TypeInfo.UdttName
-                    )
-            if %%Expr.Value p.TypeInfo.SqlEngineTypeId = 240 then
-                r.UdtTypeName <- %%Expr.Value p.TypeInfo.TypeName
-            r
-        @@>
-    
+    static member private ObjToOption<'T> value = <@@ box <| if Convert.IsDBNull(%%value) then None else Some(unbox<'T> %%value) @@>  
+ 
     static member internal GetOutParameter (param : Parameter) =
         let paramName = param.Name
         let clrType = param.TypeInfo.ClrType
@@ -168,65 +155,4 @@ type ProgrammabilityQuotationsFactory private() =
                 let c : obj->obj = %%converter
                 c param.Value
             elif param.Value = DbNull then null else param.Value
-        @@> 
-
-    static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> DbNull @@>    
-
-    static member internal ObjToOption<'T> value = 
-        <@@ 
-            let result = if Convert.IsDBNull(%%value) then None else Some(unbox<'T> %%value)
-            box result 
-        @@>    
-
-    static member internal MapArrayOptionItemToObj<'T>(arr, index) =
-        <@
-            let values : obj[] = %%arr
-            values.[index] <- match unbox values.[index] with Some (x : 'T) -> box x | None -> null 
-        @> 
-
-    static member internal MapArrayObjItemToOption<'T>(arr, index) =
-        <@
-            let values : obj[] = %%arr
-            values.[index] <- box <| if Convert.IsDBNull(values.[index]) then None else Some(unbox<'T> values.[index])
-        @> 
-
-    static member internal MapArrayNullableItems(columnTypes : string list, isNullableColumn : bool list, mapper : string) = 
-        assert(columnTypes.Length = isNullableColumn.Length)
-        let arr = Var("_", typeof<obj[]>)
-        let body =
-            (columnTypes, isNullableColumn) 
-            ||> List.zip
-            |> List.mapi(fun index (typeName, isNullableColumn) ->
-                if isNullableColumn 
-                then 
-                    typeof<ProgrammabilityQuotationsFactory>
-                        .GetMethod(mapper, BindingFlags.NonPublic ||| BindingFlags.Static)
-                        .MakeGenericMethod(Type.GetType typeName)
-                        .Invoke(null, [| box(Expr.Var arr); box index |])
-                        |> unbox
-                        |> Some
-                else 
-                    None
-            ) 
-            |> List.choose id
-            |> List.fold (fun acc x ->
-                Expr.Sequential(acc, x)
-            ) <@@ () @@>
-        Expr.Lambda(arr, body)
-
-    static member internal MapOptionsToObjects(columnTypes, isNullableColumn) = 
-        ProgrammabilityQuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayOptionItemToObj")
-
-    static member internal MapObjectsToOptions(columnTypes, isNullableColumn) = 
-        ProgrammabilityQuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption")
-
-    static member internal GetNullableValueFromDataRow<'T>(exprArgs : Expr list, name : string) =
-        <@
-            let row : DataRow = %%exprArgs.[0]
-            if row.IsNull name then None else Some(unbox<'T> row.[name])
-        @> 
-
-    static member internal SetNullableValueInDataRow<'T>(exprArgs : Expr list, name : string) =
-        <@
-            (%%exprArgs.[0] : DataRow).[name] <- match (%%exprArgs.[1] : option<'T>) with None -> null | Some value -> box value
-        @> 
+        @@>       
