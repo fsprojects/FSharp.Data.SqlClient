@@ -268,7 +268,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let body expr =
             <@@
                 async {
-                    let sqlCommand = %CommandQuotationsFactory.GetSqlCommandWithParamValuesSet(expr, allParametersOptional, paramInfos)
+                    let sqlCommand = %CommandQuotationsFactory.GetSqlCommandWithParamValuesSet(expr, paramInfos, allParametersOptional)
                     //open connection async on .NET 4.5
                     if sqlCommand.Connection.State <> ConnectionState.Open then
                         sqlCommand.Connection.Open()

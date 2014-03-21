@@ -27,10 +27,10 @@ type CommandQuotationsFactory private() =
             bodyFactory.Invoke(null, parameters) |> unbox
 
     //Core impl
-    static member internal GetSqlCommandWithParamValuesSet(exprArgs : Expr list, allParametersOptional, paramInfos : Parameter list) = 
+    static member internal GetSqlCommandWithParamValuesSet(exprArgs : Expr list, paramInfos : Parameter list, ?allParamsOptional) = 
         assert(exprArgs.Length - 1 = paramInfos.Length)
         let mappedParamValues = 
-            if not allParametersOptional
+            if not (defaultArg allParamsOptional false)
             then 
                 exprArgs.Tail
             else
@@ -64,7 +64,7 @@ type CommandQuotationsFactory private() =
     static member internal GetDataReader(exprArgs, allParametersOptional, paramInfos, singleRow) = 
         <@@ 
             async {
-                let sqlCommand = %CommandQuotationsFactory.GetSqlCommandWithParamValuesSet(exprArgs, allParametersOptional, paramInfos)
+                let sqlCommand = %CommandQuotationsFactory.GetSqlCommandWithParamValuesSet(exprArgs, paramInfos, allParametersOptional)
                 //open connection async on .NET 4.5
                 let connBehavior = 
                     if sqlCommand.Connection.State <> ConnectionState.Open then
