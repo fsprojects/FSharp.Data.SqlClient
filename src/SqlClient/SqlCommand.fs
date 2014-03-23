@@ -3,6 +3,12 @@
 open System
 open System.Data
 open System.Data.SqlClient
+open System.Reflection
+open System.Threading
+
+open Microsoft.FSharp.Quotations
+open Microsoft.FSharp.Reflection
+
 open FSharp.Data.Internals
 
 type ISqlCommand<'TResult,'TNonQueryResult> = 
@@ -11,14 +17,14 @@ type ISqlCommand<'TResult,'TNonQueryResult> =
     abstract AsyncExecuteNonQuery : parameters: (string * obj)[] -> Async<'TNonQueryResult>
     abstract ExecuteNonQuery : parameters: (string * obj)[] -> 'TNonQueryResult
 
-type internal SqlCommand<'TResult,'TNonQueryResult>( 
-                                                        connection: SqlConnection, 
-                                                        command: string, 
-                                                        commandType: CommandType, 
-                                                        paramInfos: Parameter list, 
-                                                        singleRow : bool,
-                                                        ?mapper: Threading.CancellationToken option -> SqlDataReader -> 'TResult,
-                                                        ?mapperNonQuery: int -> SqlParameterCollection -> 'TNonQueryResult) = 
+type SqlCommand<'TResult,'TNonQueryResult>( 
+                                            connection: SqlConnection, 
+                                            command: string, 
+                                            commandType: CommandType, 
+                                            paramInfos: Parameter list, 
+                                            singleRow : bool,
+                                            ?mapper: CancellationToken option -> SqlDataReader -> 'TResult,
+                                            ?mapperNonQuery: int -> SqlParameterCollection -> 'TNonQueryResult) = 
 
     let cmd = new SqlCommand(command, connection, CommandType = commandType)
     do
@@ -64,6 +70,32 @@ type internal SqlCommand<'TResult,'TNonQueryResult>(
     //static Tuples
     //static Records
 
+    static member internal GetBody(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
+        
+        let bodyFactory =   
+            let mi = typeof<SqlCommand>.GetMethod(methodName, BindingFlags.NonPublic ||| BindingFlags.Static)
+            assert(mi <> null)
+            mi.MakeGenericMethod([| specialization |])
+
+        fun(args : Expr list) -> 
+            let parameters = Array.append [| box args |] bodyFactoryArgs
+            bodyFactory.Invoke(null, parameters) |> unbox
+
+    static member GetDataTable<'T when 'T :> DataRow> sqlDataReader =
+        use reader = sqlDataReader
+        let result = new FSharp.Data.DataTable<'T>()
+        result.Load(reader)
+        result
+
+
+    static member GetTypedSequence (token : CancellationToken option, sqlDataReader : SqlDataReader, rowMapper) =
+        seq {
+            try 
+                while((token.IsNone || not token.Value.IsCancellationRequested) && sqlDataReader.Read()) do
+                    yield rowMapper sqlDataReader
+            finally
+                sqlDataReader.Close()
+        }
 
     interface ISqlCommand<'TResult, 'TNonQueryResult> with 
         member this.AsyncExecute parameters = 
