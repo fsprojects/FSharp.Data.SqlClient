@@ -79,7 +79,6 @@
     <Compile Include="Data.fs" />
     <Compile Include="DataTable.fs" />
     <Compile Include="SqlClientExtensions.fs" />
-    <Compile Include="SqlCommand.fs" />
     <Compile Include="QuotationsFactory.fs" />
     <Compile Include="CommandQuotationsFactory.fs" />
     <Compile Include="SqlCommandProvider.fs" />
