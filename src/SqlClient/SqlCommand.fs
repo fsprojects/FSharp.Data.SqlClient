@@ -11,33 +11,27 @@ open Microsoft.FSharp.Reflection
 
 open FSharp.Data.Internals
 
-type ISqlCommand<'TResult,'TNonQueryResult> = 
-    abstract AsyncExecute : parameters: (string * obj)[] -> Async<'TResult>
-    abstract Execute : parameters: (string * obj)[] -> 'TResult
-    abstract AsyncExecuteNonQuery : parameters: (string * obj)[] -> Async<'TNonQueryResult>
-    abstract ExecuteNonQuery : parameters: (string * obj)[] -> 'TNonQueryResult
+type ISqlCommand = 
+    abstract AsyncExecute : parameters: (string * obj)[] -> Async<obj>
+    abstract Execute : parameters: (string * obj)[] -> obj
+    abstract AsyncExecuteNonQuery : parameters: (string * obj)[] -> Async<int>
+    abstract ExecuteNonQuery : parameters: (string * obj)[] -> int
+    abstract AsSqlCommand : unit -> SqlCommand
 
-type SqlCommand<'TResult,'TNonQueryResult>( 
-                                            connection: SqlConnection, 
-                                            command: string, 
-                                            commandType: CommandType, 
-                                            paramInfos: Parameter list, 
-                                            singleRow : bool,
-                                            ?mapper: CancellationToken option -> SqlDataReader -> 'TResult,
-                                            ?mapperNonQuery: int -> SqlParameterCollection -> 'TNonQueryResult) = 
+type RuntimeSqlCommand( connection: SqlConnection, 
+                        command: string, 
+                        commandType: CommandType, 
+                        paramInfos: SqlParameter [], 
+                        singleRow : bool,
+                        mapper: (CancellationToken option -> SqlDataReader -> obj) option,
+                        ?transaction : SqlTransaction) = 
 
     let cmd = new SqlCommand(command, connection, CommandType = commandType)
     do
-      let toSqlParam (p : Parameter) = 
-        let r = SqlParameter(
-                        p.Name, 
-                        p.TypeInfo.SqlDbType, 
-                        Direction = p.Direction,
-                        TypeName = p.TypeInfo.UdttName
-                    )
-        if p.TypeInfo.SqlEngineTypeId = 240 then r.UdtTypeName <- p.TypeInfo.TypeName
-        r
-      cmd.Parameters.AddRange( paramInfos |> Seq.map toSqlParam |> Array.ofSeq )
+      if transaction.IsSome then     
+        assert(connection = transaction.Value.Connection)
+        cmd.Transaction <- transaction.Value
+      cmd.Parameters.AddRange( paramInfos )
             
     let behavior () =
         let connBehavior = 
@@ -58,46 +52,12 @@ type SqlCommand<'TResult,'TNonQueryResult>(
             if p.Value = DbNull && (p.SqlDbType = SqlDbType.NVarChar || p.SqlDbType = SqlDbType.VarChar)
             then p.Size <- if  p.SqlDbType = SqlDbType.NVarChar then 4000 else 8000
 
-//    new(connectionStringOrName, command: string, commandType: CommandType, mapper) = 
-//        let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
-//        let runTimeConnectionString = 
-//                    if isByName then Configuration.GetConnectionStringRunTimeByName connectionStringName
-//                    else connectionStringOrName
-//        SqlCommand<'TResult>(new SqlConnection(runTimeConnectionString), command, commandType, mapper)
-    
-    //static factories
-    //static DataTable
-    //static Tuples
-    //static Records
+    interface ISqlCommand with 
+        member this.AsSqlCommand () = 
+            let clone = new SqlCommand(cmd.CommandText, new SqlConnection(cmd.Connection.ConnectionString), CommandType = cmd.CommandType)
+            clone.Parameters.AddRange <| [| for p in cmd.Parameters -> SqlParameter(p.ParameterName, p.SqlDbType) |]
+            clone
 
-    static member internal GetBody(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
-        
-        let bodyFactory =   
-            let mi = typeof<SqlCommand>.GetMethod(methodName, BindingFlags.NonPublic ||| BindingFlags.Static)
-            assert(mi <> null)
-            mi.MakeGenericMethod([| specialization |])
-
-        fun(args : Expr list) -> 
-            let parameters = Array.append [| box args |] bodyFactoryArgs
-            bodyFactory.Invoke(null, parameters) |> unbox
-
-    static member GetDataTable<'T when 'T :> DataRow> sqlDataReader =
-        use reader = sqlDataReader
-        let result = new FSharp.Data.DataTable<'T>()
-        result.Load(reader)
-        result
-
-
-    static member GetTypedSequence (token : CancellationToken option, sqlDataReader : SqlDataReader, rowMapper) =
-        seq {
-            try 
-                while((token.IsNone || not token.Value.IsCancellationRequested) && sqlDataReader.Read()) do
-                    yield rowMapper sqlDataReader
-            finally
-                sqlDataReader.Close()
-        }
-
-    interface ISqlCommand<'TResult, 'TNonQueryResult> with 
         member this.AsyncExecute parameters = 
             assert(mapper.IsSome)          
             setParameters parameters 
@@ -124,20 +84,45 @@ type SqlCommand<'TResult,'TNonQueryResult>(
             mapper.Value None reader
        
         member this.AsyncExecuteNonQuery parameters = 
-            assert(mapperNonQuery.IsSome)                                       
             setParameters parameters  
             async {         
                 if cmd.Connection.State <> ConnectionState.Open then cmd.Connection.Open()
                 use disposable = cmd.Connection.UseConnection()
-                let! rowsAffected = Async.FromBeginEnd(cmd.BeginExecuteNonQuery, cmd.EndExecuteNonQuery) 
-                return mapperNonQuery.Value rowsAffected cmd.Parameters
+                return! Async.FromBeginEnd(cmd.BeginExecuteNonQuery, cmd.EndExecuteNonQuery) 
             }
 
         member this.ExecuteNonQuery parameters = 
-            assert(mapperNonQuery.IsSome)                                       
             setParameters parameters  
             if cmd.Connection.State <> ConnectionState.Open then cmd.Connection.Open()
             use disposable = cmd.Connection.UseConnection()
-            let rowsAffected = cmd.ExecuteNonQuery() 
-            mapperNonQuery.Value rowsAffected cmd.Parameters
+            cmd.ExecuteNonQuery() 
 
+type SqlCommandFactory private () =
+
+    static member ByConnectionString(connectionStringOrName, command, commandType, paramInfos, singleRow, mapper) = 
+        let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
+        let runTimeConnectionString = 
+            if isByName 
+            then Configuration.GetConnectionStringRunTimeByName connectionStringName
+            else connectionStringOrName
+        RuntimeSqlCommand(new SqlConnection(runTimeConnectionString), command, commandType, paramInfos, singleRow, mapper)  
+   
+    static member ByTransaction(transaction : SqlTransaction, command, commandType, paramInfos, singleRow, mapper) = 
+        RuntimeSqlCommand(transaction.Connection, command, commandType, paramInfos, singleRow, mapper, transaction) 
+                
+    static member GetDataTable(sqlDataReader : SqlDataReader) =
+        use reader = sqlDataReader
+        let result = new FSharp.Data.DataTable<DataRow>()
+        result.Load(reader)
+        result
+
+    static member GetTypedSequence (token : CancellationToken option, sqlDataReader : SqlDataReader, rowMapper) =
+        seq {
+            try 
+                while((token.IsNone || not token.Value.IsCancellationRequested) && sqlDataReader.Read()) do
+                    let values = Array.zeroCreate sqlDataReader.FieldCount
+                    sqlDataReader.GetValues(values) |> ignore
+                    yield rowMapper values
+            finally
+                sqlDataReader.Close()
+        }
