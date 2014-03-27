@@ -28,6 +28,7 @@ and TypeInfo = {
     member this.SqlDbType : SqlDbType = enum this.SqlDbTypeId
     member this.ClrType : Type = Type.GetType this.ClrTypeFullName
     member this.TableType = this.SqlDbType = SqlDbType.Structured
+    member this.IsValueType = not this.TableType && this.ClrType.IsValueType
 
 type Parameter = {
     Name : string

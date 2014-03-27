@@ -1,8 +1,10 @@
 ﻿namespace FSharp.Data.SqlClient
 
 open System
+open System.Collections.Generic
 open System.Data
 open System.Data.SqlClient
+open System.Dynamic
 open System.Reflection
 open System.Threading
 
@@ -11,20 +13,19 @@ open Microsoft.FSharp.Reflection
 
 open FSharp.Data.Internals
 
-type ISqlCommand = 
-    abstract AsyncExecute : parameters: (string * obj)[] -> Async<obj>
-    abstract Execute : parameters: (string * obj)[] -> obj
+type ISqlCommand<'TResult> = 
+    abstract AsyncExecute : parameters: (string * obj)[] -> Async<'TResult>
+    abstract Execute : parameters: (string * obj)[] -> 'TResult
     abstract AsyncExecuteNonQuery : parameters: (string * obj)[] -> Async<int>
     abstract ExecuteNonQuery : parameters: (string * obj)[] -> int
-    abstract AsSqlCommand : unit -> SqlCommand
 
-type RuntimeSqlCommand( connection: SqlConnection, 
-                        command: string, 
-                        commandType: CommandType, 
-                        paramInfos: SqlParameter [], 
-                        singleRow : bool,
-                        mapper: (CancellationToken option -> SqlDataReader -> obj) option,
-                        ?transaction : SqlTransaction) = 
+type SqlCommand<'TResult>(  connection: SqlConnection, 
+                            command: string, 
+                            commandType: CommandType, 
+                            paramInfos: SqlParameter [], 
+                            singleRow : bool,
+                            mapper: CancellationToken option -> SqlDataReader -> 'TResult,
+                            ?transaction : SqlTransaction) = 
 
     let cmd = new SqlCommand(command, connection, CommandType = commandType)
     do
@@ -51,15 +52,16 @@ type RuntimeSqlCommand( connection: SqlConnection,
             p.Value <- if value = null then DbNull else value
             if p.Value = DbNull && (p.SqlDbType = SqlDbType.NVarChar || p.SqlDbType = SqlDbType.VarChar)
             then p.Size <- if  p.SqlDbType = SqlDbType.NVarChar then 4000 else 8000
+    
 
-    interface ISqlCommand with 
-        member this.AsSqlCommand () = 
-            let clone = new SqlCommand(cmd.CommandText, new SqlConnection(cmd.Connection.ConnectionString), CommandType = cmd.CommandType)
-            clone.Parameters.AddRange <| [| for p in cmd.Parameters -> SqlParameter(p.ParameterName, p.SqlDbType) |]
-            clone
+    member this.AsSqlCommand () = 
+        let clone = new SqlCommand(cmd.CommandText, new SqlConnection(cmd.Connection.ConnectionString), CommandType = cmd.CommandType)
+        clone.Parameters.AddRange <| [| for p in cmd.Parameters -> SqlParameter(p.ParameterName, p.SqlDbType) |]
+        clone
+
+    interface ISqlCommand<'TResult> with
 
         member this.AsyncExecute parameters = 
-            assert(mapper.IsSome)          
             setParameters parameters 
             async {
                 let! token = Async.CancellationToken                
@@ -69,11 +71,10 @@ type RuntimeSqlCommand( connection: SqlConnection,
                     with _ ->
                         cmd.Connection.Close()
                         reraise()
-                return mapper.Value (Some token) reader
+                return mapper (Some token) reader
             }
 
         member this.Execute parameters = 
-            assert(mapper.IsSome)                           
             setParameters parameters      
             let reader = 
                 try 
@@ -81,7 +82,7 @@ type RuntimeSqlCommand( connection: SqlConnection,
                 with _ ->
                     cmd.Connection.Close()
                     reraise()
-            mapper.Value None reader
+            mapper None reader
        
         member this.AsyncExecuteNonQuery parameters = 
             setParameters parameters  
@@ -98,6 +99,9 @@ type RuntimeSqlCommand( connection: SqlConnection,
             cmd.ExecuteNonQuery() 
 
 type SqlCommandFactory private () =
+    
+    static member GetMethod(name, runtimeType) = 
+        typeof<SqlCommandFactory>.GetMethod(name).MakeGenericMethod([|runtimeType|])
 
     static member ByConnectionString(connectionStringOrName, command, commandType, paramInfos, singleRow, mapper) = 
         let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
@@ -105,10 +109,10 @@ type SqlCommandFactory private () =
             if isByName 
             then Configuration.GetConnectionStringRunTimeByName connectionStringName
             else connectionStringOrName
-        RuntimeSqlCommand(new SqlConnection(runTimeConnectionString), command, commandType, paramInfos, singleRow, mapper)  
+        SqlCommand<_>(new SqlConnection(runTimeConnectionString), command, commandType, paramInfos, singleRow, mapper)  
    
     static member ByTransaction(transaction : SqlTransaction, command, commandType, paramInfos, singleRow, mapper) = 
-        RuntimeSqlCommand(transaction.Connection, command, commandType, paramInfos, singleRow, mapper, transaction) 
+        SqlCommand<_>(transaction.Connection, command, commandType, paramInfos, singleRow, mapper, transaction) 
                 
     static member GetDataTable(sqlDataReader : SqlDataReader) =
         use reader = sqlDataReader
@@ -116,7 +120,13 @@ type SqlCommandFactory private () =
         result.Load(reader)
         result
 
-    static member GetTypedSequence (token : CancellationToken option, sqlDataReader : SqlDataReader, rowMapper) =
+    static member GetDictionary(values : obj[], names : string []) =
+        let dict : IDictionary<_, _> = upcast ExpandoObject()
+        (names, values) ||> Array.iter2 (fun name value -> dict.Add(name, value))
+        dict
+        
+    static member GetTypedSequence (rowMapper : obj[] -> 'a) =
+        fun (token : CancellationToken option) (sqlDataReader : SqlDataReader) ->
         seq {
             try 
                 while((token.IsNone || not token.Value.IsCancellationRequested) && sqlDataReader.Read()) do
@@ -126,3 +136,16 @@ type SqlCommandFactory private () =
             finally
                 sqlDataReader.Close()
         }
+    
+    static member SingeRow (rowMapper : obj[] -> 'a) =
+        fun (_ : CancellationToken option) (sqlDataReader : SqlDataReader) ->
+        try 
+            if sqlDataReader.Read() then 
+                let values = Array.zeroCreate sqlDataReader.FieldCount                
+                sqlDataReader.GetValues(values) |> ignore
+                if sqlDataReader.Read() then raise <| InvalidOperationException("Single row was expected.")
+                Some <| rowMapper values
+            else
+                None                
+        finally
+                sqlDataReader.Close()

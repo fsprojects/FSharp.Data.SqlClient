@@ -104,7 +104,7 @@ type UseFMTONLY = SqlCommandProvider<"exec dbo.[Init]", connectionString>
 let useFMTONLY = UseFMTONLY()
 useFMTONLY.Execute()
 
-//Runtime column names and Map<string,obj> as a row type
+//Runtime column names
 type UseGet = SqlCommandProvider<"exec dbo.[Get]", connectionString, ResultType = ResultType.DataReader >
 let useGet = UseGet()
 useGet.Execute().NextResult() = false

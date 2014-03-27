@@ -30,10 +30,8 @@ type CommandQuotationsFactory private() =
     static member internal GetSqlCommandWithParamValuesSet(exprArgs : Expr list, paramInfos : Parameter list, ?allParamsOptional) = 
         assert(exprArgs.Length - 1 = paramInfos.Length)
         let mappedParamValues = 
-            if not (defaultArg allParamsOptional false)
+            if (defaultArg allParamsOptional false)
             then 
-                exprArgs.Tail
-            else
                 (exprArgs.Tail, paramInfos)
                 ||> List.map2 (fun expr info ->
                     if info.TypeInfo.ClrType.IsValueType
@@ -46,6 +44,8 @@ type CommandQuotationsFactory private() =
                     else
                         expr
                 )
+            else
+                exprArgs.Tail
         <@
             let sqlCommand : SqlCommand = %%Expr.Coerce(exprArgs.[0], typeof<SqlCommand>)
 
