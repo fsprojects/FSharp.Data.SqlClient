@@ -81,7 +81,6 @@
     <Compile Include="SqlClientExtensions.fs" />
     <Compile Include="SqlCommand.fs" />
     <Compile Include="QuotationsFactory.fs" />
-    <Compile Include="CommandQuotationsFactory.fs" />
     <Compile Include="SqlCommandProvider.fs" />
     <Compile Include="ProgrammabilityQuotationsFactory.fs" />
     <Compile Include="SqlProgrammabilityProvider.fs" />

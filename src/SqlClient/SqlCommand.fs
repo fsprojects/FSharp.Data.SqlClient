@@ -53,6 +53,7 @@ type SqlCommand<'TResult>(  connection: SqlConnection,
             if p.Value = DbNull && (p.SqlDbType = SqlDbType.NVarChar || p.SqlDbType = SqlDbType.VarChar)
             then p.Size <- if  p.SqlDbType = SqlDbType.NVarChar then 4000 else 8000
     
+    member this.ConnectionState () = cmd.Connection.State
 
     member this.AsSqlCommand () = 
         let clone = new SqlCommand(cmd.CommandText, new SqlConnection(cmd.Connection.ConnectionString), CommandType = cmd.CommandType)
@@ -124,26 +125,28 @@ type SqlCommandFactory private () =
         let dict : IDictionary<_, _> = upcast ExpandoObject()
         (names, values) ||> Array.iter2 (fun name value -> dict.Add(name, value))
         dict
-        
-    static member GetTypedSequence (rowMapper : obj[] -> 'a) =
+                                    
+    static member GetTypedSequence<'T> (mapNullables : obj [] -> unit, rowMapper : obj[] -> 'T) =
         fun (token : CancellationToken option) (sqlDataReader : SqlDataReader) ->
         seq {
             try 
                 while((token.IsNone || not token.Value.IsCancellationRequested) && sqlDataReader.Read()) do
                     let values = Array.zeroCreate sqlDataReader.FieldCount
                     sqlDataReader.GetValues(values) |> ignore
+                    mapNullables values
                     yield rowMapper values
             finally
                 sqlDataReader.Close()
         }
     
-    static member SingeRow (rowMapper : obj[] -> 'a) =
+    static member SingeRow<'T> (mapNullables : obj [] -> unit, rowMapper : obj[] -> 'T) =
         fun (_ : CancellationToken option) (sqlDataReader : SqlDataReader) ->
         try 
             if sqlDataReader.Read() then 
                 let values = Array.zeroCreate sqlDataReader.FieldCount                
                 sqlDataReader.GetValues(values) |> ignore
                 if sqlDataReader.Read() then raise <| InvalidOperationException("Single row was expected.")
+                mapNullables values
                 Some <| rowMapper values
             else
                 None                

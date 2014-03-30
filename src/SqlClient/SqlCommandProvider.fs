@@ -136,34 +136,49 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         
         if typeToAdd.IsSome then providedCommandType.AddMember typeToAdd.Value
 
-        providedCommandType.AddMember <| ProvidedProperty( "ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>)
+        providedCommandType.AddMember 
+        <| ProvidedProperty( "ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>)
 
         let executeArgs = this.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters, allParametersOptional) 
         let paramExpr = Expr.NewArray( typeof<SqlParameter>, sqlParameters |> List.map QuotationsFactory.ToSqlParam)
 
         let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
         let methodInfo = SqlCommandFactory.GetMethod("ByConnectionString", runtimeType)
+        let paramTail = [Expr.Value commandText; Expr.Value CommandType.Text; paramExpr; Expr.Value singleRow; mapper]
         ctor.InvokeCode <- fun args -> 
-            let getConnString = <@ if not( String.IsNullOrEmpty(%%args.[0])) then %%args.[0] else connectionStringOrName @>
-            Expr.Call(methodInfo, [getConnString; Expr.Value commandText; Expr.Value CommandType.Text; paramExpr; Expr.Value singleRow; mapper])
+            let getConnString = <@@ if not( String.IsNullOrEmpty(%%args.[0])) then %%args.[0] else connectionStringOrName @@>
+            Expr.Call(methodInfo, getConnString::paramTail)
            
         providedCommandType.AddMember ctor
 
         let ctor = ProvidedConstructor( [ ProvidedParameter("transaction", typeof<SqlTransaction>) ])
         let methodInfo = SqlCommandFactory.GetMethod("ByTransaction", runtimeType)
 
-        ctor.InvokeCode <- fun args -> Expr.Call(methodInfo, [args.[0]; Expr.Value commandText; Expr.Value CommandType.Text; paramExpr; Expr.Value singleRow; mapper])
+        ctor.InvokeCode <- fun args -> Expr.Call(methodInfo, args.[0]::paramTail)
 
         providedCommandType.AddMember ctor
 
         let interfaceType = typedefof<_ ISqlCommand>.MakeGenericType([|runtimeType|])
-        let syncMethod, asyncMethod =  
-            let name = "Execute" + if outputColumns.IsEmpty then "NonQuery" else ""
-            interfaceType.GetMethod(name), interfaceType.GetMethod("Async" + name)
-        this.AddExecute(sqlParameters, executeArgs, allParametersOptional, providedCommandType, providedOutputType, erasedType, syncMethod, "Execute")
+        let name = "Execute" + if outputColumns.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
+            
+        this.AddExecute(sqlParameters, 
+                        executeArgs, 
+                        allParametersOptional, 
+                        providedCommandType, 
+                        providedOutputType, 
+                        erasedType, 
+                        interfaceType.GetMethod(name), 
+                        "Execute")
         
         let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ providedOutputType ])
-        this.AddExecute(sqlParameters, executeArgs, allParametersOptional, providedCommandType, asyncReturnType, erasedType, syncMethod, "AsyncExecute")
+        this.AddExecute(sqlParameters, 
+                        executeArgs, 
+                        allParametersOptional, 
+                        providedCommandType, 
+                        asyncReturnType, 
+                        erasedType, 
+                        interfaceType.GetMethod("Async" + name), 
+                        "AsyncExecute")
                 
         providedCommandType
 
@@ -200,11 +215,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             typeof<int>, 
             typeof<int>, 
             None, 
-            <@@ fun (token : CancellationToken option) (sqlReader : SqlDataReader) -> failwith "Should be calling (Async)ExecuteNonQuery"  @@>
+            <@@ fun (token : CancellationToken option) (sqlReader : SqlDataReader) -> 0  @@>
         elif resultType = ResultType.DataTable 
         then
             let rowType = this.RowType(outputColumns)
-            ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable> , [ rowType ]),
+            ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ rowType ]),
             typeof<DataTable<DataRow>>,
             Some rowType,            
             <@@ fun (token : CancellationToken option) sqlReader -> SqlCommandFactory.GetDataTable(sqlReader) @@>
@@ -212,10 +227,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             let providedType, runtimeType, typeToAdd, rowMapper = 
                 if List.length outputColumns = 1
                 then
-                    let t = outputColumns.Head.ClrTypeConsideringNullable 
+                    let column0 = outputColumns.Head
+                    let t = column0.ClrTypeConsideringNullable 
                     let values = Var("values", typeof<obj[]>)
-                    let indexGet = Expr.Call(Expr.Var values, typeof<Array>.GetMethod("GetValue",[|typeof<int>|]), [Expr.Value 0])
-                    t, t, None, Expr.Lambda(values,  Expr.Coerce(indexGet, t))
+                    let indexGet = Expr.Coerce(Expr.Call(Expr.Var values, typeof<Array>.GetMethod("GetValue",[|typeof<int>|]), [Expr.Value 0]), t)
+                    t, t, None, Expr.Lambda(values,  indexGet) 
 
                 elif resultType = ResultType.Records 
                 then 
@@ -235,55 +251,15 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     tupleType, tupleType, None, Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [ Expr.Var values; getTupleType ]), tupleType))
             
             let outputTypeBase, methodName = if singleRow then typedefof<_ option>, "SingeRow" else typedefof<_ seq>, "GetTypedSequence"
+            let columnTypes, isNullableColumn = outputColumns |> List.map (fun c -> c.TypeInfo.ClrTypeFullName, c.IsNullable) |> List.unzip
+            let mapNullables = QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption") 
 
             let methodInfo = SqlCommandFactory.GetMethod(methodName, runtimeType)
             
             ProvidedTypeBuilder.MakeGenericType(outputTypeBase, [ providedType ]), 
             outputTypeBase.MakeGenericType([|runtimeType|]),
             typeToAdd,
-            Expr.Call(methodInfo, [rowMapper])
-                    
-    member internal __.AddExecuteMethod(allParametersOptional, paramInfos, executeArgs, outputColumns : Column list, providedCommandType : ProvidedTypeDefinition, resultType, singleRow, commandText) = 
-        let syncReturnType, executeMethodBody = 
-            if resultType = ResultType.DataReader then
-                typeof<SqlDataReader>, fun args -> CommandQuotationsFactory.GetDataReader(args, allParametersOptional, paramInfos, singleRow)
-            else
-                if outputColumns.IsEmpty
-                then 
-                    this.GetExecuteNonQuery(allParametersOptional, paramInfos)
-                elif resultType = ResultType.DataTable
-                then 
-                    this.DataTable(providedCommandType, allParametersOptional, paramInfos, commandText, outputColumns, singleRow)
-                else
-                    let rowType, executeMethodBody = 
-                        if List.length outputColumns = 1
-                        then
-                            let singleCol = outputColumns.Head
-                            let column0Type = singleCol.ClrTypeConsideringNullable
-                            column0Type, CommandQuotationsFactory.GetBody("SelectOnlyColumn0", column0Type, allParametersOptional, paramInfos, singleRow, singleCol)
-                        else 
-                            if resultType = ResultType.Tuples
-                            then this.Tuples(allParametersOptional, paramInfos, outputColumns, singleRow)
-                            else this.Records(providedCommandType, allParametersOptional, paramInfos, outputColumns, singleRow)
-                    let returnType = 
-                        if singleRow 
-                        then ProvidedTypeBuilder.MakeGenericType(typedefof<_ option>, [ rowType ])  
-                        else ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
-                           
-                    returnType, executeMethodBody
-                    
-        let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ syncReturnType ])
-        let asyncExecute = ProvidedMethod("AsyncExecute", executeArgs, asyncReturnType)
-        asyncExecute.InvokeCode <- executeMethodBody
-        providedCommandType.AddMember asyncExecute
-
-        let execute = ProvidedMethod("Execute",  executeArgs, syncReturnType)
-        execute.InvokeCode <- fun args ->
-            let runSync = ProvidedTypeBuilder.MakeGenericMethod(typeof<Async>.GetMethod("RunSynchronously"), [ syncReturnType ])
-            //let callAsync = Expr.Call (Expr.Coerce (args.[0], providedCommandType), asyncExecute, args.Tail)
-            let callAsync = executeMethodBody args
-            Expr.Call(runSync, [ Expr.Coerce (callAsync, asyncReturnType); Expr.Value option<int>.None; Expr.Value option<CancellationToken>.None ])
-        providedCommandType.AddMember execute 
+            Expr.Call(methodInfo, [mapNullables; rowMapper])
         
     member internal this.GetOutputColumns(connection, commandText, sqlParameters) : Column list = 
         try
@@ -374,52 +350,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             )
     ]
 
-    member internal this.GetExecuteNonQuery(allParametersOptional, paramInfos)  = 
-        let body expr =
-            <@@
-                async {
-                    let sqlCommand = %CommandQuotationsFactory.GetSqlCommandWithParamValuesSet(expr, paramInfos, allParametersOptional)
-                    //open connection async on .NET 4.5
-                    if sqlCommand.Connection.State <> ConnectionState.Open then
-                        sqlCommand.Connection.Open()
-                    use disposable = sqlCommand.Connection.UseConnection()
-                    return! sqlCommand.AsyncExecuteNonQuery()
-                }
-            @@>
-        typeof<int>, body
-
-    
-    member internal this.Tuples(allParametersOptional, paramInfos, columns, singleRow) =
-        let tupleType = 
-            match Seq.toArray columns with
-            | [| x |] -> x.ClrTypeConsideringNullable
-            | xs' -> FSharpType.MakeTupleType [| for x in xs' -> x.ClrTypeConsideringNullable|]
-
-        let rowMapper = 
-            let values = Var("values", typeof<obj[]>)
-            let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
-            Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [ Expr.Var values; getTupleType ]), tupleType))
-
-        tupleType, CommandQuotationsFactory.GetBody("GetTypedSequence", tupleType, allParametersOptional, paramInfos, rowMapper, singleRow, columns)
-
-    member internal this.Records( providedCommandType, allParametersOptional, paramInfos,  columns, singleRow) =
-        let recordType = this.RecordType(columns)
-        providedCommandType.AddMember recordType
-        let getExecuteBody (args : Expr list) = 
-            let arrayToRecord = 
-                <@ 
-                    fun(values : obj[]) -> 
-                        let names : string[] = %%Expr.NewArray(typeof<string>, columns |> List.map (fun x -> Expr.Value(x.Name))) 
-                        let dict : IDictionary<_, _> = upcast ExpandoObject()
-                        (names, values) ||> Array.iter2 (fun name value -> dict.Add(name, value))
-                        box dict 
-                @>
-            CommandQuotationsFactory.GetTypedSequence(args, allParametersOptional, paramInfos, arrayToRecord, singleRow, columns)
-                         
-        upcast recordType, getExecuteBody
-    
     member internal this.RecordType(columns) =
-        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
+        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<IDictionary<string,obj>>, HideObjectMethods = true)
         for col in columns do
             let propertyName = col.Name
             if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
@@ -434,12 +366,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             recordType.AddMember property
         recordType    
 
-    member internal this.DataTable(providedCommandType, allParametersOptional, paramInfos, commandText, outputColumns, singleRow) =
-        let rowType = this.RowType (outputColumns)
-        providedCommandType.AddMember rowType
-        typedefof<_ DataTable>.MakeGenericType rowType,
-        CommandQuotationsFactory.GetBody("GetTypedDataTable", typeof<DataRow>, allParametersOptional, paramInfos, singleRow)        
-    
     member internal this.RowType (outputColumns) = 
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
         for col in outputColumns do

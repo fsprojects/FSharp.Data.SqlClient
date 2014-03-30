@@ -57,7 +57,6 @@ type SqlCommand<'TResult>(connection: SqlConnection, mapper: SqlDataReader -> 'T
 
 
 open System.Reflection
-open Microsoft.FSharp.Quotations
 
 type A<'T> = abstract Foo : a:'T -> 'T
 type Bar<'T>() = 
@@ -67,3 +66,9 @@ type Bar<'T>() =
 let t = typedefof<_ Bar>.MakeGenericType([|typeof<string>|])
 t.GetMethods()
 t.GetMethod("Foo")
+
+open Microsoft.FSharp.Quotations
+
+let ex = <@unbox<string> (box "")@>
+match ex with
+| 
