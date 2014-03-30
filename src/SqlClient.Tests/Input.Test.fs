@@ -6,7 +6,7 @@ open Xunit
 
 type QueryWithNullableParam = 
     SqlCommandProvider<"declare @yCopy as int = @y
-        SELECT Result = @x + CASE WHEN @yCopy IS NULL THEN 1 ELSE @yCopy END
+        SELECT Result = @x + ISNULL(@yCopy, 1)
     ","name=AdventureWorks2012", SingleRow = true, AllParametersOptional = true>
 
 [<Fact>]

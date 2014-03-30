@@ -54,3 +54,21 @@ type SqlCommand<'TResult>(connection: SqlConnection, mapper: SqlDataReader -> 'T
     interface ISqlCommand<'TResult> with 
         member this.AsyncExecute parameters = raise <| NotImplementedException()
         member this.Execute parameters = raise <| NotImplementedException()
+
+
+open System.Reflection
+
+type A<'T> = abstract Foo : a:'T -> 'T
+type Bar<'T>() = 
+    member this.Foo () = ()
+    interface A<'T> with member this.Foo a = a
+
+let t = typedefof<_ Bar>.MakeGenericType([|typeof<string>|])
+t.GetMethods()
+t.GetMethod("Foo")
+
+open Microsoft.FSharp.Quotations
+
+let ex = <@unbox<string> (box "")@>
+match ex with
+| 

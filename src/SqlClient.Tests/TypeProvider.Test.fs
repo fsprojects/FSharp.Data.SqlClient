@@ -11,12 +11,16 @@ let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWo
 type GetOddNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (24)) as T(value)", connectionString>
 
 [<Fact>]
+let asyncSinlgeColumn() = 
+    Assert.Equal<int[]>([| 2; 4; 8;  24 |], GetOddNumbers().AsyncExecute() |> Async.RunSynchronously |> Seq.toArray)    
+
+
+[<Fact>]
 let ConnectionClose() = 
     let cmd = GetOddNumbers()
-    let nativeCmd: SqlCommand = unbox cmd 
-    Assert.Equal(ConnectionState.Closed, nativeCmd.Connection.State)
+    Assert.Equal(ConnectionState.Closed, cmd.ConnectionState())
     Assert.Equal<int[]>([| 2; 4; 8;  24 |], cmd.Execute() |> Seq.toArray)    
-    Assert.Equal(ConnectionState.Closed, nativeCmd.Connection.State)
+    Assert.Equal(ConnectionState.Closed, cmd.ConnectionState())
 
 type QueryWithTinyInt = SqlCommandProvider<"SELECT CAST(10 AS TINYINT) AS Value", connectionString, SingleRow = true>
 
@@ -71,6 +75,12 @@ type DeleteBitCoin = SqlCommandProvider<"DELETE FROM Sales.Currency WHERE Curren
 type InsertBitCoin = SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", connectionString>
 type GetBitCoin = SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", connectionString>
 
+
+[<Fact>]
+let asyncCustomRecord() =
+    Assert.Equal(1, GetBitCoin().AsyncExecute("USD") |> Async.RunSynchronously |> Seq.length)
+
+
 open System.Transactions
 
 [<Fact>]
@@ -90,7 +100,7 @@ type SomeSingleton = SqlCommandProvider<"select 1", connectionString, SingleRow 
 [<Fact>]
 let singleRowOption() =
     Assert.True(NoneSingleton().Execute().IsNone)
-    Assert.Equal(Some 1, SomeSingleton().Execute())
+    Assert.Equal(Some 1, SomeSingleton().AsyncExecute() |> Async.RunSynchronously)
 
 
 type NullableStringInput = SqlCommandProvider<"select  ISNULL(@P1, '')", connectionString, SingleRow = true, AllParametersOptional = true>
