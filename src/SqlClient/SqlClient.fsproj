@@ -77,6 +77,7 @@
     <Compile Include="ProvidedTypes-head.fs" />
     <Compile Include="Configuration.fs" />
     <Compile Include="Data.fs" />
+    <Compile Include="RuntimeRecord.fs" />
     <Compile Include="DataTable.fs" />
     <Compile Include="SqlClientExtensions.fs" />
     <Compile Include="SqlCommand.fs" />

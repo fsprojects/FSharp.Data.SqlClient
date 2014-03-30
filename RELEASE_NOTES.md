@@ -21,3 +21,4 @@
 * 1.2.4 - CommandType removed from SqlCommandProvider.
 * 1.2.5 - Timeout on reading command file.
 * 1.2.6 - Bugfix for nullable string iput parameters.
+* 1.2.7 - Runtime SqlCommand<> introduced in SqlCommandProvider. "True" synchronous Execute implemented.

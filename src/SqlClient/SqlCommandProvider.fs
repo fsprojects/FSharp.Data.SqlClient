@@ -357,11 +357,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
 
             let property = ProvidedProperty(propertyName, propertyType = col.ClrTypeConsideringNullable)
-            property.GetterCode <- fun args -> 
-                <@@ 
-                    let dict : IDictionary<string, obj> = %%Expr.Coerce(args.[0], typeof<IDictionary<string, obj>>)
-                    dict.[propertyName] 
-                @@>
+            property.GetterCode <- fun args -> <@@ (%%args.[0] : IDictionary<string, obj>).[propertyName] @@>
 
             recordType.AddMember property
         recordType    
@@ -384,7 +380,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 else
                     ProvidedProperty(name, propertyType, 
                         GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>),
-                        SetterCode = fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
+                        SetterCode = fun args -> <@@ (%%args.[0] : DataRow).[name] <- box %%args.[1] @@>
                     )
 
             rowType.AddMember property

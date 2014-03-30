@@ -27,7 +27,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
     let runtimeAssembly = Assembly.LoadFrom( config.RuntimeAssembly)
     let nameSpace = this.GetType().Namespace
-
+    
     let typeWithConnectionString name  members = 
         let spHostType = ProvidedTypeDefinition(name, baseType = Some typeof<obj>, HideObjectMethods = true)
         let ctor = ProvidedConstructor( [ProvidedParameter("connectionString", typeof<string>)], InvokeCode = fun args -> <@@ %%args.[0] : string @@>)
@@ -166,7 +166,13 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     yield propertyType :> MemberInfo
                     yield property :> MemberInfo
             ]
-
+//
+//     member internal __.RuntimeType(resultType, singleRow) =
+//        match resultType, singleRow with
+//        | ResultType.DataReader, _ -> typeof<SqlDataReader>
+//        | ResultType.DataTable, _ -> typeof<DataTable<DataRow>>
+//        | ResultType., _ -> typeof<DataTable<DataRow>>
+//
      member internal __.UDTTs() =
          [
                 for t in UDTTs() do
