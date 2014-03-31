@@ -682,6 +682,19 @@ type SymbolKind =
 type ProvidedSymbolType(kind: SymbolKind, args: Type list) =
     inherit Type()
 
+    let rec isEquivalentTo (thisTy: Type) (otherTy: Type) =
+        match thisTy, otherTy with
+        | (:? ProvidedSymbolType as thisTy), (:? ProvidedSymbolType as thatTy) -> (thisTy.Kind,thisTy.Args) = (thatTy.Kind, thatTy.Args)
+        | (:? ProvidedSymbolType as thisTy), otherTy | otherTy, (:? ProvidedSymbolType as thisTy) ->
+            match thisTy.Kind, thisTy.Args with
+            | SymbolKind.SDArray, [ty] | SymbolKind.Array _, [ty] when otherTy.IsArray-> ty.Equals(otherTy.GetElementType())
+            | SymbolKind.ByRef, [ty] when otherTy.IsByRef -> ty.Equals(otherTy.GetElementType())
+            | SymbolKind.Pointer, [ty] when otherTy.IsPointer -> ty.Equals(otherTy.GetElementType())
+            | SymbolKind.Generic baseTy, args -> otherTy.IsGenericType && isEquivalentTo baseTy (otherTy.GetGenericTypeDefinition()) && Seq.forall2 isEquivalentTo args (otherTy.GetGenericArguments())
+            | _ -> false
+        | a, b -> a.Equals b
+
+
     static member convType (parameters: Type list) (ty:Type) = 
         if ty.IsGenericType then 
             let args = Array.map (ProvidedSymbolType.convType parameters) (ty.GetGenericArguments())
@@ -730,7 +743,7 @@ type ProvidedSymbolType(kind: SymbolKind, args: Type list) =
             if otherTy.IsGenericType then
                 let otherGtd = otherTy.GetGenericTypeDefinition()
                 let otherArgs = otherTy.GetGenericArguments()
-                let yes = gtd.Equals(otherGtd) && Seq.forall2 (=) args otherArgs
+                let yes = gtd.Equals(otherGtd) && Seq.forall2 isEquivalentTo args otherArgs
                 yes
                 else
                     base.IsAssignableFrom(otherTy)
@@ -788,13 +801,14 @@ type ProvidedSymbolType(kind: SymbolKind, args: Type list) =
         | SymbolKind.Generic gty,_ -> 9797 + hash gty + List.sumBy hash args
         | SymbolKind.FSharpTypeAbbreviation _,_ -> 3092
         | _ -> failwith "unreachable"
-    member this.Kind = kind
-    member this.Args = args
     
-    override this.Equals(that:obj) = 
-        match that with 
-        | :? ProvidedSymbolType as that -> (kind,args) = (that.Kind, that.Args)
+    override this.Equals(other: obj) =
+        match other with
+        | :? ProvidedSymbolType as otherTy -> (kind, args) = (otherTy.Kind, otherTy.Args)
         | _ -> false
+
+    member this.Kind = kind
+    member this.Args = args    
 
     override this.GetConstructors _bindingAttr                                                      = notRequired "GetConstructors" this.Name
     override this.GetMethodImpl(_name, _bindingAttr, _binderBinder, _callConvention, _types, _modifiers) = 
@@ -1301,13 +1315,9 @@ type AssemblyGenerator(assemblyFileName) =
 #endif
     let typeMap = Dictionary<ProvidedTypeDefinition,TypeBuilder>(HashIdentity.Reference)
     let typeMapExtra = Dictionary<string,TypeBuilder>(HashIdentity.Structural)
-    let uniqueLambdaTypeName = 
-        let counter = ref 0
-        fun () -> 
-            let n = !counter 
-            incr counter 
-            sprintf "Lambda%d" n
-
+    let uniqueLambdaTypeName() = 
+        // lambda name should be unique across all types that all type provider might contribute in result assembly
+        sprintf "Lambda%O" (Guid.NewGuid()) 
     member __.Assembly = assembly :> Assembly
     /// Emit the given provided type definitions into an assembly and adjust 'Assembly' property of all type definitions to return that
     /// assembly.
@@ -1491,7 +1501,7 @@ type AssemblyGenerator(assemblyFileName) =
                 [ for ctorArg in implictCtorArgs -> 
                       tb.DefineField(ctorArg.Name, convType ctorArg.ParameterType, FieldAttributes.Private) ]
             
-            let rec emitLambda(callSiteIlg : ILGenerator, v : Quotations.Var, body : Quotations.Expr, freeVars : seq<Quotations.Var>, locals : Dictionary<_, LocalBuilder>) =
+            let rec emitLambda(callSiteIlg : ILGenerator, v : Quotations.Var, body : Quotations.Expr, freeVars : seq<Quotations.Var>, locals : Dictionary<_, LocalBuilder>, parameters) =
                 let lambda = assemblyMainModule.DefineType(uniqueLambdaTypeName(), TypeAttributes.Class)
                 let baseType = typedefof<FSharpFunc<_, _>>.MakeGenericType(v.Type, body.Type)
                 lambda.SetParent(baseType)
@@ -1526,7 +1536,12 @@ type AssemblyGenerator(assemblyFileName) =
                 callSiteIlg.Emit(OpCodes.Newobj, ctor)
                 for (v, f) in fields do
                     callSiteIlg.Emit(OpCodes.Dup)
-                    callSiteIlg.Emit(OpCodes.Ldloc, locals.[v])
+                    match locals.TryGetValue v with
+                    | true, loc -> 
+                        callSiteIlg.Emit(OpCodes.Ldloc, loc)
+                    | false, _ -> 
+                        let index = parameters |> Array.findIndex ((=) v)
+                        callSiteIlg.Emit(OpCodes.Ldarg, index)
                     callSiteIlg.Emit(OpCodes.Stfld, f)
 
             and emitExpr (ilg: ILGenerator, locals:Dictionary<Quotations.Var,LocalBuilder>, parameterVars) expectedState expr = 
@@ -1893,7 +1908,7 @@ type AssemblyGenerator(assemblyFileName) =
                         | false, _ -> 
                             failwith "unknown parameter/field in assignment. Only assignments to locals are currently supported by TypeProviderEmit"
                     | Quotations.Patterns.Lambda(v, body) ->
-                        emitLambda(ilg, v, body, expr.GetFreeVars(), locals)
+                        emitLambda(ilg, v, body, expr.GetFreeVars(), locals, parameterVars)
                         popIfEmptyExpected expectedState
                     | n -> 
                         failwith (sprintf "unknown expression '%A' in generated method" n)
@@ -1907,7 +1922,6 @@ type AssemblyGenerator(assemblyFileName) =
                 let cattr = pcinfo.GetCustomAttributesDataImpl() 
                 defineCustomAttrs cb.SetCustomAttribute cattr
                 let ilg = cb.GetILGenerator()
-                ilg.Emit(OpCodes.Ldarg_0)
                 let locals = Dictionary<Quotations.Var,LocalBuilder>()
                 let parameterVars = 
                     [| yield Quotations.Var("this", pcinfo.DeclaringType)
@@ -1917,9 +1931,11 @@ type AssemblyGenerator(assemblyFileName) =
                     [| for v in parameterVars -> Quotations.Expr.Var v |]
                 match pcinfo.GetBaseConstructorCallInternal true with
                 | None ->  
+                    ilg.Emit(OpCodes.Ldarg_0)
                     let cinfo = ptd.BaseType.GetConstructor(BindingFlags.Public ||| BindingFlags.NonPublic ||| BindingFlags.Instance, null, [| |], null)
                     ilg.Emit(OpCodes.Call,cinfo)
                 | Some f -> 
+                    // argExprs should always include 'this'
                     let (cinfo,argExprs) = f (Array.toList parameters)
                     for argExpr in argExprs do 
                         emitExpr (ilg, locals, parameterVars) ExpectedStackState.Value argExpr

@@ -110,6 +110,7 @@ open System.Data.SqlClient
 
 [<Fact>]
 let NullableStringInputParameter() = 
+    Assert.Equal(Some "", NullableStringInput().Execute(None))
     Assert.Equal(Some "", NullableStringInput().Execute())
     Assert.Equal(Some "", NullableStringInputStrict().Execute(null))
 

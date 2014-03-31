@@ -345,7 +345,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             let optionalValue = if allParametersOptional then Some null else None
             yield ProvidedParameter(
                 parameterName, 
-                parameterType = (if allParametersOptional && parameterType.IsValueType then typedefof<_ option>.MakeGenericType( parameterType) else parameterType), 
+                parameterType = (if allParametersOptional then typedefof<_ option>.MakeGenericType( parameterType) else parameterType), 
                 ?optionalValue = optionalValue
             )
     ]
