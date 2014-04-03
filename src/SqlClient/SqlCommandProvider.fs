@@ -5,6 +5,7 @@ open System.Data
 open System.IO
 open System.Data.SqlClient
 open System.Reflection
+open System.Collections.Concurrent
 open System.Collections.Generic
 open System.Threading
 open System.Diagnostics
@@ -48,7 +49,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     let assembly = Assembly.GetExecutingAssembly()
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, HideObjectMethods = true)
 
-    let cache = Dictionary()
+    let cache = ConcurrentDictionary<_, ProvidedTypeDefinition>()
 
     do 
         providerType.DefineStaticParameters(
@@ -61,13 +62,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
             ],             
             instantiationFunction = (fun typeName args ->
-                let key = typeName, String.Join(";", args)
-                match cache.TryGetValue(key) with
-                | false, _ ->
-                    let v = this.CreateType typeName args
-                    cache.[key] <- v
-                    v
-                | true, v -> v
+                let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5]
+                cache.GetOrAdd(key, this.CreateType)
             ) 
             
         )
@@ -89,19 +85,12 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
            if watcher <> null
            then try watcher.Dispose() with _ -> ()
 
-    member internal this.CreateType typeName parameters = 
-        let commandText : string = unbox parameters.[0] 
-        let connectionStringOrName : string = unbox parameters.[1] 
-        let resultType : ResultType = unbox parameters.[2] 
-        let singleRow : bool = unbox parameters.[3] 
-        let configFile : string = unbox parameters.[4] 
-        let allParametersOptional : bool = unbox parameters.[5] 
-
+    member internal this.CreateType((typeName, commandText : string, connectionStringOrName : string, resultType : ResultType, singleRow : bool, configFile : string, allParametersOptional : bool) as key) = 
+        
         let resolutionFolder = config.ResolutionFolder
 
-        let key = typeName, String.Join(";", parameters)
         let invalidator () =
-            cache.Remove(key) |> ignore 
+            cache.TryRemove(key) |> ignore 
             this.Invalidate()
         let commandText, watcher' = Configuration.ParseTextAtDesignTime(commandText, resolutionFolder, invalidator)
         watcher' |> Option.iter (fun x -> watcher <- x)
@@ -238,9 +227,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     let r = this.RecordType(outputColumns)
                     let names = Expr.NewArray(typeof<string>, outputColumns |> List.map (fun x -> Expr.Value(x.Name))) 
                     upcast r,
-                    typeof<IDictionary<string,obj>>,
+                    typeof<RuntimeRecord>,
                     Some r, 
-                    <@@ fun(values : obj[]) ->  SqlCommandFactory.GetDictionary(values, %%names) @@>
+                    <@@ fun(values : obj[]) ->  SqlCommandFactory.GetRecord(values, %%names) @@>
                 else 
                     let tupleType = 
                         match outputColumns with
@@ -351,13 +340,13 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     ]
 
     member internal this.RecordType(columns) =
-        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<IDictionary<string,obj>>, HideObjectMethods = true)
+        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<RuntimeRecord>, HideObjectMethods = true)
         for col in columns do
             let propertyName = col.Name
             if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
 
             let property = ProvidedProperty(propertyName, propertyType = col.ClrTypeConsideringNullable)
-            property.GetterCode <- fun args -> <@@ (%%args.[0] : IDictionary<string, obj>).[propertyName] @@>
+            property.GetterCode <- fun args -> <@@ (%%args.[0] : RuntimeRecord).[propertyName] @@>
 
             recordType.AddMember property
         recordType    

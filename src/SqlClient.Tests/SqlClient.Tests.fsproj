@@ -61,6 +61,7 @@
     <Compile Include="TVP.fs" />
     <Compile Include="SqlClientExtensionsTest.fs" />
     <Compile Include="SMO.fs" />
+    <Compile Include="RuntimeRecord.fs" />
     <Compile Include="Schema.fs" />
     <None Include="app.config" />
     <None Include="SqlCommand.fsx" />

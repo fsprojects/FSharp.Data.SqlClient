@@ -121,10 +121,10 @@ type SqlCommandFactory private () =
         result.Load(reader)
         result
 
-    static member GetDictionary(values : obj[], names : string []) =
+    static member GetRecord(values : obj[], names : string []) =
         let dict : IDictionary<_, _> = upcast ExpandoObject()
         (names, values) ||> Array.iter2 (fun name value -> dict.Add(name, value))
-        dict
+        RuntimeRecord(dict)
                                     
     static member GetTypedSequence<'T> (mapNullables : obj [] -> unit, rowMapper : obj[] -> 'T) =
         fun (token : CancellationToken option) (sqlDataReader : SqlDataReader) ->

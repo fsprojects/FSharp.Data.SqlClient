@@ -67,8 +67,11 @@ let t = typedefof<_ Bar>.MakeGenericType([|typeof<string>|])
 t.GetMethods()
 t.GetMethod("Foo")
 
-open Microsoft.FSharp.Quotations
+open System.Collections.Generic
 
-let ex = <@unbox<string> (box "")@>
-match ex with
-| 
+let s = [for i in 1..2 -> i.ToString(), i ]
+
+let a = dict s
+let b = dict s
+a = b
+ 
