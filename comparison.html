@@ -71,10 +71,10 @@ expect in a full ORM such as LINQ-to-SQL or Entity Framework. Instead, it focuse
 from things like identity managers - just "run this query and give me the (typed) data".</p>
 </blockquote>
 
-<p>Let's start with performance to get this issue out of the way.</p>
+<p>Let's start with performance to get it out of the way.</p>
 
-<p>Dapper comes with excellent <a href="https://code.google.com/p/dapper-dot-net/source/browse/Tests/PerformanceTests.cs">benchmark</a>. 
-This test focuses primerily on deserialization part. Here is how FSHarp.Data.SqlClient compares with all major .Net ORMs:</p>
+<p>Dapper comes with an excellent <a href="https://code.google.com/p/dapper-dot-net/source/browse/Tests/PerformanceTests.cs">benchmark</a>. 
+The focus of the test is on deserialization. Here is how FSHarp.Data.SqlClient compares with all major .Net ORMs:</p>
 
 <img src="img/dapper.png"/>
 
@@ -97,14 +97,16 @@ so design-time experience is simply unparalleled</li>
 <li>Compile-time verification means less run-time tests, less yak shaving synchronizing database schema with code definitions, and earliest possible 
 identification of bugs and mismatches</li>
 <li>As result types are auto-generated, FSharp.Data.SqlClient doesn't support so-called <a href="http://stackoverflow.com/a/6001902/862313">multi-mapping</a></li>
-<li>FSharp.Data.SqlClient is based on features specific for Sql Server 2012 which limits supported scenarios including no current support for Mono. 
-Other side of this is a support for SqlServer-specific types like <a href="http://technet.microsoft.com/en-us/library/bb677173.aspx">hierarchyId</a> and [spatial types]
-(http://blogs.msdn.com/b/adonet/archive/2013/12/09/microsoft-sqlserver-types-nuget-package-spatial-on-azure.aspx)</li>
+<li>As FSharp.Data.SqlClient is based on features specific for Sql Server 2012, Dapper provides better range of supported scenarios, including Mono</li>
+<li>Other side of this is that FSharp.Data.SqlClient fully supports SqlServer-specific types like <a href="http://technet.microsoft.com/en-us/library/bb677173.aspx">hierarchyId</a> and 
+<a href="http://blogs.msdn.com/b/adonet/archive/2013/12/09/microsoft-sqlserver-types-nuget-package-spatial-on-azure.aspx">spatial types</a>, which Dapper does not.</li>
 <li>FSharp.Data.SqlClient fully supports User-Defined Table Types for input parameters with no additional coding required, 
 <a href="http://stackoverflow.com/questions/6232978/does-dapper-support-sql-2008-table-valued-parameters">as opposed to Dapper</a></li>
+<li>Dapper intentionally  has no support for <code>SqlConnection</code> management; FSharp.Data.SqlClient encapsulates <code>SqlConnection</code> 
+life-cycle including asynchronous scenarios while optionally accepting external <code>SqlTransaction</code>.</li>
 </ul>
 
-<p>I believe FSharp.Data.SqlClient comes closest to the mission of micro-ORM - to make conversion between data stored in database and .Net run-time types as painless as possible 
+<p>It is my believe that FSharp.Data.SqlClient comes closest to the mission of micro-ORM - to make conversion between data stored in database and .Net run-time types as painless as possible 
 while keeping away from <a href="http://en.wikipedia.org/wiki/Object-relational_impedance_mismatch">object-relational impedance mismatch</a>
 as described in famous blog <a href="http://blogs.tedneward.com/2006/06/26/The+Vietnam+Of+Computer+Science.aspx">The Vietnam of Computer Science</a> by Ted Neward.</p>
 
