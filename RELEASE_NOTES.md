@@ -26,3 +26,4 @@
 * 1.2.9 - Making input string into string option when allParametersOptional is suplied in SqlCommandProvider
 * 1.2.10 - Introduce runtime base class for the Record. ConcurrentDictionary for cache.
 * 1.2.11 - With method on RuntimeRecord added.
+* 1.2.12 - IDictionary<string,obj> is implemented on RuntimeRecord.

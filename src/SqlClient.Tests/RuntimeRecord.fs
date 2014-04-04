@@ -35,4 +35,4 @@ let ``Not equal with different keys``() = recordWithNulls = RuntimeRecord(dict [
 let ``Not equal with different values``() = recordWithNulls = RuntimeRecord(dict ["DBNull", box DBNull.Value; "foo", box "foo"]) |> should be False
 
 [<Fact>] 
-let Equal() = recordWithNulls = RuntimeRecord(recordWithNulls.Data() |> dict) |> should be True
+let Equal() = recordWithNulls = RuntimeRecord(Collections.Generic.Dictionary<_,_>(recordWithNulls)) |> should be True

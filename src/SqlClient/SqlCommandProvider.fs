@@ -349,7 +349,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
 
                     let property = ProvidedProperty(propertyName, propertyType = col.ClrTypeConsideringNullable)
-                    property.GetterCode <- fun args -> <@@ (%%args.[0] : RuntimeRecord).[propertyName] @@>
+                    property.GetterCode <- fun args -> <@@ ( ( %%args.[0] : RuntimeRecord) :> IDictionary<string,obj>).[propertyName] @@>
 
                     yield property, ProvidedParameter(propertyName, col.ClrTypeConsideringNullable, optionalValue = null)
             ] |> List.unzip
@@ -360,10 +360,12 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             let nonEmpty = 
                 (args.Tail, parameters) 
                 ||> Seq.zip 
-                |> Seq.choose(function | (Patterns.NewUnionCase (_, [value])), p -> Some (<@@ (%%Expr.Value(p.Name):string), %%Expr.Coerce(value, typeof<obj>) @@>) | _ -> None)
+                |> Seq.choose(function 
+                    | (Patterns.NewUnionCase (_, [value])), p -> Some (<@@ (%%Expr.Value(p.Name):string), %%Expr.Coerce(value, typeof<obj>) @@>) 
+                    | _ -> None)
                 |> List.ofSeq
             <@@
-                let data = dict <| (%%args.Head : RuntimeRecord).Data()
+                let data = Dictionary<string,obj> (%%args.Head : RuntimeRecord)
                 let pairs : (string*obj) [] = %%Expr.NewArray(typeof<string * obj>, nonEmpty)
                 for key,value in pairs do
                     data.[key] <- value
