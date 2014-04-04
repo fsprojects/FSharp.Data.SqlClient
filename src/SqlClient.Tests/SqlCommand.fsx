@@ -16,6 +16,15 @@ SELECT TOP (@top) Name AS ProductName, SellStartDate, Size
 FROM Production.Product 
 WHERE SellStartDate > @SellStartDate
 "
+//Custom record types and connection string override
+type QueryProducts = SqlCommandProvider<queryProductsSql, connectionString>
+let cmd1 = QueryProducts(connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
+let result1 : Async<QueryProducts.Record seq> = cmd1.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
+result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
+let records = cmd1.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> List.ofSeq
+records |> Seq.iter (printfn "%A")
+let record = records.Head
+record.With(ProductName = "foo", Size=Some "bar")
 
 //Two parallel executions
 type cmdType = SqlCommandProvider<queryProductsSql, connectionString>
@@ -31,13 +40,6 @@ let cmd = QueryProductsAsTuples()
 let result = cmd.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 result |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
 cmd.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
-
-//Custom record types and connection string override
-type QueryProducts = SqlCommandProvider<queryProductsSql, connectionString>
-let cmd1 = QueryProducts(connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
-let result1 : Async<QueryProducts.Record seq> = cmd1.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
-result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
-cmd1.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
 
 //DataTable for data binding scenarios and update
 type QueryProductDataTable = SqlCommandProvider<queryProductsSql, connectionString, ResultType = ResultType.DataTable>

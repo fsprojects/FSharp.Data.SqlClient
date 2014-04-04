@@ -25,3 +25,4 @@
 * 1.2.8 - Downgrading back to 4.0 and FSharp.Core 4.3.0
 * 1.2.9 - Making input string into string option when allParametersOptional is suplied in SqlCommandProvider
 * 1.2.10 - Introduce runtime base class for the Record. ConcurrentDictionary for cache.
+* 1.2.11 - With method on RuntimeRecord added.

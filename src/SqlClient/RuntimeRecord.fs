@@ -5,6 +5,8 @@ open System.Dynamic
 open System.Collections.Generic
 open System.Runtime.InteropServices
 
+[<Sealed>]
+///<summary>Custom implementation of <see cref='DynamicObject'/></summary>
 type RuntimeRecord(data : IDictionary<string,obj>) =
     inherit DynamicObject() 
     do

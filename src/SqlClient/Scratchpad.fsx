@@ -75,3 +75,12 @@ let a = dict s
 let b = dict s
 a = b
  
+open Microsoft.FSharp.Quotations
+open Microsoft.FSharp.Quotations.Patterns
+//open Microsoft.FSharp.Quotations.DerivedPatterns
+
+let d = [ <@@ Some 1 @@>; <@@ Some "as" @@>; <@@ None @@> ]
+
+d |> Seq.choose(function | (NewUnionCase (_, value)) -> Some value | _ -> None)
+
+match d with | NewUnionCase (_, value) -> printfn "%A" value | _ -> printfn ""

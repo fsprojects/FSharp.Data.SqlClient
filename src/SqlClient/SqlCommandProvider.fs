@@ -237,7 +237,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                         | xs' -> FSharpType.MakeTupleType [| for x in xs' -> x.ClrTypeConsideringNullable|]
                     let values = Var("values", typeof<obj[]>)
                     let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
-                    tupleType, tupleType, None, Expr.Lambda(values, Expr.Coerce(Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [ Expr.Var values; getTupleType ]), tupleType))
+                    let makeTuple = Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [ Expr.Var values; getTupleType ])
+                    tupleType, tupleType, None, Expr.Lambda(values, Expr.Coerce(makeTuple, tupleType))
             
             let outputTypeBase, methodName = if singleRow then typedefof<_ option>, "SingeRow" else typedefof<_ seq>, "GetTypedSequence"
             let columnTypes, isNullableColumn = outputColumns |> List.map (fun c -> c.TypeInfo.ClrTypeFullName, c.IsNullable) |> List.unzip
@@ -341,14 +342,34 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
     member internal this.RecordType(columns) =
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<RuntimeRecord>, HideObjectMethods = true)
-        for col in columns do
-            let propertyName = col.Name
-            if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
+        let properties, parameters = 
+            [
+                for col in columns do
+                    let propertyName = col.Name
+                    if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
 
-            let property = ProvidedProperty(propertyName, propertyType = col.ClrTypeConsideringNullable)
-            property.GetterCode <- fun args -> <@@ (%%args.[0] : RuntimeRecord).[propertyName] @@>
+                    let property = ProvidedProperty(propertyName, propertyType = col.ClrTypeConsideringNullable)
+                    property.GetterCode <- fun args -> <@@ (%%args.[0] : RuntimeRecord).[propertyName] @@>
 
-            recordType.AddMember property
+                    yield property, ProvidedParameter(propertyName, col.ClrTypeConsideringNullable, optionalValue = null)
+            ] |> List.unzip
+        recordType.AddMembers properties
+        let withMethod = ProvidedMethod("With", parameters, recordType)
+
+        withMethod.InvokeCode <- fun args ->
+            let nonEmpty = 
+                (args.Tail, parameters) 
+                ||> Seq.zip 
+                |> Seq.choose(function | (Patterns.NewUnionCase (_, [value])), p -> Some (<@@ (%%Expr.Value(p.Name):string), %%Expr.Coerce(value, typeof<obj>) @@>) | _ -> None)
+                |> List.ofSeq
+            <@@
+                let data = dict <| (%%args.Head : RuntimeRecord).Data()
+                let pairs : (string*obj) [] = %%Expr.NewArray(typeof<string * obj>, nonEmpty)
+                for key,value in pairs do
+                    data.[key] <- value
+                RuntimeRecord data
+            @@>
+        recordType.AddMember withMethod
         recordType    
 
     member internal this.RowType (outputColumns) = 
