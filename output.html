@@ -98,7 +98,8 @@
 </tr>
 </table>
 
-<p>These records implement <code>DynamicObject</code> for easy binding and serialization and <code>Equals</code> for structural equality.
+<p>These records implement <code>DynamicObject</code> for easy binding and JSON.NET serialization, <code>Equals</code> for structural equality, 
+ and <code>IDictionary&lt;string,obj&gt;</code> for classic serialization.
  Also, method <code>With</code> has parameters corresponding to all the properties of the record and produces modifed copy 
  similar to "copy and update record expression" in F#</p>
 
@@ -111,7 +112,7 @@
 <td class="snippet"><pre class="fssnip">
 <span class="k">let</span> <span onmouseout="hideTip(event, 'fs21', 27)" onmouseover="showTip(event, 'fs21', 27)" class="i">record</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs9', 28)" onmouseover="showTip(event, 'fs9', 28)" class="i">records</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs22', 29)" onmouseover="showTip(event, 'fs22', 29)" class="i">Head</span> 
 <span onmouseout="hideTip(event, 'fs21', 30)" onmouseover="showTip(event, 'fs21', 30)" class="i">record</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs21', 31)" onmouseover="showTip(event, 'fs21', 31)" class="i">record</span>
-<span onmouseout="hideTip(event, 'fs21', 32)" onmouseover="showTip(event, 'fs21', 32)" class="i">record</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs21', 33)" onmouseover="showTip(event, 'fs21', 33)" class="i">record</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs23', 34)" onmouseover="showTip(event, 'fs23', 34)" class="i">With</span>(<span class="i">ProductName</span><span class="o">=</span><span class="s">&quot;</span><span class="s">foo</span><span class="s">&quot;</span>, <span class="i">Size</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs24', 35)" onmouseover="showTip(event, 'fs24', 35)" class="i">Some</span> <span class="s">&quot;</span><span class="s">bar</span><span class="s">&quot;</span>)</pre>
+<span onmouseout="hideTip(event, 'fs21', 32)" onmouseover="showTip(event, 'fs21', 32)" class="i">record</span> <span class="o">&lt;&gt;</span> <span onmouseout="hideTip(event, 'fs21', 33)" onmouseover="showTip(event, 'fs21', 33)" class="i">record</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs23', 34)" onmouseover="showTip(event, 'fs23', 34)" class="i">With</span>(<span class="i">ProductName</span><span class="o">=</span><span class="s">&quot;</span><span class="s">foo</span><span class="s">&quot;</span>, <span class="i">Size</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs24', 35)" onmouseover="showTip(event, 'fs24', 35)" class="i">Some</span> <span class="s">&quot;</span><span class="s">bar</span><span class="s">&quot;</span>)</pre>
 </td>
 </tr>
 </table>
