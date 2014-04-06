@@ -36,8 +36,65 @@ Type providers + Query Expressions
 [Dapper](https://code.google.com/p/dapper-dot-net/)
 -----------------------------------------
 
+FSharp.Data.SqlClient is much closer to the family of micro-ORMs rather than complete solutions like EntityFramework and NHibernate, 
+hence comparison with the best of the breed - Dapper.
+
+Dapper is a micro-ORM by StackOverflow with a main goal of being extremely fast. Here is a [description](http://stackoverflow.com/tags/dapper/info) 
+from StackOverflow itself:
+
+>dapper is a micro-ORM, offering core parameterization and materialization services, but (by design) not the full breadth of services that you might 
+expect in a full ORM such as LINQ-to-SQL or Entity Framework. Instead, it focuses on making the materialization as fast as possible, with no overheads 
+from things like identity managers - just "run this query and give me the (typed) data".
+
+Let's start with performance to get it out of the way. 
+
+Dapper comes with an excellent [benchmark](https://code.google.com/p/dapper-dot-net/source/browse/Tests/PerformanceTests.cs). 
+The focus of the test is on deserialization. Here is how FSHarp.Data.SqlClient compares with all major .Net ORMs:
+
+<img src="img/dapper.png"/>
+
+Tests were executed against SqlExpress 2012 so the numbers are a bit higher than what you can see on 
+[Dapper page](https://github.com/SamSaffron/dapper-dot-net#performance-of-select-mapping-over-500-iterations---poco-serialization).
+A test retrieves single record with 13 properties by random id 500 times and deserializes it. Runs for different ORMs are mixed up randomly. 
+All executions are synchronous.
+
+Note that we didn't put any specific effort into improving FSharp.Data.SqlClient performance for this test. The very nature of type providers helps to produce
+the simplest run-time implementation and hence be as close as possible to hand-coded ADO.NET code.
+
+Now, to the usage. Line-by-line comparison is probably unfair as I'll end up comparing C# with F#, and C# is going to lose.
+Keeping in mind that FSharp.Data.SqlClient is not strictly an ORM in commonly understood sense of the term, here are the some pros and cons:
+
+* Because result types are auto-generated, FSharp.Data.SqlClient doesn't support so-called [multi-mapping](http://stackoverflow.com/a/6001902/862313)
+* As FSharp.Data.SqlClient is based on features specific for Sql Server 2012; Dapper provides better range of supported scenarios, including Mono
+* Other side of this is that FSharp.Data.SqlClient fully supports SqlServer-specific types like [hierarchyId](http://technet.microsoft.com/en-us/library/bb677173.aspx) and 
+[spatial types](http://blogs.msdn.com/b/adonet/archive/2013/12/09/microsoft-sqlserver-types-nuget-package-spatial-on-azure.aspx), which Dapper does not
+* FSharp.Data.SqlClient fully supports User-Defined Table Types for input parameters with no additional coding required, 
+[as opposed to Dapper](http://stackoverflow.com/questions/6232978/does-dapper-support-sql-2008-table-valued-parameters)
+* Dapper intentionally  has no support for `SqlConnection` management; FSharp.Data.SqlClient encapsulates `SqlConnection` 
+life-cycle including asynchronous scenarios while optionally accepting external `SqlTransaction`.
+
+Following FSharp.Data.SqlClient features are unique:
+
+* Reasonable auto-generated result type definition so there is no need to define it in code
+* This type also comes with `IDictionary<string,obj>` and `DynamicObject` implementation
+* Sql command is just a string for other ORMs, while FSHarp.Data.SqlClient verifies it and figures out input parameters and output types 
+so design-time experience is simply unparalleled
+* Design-time verification means less run-time tests, less yak shaving synchronizing database schema with code definitions, and earliest possible 
+identification of bugs and mismatches
+* `SqlProgrammabilityProvider` lets user to explore stored procedures and user-defined functions right from the code with IntelliSense
+
+
+It is my believe that FSharp.Data.SqlClient comes closest to the mission of micro-ORM - to make conversion between data stored in database and .Net run-time types as painless as possible 
+while keeping away from [object-relational impedance mismatch](http://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)
+as described in famous blog [The Vietnam of Computer Science](http://blogs.tedneward.com/2006/06/26/The+Vietnam+Of+Computer+Science.aspx) by Ted Neward.
+
 [Generating strongly typed DataSets](http://msdn.microsoft.com/en-us/library/wha85tzb.aspx)
 -----------------------------------------
 
+Using strongly typed DataSets requires creation of XSD schema which then used to generate C# code. Dubious pleasure of hand-crafting XSD aside, 
+this traditional technique suffers from the same limitation as Entity Framework and such when compared to FSharp.Data.SqlClient:
+no design-time interaction with model database - it is up to a user to keep definitions and database schema in sync.
+
+At the same time, FSharp.Data.SqlClient supports strongly typed data table as one of the result types. No XSD required.
 *)
 

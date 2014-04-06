@@ -17,7 +17,9 @@ type RuntimeRecord(data : IDictionary<string,obj>) =
             for pair in data -> 
                 sprintf "%s = %s" pair.Key (if pair.Value = null || Convert.IsDBNull(pair.Value) then "None" else sprintf "%A" pair.Value) |]
         sprintf "{ %s }" <| String.Join("; ", values)
-        
+    
+    override this.GetDynamicMemberNames() = seq data.Keys
+
     override this.TryGetMember( binder, result) = data.TryGetValue(binder.Name, &result)
     
     override this.TrySetMember( binder, result) = 

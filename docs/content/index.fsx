@@ -51,6 +51,17 @@ seq
      ("Tete", "Mensa-Annan", 1576562.1966M)]
 
 (**
+Calling stored procedure:
+*)
+
+type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
+let db = AdventureWorks2012()
+
+db.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(System.DateTime(2013,1,1), 1) 
+|> Async.RunSynchronously 
+|> Array.ofSeq
+
+(**
 
 System requirements
 -------------------------------------
