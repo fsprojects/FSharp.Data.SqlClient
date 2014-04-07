@@ -124,7 +124,7 @@ type SqlCommandFactory private () =
     static member GetRecord(values : obj[], names : string []) =
         let dict : IDictionary<_, _> = upcast ExpandoObject()
         (names, values) ||> Array.iter2 (fun name value -> dict.Add(name, value))
-        RuntimeRecord(dict)
+        DynamicRecord(dict)
                                     
     static member GetTypedSequence<'T> (mapNullables : obj [] -> unit, rowMapper : obj[] -> 'T) =
         fun (token : CancellationToken option) (sqlDataReader : SqlDataReader) ->

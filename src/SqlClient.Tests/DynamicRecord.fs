@@ -9,7 +9,7 @@ open FsUnit.Xunit
 
 open FSharp.Data.SqlClient
 
-let recordWithNulls = RuntimeRecord(dict ["DBNull", box DBNull.Value; "null", null; "foo", box "bar"])
+let recordWithNulls = DynamicRecord(dict ["DBNull", box DBNull.Value; "null", null; "foo", box "bar"])
 
 [<Fact>]
 let ``ToString : Nulls to Nones``() =
@@ -29,20 +29,20 @@ let ``TryGetMember fails``() = recordWithNulls.TryGetMember(Binder("foobar")) |>
 let ``Not equal of different type``() = recordWithNulls.Equals(new obj()) |> should be False
 
 [<Fact>] 
-let ``Not equal of different size``() = recordWithNulls = RuntimeRecord(dict []) |> should be False
+let ``Not equal of different size``() = recordWithNulls = DynamicRecord(dict []) |> should be False
 
 [<Fact>] 
-let ``Not equal with different keys``() = recordWithNulls = RuntimeRecord(dict ["DBNull", box DBNull.Value; "bar", null]) |> should be False
+let ``Not equal with different keys``() = recordWithNulls = DynamicRecord(dict ["DBNull", box DBNull.Value; "bar", null]) |> should be False
 
 [<Fact>] 
-let ``Not equal with different values``() = recordWithNulls = RuntimeRecord(dict ["DBNull", box DBNull.Value; "foo", box "foo"]) |> should be False
+let ``Not equal with different values``() = recordWithNulls = DynamicRecord(dict ["DBNull", box DBNull.Value; "foo", box "foo"]) |> should be False
 
 [<Fact>] 
-let Equal() = recordWithNulls = RuntimeRecord(recordWithNulls) |> should be True
+let Equal() = recordWithNulls = DynamicRecord(recordWithNulls) |> should be True
 
 [<Fact>] 
 let ``GetHashCode is same when equal``() = 
-    let clone = RuntimeRecord( dict( recordWithNulls |> Seq.map (fun(KeyValue x) -> x)))
+    let clone = DynamicRecord( dict( recordWithNulls |> Seq.map (fun(KeyValue x) -> x)))
     if recordWithNulls = clone //did if to make assertion more granular
     then 
         recordWithNulls.GetHashCode() = clone.GetHashCode() |> should be True

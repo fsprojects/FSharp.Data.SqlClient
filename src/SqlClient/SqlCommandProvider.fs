@@ -227,7 +227,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     let r = this.RecordType(outputColumns)
                     let names = Expr.NewArray(typeof<string>, outputColumns |> List.map (fun x -> Expr.Value(x.Name))) 
                     upcast r,
-                    typeof<RuntimeRecord>,
+                    typeof<DynamicRecord>,
                     Some r, 
                     <@@ fun(values : obj[]) ->  SqlCommandFactory.GetRecord(values, %%names) @@>
                 else 
@@ -341,7 +341,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     ]
 
     member internal this.RecordType(columns) =
-        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<RuntimeRecord>, HideObjectMethods = true)
+        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<DynamicRecord>, HideObjectMethods = true)
         let properties, parameters = 
             [
                 for col in columns do
@@ -349,7 +349,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
 
                     let property = ProvidedProperty(propertyName, propertyType = col.ClrTypeConsideringNullable)
-                    property.GetterCode <- fun args -> <@@ ( ( %%args.[0] : RuntimeRecord) :> IDictionary<string,obj>).[propertyName] @@>
+                    property.GetterCode <- fun args -> <@@ ( ( %%args.[0] : DynamicRecord) :> IDictionary<string,obj>).[propertyName] @@>
 
                     yield property, ProvidedParameter(propertyName, col.ClrTypeConsideringNullable, optionalValue = null)
             ] |> List.unzip
@@ -365,11 +365,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     | _ -> None)
                 |> List.ofSeq
             <@@
-                let data = Dictionary<string,obj> (%%args.Head : RuntimeRecord)
+                let data = Dictionary<string,obj> (%%args.Head : DynamicRecord)
                 let pairs : (string*obj) [] = %%Expr.NewArray(typeof<string * obj>, nonEmpty)
                 for key,value in pairs do
                     data.[key] <- value
-                RuntimeRecord data
+                DynamicRecord data
             @@>
         recordType.AddMember withMethod
         recordType    

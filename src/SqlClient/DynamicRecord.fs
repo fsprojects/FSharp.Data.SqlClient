@@ -7,7 +7,7 @@ open System.Runtime.InteropServices
 
 [<Sealed>]
 ///<summary>Custom implementation of <see cref='DynamicObject'/></summary>
-type RuntimeRecord(data : IDictionary<string,obj>) =
+type DynamicRecord(data : IDictionary<string,obj>) =
     inherit DynamicObject() 
     do
         assert(data <> null)
@@ -38,7 +38,7 @@ type RuntimeRecord(data : IDictionary<string,obj>) =
             Linq.Enumerable.SequenceEqual(this, v)
         |_ -> false
 
-    override this.GetHashCode () = data.GetHashCode()
+    override this.GetHashCode () = 1
 
     interface IDictionary<string,obj> with
         member this.Item with get key = data.[key] and set key value = data.[key] <- value
