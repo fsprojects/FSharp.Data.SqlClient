@@ -13,10 +13,12 @@ type RuntimeRecord(data : IDictionary<string,obj>) =
         assert(data <> null)
     
     override this.ToString() =
-        let values = [| 
-            for pair in data -> 
-                sprintf "%s = %s" pair.Key (if pair.Value = null || Convert.IsDBNull(pair.Value) then "None" else sprintf "%A" pair.Value) |]
-        sprintf "{ %s }" <| String.Join("; ", values)
+        [|
+            for KeyValue( key, value) in data ->
+                sprintf "%s = %s" key ( if value = null || Convert.IsDBNull( value) then "None" else sprintf "%A" value) 
+        |]
+        |> String.concat "; "
+        |> sprintf "{ %s }" 
     
     override this.GetDynamicMemberNames() = upcast data.Keys
 
