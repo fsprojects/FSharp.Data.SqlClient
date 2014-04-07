@@ -38,7 +38,7 @@ type DynamicRecord(data : IDictionary<string,obj>) =
             Linq.Enumerable.SequenceEqual(this, v)
         |_ -> false
 
-    override this.GetHashCode () = 1
+    override this.GetHashCode () = List.ofSeq( data).GetHashCode()
 
     interface IDictionary<string,obj> with
         member this.Item with get key = data.[key] and set key value = data.[key] <- value
