@@ -18,7 +18,7 @@ type RuntimeRecord(data : IDictionary<string,obj>) =
                 sprintf "%s = %s" pair.Key (if pair.Value = null || Convert.IsDBNull(pair.Value) then "None" else sprintf "%A" pair.Value) |]
         sprintf "{ %s }" <| String.Join("; ", values)
     
-    override this.GetDynamicMemberNames() = seq data.Keys
+    override this.GetDynamicMemberNames() = upcast data.Keys
 
     override this.TryGetMember( binder, result) = data.TryGetValue(binder.Name, &result)
     
@@ -32,11 +32,8 @@ type RuntimeRecord(data : IDictionary<string,obj>) =
 
     override this.Equals other = 
         match other with
-        | :? IDictionary<string,obj> as v -> 
-            v.Count = data.Count && v
-            |> Seq.forall (fun pair -> 
-                let found,value = data.TryGetValue(pair.Key) 
-                found && obj.Equals(value, pair.Value))
+        | :? seq<KeyValuePair<string, obj>> as v -> 
+            Linq.Enumerable.SequenceEqual(this, v)
         |_ -> false
 
     override this.GetHashCode () = data.GetHashCode()

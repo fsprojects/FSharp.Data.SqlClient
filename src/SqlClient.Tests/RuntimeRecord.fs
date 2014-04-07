@@ -1,10 +1,13 @@
 ﻿module FSharp.Data.Tests.RuntimeRecord
 
-open FSharp.Data.SqlClient
 open System
 open System.Dynamic
+open System.Collections.Generic
+
 open Xunit
 open FsUnit.Xunit
+
+open FSharp.Data.SqlClient
 
 let recordWithNulls = RuntimeRecord(dict ["DBNull", box DBNull.Value; "null", null; "foo", box "bar"])
 
@@ -35,4 +38,12 @@ let ``Not equal with different keys``() = recordWithNulls = RuntimeRecord(dict [
 let ``Not equal with different values``() = recordWithNulls = RuntimeRecord(dict ["DBNull", box DBNull.Value; "foo", box "foo"]) |> should be False
 
 [<Fact>] 
-let Equal() = recordWithNulls = RuntimeRecord(Collections.Generic.Dictionary<_,_>(recordWithNulls)) |> should be True
+let Equal() = recordWithNulls = RuntimeRecord(recordWithNulls) |> should be True
+
+[<Fact>] 
+let ``GetHashCode is same when equal``() = 
+    let clone = RuntimeRecord( dict( recordWithNulls |> Seq.map (fun(KeyValue x) -> x)))
+    if recordWithNulls = clone //did if to make assertion more granular
+    then 
+        recordWithNulls.GetHashCode() = clone.GetHashCode() |> should be True
+
