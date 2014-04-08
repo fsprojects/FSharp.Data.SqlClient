@@ -42,7 +42,7 @@ type ProgrammabilityQuotationsFactory private() =
                         |> unbox
             )
 
-        let sqlParams = String.Join(",", seq{ for p in paramInfos -> p.Name })
+        let sqlParams = seq{ for p in paramInfos -> p.Name } |> String.concat ","
 
         <@
             let sqlCommand : SqlCommand = %%Expr.Coerce(exprArgs.[0], typeof<SqlCommand>)

@@ -19,6 +19,7 @@ open Microsoft.SqlServer.Server
 open Samples.FSharp.ProvidedTypes
 
 open FSharp.Data.Internals
+open FSharp.Data.SqlClient
 
 [<TypeProvider>]
 type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this = 
@@ -283,31 +284,22 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         let recordType = this.RecordType(columns)
         providedCommandType.AddMember recordType
 
+        let names = Expr.NewArray(typeof<string>, columns |> List.map (fun x -> Expr.Value(x.Name))) 
+        let arrayToRecord =  <@ fun(values : obj[]) ->  SqlCommandFactory.GetRecord(values, %%names) @>
+
         let getExecuteBody (args : Expr list) = 
-            let arrayToRecord = 
-                <@ 
-                    fun(values : obj[]) -> 
-                        let names : string[] = %%Expr.NewArray(typeof<string>, columns |> List.map (fun x -> Expr.Value(x.Name))) 
-                        let dict : IDictionary<_, _> = upcast ExpandoObject()
-                        (names, values) ||> Array.iter2 (fun name value -> dict.Add(name, value))
-                        box dict 
-                @>
-            ProgrammabilityQuotationsFactory.GetTypedSequence(args, paramInfos, arrayToRecord, singleRow, columns)
+            ProgrammabilityQuotationsFactory.GetTypedSequence<DynamicRecord>(args, paramInfos, arrayToRecord, singleRow, columns)
                          
         upcast recordType, getExecuteBody
     
     member internal this.RecordType(columns) =
-        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
+        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<DynamicRecord>, HideObjectMethods = true)
         for col in columns do
             let propertyName = col.Name
             if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
 
             let property = ProvidedProperty(propertyName, propertyType = col.ClrTypeConsideringNullable)
-            property.GetterCode <- fun args -> 
-                <@@ 
-                    let dict : IDictionary<string, obj> = %%Expr.Coerce(args.[0], typeof<IDictionary<string, obj>>)
-                    dict.[propertyName] 
-                @@>
+            property.GetterCode <- fun args -> <@@ ( ( %%args.[0] : DynamicRecord) :> IDictionary<string,obj>).[propertyName] @@>
 
             recordType.AddMember property
         recordType

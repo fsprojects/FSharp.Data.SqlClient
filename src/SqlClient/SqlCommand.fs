@@ -121,12 +121,9 @@ type SqlCommandFactory private () =
         result.Load(reader)
         result
 
-    static member GetRecord(values : obj[], names : string []) =
-        let dict : IDictionary<_, _> = upcast ExpandoObject()
-        (names, values) ||> Array.iter2 (fun name value -> dict.Add(name, value))
-        DynamicRecord(dict)
+    static member GetRecord(values : obj [], names : string []) = DynamicRecord((names, values) ||> Seq.zip |> dict)
                                     
-    static member GetTypedSequence<'T> (mapNullables : obj [] -> unit, rowMapper : obj[] -> 'T) =
+    static member GetTypedSequence (mapNullables, rowMapper) =
         fun (token : CancellationToken option) (sqlDataReader : SqlDataReader) ->
         seq {
             try 
@@ -139,7 +136,7 @@ type SqlCommandFactory private () =
                 sqlDataReader.Close()
         }
     
-    static member SingeRow<'T> (mapNullables : obj [] -> unit, rowMapper : obj[] -> 'T) =
+    static member SingeRow (mapNullables , rowMapper ) =
         fun (_ : CancellationToken option) (sqlDataReader : SqlDataReader) ->
         try 
             if sqlDataReader.Read() then 
