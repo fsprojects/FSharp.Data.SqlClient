@@ -6,7 +6,7 @@ open System.Collections.Generic
 
 open Xunit
 open FsUnit.Xunit
-
+open Newtonsoft.Json
 open FSharp.Data.SqlClient
 
 let recordWithNulls = DynamicRecord(dict ["DBNull", box DBNull.Value; "null", null; "foo", box "bar"])
@@ -47,3 +47,18 @@ let ``GetHashCode is same when equal``() =
     then 
         recordWithNulls.GetHashCode() = clone.GetHashCode() |> should be True
 
+let dt = DateTime(2012,1,1)
+let offset = DateTimeOffset(dt,TimeSpan.FromHours(2.))
+let dateRecord = DynamicRecord(dict ["Date", box dt; "Offset", box offset]) 
+let dateRecordString = """{"Date":"2012-01-01T00:00:00","Offset":"2012-01-01T00:00:00+02:00"}"""
+let recordWithNullsString = """{"DBNull":null,"null":null,"foo":"bar"}"""
+
+[<Fact>] 
+let ``JSON serialize``() = 
+    JsonConvert.SerializeObject(recordWithNulls) |> should equal recordWithNullsString
+    JsonConvert.SerializeObject(dateRecord) |> should equal dateRecordString
+
+//[<Fact>] 
+//let ``JSON deserialize``() = 
+//    //JsonConvert.DeserializeObject<DynamicRecord>(recordWithNullsString) |> should equal recordWithNulls
+//    JsonConvert.DeserializeObject<DynamicRecord>(dateRecordString) |> should equal dateRecord

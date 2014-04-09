@@ -26,6 +26,10 @@ records |> Seq.iter (printfn "%A")
 let record = records.Head
 record.With(ProductName = "foo", Size=Some "bar")
 
+//Record constructor
+let newrecord = QueryProducts.Record("foo", System.DateTime(2000,1,1), Some "bar")
+record <> newrecord
+
 //Two parallel executions
 type cmdType = SqlCommandProvider<queryProductsSql, connectionString>
 let par = cmdType()

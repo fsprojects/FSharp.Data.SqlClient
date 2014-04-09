@@ -101,6 +101,10 @@
       <SpecificVersion>True</SpecificVersion>
     </Reference>
     <Reference Include="mscorlib" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\packages\Newtonsoft.Json.6.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="NHamcrest">
       <HintPath>..\..\packages\FsUnit.xUnit.1.2.1.2\Lib\Net40\NHamcrest.dll</HintPath>
       <Private>True</Private>

@@ -342,20 +342,33 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
     member internal this.RecordType(columns) =
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<DynamicRecord>, HideObjectMethods = true)
-        let properties, parameters = 
+        let properties, ctorParameters, parameters = 
             [
                 for col in columns do
                     let propertyName = col.Name
                     if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
+                    let propType = col.ClrTypeConsideringNullable
 
-                    let property = ProvidedProperty(propertyName, propertyType = col.ClrTypeConsideringNullable)
+                    let property = ProvidedProperty(propertyName, propType)
                     property.GetterCode <- fun args -> <@@ ( ( %%args.[0] : DynamicRecord) :> IDictionary<string,obj>).[propertyName] @@>
-
-                    yield property, ProvidedParameter(propertyName, col.ClrTypeConsideringNullable, optionalValue = null)
-            ] |> List.unzip
+                    let nullalbleParameter = ProvidedParameter(propertyName, propType, optionalValue = null)
+                    let ctorParameter = if col.IsNullable then nullalbleParameter  else ProvidedParameter( propertyName, propType )
+                    yield property, ctorParameter, nullalbleParameter
+            ] |> List.unzip3
         recordType.AddMembers properties
+        let ctor = ProvidedConstructor(ctorParameters)
+        ctor.InvokeCode <- fun args ->
+           let pairs =  (args, ctorParameters) 
+                        ||> Seq.zip 
+                        |> Seq.map (fun (arg,p) -> <@@ (%%Expr.Value(p.Name):string), %%Expr.Coerce(arg, typeof<obj>) @@>)
+                        |> List.ofSeq
+           <@@
+                let pairs : (string*obj) [] = %%Expr.NewArray(typeof<string * obj>, pairs)
+                DynamicRecord (dict pairs)
+            @@> 
+        recordType.AddMember ctor
+        
         let withMethod = ProvidedMethod("With", parameters, recordType)
-
         withMethod.InvokeCode <- fun args ->
             let nonEmpty = 
                 (args.Tail, parameters) 
