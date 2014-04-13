@@ -45,7 +45,7 @@
     </Reference>
     <Reference Include="FSharp.Data.SqlClient, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.12\lib\net40\FSharp.Data.SqlClient.dll</HintPath>
+      <HintPath>..\..\..\bin\FSharp.Data.SqlClient.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.SqlServer.ConnectionInfo, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
       <Private>True</Private>

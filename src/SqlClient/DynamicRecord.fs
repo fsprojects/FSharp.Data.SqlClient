@@ -4,14 +4,15 @@ open System
 open System.Dynamic
 open System.Collections.Generic
 open System.Runtime.InteropServices
+open System.Runtime.Serialization
 
 [<Sealed>]
 ///<summary>Custom implementation of <see cref='DynamicObject'/></summary>
-type DynamicRecord(data : IDictionary<string,obj>) =
+type DynamicRecord (data : IDictionary<string,obj>) = 
     inherit DynamicObject() 
     do
-        assert(data <> null)
-    
+        assert(data<>null)
+
     override this.ToString() =
         [|
             for KeyValue( key, value) in data ->
@@ -34,27 +35,12 @@ type DynamicRecord(data : IDictionary<string,obj>) =
 
     override this.Equals other = 
         match other with
-        | :? seq<KeyValuePair<string, obj>> as v -> 
-            Linq.Enumerable.SequenceEqual(this, v)
+        | :? DynamicRecord as v -> 
+            Linq.Enumerable.SequenceEqual(data, v.Data())
         |_ -> false
 
     override this.GetHashCode () = List.ofSeq( data).GetHashCode()
 
-    interface IDictionary<string,obj> with
-        member this.Item with get key = data.[key] and set key value = data.[key] <- value
-        member this.Keys with get() = data.Keys
-        member this.Values with get() = data.Values
-        member this.Count with get() = data.Count
-        member this.IsReadOnly with get() = true
-        member this.ContainsKey(key) = data.ContainsKey(key)
-        member this.Add(key, value) = data.Add(key, value)
-        member this.Add(value) = data.Add(value)
-        member this.Clear() = data.Clear()
-        member this.Contains(value) = data.Contains(value)
-        member this.CopyTo(arr, index) = data.CopyTo(arr, index)
-        member this.Remove(key : string) = data.Remove(key)
-        member this.TryGetValue(key, value) = data.TryGetValue(key, &value)
-        member this.Remove(key : KeyValuePair<_,_>) = data.Remove(key)
-        member this.GetEnumerator() = data.GetEnumerator()
-        member this.GetEnumerator() : Collections.IEnumerator = (data :> Collections.IEnumerable).GetEnumerator()
+    member this.Data() = data 
+    member this.Item with get key = data.[key] 
             

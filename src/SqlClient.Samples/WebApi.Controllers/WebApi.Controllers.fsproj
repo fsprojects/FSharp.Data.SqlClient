@@ -62,8 +62,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data.SqlClient">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.12\lib\net40\FSharp.Data.SqlClient.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\..\..\bin\FSharp.Data.SqlClient.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.SqlServer.ConnectionInfo">
       <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.12\lib\net40\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>

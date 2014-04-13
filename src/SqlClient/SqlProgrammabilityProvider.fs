@@ -299,7 +299,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
 
             let property = ProvidedProperty(propertyName, propertyType = col.ClrTypeConsideringNullable)
-            property.GetterCode <- fun args -> <@@ ( ( %%args.[0] : DynamicRecord) :> IDictionary<string,obj>).[propertyName] @@>
+            property.GetterCode <- fun args -> <@@ (%%args.[0] : DynamicRecord).[propertyName] @@>
 
             recordType.AddMember property
         recordType
