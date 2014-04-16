@@ -318,7 +318,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                 let optionalValue = if String.IsNullOrWhiteSpace(p.DefaultValue) 
                                     then if p.Direction <> ParameterDirection.Input then Some null else None
-                                    else Some (Convert.ChangeType(p.DefaultValue, parameterType))
+                                    else Some (parseDefaultValue(p.DefaultValue, parameterType))
 
                 let parType = if p.Direction <> ParameterDirection.Input
                               then typedefof<_ option>.MakeGenericType( parameterType) 

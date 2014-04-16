@@ -48,6 +48,11 @@ let internal findTypeInfoByName(name) =
 let splitName (twoPartsName : string) =
    let parts = twoPartsName.Split('.')
    parts.[0], parts.[1]
+
+let parseDefaultValue (value: string, typ:Type) =
+    if typ = typeof<bool> 
+    then box (value = "0")
+    else Convert.ChangeType(value, typ)
      
 let internal ReturnValue() = { 
     Name = "@ReturnValue" 

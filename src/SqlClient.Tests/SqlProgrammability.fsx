@@ -60,4 +60,3 @@ let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
             .AsyncExecute(291, true, DateTime(2013,1,1), "gatekeeper", "adventure-works\gat0", SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")))
             |> Async.RunSynchronously 
 res.ReturnValue
-
