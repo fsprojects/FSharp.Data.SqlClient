@@ -51,7 +51,7 @@ let splitName (twoPartsName : string) =
 
 let parseDefaultValue (value: string, typ:Type) =
     if typ = typeof<bool> 
-    then box (value = "0")
+    then box (value.Trim() = "1")
     else Convert.ChangeType(value, typ)
      
 let internal ReturnValue() = { 

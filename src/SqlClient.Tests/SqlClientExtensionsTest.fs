@@ -3,6 +3,7 @@
 open System.Data
 open System.Data.SqlClient
 open Xunit
+open FsUnit.Xunit
 
 open FSharp.Data.Internals.SqlClient
 
@@ -51,3 +52,10 @@ let GetAllSPs() =
 let GetParameters() =
     conn.GetParameters("dbo.Swap", false)
     |> Seq.iter (printfn "%A")
+
+
+[<Fact>]
+let ``Parse default value``() =
+    parseDefaultValue("0", typeof<bool>) |> should equal (box false)
+    parseDefaultValue("1", typeof<bool>) |> should equal (box true)
+    parseDefaultValue("1", typeof<int8>) |> should equal (box 1y)

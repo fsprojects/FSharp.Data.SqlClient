@@ -28,3 +28,4 @@
 * 1.2.11 - With method on RuntimeRecord added.
 * 1.2.12 - IDictionary<string,obj> is implemented on RuntimeRecord.
 * 1.2.13 - Fixing GetHashCode. Renaming RuntimeRecord.
+* 1.2.14 - Fix for bit default value. Changes in RuntimeRecord.
