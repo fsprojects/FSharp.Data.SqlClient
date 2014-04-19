@@ -13,9 +13,13 @@ let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWo
 [<Literal>] 
 let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
 
-type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
+[<Literal>] 
+let azure = @"Server=tcp:z1ru1rvq7m.database.windows.net,1433;Database=AdventureWorks2012;User ID=user123@z1ru1rvq7m;Password=p@ssw0rd"
 
-//let db = AdventureWorks2012(prodConnectionString)
+
+type AdventureWorks2012 = SqlProgrammabilityProvider<azure>
+
+let db = AdventureWorks2012(azure)
 
 type seType = AdventureWorks2012.``User-Defined Table Types``.SingleElementType
 
@@ -30,7 +34,7 @@ f.JobTitle
 f.LastName
 f.PersonID
 
-let a = db.``Stored Procedures``.``dbo.Swap``.AsyncExecute(5) |> Async.RunSynchronously 
+let a = db.``Stored Procedures``.``dbo.Swap``.AsyncExecute(input=5) |> Async.RunSynchronously 
 a.output
 a.nullStringOutput
 a.ReturnValue

@@ -176,7 +176,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             (exprArgs.Tail, sqlParameters)
             ||> List.map2 (fun expr info ->
                 let value = 
-                    if info.TypeInfo.IsValueType && allParametersOptional
+                    if allParametersOptional
                     then 
                         typeof<QuotationsFactory>
                             .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)

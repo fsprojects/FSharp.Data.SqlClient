@@ -113,6 +113,7 @@ let NullableStringInputParameter() =
     Assert.Equal(Some "", NullableStringInput().Execute(None))
     Assert.Equal(Some "", NullableStringInput().Execute())
     Assert.Equal(Some "", NullableStringInputStrict().Execute(null))
+    Assert.Equal(Some "boo", NullableStringInput().Execute(Some "boo"))
 
 
 //     
