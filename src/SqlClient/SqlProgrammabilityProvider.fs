@@ -115,21 +115,23 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     member internal __.Functions(udttTypes, designTimeConnectionString, resultType) =
         typeWithConnectionString "Functions"
             <| fun () -> 
-                use conn = new SqlConnection(designTimeConnectionString)
-                conn.Open() 
                 [
-                for twoPartsName in conn.GetFunctions() do                    
+                let functions = CallSmo designTimeConnectionString GetFunctions
+                for twoPartsName in functions do                    
                     let ctor = ProvidedConstructor([ProvidedParameter("connectionString", typeof<string>)])
                     ctor.InvokeCode <- fun args -> <@@ new SqlCommand(twoPartsName, new SqlConnection(%%args.[0]:string)) @@>
                     let propertyType = ProvidedTypeDefinition(twoPartsName, baseType = Some typeof<obj>, HideObjectMethods = true)
                     propertyType.AddMember ctor
                     
                     propertyType.AddMemberDelayed <| fun () ->
+                        let columns, defaults = CallSmo designTimeConnectionString (fun db -> 
+                                let c = GetFunctionColumns db twoPartsName 
+                                assert(not c.IsEmpty)
+                                c, GetDefaults db (twoPartsName, true))
+
                         use connection = new SqlConnection(designTimeConnectionString)
-                        connection.Open() 
-                        let columns = connection.GetFunctionColumns(twoPartsName) 
-                        assert(not columns.IsEmpty)
-                        let parameters = connection.GetParameters(twoPartsName, true)
+                        connection.Open()
+                        let parameters = connection.GetParameters(defaults, twoPartsName)
                         this.AddExecuteMethod(udttTypes, propertyType, twoPartsName, resultType, false, columns, parameters)
 
                     let property = ProvidedProperty(twoPartsName, propertyType)
@@ -150,9 +152,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     propertyType.AddMember ctor
                     
                     propertyType.AddMemberDelayed <| fun () ->
+                        let defaults = CallSmo designTimeConnectionString GetDefaults (twoPartsName, false)
                         use connection = new SqlConnection(designTimeConnectionString)
                         connection.Open() 
-                        let parameters = connection.GetParameters(twoPartsName, false)
+                        let parameters = connection.GetParameters(defaults, twoPartsName)
                         let outputColumns = 
                             let anyOutputParameters = parameters |> Seq.exists(fun p -> p.Direction <> ParameterDirection.Input)
                             if resultType <> ResultType.DataReader && not anyOutputParameters

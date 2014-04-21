@@ -29,3 +29,5 @@
 * 1.2.12 - IDictionary<string,obj> is implemented on RuntimeRecord.
 * 1.2.13 - Fixing GetHashCode. Renaming RuntimeRecord.
 * 1.2.14 - Fix for bit default value. Changes in RuntimeRecord.
+* 1.2.15 - bug fix for string param with AllParametersOptional.
+* 1.2.16 - Fixing Azure compatibility for SqlProgrammability.

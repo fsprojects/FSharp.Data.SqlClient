@@ -14,12 +14,10 @@ let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWo
 let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
 
 [<Literal>] 
-let azure = @"Server=tcp:z1ru1rvq7m.database.windows.net,1433;Database=AdventureWorks2012;User ID=user123@z1ru1rvq7m;Password=p@ssw0rd"
+let azure = @"Server=tcp:z1ru1rvq7m.database.windows.net,1433;Database=AdventureWorks2012;Integrated Security=False;User ID=user123@z1ru1rvq7m;Password=p@ssw0rd"
 
 
-type AdventureWorks2012 = SqlProgrammabilityProvider<azure>
-
-let db = AdventureWorks2012(azure)
+type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
 
 type seType = AdventureWorks2012.``User-Defined Table Types``.SingleElementType
 

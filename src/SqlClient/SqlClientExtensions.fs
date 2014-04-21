@@ -60,6 +60,44 @@ let internal ReturnValue() = {
     TypeInfo = findTypeInfoByName "int" 
     DefaultValue = "" }
 
+let CallSmo connString f = 
+    let conn = new SqlConnection(connString)
+    let server = Server( ServerConnection(conn))
+    use disposable = {new IDisposable with member __.Dispose() = server.ConnectionContext.Disconnect()}
+    let db = Server( ServerConnection(conn)).Databases.[conn.Database]
+    f db
+
+let GetDefaults (db:Database) (twoPartsName, isFunction) =         
+        let schema, name =  splitName twoPartsName
+        let coll = if isFunction 
+                    then db.UserDefinedFunctions.[name, schema].Parameters :> ParameterCollectionBase 
+                    else db.StoredProcedures.[name, schema].Parameters :> ParameterCollectionBase 
+        seq {for p in coll |> Seq.cast<Microsoft.SqlServer.Management.Smo.Parameter> -> p.Name, p.DefaultValue } |> Map.ofSeq
+
+
+let GetFunctionColumns (db:Database) twoPartsName = 
+        let schema, name =  splitName twoPartsName
+        let types = db.UserDefinedDataTypes |> Seq.cast<UserDefinedDataType> |> Seq.map(fun t -> t.Name, t.SystemType) |> Map.ofSeq
+        db.UserDefinedFunctions.[name, schema].Columns
+        |> Seq.cast<Microsoft.SqlServer.Management.Smo.Column>
+        |> Seq.mapi ( fun i c ->
+                let dataType = defaultArg (types.TryFind(c.DataType.Name)) c.DataType.Name
+                {
+                    Name = c.Name 
+                    TypeInfo =  findTypeInfoByName dataType
+                    IsNullable = c.Nullable
+                    Ordinal = i
+                    MaxLength = c.DataType.MaximumLength
+                })
+        |> List.ofSeq
+
+let GetFunctions (db:Database) = 
+        [ 
+            for f in db.UserDefinedFunctions do
+                if not f.IsSystemObject && f.DataType = null then 
+                    yield sprintf "%s.%s" f.Schema f.Name
+        ]
+
 type SqlDataReader with
     
     member this.toOption<'a> (key:string) =
@@ -73,7 +111,8 @@ type DataRow with
 
 type SqlConnection with
 
- //address an issue when regular Dispose on SqlConnection needed for async computation wipes out all properties like ConnectionString in addition to closing connection to db
+ //address an issue when regular Dispose on SqlConnection needed for async computation 
+ //wipes out all properties like ConnectionString in addition to closing connection to db
     member this.UseConnection() =
         if this.State = ConnectionState.Closed then 
             this.Open()
@@ -127,62 +166,28 @@ type SqlConnection with
                 MaxLength = reader.["max_length"] |> unbox<int16> |> int
             }
     ] 
+
     
-    member internal this.GetDefaults(twoPartsName : string, isFunction) =         
-        assert (this.State = ConnectionState.Open)
-        let db  = Server( ServerConnection(this)).Databases.[this.Database]
-        let schema, name =  splitName twoPartsName
-        let coll = if isFunction 
-                   then db.UserDefinedFunctions.[name, schema].Parameters :> ParameterCollectionBase 
-                   else db.StoredProcedures.[name, schema].Parameters :> ParameterCollectionBase 
-        seq {for p in coll |> Seq.cast<Microsoft.SqlServer.Management.Smo.Parameter> -> p.Name, p.DefaultValue } |> Map.ofSeq
-
-    member internal this.GetParameters(twoPartsName, isFunction) =         
-        assert (this.State = ConnectionState.Open)
-        let defaults = this.GetDefaults(twoPartsName, isFunction)
-        [
-            for r in this.GetSchema("ProcedureParameters").Rows do
-                let fullName = sprintf "%s.%s" (string r.["specific_schema"]) (string r.["specific_name"]) 
-                if  string r.["specific_catalog"] = this.Database && fullName = twoPartsName then
-                    let name = string r.["parameter_name"]
-                    let direction = match string r.["parameter_mode"] with 
-                                    | "IN" -> ParameterDirection.Input 
-                                    | "OUT" -> ParameterDirection.Output
-                                    | "INOUT" -> ParameterDirection.InputOutput
-                                    | _ -> failwithf "Parameter %s has unsupported direction %O" name r.["parameter_mode"]
-                    let udt = string r.["data_type"]
-                    yield { 
-                        Name = name 
-                        TypeInfo = findTypeInfoByName(udt) 
-                        Direction = direction 
-                        DefaultValue = defaultArg (defaults.TryFind(name)) ""}
-        ]
-
-    member internal this.GetFunctionColumns(twoPartsName : string) = 
-        let db  = Server( ServerConnection(this)).Databases.[this.Database]
-        let schema, name =  splitName twoPartsName
-        let types = db.UserDefinedDataTypes |> Seq.cast<UserDefinedDataType> |> Seq.map(fun t -> t.Name, t.SystemType) |> Map.ofSeq
-        db.UserDefinedFunctions.[name, schema].Columns
-        |> Seq.cast<Microsoft.SqlServer.Management.Smo.Column>
-        |> Seq.mapi ( fun i c ->
-                let dataType = defaultArg (types.TryFind(c.DataType.Name)) c.DataType.Name
-                {
-                    Name = c.Name 
-                    TypeInfo =  findTypeInfoByName dataType
-                    IsNullable = c.Nullable
-                    Ordinal = i
-                    MaxLength = c.DataType.MaximumLength
-                })
-        |> List.ofSeq
-
-    member internal this.GetFunctions() = 
-        assert (this.State = ConnectionState.Open)
-        let db  = Server( ServerConnection(this)).Databases.[this.Database]
-        [ 
-            for f in db.UserDefinedFunctions do
-                if not f.IsSystemObject && f.DataType = null then 
-                    yield sprintf "%s.%s" f.Schema f.Name
-        ]
+    member internal this.GetParameters(defaults : Map<string,string>, twoPartsName) =         
+            assert (this.State = ConnectionState.Open)
+            [
+                for r in this.GetSchema("ProcedureParameters").Rows do
+                    let fullName = sprintf "%s.%s" (string r.["specific_schema"]) (string r.["specific_name"]) 
+                    if  string r.["specific_catalog"] = this.Database && fullName = twoPartsName then
+                        let name = string r.["parameter_name"]
+                        let direction = match string r.["parameter_mode"] with 
+                                        | "IN" -> ParameterDirection.Input 
+                                        | "OUT" -> ParameterDirection.Output
+                                        | "INOUT" -> ParameterDirection.InputOutput
+                                        | _ -> failwithf "Parameter %s has unsupported direction %O" name r.["parameter_mode"]
+                        let udt = string r.["data_type"]
+                        yield { 
+                            Name = name 
+                            TypeInfo = findTypeInfoByName(udt) 
+                            Direction = direction 
+                            DefaultValue = defaultArg (defaults.TryFind(name)) ""}
+            ]
+ 
 
     member internal this.GetProcedures() = 
         assert (this.State = ConnectionState.Open)

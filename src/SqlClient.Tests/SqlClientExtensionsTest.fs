@@ -32,17 +32,6 @@ let GetFullQualityColumnInfo() =
     conn.GetFullQualityColumnInfo("dbo.uspGetWhereUsedProductID") 
     |> Seq.iter (printfn "%A") 
 
-    
-[<Fact>]
-let GetFunctionColumns() =
-    conn.GetFunctionColumns("dbo.ufnGetContactInformation") 
-    |> Seq.iter (printfn "%A") 
-
-[<Fact>]
-let GetFunctions() =
-    conn.GetFunctions() 
-    |> Seq.iter (printfn "%A") 
-
 [<Fact>]
 let GetAllSPs() =
     conn.GetProcedures()
@@ -50,7 +39,7 @@ let GetAllSPs() =
 
 [<Fact>]
 let GetParameters() =
-    conn.GetParameters("dbo.Swap", false)
+    conn.GetParameters(Map.empty, "dbo.Swap")
     |> Seq.iter (printfn "%A")
 
 

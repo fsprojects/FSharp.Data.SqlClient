@@ -6,11 +6,15 @@ open Microsoft.SqlServer.Management.Smo
 open Microsoft.SqlServer.Management.Common
 open Xunit
 
+open FSharp.Data.Internals.SqlClient
+
 [<Literal>]
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
-let conn = new SqlConnection(connectionString)
-do conn.Open()
-let db()  = Server( ServerConnection(conn)).Databases.[conn.Database]
+//@"Server=tcp:z1ru1rvq7m.database.windows.net,1433;Database=AdventureWorks2012;Integrated Security=False;User ID=user123@z1ru1rvq7m;Password=p@ssw0rd"
+
+let db()  = 
+    let another = new SqlConnection(connectionString)
+    Server( ServerConnection(another)).Databases.[another.Database]
 
 //[<Fact>]
 let UDTs() =
