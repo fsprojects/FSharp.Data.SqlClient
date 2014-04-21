@@ -187,22 +187,22 @@ END
 
 [&lt;<span onmouseout="hideTip(event, 'fs14', 34)" onmouseover="showTip(event, 'fs14', 34)" class="i">Literal</span>&gt;]
 <span class="k">let</span> <span onmouseout="hideTip(event, 'fs16', 35)" onmouseover="showTip(event, 'fs16', 35)" class="i">euler17</span> <span class="o">=</span> <span class="s">&quot;</span>
-<span class="s">    </span><span class="s">WITH</span><span class="s"> </span><span class="s">InfiniteSeq</span><span class="s">(</span><span class="s">N</span><span class="s">)</span><span class="s"> </span><span class="s">AS</span><span class="s"> </span>
-<span class="s">    </span><span class="s">(</span><span class="s"> </span>
-<span class="s">        </span><span class="s">SELECT</span><span class="s"> </span><span class="s">1</span><span class="s"> </span>
-<span class="s">	    </span><span class="s">UNION</span><span class="s"> </span><span class="s">ALL</span><span class="s"> </span>
+<span class="s">    </span><span class="s">WITH</span><span class="s"> </span><span class="s">InfiniteSeq</span><span class="s">(</span><span class="s">N</span><span class="s">)</span><span class="s"> </span><span class="s">AS</span>
+<span class="s">    </span><span class="s">(</span>
+<span class="s">        </span><span class="s">SELECT</span><span class="s"> </span><span class="s">1</span>
+<span class="s">	    </span><span class="s">UNION</span><span class="s"> </span><span class="s">ALL</span>
 <span class="s">        </span><span class="s">SELECT</span><span class="s"> </span><span class="s">1</span><span class="s"> </span><span class="s">+</span><span class="s"> </span><span class="s">N</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">InfiniteSeq</span>
-<span class="s">    </span><span class="s">)</span><span class="s"> </span>
+<span class="s">    </span><span class="s">)</span>
 
 <span class="s">    </span><span class="s">SELECT</span><span class="s"> </span><span class="s">SUM</span><span class="s">(</span><span class="s">LEN</span><span class="s">(</span><span class="s">ys</span><span class="s">.</span><span class="s">Chars</span><span class="s">)</span><span class="s">)</span>
-<span class="s">    </span><span class="s">FROM</span><span class="s"> </span>
+<span class="s">    </span><span class="s">FROM</span>
 <span class="s">	    </span><span class="s">(</span><span class="s">SELECT</span><span class="s"> </span><span class="s">TOP</span><span class="s"> </span><span class="s">1000</span><span class="s"> </span><span class="s">*</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">InfiniteSeq</span><span class="s"> </span><span class="s">)</span><span class="s"> </span><span class="s">AS</span><span class="s"> </span><span class="s">xs</span>
 <span class="s">	    </span><span class="s">CROSS</span><span class="s"> </span><span class="s">APPLY</span><span class="s"> </span><span class="s">dbo</span><span class="s">.</span><span class="s">SpellNumber</span><span class="s">(</span><span class="s">xs</span><span class="s">.</span><span class="s">N</span><span class="s">)</span><span class="s"> </span><span class="s">AS</span><span class="s"> </span><span class="s">ys</span>
 <span class="s">    </span><span class="s">OPTION</span><span class="s"> </span><span class="s">(</span><span class="s">MAXRECURSION</span><span class="s"> </span><span class="s">0</span><span class="s">)</span>
 <span class="s">&quot;</span> 
 <span class="k">type</span> <span onmouseout="hideTip(event, 'fs17', 36)" onmouseover="showTip(event, 'fs17', 36)" class="i">Euler17</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs18', 37)" onmouseover="showTip(event, 'fs18', 37)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span onmouseout="hideTip(event, 'fs16', 38)" onmouseover="showTip(event, 'fs16', 38)" class="i">euler17</span>, <span onmouseout="hideTip(event, 'fs15', 39)" onmouseover="showTip(event, 'fs15', 39)" class="i">adventureWorks</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>
 
-<span onmouseout="hideTip(event, 'fs17', 40)" onmouseover="showTip(event, 'fs17', 40)" class="i">Euler17</span>()<span class="o">.</span><span class="i">Execute</span>()<span class="o">.</span><span class="i">Value</span><span class="o">.</span><span class="i">Value</span></pre>
+<span onmouseout="hideTip(event, 'fs17', 40)" onmouseover="showTip(event, 'fs17', 40)" class="i">Euler17</span>()<span class="o">.</span><span class="i">Execute</span>()<span class="o">.</span><span class="i">Value</span><span class="o">.</span><span class="i">Value</span> <span class="c">//21124</span></pre>
 </td>
 </tr>
 </table>
