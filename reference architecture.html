@@ -113,7 +113,7 @@ BEGIN
     ELSE
         WITH Digits AS 
         (
-            SELECT <em> 
+            SELECT offset, value 
             FROM 
                 (VALUES 
                     (0, ''),<br />
@@ -130,7 +130,7 @@ BEGIN
         ),
         TenToNineteen AS
         (
-            SELECT </em> 
+            SELECT offset, value
             FROM 
                 (VALUES 
                     (0, 'ten'),<br />
@@ -147,7 +147,7 @@ BEGIN
         ),
         Dozens AS
         (
-            SELECT * 
+            SELECT offset, value
             FROM 
                 (VALUES 
                     (0, ''),<br />
@@ -177,6 +177,60 @@ END
 </code>
 </pre></p>
 
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+<span class="l">14: </span>
+<span class="l">15: </span>
+<span class="l">16: </span>
+<span class="l">17: </span>
+<span class="l">18: </span>
+<span class="l">19: </span>
+<span class="l">20: </span>
+<span class="l">21: </span>
+<span class="l">22: </span>
+<span class="l">23: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs12', 30)" onmouseover="showTip(event, 'fs12', 30)" class="i">FSharp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs13', 31)" onmouseover="showTip(event, 'fs13', 31)" class="i">Data</span>
+
+[&lt;<span onmouseout="hideTip(event, 'fs14', 32)" onmouseover="showTip(event, 'fs14', 32)" class="i">Literal</span>&gt;]
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs15', 33)" onmouseover="showTip(event, 'fs15', 33)" class="i">adventureWorks</span> <span class="o">=</span> <span class="s">@&quot;</span><span class="s">Data</span><span class="s"> </span><span class="s">Source</span><span class="s">=</span><span class="s">(</span><span class="s">LocalDb</span><span class="s">)</span><span class="s">\</span><span class="s">v11</span><span class="s">.</span><span class="s">0</span><span class="s">;</span><span class="s">Initial</span><span class="s"> </span><span class="s">Catalog</span><span class="s">=</span><span class="s">AdventureWorks2012</span><span class="s">;</span><span class="s">Integrated</span><span class="s"> </span><span class="s">Security</span><span class="s">=</span><span class="s">True</span><span class="s">&quot;</span>
+
+[&lt;<span onmouseout="hideTip(event, 'fs14', 34)" onmouseover="showTip(event, 'fs14', 34)" class="i">Literal</span>&gt;]
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs16', 35)" onmouseover="showTip(event, 'fs16', 35)" class="i">euler17</span> <span class="o">=</span> <span class="s">&quot;</span>
+<span class="s">    </span><span class="s">WITH</span><span class="s"> </span><span class="s">InfiniteSeq</span><span class="s">(</span><span class="s">N</span><span class="s">)</span><span class="s"> </span><span class="s">AS</span><span class="s"> </span>
+<span class="s">    </span><span class="s">(</span><span class="s"> </span>
+<span class="s">        </span><span class="s">SELECT</span><span class="s"> </span><span class="s">1</span><span class="s"> </span>
+<span class="s">	    </span><span class="s">UNION</span><span class="s"> </span><span class="s">ALL</span><span class="s"> </span>
+<span class="s">        </span><span class="s">SELECT</span><span class="s"> </span><span class="s">1</span><span class="s"> </span><span class="s">+</span><span class="s"> </span><span class="s">N</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">InfiniteSeq</span>
+<span class="s">    </span><span class="s">)</span><span class="s"> </span>
+
+<span class="s">    </span><span class="s">SELECT</span><span class="s"> </span><span class="s">SUM</span><span class="s">(</span><span class="s">LEN</span><span class="s">(</span><span class="s">ys</span><span class="s">.</span><span class="s">Chars</span><span class="s">)</span><span class="s">)</span>
+<span class="s">    </span><span class="s">FROM</span><span class="s"> </span>
+<span class="s">	    </span><span class="s">(</span><span class="s">SELECT</span><span class="s"> </span><span class="s">TOP</span><span class="s"> </span><span class="s">1000</span><span class="s"> </span><span class="s">*</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">InfiniteSeq</span><span class="s"> </span><span class="s">)</span><span class="s"> </span><span class="s">AS</span><span class="s"> </span><span class="s">xs</span>
+<span class="s">	    </span><span class="s">CROSS</span><span class="s"> </span><span class="s">APPLY</span><span class="s"> </span><span class="s">dbo</span><span class="s">.</span><span class="s">SpellNumber</span><span class="s">(</span><span class="s">xs</span><span class="s">.</span><span class="s">N</span><span class="s">)</span><span class="s"> </span><span class="s">AS</span><span class="s"> </span><span class="s">ys</span>
+<span class="s">    </span><span class="s">OPTION</span><span class="s"> </span><span class="s">(</span><span class="s">MAXRECURSION</span><span class="s"> </span><span class="s">0</span><span class="s">)</span>
+<span class="s">&quot;</span> 
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs17', 36)" onmouseover="showTip(event, 'fs17', 36)" class="i">Euler17</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs18', 37)" onmouseover="showTip(event, 'fs18', 37)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span onmouseout="hideTip(event, 'fs16', 38)" onmouseover="showTip(event, 'fs16', 38)" class="i">euler17</span>, <span onmouseout="hideTip(event, 'fs15', 39)" onmouseover="showTip(event, 'fs15', 39)" class="i">adventureWorks</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>
+
+<span onmouseout="hideTip(event, 'fs17', 40)" onmouseover="showTip(event, 'fs17', 40)" class="i">Euler17</span>()<span class="o">.</span><span class="i">Execute</span>()<span class="o">.</span><span class="i">Value</span><span class="o">.</span><span class="i">Value</span></pre>
+</td>
+</tr>
+</table>
+
 <div class="tip" id="fs1">val ( 1..9 ) : string list<br /><br />Full name: Reference architecture.( 1..9 )</div>
 <div class="tip" id="fs2">val ( 10..19 ) : string list<br /><br />Full name: Reference architecture.( 10..19 )</div>
 <div class="tip" id="fs3">val dozens : string list<br /><br />Full name: Reference architecture.dozens</div>
@@ -188,6 +242,13 @@ END
 <div class="tip" id="fs9">Multiple items<br />module List<br /><br />from Microsoft.FSharp.Collections<br /><br />--------------------<br />type List&lt;&#39;T&gt; =<br />&#160;&#160;| ( [] )<br />&#160;&#160;| ( :: ) of Head: &#39;T * Tail: &#39;T list<br />&#160;&#160;interface IEnumerable<br />&#160;&#160;interface IEnumerable&lt;&#39;T&gt;<br />&#160;&#160;member Head : &#39;T<br />&#160;&#160;member IsEmpty : bool<br />&#160;&#160;member Item : index:int -&gt; &#39;T with get<br />&#160;&#160;member Length : int<br />&#160;&#160;member Tail : &#39;T list<br />&#160;&#160;static member Cons : head:&#39;T * tail:&#39;T list -&gt; &#39;T list<br />&#160;&#160;static member Empty : &#39;T list<br /><br />Full name: Microsoft.FSharp.Collections.List&lt;_&gt;</div>
 <div class="tip" id="fs10">val collect : mapping:(&#39;T -&gt; &#39;U list) -&gt; list:&#39;T list -&gt; &#39;U list<br /><br />Full name: Microsoft.FSharp.Collections.List.collect</div>
 <div class="tip" id="fs11">val length : list:&#39;T list -&gt; int<br /><br />Full name: Microsoft.FSharp.Collections.List.length</div>
+<div class="tip" id="fs12">namespace FSharp</div>
+<div class="tip" id="fs13">namespace FSharp.Data</div>
+<div class="tip" id="fs14">Multiple items<br />type LiteralAttribute =<br />&#160;&#160;inherit Attribute<br />&#160;&#160;new : unit -&gt; LiteralAttribute<br /><br />Full name: Microsoft.FSharp.Core.LiteralAttribute<br /><br />--------------------<br />new : unit -&gt; LiteralAttribute</div>
+<div class="tip" id="fs15">val adventureWorks : string<br /><br />Full name: Reference architecture.adventureWorks</div>
+<div class="tip" id="fs16">val euler17 : string<br /><br />Full name: Reference architecture.euler17</div>
+<div class="tip" id="fs17">type Euler17 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Reference architecture.Euler17</div>
+<div class="tip" id="fs18">type SqlCommandProvider<br /><br />Full name: FSharp.Data.SqlCommandProvider<br /><em><br /><br /><br />&lt;summary&gt;Typed representation of a T-SQL statement to execute against a SQL Server database.&lt;/summary&gt; <br />&lt;param name=&#39;CommandText&#39;&gt;Transact-SQL statement to execute at the data source.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.&lt;/param&gt;<br />&lt;param name=&#39;SingleRow&#39;&gt;If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;AllParametersOptional&#39;&gt;If set all parameters become optional. NULL input values must be handled inside T-SQL.&lt;/param&gt;<br /></em></div>
 
             </div>
 
