@@ -41,8 +41,8 @@ let spellNumber n =
 T-SQL solution:
 -------------------------------------
 
-<pre>
-<code lang="sql">
+<pre lang = 'sql'>
+<code>
 CREATE FUNCTION dbo.SpellNumber
 (
 	@n AS INT
@@ -100,7 +100,6 @@ END
 
 *)
 
-
 open FSharp.Data
 
 [<Literal>]
@@ -117,12 +116,13 @@ let euler17 = "
 
     SELECT SUM(LEN(ys.Chars))
     FROM
-	    (SELECT TOP 1000 * FROM InfiniteSeq ) AS xs
+        (SELECT TOP 1000 * FROM InfiniteSeq ) AS xs
 	    CROSS APPLY dbo.SpellNumber(xs.N) AS ys
     OPTION (MAXRECURSION 0)
 " 
 type Euler17 = SqlCommandProvider<euler17, adventureWorks, SingleRow = true>
 
-Euler17().Execute().Value.Value //21124
+let cmd = Euler17()
+cmd.Execute() |> Option.get |> Option.get |> printfn "%i"
 
 
