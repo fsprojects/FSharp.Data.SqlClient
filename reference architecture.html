@@ -96,8 +96,8 @@
 
 <h2>T-SQL solution:</h2>
 
-<p><pre>
-<code lang="sql">
+<p><pre lang="sql">
+<code>
 CREATE FUNCTION dbo.SpellNumber
 (
     @n AS INT
@@ -177,6 +177,7 @@ END
 <span class="l">21: </span>
 <span class="l">22: </span>
 <span class="l">23: </span>
+<span class="l">24: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
@@ -196,13 +197,14 @@ END
 
 <span class="s">    </span><span class="s">SELECT</span><span class="s"> </span><span class="s">SUM</span><span class="s">(</span><span class="s">LEN</span><span class="s">(</span><span class="s">ys</span><span class="s">.</span><span class="s">Chars</span><span class="s">)</span><span class="s">)</span>
 <span class="s">    </span><span class="s">FROM</span>
-<span class="s">	    </span><span class="s">(</span><span class="s">SELECT</span><span class="s"> </span><span class="s">TOP</span><span class="s"> </span><span class="s">1000</span><span class="s"> </span><span class="s">*</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">InfiniteSeq</span><span class="s"> </span><span class="s">)</span><span class="s"> </span><span class="s">AS</span><span class="s"> </span><span class="s">xs</span>
+<span class="s">        </span><span class="s">(</span><span class="s">SELECT</span><span class="s"> </span><span class="s">TOP</span><span class="s"> </span><span class="s">1000</span><span class="s"> </span><span class="s">*</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">InfiniteSeq</span><span class="s"> </span><span class="s">)</span><span class="s"> </span><span class="s">AS</span><span class="s"> </span><span class="s">xs</span>
 <span class="s">	    </span><span class="s">CROSS</span><span class="s"> </span><span class="s">APPLY</span><span class="s"> </span><span class="s">dbo</span><span class="s">.</span><span class="s">SpellNumber</span><span class="s">(</span><span class="s">xs</span><span class="s">.</span><span class="s">N</span><span class="s">)</span><span class="s"> </span><span class="s">AS</span><span class="s"> </span><span class="s">ys</span>
 <span class="s">    </span><span class="s">OPTION</span><span class="s"> </span><span class="s">(</span><span class="s">MAXRECURSION</span><span class="s"> </span><span class="s">0</span><span class="s">)</span>
 <span class="s">&quot;</span> 
 <span class="k">type</span> <span onmouseout="hideTip(event, 'fs17', 36)" onmouseover="showTip(event, 'fs17', 36)" class="i">Euler17</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs18', 37)" onmouseover="showTip(event, 'fs18', 37)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span onmouseout="hideTip(event, 'fs16', 38)" onmouseover="showTip(event, 'fs16', 38)" class="i">euler17</span>, <span onmouseout="hideTip(event, 'fs15', 39)" onmouseover="showTip(event, 'fs15', 39)" class="i">adventureWorks</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>
 
-<span onmouseout="hideTip(event, 'fs17', 40)" onmouseover="showTip(event, 'fs17', 40)" class="i">Euler17</span>()<span class="o">.</span><span class="i">Execute</span>()<span class="o">.</span><span class="i">Value</span><span class="o">.</span><span class="i">Value</span> <span class="c">//21124</span></pre>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs19', 40)" onmouseover="showTip(event, 'fs19', 40)" class="i">cmd</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs17', 41)" onmouseover="showTip(event, 'fs17', 41)" class="i">Euler17</span>()
+<span onmouseout="hideTip(event, 'fs19', 42)" onmouseover="showTip(event, 'fs19', 42)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs20', 43)" onmouseover="showTip(event, 'fs20', 43)" class="i">Execute</span>() <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs21', 44)" onmouseover="showTip(event, 'fs21', 44)" class="i">Option</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs22', 45)" onmouseover="showTip(event, 'fs22', 45)" class="i">get</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs21', 46)" onmouseover="showTip(event, 'fs21', 46)" class="i">Option</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs22', 47)" onmouseover="showTip(event, 'fs22', 47)" class="i">get</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs23', 48)" onmouseover="showTip(event, 'fs23', 48)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">%</span><span class="s">i</span><span class="s">&quot;</span></pre>
 </td>
 </tr>
 </table>
@@ -225,6 +227,11 @@ END
 <div class="tip" id="fs16">val euler17 : string<br /><br />Full name: Reference architecture.euler17</div>
 <div class="tip" id="fs17">type Euler17 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Reference architecture.Euler17</div>
 <div class="tip" id="fs18">type SqlCommandProvider<br /><br />Full name: FSharp.Data.SqlCommandProvider<br /><em><br /><br /><br />&lt;summary&gt;Typed representation of a T-SQL statement to execute against a SQL Server database.&lt;/summary&gt; <br />&lt;param name=&#39;CommandText&#39;&gt;Transact-SQL statement to execute at the data source.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.&lt;/param&gt;<br />&lt;param name=&#39;SingleRow&#39;&gt;If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;AllParametersOptional&#39;&gt;If set all parameters become optional. NULL input values must be handled inside T-SQL.&lt;/param&gt;<br /></em></div>
+<div class="tip" id="fs19">val cmd : SqlCommandProvider&lt;...&gt;<br /><br />Full name: Reference architecture.cmd</div>
+<div class="tip" id="fs20">SqlCommandProvider&lt;...&gt;.Execute() : Option&lt;Option&lt;int64&gt;&gt;</div>
+<div class="tip" id="fs21">module Option<br /><br />from Microsoft.FSharp.Core</div>
+<div class="tip" id="fs22">val get : option:&#39;T option -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.Option.get</div>
+<div class="tip" id="fs23">val printfn : format:Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.ExtraTopLevelOperators.printfn</div>
 
             </div>
 
