@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Design considerations
+    <title>Beautiful Functional Architectures
 </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way. SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code.">
@@ -34,8 +34,121 @@
         <div class="row">
             <div class="span9" id="main">
                 
-<h1>Design considerations</h1>
+<h1>Beautiful Functional Architectures</h1>
 
+<p><a href="https://projecteuler.net/problem=17">Project Euler. #17.</a></p>
+
+<h2>F# solution:</h2>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+<span class="l">14: </span>
+<span class="l">15: </span>
+<span class="l">16: </span>
+<span class="l">17: </span>
+<span class="l">18: </span>
+<span class="l">19: </span>
+<span class="l">20: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">``1..9``</span> <span class="o">=</span> [<span class="s">&quot;</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">one</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">two</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">three</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">four</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">five</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">six</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">seven</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">eight</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">nine</span><span class="s">&quot;</span>]
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs2', 2)" onmouseover="showTip(event, 'fs2', 2)" class="i">``10..19``</span> <span class="o">=</span>  [<span class="s">&quot;</span><span class="s">ten</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">eleven</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">twelve</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">thirteen</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">fourteen</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">fifteen</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">sixteen</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">seventeen</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">eighteen</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">nineteen</span><span class="s">&quot;</span>]
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs3', 3)" onmouseover="showTip(event, 'fs3', 3)" class="i">dozens</span> <span class="o">=</span> [<span class="s">&quot;</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">twenty</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">thirty</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">forty</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">fifty</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">sixty</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">seventy</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">eighty</span><span class="s">&quot;</span>; <span class="s">&quot;</span><span class="s">ninety</span><span class="s">&quot;</span>]
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs4', 4)" onmouseover="showTip(event, 'fs4', 4)" class="i">spellNumber</span> <span onmouseout="hideTip(event, 'fs5', 5)" onmouseover="showTip(event, 'fs5', 5)" class="i">n</span> <span class="o">=</span> 
+    [
+        <span class="k">if</span> <span onmouseout="hideTip(event, 'fs5', 6)" onmouseover="showTip(event, 'fs5', 6)" class="i">n</span> <span class="o">=</span> <span class="n">1000</span> <span class="k">then</span> <span class="k">yield!</span> <span class="s">&quot;</span><span class="s">onethousand</span><span class="s">&quot;</span>
+        <span class="k">else</span> 
+            <span class="k">let</span> <span onmouseout="hideTip(event, 'fs6', 7)" onmouseover="showTip(event, 'fs6', 7)" class="i">hundredsDigit</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs5', 8)" onmouseover="showTip(event, 'fs5', 8)" class="i">n</span> <span class="o">/</span> <span class="n">100</span>
+            <span class="k">if</span> <span onmouseout="hideTip(event, 'fs6', 9)" onmouseover="showTip(event, 'fs6', 9)" class="i">hundredsDigit</span> <span class="o">&gt;</span> <span class="n">0</span> <span class="k">then</span> <span class="k">yield!</span> <span onmouseout="hideTip(event, 'fs7', 10)" onmouseover="showTip(event, 'fs7', 10)" class="i">sprintf</span> <span class="s">&quot;</span><span class="s">%</span><span class="s">shundred</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs1', 11)" onmouseover="showTip(event, 'fs1', 11)" class="i">``1..9``</span><span class="o">.</span>[<span onmouseout="hideTip(event, 'fs6', 12)" onmouseover="showTip(event, 'fs6', 12)" class="i">hundredsDigit</span>] 
+            <span class="k">let</span> <span onmouseout="hideTip(event, 'fs8', 13)" onmouseover="showTip(event, 'fs8', 13)" class="i">moduloOf100</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs5', 14)" onmouseover="showTip(event, 'fs5', 14)" class="i">n</span> <span class="o">%</span> <span class="n">100</span>
+            <span class="k">if</span> <span onmouseout="hideTip(event, 'fs6', 15)" onmouseover="showTip(event, 'fs6', 15)" class="i">hundredsDigit</span> <span class="o">&lt;&gt;</span> <span class="n">0</span> <span class="o">&amp;&amp;</span> <span onmouseout="hideTip(event, 'fs8', 16)" onmouseover="showTip(event, 'fs8', 16)" class="i">moduloOf100</span> <span class="o">&lt;&gt;</span> <span class="n">0</span> <span class="k">then</span> <span class="k">yield!</span> <span class="s">&quot;</span><span class="s">and</span><span class="s">&quot;</span>
+            <span class="k">if</span> <span onmouseout="hideTip(event, 'fs8', 17)" onmouseover="showTip(event, 'fs8', 17)" class="i">moduloOf100</span> <span class="o">&gt;</span><span class="o">=</span> <span class="n">10</span> <span class="o">&amp;&amp;</span> <span onmouseout="hideTip(event, 'fs8', 18)" onmouseover="showTip(event, 'fs8', 18)" class="i">moduloOf100</span> <span class="o">&lt;=</span> <span class="n">19</span> <span class="k">then</span> <span class="k">yield!</span> <span onmouseout="hideTip(event, 'fs2', 19)" onmouseover="showTip(event, 'fs2', 19)" class="i">``10..19``</span><span class="o">.</span>[<span onmouseout="hideTip(event, 'fs8', 20)" onmouseover="showTip(event, 'fs8', 20)" class="i">moduloOf100</span> <span class="o">-</span> <span class="n">10</span>]
+            <span class="k">else</span>
+                <span class="k">yield!</span> <span onmouseout="hideTip(event, 'fs3', 21)" onmouseover="showTip(event, 'fs3', 21)" class="i">dozens</span><span class="o">.</span>[<span onmouseout="hideTip(event, 'fs8', 22)" onmouseover="showTip(event, 'fs8', 22)" class="i">moduloOf100</span> <span class="o">/</span> <span class="n">10</span>] <span class="o">+</span> <span onmouseout="hideTip(event, 'fs1', 23)" onmouseover="showTip(event, 'fs1', 23)" class="i">``1..9``</span><span class="o">.</span>[<span onmouseout="hideTip(event, 'fs8', 24)" onmouseover="showTip(event, 'fs8', 24)" class="i">moduloOf100</span> <span class="o">%</span> <span class="n">10</span>]
+    ]
+
+[ <span class="n">1</span> <span class="o">..</span> <span class="n">1000</span> ]
+<span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs9', 25)" onmouseover="showTip(event, 'fs9', 25)" class="i">List</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs10', 26)" onmouseover="showTip(event, 'fs10', 26)" class="i">collect</span> <span onmouseout="hideTip(event, 'fs4', 27)" onmouseover="showTip(event, 'fs4', 27)" class="i">spellNumber</span>
+<span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs9', 28)" onmouseover="showTip(event, 'fs9', 28)" class="i">List</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs11', 29)" onmouseover="showTip(event, 'fs11', 29)" class="i">length</span></pre>
+</td>
+</tr>
+</table>
+
+<h2>T-SQL solution:</h2>
+
+<p><pre>
+<code>
+CREATE FUNCTION dbo.SpellNumber
+(
+    @n AS INT
+)
+RETURNS @result TABLE
+(
+     Chars NVARCHAR(MAX) NOT NULL
+)
+AS
+BEGIN
+    IF @n = 1000
+        INSERT INTO @result VALUES ('onethousand')
+    ELSE
+        WITH Digits AS 
+        (
+            SELECT <em> 
+            FROM 
+                (VALUES (0, ''),  (1, 'one'),  (2, 'two'),  (3, 'three'),  (4, 'four'),  (5, 'five'),  (6, 'six'),  (7, 'seven'),  (8, 'eight'),  (9, 'nine')) AS T(offset, value)
+        ),
+        TenToNineteen AS
+        (
+            SELECT </em> 
+            FROM 
+                (VALUES (0, 'ten'),  (1, 'eleven'),  (2, 'twelve'),  (3, 'thirteen'),  (4, 'fourteen'),  (5, 'fifteen'),  (6, 'sixteen'),  (7, 'seventeen'),  (8, 'eighteen'),  (9, 'nineteen')) AS T(offset, value)
+        ),
+        Dozens AS
+        (
+            SELECT * 
+            FROM 
+                (VALUES (0, ''),  (1, ''),  (2, 'twenty'),  (3, 'thirty'),  (4, 'forty'),  (5, 'fifty'),  (6, 'sixty'),  (7, 'seventy'),  (8, 'eighty'),  (9, 'ninety')) AS T(offset, value)
+        )
+        INSERT INTO @result 
+            SELECT value + 'hundred' FROM Digits WHERE @n / 100 > 0 AND offset = @n / 100
+            UNION ALL
+            SELECT 'and' WHERE @n / 100 > 0 AND @n % 100 > 0 
+            UNION ALL
+            SELECT value FROM TenToNineteen WHERE (@n % 100) - 10 = offset
+            UNION ALL
+            SELECT value FROM Dozens WHERE (@n % 100 NOT BETWEEN 10 AND 19) AND ((@n % 100) / 10 = offset) 
+            UNION ALL
+            SELECT value FROM Digits WHERE (@n % 100 NOT BETWEEN 10 AND 19) AND ((@n % 100) % 10 = offset) 
+    RETURN
+END
+</code>
+</pre></p>
+
+<div class="tip" id="fs1">val ( 1..9 ) : string list<br /><br />Full name: Reference architecture.( 1..9 )</div>
+<div class="tip" id="fs2">val ( 10..19 ) : string list<br /><br />Full name: Reference architecture.( 10..19 )</div>
+<div class="tip" id="fs3">val dozens : string list<br /><br />Full name: Reference architecture.dozens</div>
+<div class="tip" id="fs4">val spellNumber : n:int -&gt; char list<br /><br />Full name: Reference architecture.spellNumber</div>
+<div class="tip" id="fs5">val n : int</div>
+<div class="tip" id="fs6">val hundredsDigit : int</div>
+<div class="tip" id="fs7">val sprintf : format:Printf.StringFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.ExtraTopLevelOperators.sprintf</div>
+<div class="tip" id="fs8">val moduloOf100 : int</div>
+<div class="tip" id="fs9">Multiple items<br />module List<br /><br />from Microsoft.FSharp.Collections<br /><br />--------------------<br />type List&lt;&#39;T&gt; =<br />&#160;&#160;| ( [] )<br />&#160;&#160;| ( :: ) of Head: &#39;T * Tail: &#39;T list<br />&#160;&#160;interface IEnumerable<br />&#160;&#160;interface IEnumerable&lt;&#39;T&gt;<br />&#160;&#160;member Head : &#39;T<br />&#160;&#160;member IsEmpty : bool<br />&#160;&#160;member Item : index:int -&gt; &#39;T with get<br />&#160;&#160;member Length : int<br />&#160;&#160;member Tail : &#39;T list<br />&#160;&#160;static member Cons : head:&#39;T * tail:&#39;T list -&gt; &#39;T list<br />&#160;&#160;static member Empty : &#39;T list<br /><br />Full name: Microsoft.FSharp.Collections.List&lt;_&gt;</div>
+<div class="tip" id="fs10">val collect : mapping:(&#39;T -&gt; &#39;U list) -&gt; list:&#39;T list -&gt; &#39;U list<br /><br />Full name: Microsoft.FSharp.Collections.List.collect</div>
+<div class="tip" id="fs11">val length : list:&#39;T list -&gt; int<br /><br />Full name: Microsoft.FSharp.Collections.List.length</div>
 
             </div>
 
