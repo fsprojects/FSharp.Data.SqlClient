@@ -97,7 +97,7 @@
 <h2>T-SQL solution:</h2>
 
 <p><pre>
-<code>
+<code lang="sql">
 CREATE FUNCTION dbo.SpellNumber
 (
     @n AS INT
@@ -113,19 +113,11 @@ BEGIN
     ELSE
         WITH Digits AS 
         (
-            SELECT offset, value 
+            SELECT offset, value
             FROM 
                 (VALUES 
-                    (0, ''),<br />
-                    (1, 'one'),<br />
-                    (2, 'two'),<br />
-                    (3, 'three'),<br />
-                    (4, 'four'),<br />
-                    (5, 'five'),<br />
-                    (6, 'six'),<br />
-                    (7, 'seven'),<br />
-                    (8, 'eight'),<br />
-                    (9, 'nine')) 
+                    (0, ''),  (1, 'one'),  (2, 'two'),  (3, 'three'),  (4, 'four'),<br />
+                    (5, 'five'),  (6, 'six'),  (7, 'seven'),  (8, 'eight'),  (9, 'nine')) 
                 AS T(offset, value)
         ),
         TenToNineteen AS
@@ -133,16 +125,8 @@ BEGIN
             SELECT offset, value
             FROM 
                 (VALUES 
-                    (0, 'ten'),<br />
-                    (1, 'eleven'),<br />
-                    (2, 'twelve'),<br />
-                    (3, 'thirteen'),<br />
-                    (4, 'fourteen'),<br />
-                    (5, 'fifteen'),<br />
-                    (6, 'sixteen'),<br />
-                    (7, 'seventeen'),<br />
-                    (8, 'eighteen'),<br />
-                    (9, 'nineteen')) 
+                    (0, 'ten'),  (1, 'eleven'),  (2, 'twelve'),  (3, 'thirteen'),  (4, 'fourteen'),<br />
+                    (5, 'fifteen'),  (6, 'sixteen'),  (7, 'seventeen'),  (8, 'eighteen'),  (9, 'nineteen')) 
                 AS T(offset, value)
         ),
         Dozens AS
@@ -150,16 +134,8 @@ BEGIN
             SELECT offset, value
             FROM 
                 (VALUES 
-                    (0, ''),<br />
-                    (1, ''),<br />
-                    (2, 'twenty'),<br />
-                    (3, 'thirty'),<br />
-                    (4, 'forty'),<br />
-                    (5, 'fifty'),<br />
-                    (6, 'sixty'),<br />
-                    (7, 'seventy'),<br />
-                    (8, 'eighty'),<br />
-                    (9, 'ninety')) 
+                    (0, ''),  (1, ''),  (2, 'twenty'),  (3, 'thirty'),  (4, 'forty'),  (
+                    5, 'fifty'),  (6, 'sixty'),  (7, 'seventy'),  (8, 'eighty'),  (9, 'ninety')) 
                 AS T(offset, value)
         )
         INSERT INTO @result 
