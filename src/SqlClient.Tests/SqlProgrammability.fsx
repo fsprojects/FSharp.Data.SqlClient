@@ -13,9 +13,6 @@ let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWo
 [<Literal>] 
 let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
 
-[<Literal>] 
-let azure = @"Server=tcp:z1ru1rvq7m.database.windows.net,1433;Database=AdventureWorks2012;Integrated Security=False;User ID=user123@z1ru1rvq7m;Password=p@ssw0rd"
-
 
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
 

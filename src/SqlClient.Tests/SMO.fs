@@ -10,7 +10,6 @@ open FSharp.Data.Internals.SqlClient
 
 [<Literal>]
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
-//@"Server=tcp:z1ru1rvq7m.database.windows.net,1433;Database=AdventureWorks2012;Integrated Security=False;User ID=user123@z1ru1rvq7m;Password=p@ssw0rd"
 
 let db()  = 
     let another = new SqlConnection(connectionString)
