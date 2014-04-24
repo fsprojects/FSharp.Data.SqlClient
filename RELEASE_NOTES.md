@@ -31,3 +31,4 @@
 * 1.2.14 - Fix for bit default value. Changes in RuntimeRecord.
 * 1.2.15 - bug fix for string param with AllParametersOptional.
 * 1.2.16 - Fixing Azure compatibility for SqlProgrammability.
+* 1.2.17 - Mono compatibility is back.
