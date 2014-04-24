@@ -227,9 +227,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     let r = this.RecordType(outputColumns)
                     let names = Expr.NewArray(typeof<string>, outputColumns |> List.map (fun x -> Expr.Value(x.Name))) 
                     upcast r,
-                    typeof<DynamicRecord>,
+                    typeof<obj>,
                     Some r, 
-                    <@@ fun(values : obj[]) ->  SqlCommandFactory.GetRecord(values, %%names) @@>
+                    <@@ fun(values : obj[]) -> box( SqlCommandFactory.GetRecord(values, %%names)) @@>
                 else 
                     let tupleType = 
                         match outputColumns with
@@ -341,7 +341,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     ]
 
     member internal this.RecordType(columns) =
-        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<DynamicRecord>, HideObjectMethods = true)
+        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
         let properties, ctorParameters, parameters = 
             [
                 for col in columns do
@@ -351,7 +351,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     let propType = col.ClrTypeConsideringNullable
 
                     let property = ProvidedProperty(propertyName, propType)
-                    property.GetterCode <- fun args -> <@@ (%%args.[0] : DynamicRecord).[propertyName] @@>
+                    property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
                     let nullalbleParameter = ProvidedParameter(propertyName, propType, optionalValue = null)
                     let ctorPropertyName = (propertyName.[0] |> string).ToLower() + propertyName.Substring(1)                    
                     let ctorParameter = if col.IsNullable 
@@ -382,12 +382,12 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     | _ -> None)
                 |> List.ofSeq
             <@@
-                let record = %%args.Head : DynamicRecord
+                let record : DynamicRecord = unbox %%args.Head 
                 let data = Dictionary<_,_>(record.Data())
                 let pairs : (string*obj) [] = %%Expr.NewArray(typeof<string * obj>, nonEmpty)
                 for key,value in pairs do
                     data.[key] <- value
-                DynamicRecord data
+                box(DynamicRecord data)
             @@>
         recordType.AddMember withMethod
         recordType    

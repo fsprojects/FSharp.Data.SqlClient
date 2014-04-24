@@ -40,8 +40,8 @@ let GetAllSPs() =
 [<Fact>]
 let GetParameters() =
     conn.GetParameters(Map.empty, "dbo.Swap")
-    |> Seq.iter (printfn "%A")
-
+    //|> Seq.iter (printfn "%A")
+    |> ignore
 
 [<Fact>]
 let ``Parse default value``() =
