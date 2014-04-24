@@ -180,32 +180,15 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
      member internal __.UDTTs() =
          [
                 for t in UDTTs() do
-                    let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<SqlDataRecord>)
-                    let parameters, metaData = 
-                        [
-                            for p in t.TvpColumns do
-                                let name, dbType, maxLength = p.Name, p.TypeInfo.SqlDbTypeId, int64 p.MaxLength
-                                let paramMeta = 
-                                    match p.TypeInfo.IsFixedLength with 
-                                    | Some true -> <@@ SqlMetaData(name, enum dbType) @@>
-                                    | Some false -> <@@ SqlMetaData(name, enum dbType, maxLength) @@>
-                                    | _ -> failwith "Unexpected"
-                                let param = 
-                                    if p.IsNullable
-                                    then ProvidedParameter(p.Name, p.TypeInfo.ClrType, optionalValue = null)
-                                    else ProvidedParameter(p.Name, p.TypeInfo.ClrType)
-                                yield param, paramMeta
-                        ] |> List.unzip
+                    let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj[]>)
+                    
+                    let parameters = [ 
+                        for p in t.TvpColumns -> 
+                            ProvidedParameter(p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
+                    ] 
 
-                    let ctor = ProvidedConstructor(parameters)
-                    ctor.InvokeCode <- fun args -> 
-                        let values = Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
-                        <@@ 
-                            let result = SqlDataRecord(metaData = %%Expr.NewArray(typeof<SqlMetaData>, metaData)) 
-                            let count = result.SetValues(%%values)
-                            Debug.Assert(%%Expr.Value(args.Length) = count, "Unexpected return value from SqlDataRecord.SetValues.")
-                            result
-                        @@>
+                    let ctor = ProvidedConstructor( parameters)
+                    ctor.InvokeCode <- fun args -> Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
                     rowType.AddMember ctor
                     yield rowType
             ]
@@ -272,7 +255,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             <@@
                 async {
                     let sqlCommand = %ProgrammabilityQuotationsFactory.GetSqlCommandWithParamValuesSet(expr, inputParamters)
-                    sqlCommand.Parameters.Add(SqlParameter(returnName, SqlDbType.Int, Direction = ParameterDirection.ReturnValue)) |> ignore
+                    let returnValue = sqlCommand.Parameters.Add( returnName, SqlDbType.Int) 
+                    returnValue.Direction <- ParameterDirection.ReturnValue
                     //open connection async on .NET 4.5
                     if sqlCommand.Connection.State <> ConnectionState.Open then
                         sqlCommand.Connection.Open()

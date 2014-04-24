@@ -30,14 +30,6 @@ and TypeInfo = {
     member this.TableType = this.SqlDbType = SqlDbType.Structured
     member this.IsValueType = not this.TableType && this.ClrType.IsValueType
 
-    member this.TvpDataTable() = 
-        assert (this.TableType)
-        let table = new DataTable()
-        let cs = table.Columns
-        for c in this.TvpColumns do
-            cs.Add( c.Name, c.ClrTypeConsideringNullable) |> ignore
-        table
-
 type Parameter = {
     Name : string
     TypeInfo : TypeInfo

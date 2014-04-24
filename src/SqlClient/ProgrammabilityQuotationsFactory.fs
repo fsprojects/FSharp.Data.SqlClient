@@ -56,9 +56,22 @@ type ProgrammabilityQuotationsFactory private() =
             Debug.Assert(sqlCommand.Parameters.Count = paramValues.Length, "Expect size of values array to be equal to the number of SqlParameters.")
             for i = 0 to paramValues.Length - 1 do
                 let p = sqlCommand.Parameters.[i]
-                p.Value <- paramValues.[i]
-                if p.Value = DbNull && (p.SqlDbType = SqlDbType.NVarChar || p.SqlDbType = SqlDbType.VarChar)
-                then p.Size <- if  p.SqlDbType = SqlDbType.NVarChar then 4000 else 8000
+
+                if not( p.SqlDbType = SqlDbType.Structured)
+                then 
+                    p.Value <- paramValues.[i]
+                else
+                    let table = unbox<DataTable> p.Value
+                    for rowValues in unbox<seq<obj[]>> paramValues.[i] do
+                        table.Rows.Add( rowValues) |> ignore
+
+                if p.Value = DbNull 
+                then 
+                    match p.SqlDbType with
+                    | SqlDbType.NVarChar -> p.Size <- 4000
+                    | SqlDbType.VarChar -> p.Size <- 8000
+                    | _ -> ()
+
             sqlCommand
         @>
 

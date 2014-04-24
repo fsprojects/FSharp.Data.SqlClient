@@ -272,13 +272,3 @@ type SqlConnection with
         if List.isEmpty !dataTypeMappings 
         then
             dataTypeMappings := this.GetDataTypesMapping()
-
-
-type SqlParameter with
-    member internal this.ToParameter() = 
-        let udt = if String.IsNullOrEmpty(this.TypeName) then "" else this.TypeName.Split('.') |> Seq.last
-        match findTypeInfoByProviderType(this.SqlDbType, udt) with
-        | Some x -> 
-            { Name = this.ParameterName; TypeInfo = x; Direction = this.Direction; DefaultValue = "" }
-        | None -> 
-            failwithf "Cannot map pair of SqlDbType '%O' and user definto type '%s' CLR type." this.SqlDbType udt
