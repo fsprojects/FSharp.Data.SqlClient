@@ -59,7 +59,8 @@ type SqlCommand<'TResult>(  connection: SqlConnection,
                 then 
                     p.Value <- value
                 else
-                    let table = unbox<DataTable> p.Value
+                    let table : DataTable = unbox p.Value
+                    table.Rows.Clear()
                     for rowValues in unbox<seq<obj[]>> value do
                         table.Rows.Add( rowValues) |> ignore
 

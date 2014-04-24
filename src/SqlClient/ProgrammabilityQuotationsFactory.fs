@@ -61,7 +61,8 @@ type ProgrammabilityQuotationsFactory private() =
                 then 
                     p.Value <- paramValues.[i]
                 else
-                    let table = unbox<DataTable> p.Value
+                    let table : DataTable = unbox p.Value
+                    table.Rows.Clear()
                     for rowValues in unbox<seq<obj[]>> paramValues.[i] do
                         table.Rows.Add( rowValues) |> ignore
 
