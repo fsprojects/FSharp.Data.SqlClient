@@ -119,7 +119,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         
         let providedOutputType, runtimeType, (typeToAdd : ProvidedTypeDefinition option), mapper = this.GetReaderMapper(outputColumns, resultType, singleRow)
         
-        let erasedType = typedefof<_ SqlCommand>.MakeGenericType([|runtimeType|])
+        let erasedType = typedefof<_ SqlCommand>.MakeGenericType( [| runtimeType |])
 
         let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some erasedType, HideObjectMethods = true)
         
@@ -207,7 +207,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             <@@ fun (token : CancellationToken option) (sqlReader : SqlDataReader) -> 0  @@>
         elif resultType = ResultType.DataTable 
         then
-            let rowType = this.RowType(outputColumns)
+            let rowType = this.DataRowType(outputColumns)
             ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ rowType ]),
             typeof<DataTable<DataRow>>,
             Some rowType,            
@@ -392,7 +392,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         recordType.AddMember withMethod
         recordType    
 
-    member internal this.RowType (outputColumns) = 
+    member internal this.DataRowType (outputColumns) = 
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
         for col in outputColumns do
             let name = col.Name

@@ -47,11 +47,15 @@ type SqlCommand<'TResult>(  connection: SqlConnection,
         ||| CommandBehavior.SingleResult
 
     let setParameters (parameters : (string * obj)[]) = 
-        for name,value in parameters do
+        for name, value in parameters do
             let p = cmd.Parameters.[name]            
             p.Value <- if value = null then DbNull else value
-            if p.Value = DbNull && (p.SqlDbType = SqlDbType.NVarChar || p.SqlDbType = SqlDbType.VarChar)
-            then p.Size <- if  p.SqlDbType = SqlDbType.NVarChar then 4000 else 8000
+            if p.Value = DbNull 
+            then 
+                match p.SqlDbType with
+                | SqlDbType.NVarChar -> p.Size <- 4000
+                | SqlDbType.VarChar -> p.Size <- 8000
+                | _ -> ()
     
     member this.ConnectionState () = cmd.Connection.State
 
