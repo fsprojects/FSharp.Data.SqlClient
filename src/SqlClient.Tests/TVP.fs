@@ -9,9 +9,8 @@ type TableValuedTuple = SqlCommandProvider<"exec myProc @x", "name=AdventureWork
 type MyTableType = TableValuedTuple.MyTableType
 
 [<Fact>]
-let tableValuedTupleValue() = 
+let Basic() = 
     let cmd = new TableValuedTuple()
-    let x = TableValuedTuple.MyTableType(myId = 5, myName = "test")
     let p = [
         MyTableType(myId = 1, myName = "monkey")
         MyTableType(myId = 2, myName = "donkey")
@@ -19,7 +18,7 @@ let tableValuedTupleValue() =
     Assert.Equal(Some(1, Some "monkey"), cmd.Execute(x = p))    
 
 [<Fact>] 
-let tvpInputIsEnumeratedExactlyOnce() = 
+let InputIsEnumeratedExactlyOnce() = 
     let cmd = new TableValuedTuple()
     let counter = ref 0
     let x = seq { 
@@ -31,7 +30,7 @@ let tvpInputIsEnumeratedExactlyOnce() =
     Assert.Equal(1, !counter)    
 
 [<Fact>] 
-let tableValuedSprocTupleNull() = 
+let NullableColumn() = 
     let cmd = new TableValuedTuple()
     let p = [
         MyTableType(myId = 1)
@@ -43,7 +42,7 @@ let tableValuedSprocTupleNull() =
 type TableValuedSingle = SqlCommandProvider<"exec SingleElementProc @x", ConnectionStringOrName = "name=AdventureWorks2012">
 
 [<Fact>]
-let tableValuedSingle() = 
+let SingleColumn() = 
     let cmd = new TableValuedSingle()
     let p = [ 
         TableValuedSingle.SingleElementType(myId = 1) 
@@ -55,7 +54,7 @@ let tableValuedSingle() =
 type TableValuedSprocTuple  = SqlCommandProvider<"exec myProc @x", ConnectionStringOrName = "name=AdventureWorks2012", SingleRow = true, ResultType = ResultType.Tuples>
 
 [<Fact>]
-let tableValuedSprocTupleValue() = 
+let SprocTupleValue() = 
     let cmd = new TableValuedSprocTuple()
     let p = [
         TableValuedSprocTuple.MyTableType(myId = 1, myName = "monkey")

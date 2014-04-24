@@ -48,14 +48,28 @@ type SqlCommand<'TResult>(  connection: SqlConnection,
 
     let setParameters (parameters : (string * obj)[]) = 
         for name, value in parameters do
+            
             let p = cmd.Parameters.[name]            
-            p.Value <- if value = null then DbNull else value
+
+            if value = null 
+            then 
+                p.Value <- DbNull 
+            else
+                if not( p.SqlDbType = SqlDbType.Structured)
+                then 
+                    p.Value <- value
+                else
+                    let table = unbox<DataTable> p.Value
+                    for rowValues in unbox<seq<obj[]>> value do
+                        table.Rows.Add( rowValues) |> ignore
+
             if p.Value = DbNull 
             then 
                 match p.SqlDbType with
                 | SqlDbType.NVarChar -> p.Size <- 4000
                 | SqlDbType.VarChar -> p.Size <- 8000
                 | _ -> ()
+
     
     member this.ConnectionState () = cmd.Connection.State
 
@@ -106,7 +120,7 @@ type SqlCommand<'TResult>(  connection: SqlConnection,
 type SqlCommandFactory private () =
     
     static member GetMethod(name, runtimeType) = 
-        typeof<SqlCommandFactory>.GetMethod(name).MakeGenericMethod([|runtimeType|])
+        typeof<SqlCommandFactory>.GetMethod(name).MakeGenericMethod([| runtimeType |])
 
     static member ByConnectionString(connectionStringOrName, command, commandType, paramInfos, singleRow, mapper) = 
         let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName

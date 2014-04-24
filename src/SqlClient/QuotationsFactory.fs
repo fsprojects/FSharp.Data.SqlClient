@@ -28,16 +28,31 @@ type QuotationsFactory private() =
     static member internal ToSqlParam(p : Parameter) = 
         let name = p.Name
         let dbType = p.TypeInfo.SqlDbTypeId
+
+        let tvpColumnNames, tvpColumnTypes = 
+            if not p.TypeInfo.TableType 
+            then [], []
+            else [ for c in p.TypeInfo.TvpColumns -> c.Name, c.TypeInfo.ClrType.FullName ] |> List.unzip
+
         <@@ 
-            let r = SqlParameter(
+            let x = SqlParameter(
                         name, 
                         enum dbType, 
                         Direction = %%Expr.Value p.Direction,
                         TypeName = %%Expr.Value p.TypeInfo.UdttName
                     )
-            if %%Expr.Value p.TypeInfo.SqlEngineTypeId = 240 then
-                r.UdtTypeName <- %%Expr.Value p.TypeInfo.TypeName
-            r
+            if %%Expr.Value p.TypeInfo.SqlEngineTypeId = 240 
+            then
+                x.UdtTypeName <- %%Expr.Value p.TypeInfo.TypeName
+            
+            if not tvpColumnNames.IsEmpty
+            then 
+                let table = new DataTable()
+                for name, typeName in List.zip tvpColumnNames tvpColumnTypes do
+                    let c = new DataColumn(name, Type.GetType typeName)
+                    table.Columns.Add c
+                x.Value <- table
+            x
         @@>
 
     static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> SqlClient.DbNull @@>    

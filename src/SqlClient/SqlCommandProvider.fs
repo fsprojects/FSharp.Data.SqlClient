@@ -119,14 +119,13 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         
         let providedOutputType, runtimeType, (typeToAdd : ProvidedTypeDefinition option), mapper = this.GetReaderMapper(outputColumns, resultType, singleRow)
         
-        let erasedType = typedefof<_ SqlCommand>.MakeGenericType( [| runtimeType |])
-
-        let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some erasedType, HideObjectMethods = true)
+        let runtimeCommandType = typedefof<_ SqlCommand>.MakeGenericType( [| runtimeType |])
+        let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some runtimeCommandType, HideObjectMethods = true)
         
-        if typeToAdd.IsSome then providedCommandType.AddMember typeToAdd.Value
+        typeToAdd |> Option.iter providedCommandType.AddMember
 
-        providedCommandType.AddMember 
-        <| ProvidedProperty( "ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>)
+        ProvidedProperty( "ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>) 
+        |> providedCommandType.AddMember
 
         let executeArgs = this.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters, allParametersOptional) 
         let paramExpr = Expr.NewArray( typeof<SqlParameter>, sqlParameters |> List.map QuotationsFactory.ToSqlParam)
@@ -155,7 +154,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                         allParametersOptional, 
                         providedCommandType, 
                         providedOutputType, 
-                        erasedType, 
+                        runtimeCommandType, 
                         interfaceType.GetMethod(name), 
                         "Execute")
         
@@ -165,7 +164,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                         allParametersOptional, 
                         providedCommandType, 
                         asyncReturnType, 
-                        erasedType, 
+                        runtimeCommandType, 
                         interfaceType.GetMethod("Async" + name), 
                         "AsyncExecute")
                 
@@ -301,33 +300,15 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     p.TypeInfo.ClrType
                 else
                     assert(p.Direction = ParameterDirection.Input)
-                    let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<SqlDataRecord>)
+                    let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<obj[]>)
                     providedCommandType.AddMember rowType
-                    let parameters, metaData = 
-                        [
-                            for p in p.TypeInfo.TvpColumns do
-                                let name, dbType, maxLength = p.Name, p.TypeInfo.SqlDbTypeId, int64 p.MaxLength
-                                let paramMeta = 
-                                    match p.TypeInfo.IsFixedLength with 
-                                    | Some true -> <@@ SqlMetaData(name, enum dbType) @@>
-                                    | Some false -> <@@ SqlMetaData(name, enum dbType, maxLength) @@>
-                                    | _ -> failwith "Unexpected"
-                                let param = 
-                                    if p.IsNullable
-                                    then ProvidedParameter(p.Name, p.TypeInfo.ClrType, optionalValue = null)
-                                    else ProvidedParameter(p.Name, p.TypeInfo.ClrType)
-                                yield param, paramMeta
-                        ] |> List.unzip
+                    let parameters = [ 
+                        for p in p.TypeInfo.TvpColumns -> 
+                            ProvidedParameter(p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
+                    ] 
 
-                    let ctor = ProvidedConstructor(parameters)
-                    ctor.InvokeCode <- fun args -> 
-                        let values = Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
-                        <@@ 
-                            let result = SqlDataRecord(metaData = %%Expr.NewArray(typeof<SqlMetaData>, metaData)) 
-                            let count = result.SetValues(%%values)
-                            Debug.Assert(%%Expr.Value(args.Length) = count, "Unexpected return value from SqlDataRecord.SetValues.")
-                            result
-                        @@>
+                    let ctor = ProvidedConstructor( parameters)
+                    ctor.InvokeCode <- fun args -> Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
                     rowType.AddMember ctor
 
                     ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
