@@ -14,6 +14,8 @@ open FSharp.Data
 
 type QuotationsFactory private() = 
     
+    static let setTypeName = typeof<SqlParameter>.GetMethod("set_TypeName")
+    
     static member internal GetBody(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
         
         let bodyFactory =   
@@ -38,7 +40,8 @@ type QuotationsFactory private() =
             let x = SqlParameter(name, enum dbType, Direction = %%Expr.Value p.Direction )
             if x.SqlDbType = SqlDbType.Structured
             then 
-                x.TypeName <- %%Expr.Value p.TypeInfo.UdttName
+                let typeName : string = %%Expr.Value p.TypeInfo.UdttName
+                x.GetType().GetProperty("TypeName").SetValue(x, typeName, null)
 
             if %%Expr.Value p.TypeInfo.SqlEngineTypeId = 240 
             then

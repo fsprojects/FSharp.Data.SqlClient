@@ -33,3 +33,4 @@
 * 1.2.16 - Fixing Azure compatibility for SqlProgrammability.
 * 1.2.17 - Mono compatibility is back.
 * 1.2.18 - More Mono compatibility. Set TypeName property on SqlParameter only for TVP.
+* 1.2.19 - More Mono compatibility. Set TypeName property for TVP via reflection.
