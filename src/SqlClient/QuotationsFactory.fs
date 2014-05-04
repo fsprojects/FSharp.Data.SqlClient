@@ -35,12 +35,11 @@ type QuotationsFactory private() =
             else [ for c in p.TypeInfo.TvpColumns -> c.Name, c.TypeInfo.ClrType.FullName ] |> List.unzip
 
         <@@ 
-            let x = SqlParameter(
-                        name, 
-                        enum dbType, 
-                        Direction = %%Expr.Value p.Direction,
-                        TypeName = %%Expr.Value p.TypeInfo.UdttName
-                    )
+            let x = SqlParameter(name, enum dbType, Direction = %%Expr.Value p.Direction )
+            if x.SqlDbType = SqlDbType.Structured
+            then 
+                x.TypeName <- %%Expr.Value p.TypeInfo.UdttName
+
             if %%Expr.Value p.TypeInfo.SqlEngineTypeId = 240 
             then
                 x.UdtTypeName <- %%Expr.Value p.TypeInfo.TypeName

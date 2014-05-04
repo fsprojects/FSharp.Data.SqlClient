@@ -32,3 +32,4 @@
 * 1.2.15 - bug fix for string param with AllParametersOptional.
 * 1.2.16 - Fixing Azure compatibility for SqlProgrammability.
 * 1.2.17 - Mono compatibility is back.
+* 1.2.18 - More Mono compatibility. Set TypeName property on SqlParameter only for TVP.
