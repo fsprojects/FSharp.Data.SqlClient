@@ -3,7 +3,6 @@ module FSharp.Data.TypeProviderTest
 open System
 open System.Data
 open System.Data.SqlClient
-open System.Transactions
 open Xunit
 
 [<Literal>]
@@ -85,7 +84,7 @@ let asyncCustomRecord() =
 open System.Transactions
 
 [<Fact>]
-let localTransaction() =
+let implicitTransaction() =
     DeleteBitCoin().Execute(bitCoinCode) |> ignore
     begin
         use tran = new TransactionScope() in
@@ -95,7 +94,7 @@ let localTransaction() =
     Assert.Equal(0, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
 
 [<Fact>]
-let implicitTransaction() =
+let localTransaction() =
     DeleteBitCoin().Execute(bitCoinCode) |> ignore
     use conn = new System.Data.SqlClient.SqlConnection(connectionString)
     conn.Open()
