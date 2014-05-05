@@ -10,6 +10,11 @@ open FSharp.Data.TypeProviderTest
 [<Literal>]
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
+[<Fact>]
+let ``Closing connection on complete``() =
+    use command = new DeleteBitCoin()
+    command.Execute(bitCoinCode) |> ignore
+    Assert.Equal(System.Data.ConnectionState.Closed, command.ConnectionState())
 
 [<Fact>]
 let implicit() =
