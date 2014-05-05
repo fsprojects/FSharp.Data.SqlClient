@@ -2,6 +2,7 @@
 
 open System.Data.SqlClient
 open System.Transactions
+open System
 
 open Xunit
 
@@ -23,6 +24,7 @@ let implicit() =
         use tran = new TransactionScope() 
         Assert.Equal(1, (new InsertBitCoin()).Execute(bitCoinCode, bitCoinName))
         Assert.Equal(1, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
+        Assert.Equal( Guid.Empty, Transaction.Current.TransactionInformation.DistributedIdentifier)
     end
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
 
@@ -33,6 +35,7 @@ let implicitAsync() =
         use tran = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled) 
         Assert.Equal(1, (new InsertBitCoin()).AsyncExecute(bitCoinCode, bitCoinName) |> Async.RunSynchronously)
         Assert.Equal(1, (new GetBitCoin()).AsyncExecute(bitCoinCode) |> Async.RunSynchronously |> Seq.length)
+        Assert.Equal( Guid.Empty, Transaction.Current.TransactionInformation.DistributedIdentifier)
     end
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
 
@@ -47,6 +50,7 @@ let implicitAsyncNETBefore451() =
         let localTran = conn.BeginTransaction()
         Assert.Equal(1, (new InsertBitCoin(localTran)).AsyncExecute(bitCoinCode, bitCoinName) |> Async.RunSynchronously)
         Assert.Equal(1, (new GetBitCoin(localTran)).AsyncExecute(bitCoinCode) |> Async.RunSynchronously |> Seq.length)
+        Assert.Equal( Guid.Empty, Transaction.Current.TransactionInformation.DistributedIdentifier)
     end
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
 
