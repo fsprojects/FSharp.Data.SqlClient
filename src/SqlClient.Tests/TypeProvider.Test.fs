@@ -75,44 +75,9 @@ type DeleteBitCoin = SqlCommandProvider<"DELETE FROM Sales.Currency WHERE Curren
 type InsertBitCoin = SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", connectionString>
 type GetBitCoin = SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", connectionString>
 
-
 [<Fact>]
 let asyncCustomRecord() =
     Assert.Equal(1, GetBitCoin().AsyncExecute("USD") |> Async.RunSynchronously |> Seq.length)
-
-
-open System.Transactions
-
-[<Fact>]
-let implicitTransaction() =
-    DeleteBitCoin().Execute(bitCoinCode) |> ignore
-    begin
-        use tran = new TransactionScope() 
-        Assert.Equal(1, InsertBitCoin().Execute(bitCoinCode, bitCoinName))
-        Assert.Equal(1, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
-    end
-    Assert.Equal(0, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
-
-[<Fact>]
-let implicitTransactionAsync() =
-    DeleteBitCoin().Execute(bitCoinCode) |> ignore
-    begin
-        use tran = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled) 
-        Assert.Equal(1, InsertBitCoin().AsyncExecute(bitCoinCode, bitCoinName) |> Async.RunSynchronously)
-        Assert.Equal(1, GetBitCoin().AsyncExecute(bitCoinCode) |> Async.RunSynchronously |> Seq.length)
-    end
-    Assert.Equal(0, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
-
-[<Fact>]
-let localTransaction() =
-    DeleteBitCoin().Execute(bitCoinCode) |> ignore
-    use conn = new System.Data.SqlClient.SqlConnection(connectionString)
-    conn.Open()
-    let tran = conn.BeginTransaction()
-    Assert.Equal(1, InsertBitCoin(tran).Execute(bitCoinCode, bitCoinName))
-    Assert.Equal(1, GetBitCoin(tran).Execute(bitCoinCode) |> Seq.length)
-    tran.Rollback()
-    Assert.Equal(0, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
 
 type NoneSingleton = SqlCommandProvider<"select 1 where 1 = 0", connectionString, SingleRow = true>
 type SomeSingleton = SqlCommandProvider<"select 1", connectionString, SingleRow = true>

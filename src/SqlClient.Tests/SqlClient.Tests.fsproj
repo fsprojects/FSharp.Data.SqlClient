@@ -57,6 +57,7 @@
     <Compile Include="ConfigurationTest.fs" />
     <Compile Include="Input.Test.fs" />
     <Compile Include="TypeProvider.Test.fs" />
+    <Compile Include="TransactionTests.fs" />
     <Compile Include="ResultType.fs" />
     <Compile Include="TVP.fs" />
     <Compile Include="SqlClientExtensionsTest.fs" />
