@@ -87,9 +87,19 @@ open System.Transactions
 let implicitTransaction() =
     DeleteBitCoin().Execute(bitCoinCode) |> ignore
     begin
-        use tran = new TransactionScope() in
+        use tran = new TransactionScope() 
         Assert.Equal(1, InsertBitCoin().Execute(bitCoinCode, bitCoinName))
         Assert.Equal(1, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
+    end
+    Assert.Equal(0, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
+
+[<Fact>]
+let implicitTransactionAsync() =
+    DeleteBitCoin().Execute(bitCoinCode) |> ignore
+    begin
+        use tran = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled) 
+        Assert.Equal(1, InsertBitCoin().AsyncExecute(bitCoinCode, bitCoinName) |> Async.RunSynchronously)
+        Assert.Equal(1, GetBitCoin().AsyncExecute(bitCoinCode) |> Async.RunSynchronously |> Seq.length)
     end
     Assert.Equal(0, GetBitCoin().Execute(bitCoinCode) |> Seq.length)
 
