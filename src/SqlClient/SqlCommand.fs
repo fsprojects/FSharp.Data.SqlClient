@@ -107,16 +107,19 @@ type SqlCommand<'TResult>(  connection: SqlConnection,
         member this.AsyncExecuteNonQuery parameters = 
             setParameters parameters  
             async {         
-                if cmd.Connection.State <> ConnectionState.Open then cmd.Connection.Open()
                 use disposable = cmd.Connection.UseConnection()
                 return! Async.FromBeginEnd(cmd.BeginExecuteNonQuery, cmd.EndExecuteNonQuery) 
             }
 
         member this.ExecuteNonQuery parameters = 
             setParameters parameters  
-            if cmd.Connection.State <> ConnectionState.Open then cmd.Connection.Open()
             use disposable = cmd.Connection.UseConnection()
             cmd.ExecuteNonQuery() 
+
+    interface IDisposable with
+        member this.Dispose() =
+            cmd.Dispose()
+
 
 type SqlCommandFactory private () =
     

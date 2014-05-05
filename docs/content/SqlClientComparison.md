@@ -20,7 +20,7 @@ StackOverflow has hundreds of issues like [this one][soissue] for all kinds of O
 Entity Framework. Perfectly valid code fails in run-time because of unsupported F#-to-SQL (or C#-to-SQL) translation 
 semantics, a great example of leaky abstraction. Lack of control and opaqueness of F#-to-SQL conversion spell 
 performance problems as well, like infamous N+1 issue.  
-Readers are no doubt familiar with famous blog [The Vietnam of Computer Science][vietnam] by Ted Neward going deep 
+Readers are no doubt familiar with a popular blog post [The Vietnam of Computer Science][vietnam] by Ted Neward going deep 
 into so-called [object-relational impedance mismatch][orm], which is at the core of these issues.
 
 So far the industry answer to this was a number of so-called micro-ORMs with a mission of making conversion 
@@ -62,9 +62,9 @@ Here is a typical snippet of SqlCommandProvider-enabled code:
 
 Now, if database schema changes or there is a typo anywhere in the query, F# compiler notifies developer immediately:
 
-<img src="img/error-in-query.png"/>
+<img src="img/error_in_query.png"/>
 
-The secret is that SqlCommandProvider uses features available in MS SQL Server 2012 to compile SQL query and infer 
+The secret is that SqlCommandProvider uses features available in MS SQL Server 2012 and SQL Azure to compile SQL query and infer 
 input parameters and output schema in compile time. Please see [SqlClient Type Provider website][sqlClient] for more details.
 
    
@@ -118,7 +118,7 @@ identification of bugs and mismatches
 Conclusion
 ------------------------
 
-F# 3.0 Type Providers drammatically improve developer experience exposing data with IntelliSense in design time.
+F# 3.0 Type Providers dramatically improve developer experience exposing data with IntelliSense in design time.
 Combined with the latest features of MS SQL Server, FSharp.Data.SqlClient Type Provider empowers users to write compile time-verified 
 F# and SQL code leaving no space for boilerplate while promising performance comparable with the best-of-breed traditional solutions.
 
