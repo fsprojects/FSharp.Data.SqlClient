@@ -118,9 +118,11 @@ identification of bugs and mismatches
 Conclusion
 ------------------------
 
-F# 3.0 Type Providers dramatically improve developer experience exposing data with IntelliSense in design time.
+F# 3.0 Type Providers, which are, in essence, light-weight plugins for F# compiler, dramatically improve developer experience through access to 
+various external data sources with IntelliSense in design time.
 Combined with the latest features of MS SQL Server, FSharp.Data.SqlClient Type Provider empowers users to write compile time-verified 
 F# and SQL code leaving no space for boilerplate while promising performance comparable with the best-of-breed traditional solutions.
+It can be viewed as Domain Specific Language seamlessly integrating SQL and F# in the same code base.
 
 [dapper]: https://code.google.com/p/dapper-dot-net/
 [dapperInfo]: http://stackoverflow.com/tags/dapper/info
