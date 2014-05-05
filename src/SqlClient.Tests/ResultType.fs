@@ -23,7 +23,7 @@ let ReadToMaps(reader : System.Data.SqlClient.SqlDataReader) = seq{
            }
 [<Fact>]
 let ResultTypeReader() = 
-    let cmd = ResultTypeReader()
+    use cmd = new ResultTypeReader()
     let expected = 
         [| 
             "F#", Some 2005 

@@ -122,7 +122,7 @@ let euler17 = "
 " 
 type Euler17 = SqlCommandProvider<euler17, adventureWorks, SingleRow = true>
 
-let cmd = Euler17()
+let cmd = new Euler17()
 cmd.Execute() |> Option.get |> Option.get |> printfn "%i"
 
 

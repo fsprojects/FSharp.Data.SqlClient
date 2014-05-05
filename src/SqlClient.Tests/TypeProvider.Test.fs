@@ -12,12 +12,12 @@ type GetOddNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (2
 
 [<Fact>]
 let asyncSinlgeColumn() = 
-    Assert.Equal<int[]>([| 2; 4; 8;  24 |], GetOddNumbers().AsyncExecute() |> Async.RunSynchronously |> Seq.toArray)    
+    Assert.Equal<int[]>([| 2; 4; 8;  24 |], (new GetOddNumbers()).AsyncExecute() |> Async.RunSynchronously |> Seq.toArray)    
 
 
 [<Fact>]
 let ConnectionClose() = 
-    let cmd = GetOddNumbers()
+    use cmd = new GetOddNumbers()
     Assert.Equal(ConnectionState.Closed, cmd.ConnectionState())
     Assert.Equal<int[]>([| 2; 4; 8;  24 |], cmd.Execute() |> Seq.toArray)    
     Assert.Equal(ConnectionState.Closed, cmd.ConnectionState())
@@ -26,14 +26,14 @@ type QueryWithTinyInt = SqlCommandProvider<"SELECT CAST(10 AS TINYINT) AS Value"
 
 [<Fact>]
 let TinyIntConversion() = 
-    let cmd = QueryWithTinyInt()
+    use cmd = new QueryWithTinyInt()
     Assert.Equal(Some 10uy, cmd.Execute().Value)    
 
 type ConvertToBool = SqlCommandProvider<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'", connectionString, SingleRow=true>
 
 [<Fact>]
 let SqlCommandClone() = 
-    let cmd = new ConvertToBool()
+    use cmd = new ConvertToBool()
     Assert.Equal(Some "TRUE", cmd.Execute(Bit = 1))    
     let cmdClone = cmd.AsSqlCommand()
     cmdClone.Connection.Open()
@@ -50,7 +50,7 @@ type ConditionalQuery = SqlCommandProvider<"IF @flag = 0 SELECT 1, 'monkey' ELSE
 
 [<Fact>]
 let ConditionalQuery() = 
-    let cmd = ConditionalQuery()
+    let cmd = new ConditionalQuery()
     Assert.Equal(Some(1, "monkey"), cmd.Execute(flag = 0))    
     Assert.Equal(Some(2, "donkey"), cmd.Execute(flag = 1))    
 
@@ -77,15 +77,15 @@ type GetBitCoin = SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Curre
 
 [<Fact>]
 let asyncCustomRecord() =
-    Assert.Equal(1, GetBitCoin().AsyncExecute("USD") |> Async.RunSynchronously |> Seq.length)
+    Assert.Equal(1, (new GetBitCoin()).AsyncExecute("USD") |> Async.RunSynchronously |> Seq.length)
 
 type NoneSingleton = SqlCommandProvider<"select 1 where 1 = 0", connectionString, SingleRow = true>
 type SomeSingleton = SqlCommandProvider<"select 1", connectionString, SingleRow = true>
 
 [<Fact>]
 let singleRowOption() =
-    Assert.True(NoneSingleton().Execute().IsNone)
-    Assert.Equal(Some 1, SomeSingleton().AsyncExecute() |> Async.RunSynchronously)
+    Assert.True((new NoneSingleton()).Execute().IsNone)
+    Assert.Equal(Some 1, (new SomeSingleton()).AsyncExecute() |> Async.RunSynchronously)
 
 
 type NullableStringInput = SqlCommandProvider<"select  ISNULL(@P1, '')", connectionString, SingleRow = true, AllParametersOptional = true>
@@ -95,10 +95,10 @@ open System.Data.SqlClient
 
 [<Fact>]
 let NullableStringInputParameter() = 
-    Assert.Equal(Some "", NullableStringInput().Execute(None))
-    Assert.Equal(Some "", NullableStringInput().Execute())
-    Assert.Equal(Some "", NullableStringInputStrict().Execute(null))
-    Assert.Equal(Some "boo", NullableStringInput().Execute(Some "boo"))
+    Assert.Equal(Some "", (new NullableStringInput()).Execute(None))
+    Assert.Equal(Some "", (new NullableStringInput()).Execute())
+    Assert.Equal(Some "", (new NullableStringInputStrict()).Execute(null))
+    Assert.Equal(Some "boo", (new NullableStringInput()).Execute(Some "boo"))
 
 
 //     

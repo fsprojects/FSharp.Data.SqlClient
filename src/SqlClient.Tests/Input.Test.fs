@@ -11,10 +11,10 @@ type QueryWithNullableParam =
 
 [<Fact>]
 let BothOptinalParamsSupplied() = 
-    let cmd = QueryWithNullableParam()
+    use cmd = new QueryWithNullableParam()
     Assert.Equal( Some( Some 14), cmd.Execute(Some 3, Some 11))    
 
 [<Fact>]
 let SkipYParam() = 
-    let cmd = QueryWithNullableParam()
+    use cmd = new QueryWithNullableParam()
     Assert.Equal( Some( Some 12), cmd.Execute(x = Some 11))    

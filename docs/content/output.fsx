@@ -27,7 +27,7 @@ let productsSql = "
 *)
 
 type QueryProductAsRecords = SqlCommandProvider<productsSql, connectionString>
-let queryProductAsRecords = QueryProductAsRecords()
+let queryProductAsRecords = new QueryProductAsRecords()
 
 let records = queryProductAsRecords.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
                 |> Async.RunSynchronously 
@@ -52,7 +52,7 @@ record <> record.With(ProductName="foo", Size = Some "bar")
 
 type QueryProductSync = SqlCommandProvider<productsSql, connectionString, ResultType = ResultType.Tuples>
 
-let tuples = QueryProductSync().Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
+let tuples = (new QueryProductSync()).Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 
 for productName, sellStartDate, size in tuples do
     printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size
@@ -65,7 +65,7 @@ for productName, sellStartDate, size in tuples do
 type QueryProductDataTable = 
     SqlCommandProvider<productsSql, connectionString, ResultType = ResultType.DataTable>
 
-QueryProductDataTable().Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") 
+(new QueryProductDataTable()).Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") 
 |> Seq.iter (fun row -> 
     printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
 
@@ -98,7 +98,7 @@ let queryPersonInfoSingletoneQuery =
 type QueryPersonInfoSingletoneTuples = 
     SqlCommandProvider<queryPersonInfoSingletoneQuery, connectionString, SingleRow=true, ResultType = ResultType.Tuples>
 
-QueryPersonInfoSingletoneTuples().Execute(PersonId = 2).Value
+(new QueryPersonInfoSingletoneTuples()).Execute(PersonId = 2).Value
     |> (function
         | id, Some first, Some last -> printfn "Person id: %i, name: %s %s" person.PersonID first last 
         | id, _, _ -> printfn "What's your name %i?" person.PersonID
@@ -116,7 +116,7 @@ type QueryPersonInfoSingletoneDataTable =
         connectionString, 
         ResultType = ResultType.DataTable>
 
-let table = QueryPersonInfoSingletoneDataTable().AsyncExecute(PersonId = 2) |> Async.RunSynchronously 
+let table = (new QueryPersonInfoSingletoneDataTable()).AsyncExecute(PersonId = 2) |> Async.RunSynchronously 
 
 for row in table do
     printfn "Person info:Id - %i,FirstName - %O,LastName - %O" row.PersonID row.FirstName row.LastName 
@@ -150,7 +150,7 @@ type QueryPersonInfoSingleValue =
         SingleRow=true>
 
 let personId = 2
-QueryPersonInfoSingleValue().Execute(personId)
+(new QueryPersonInfoSingleValue()).Execute(personId)
 |> Option.iter (fun name -> printf "Person with id %i has name %s" personId name.Value)
 
 (**
@@ -219,7 +219,7 @@ If multiple passes over the sequence required use standard `Seq.cache` combinato
 *)
 
 type Get42 = SqlCommandProvider<"SELECT * FROM (VALUES (42), (43)) AS T(N)", connectionString>
-let xs = Get42().Execute() |> Seq.cache 
+let xs = (new Get42()).Execute() |> Seq.cache 
 printfn "#1: %i " <| Seq.nth 0 xs 
 printfn "#2: %i " <| Seq.nth 1 xs //see it fails here if result is not piped into Seq.cache 
 

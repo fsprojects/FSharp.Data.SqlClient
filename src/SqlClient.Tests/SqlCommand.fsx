@@ -18,7 +18,7 @@ WHERE SellStartDate > @SellStartDate
 "
 //Custom record types and connection string override
 type QueryProducts = SqlCommandProvider<queryProductsSql, connectionString>
-let cmd1 = QueryProducts(connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
+let cmd1 = new QueryProducts(connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
 let result1 : Async<QueryProducts.Record seq> = cmd1.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
 let records = cmd1.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> List.ofSeq
@@ -32,7 +32,7 @@ record <> newrecord
 
 //Two parallel executions
 type cmdType = SqlCommandProvider<queryProductsSql, connectionString>
-let par = cmdType()
+let par = new cmdType()
 let reader1 = par.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let reader2 = par.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 reader1 |> Async.RunSynchronously |> Seq.head |> printfn "%A"
@@ -40,14 +40,14 @@ reader2 |> Async.RunSynchronously |> Seq.head |> printfn "%A"
 
 //Tuples
 type QueryProductsAsTuples = SqlCommandProvider<queryProductsSql, connectionString, ResultType = ResultType.Tuples>
-let cmd = QueryProductsAsTuples()
+let cmd = new QueryProductsAsTuples()
 let result = cmd.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 result |> Async.RunSynchronously |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
 cmd.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> Seq.iter (fun(productName, sellStartDate, size) -> printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size)
 
 //DataTable for data binding scenarios and update
 type QueryProductDataTable = SqlCommandProvider<queryProductsSql, connectionString, ResultType = ResultType.DataTable>
-let cmd2 = QueryProductDataTable() //top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
+let cmd2 = new QueryProductDataTable() //top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let result2 : Async<DataTable<QueryProductDataTable.Row>> = cmd2.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 result2 |> Async.RunSynchronously  |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
 cmd2.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
@@ -102,17 +102,17 @@ cmd45.Execute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = 
 
 //Command from file
 type q = SqlCommandProvider<"sampleCommand.sql", connectionString>
-let cmdFromFile = q()
+let cmdFromFile = new q()
 cmdFromFile.Execute() |> Seq.toArray
 
 //Fallback to metadata retrieval through FMTONLY
 type UseFMTONLY = SqlCommandProvider<"exec dbo.[Init]", connectionString>
-let useFMTONLY = UseFMTONLY()
+let useFMTONLY = new UseFMTONLY()
 useFMTONLY.Execute()
 
 //Runtime column names
 type UseGet = SqlCommandProvider<"exec dbo.[Get]", connectionString, ResultType = ResultType.DataReader >
-let useGet = UseGet()
+let useGet = new UseGet()
 useGet.Execute().NextResult() = false
 
 //Insert command
@@ -122,7 +122,7 @@ type InsertCommand =
 
 open System.Security.Principal
 
-let cmdInsert = InsertCommand()
+let cmdInsert = new InsertCommand()
 let user = WindowsIdentity.GetCurrent().Name
 cmdInsert.Execute(user, 121, 16, 3, "insert test", int __LINE__, "failed insert")
 

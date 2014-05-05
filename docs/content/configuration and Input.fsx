@@ -70,7 +70,7 @@ let fibonacci = "
 
 type FibonacciQuery = SqlCommandProvider<fibonacci, connectionString>
 
-FibonacciQuery()
+(new FibonacciQuery())
     .Execute(10L) 
     |> Seq.map Option.get 
     |> Seq.toArray 
@@ -101,7 +101,7 @@ are mixed together (LINQ).
 *)
 
 type CommandFromFile = SqlCommandProvider<"GetDate.sql", connectionString>
-let cmd = CommandFromFile()
+let cmd = new CommandFromFile()
 cmd.Execute() |> ignore
 
 (**
@@ -150,7 +150,7 @@ type FizzOrBuzz = SqlCommandProvider<"
 		    ELSE CONCAT(@x, '') --use concat to avoid nullable column
 	    END", connectionString>
 
-let fizzOrBuzz = FizzOrBuzz()
+let fizzOrBuzz = new FizzOrBuzz()
 printfn "Answer on interview:\n%A" [ for i = 1 to 100 do yield! fizzOrBuzz.Execute(i) ]
 
 (**
@@ -219,7 +219,7 @@ Several use cases are possible:
 
 //Case 1: pass run-time connection string into ctor
 let runTimeConnStr = "..." //somehow get connection string at run-time
-let get42 = Get42(runTimeConnStr)
+let get42 = new Get42(runTimeConnStr)
 
 //Case 2: bunch of command types, single database
 //Factory or IOC of choice to avoid logic duplication. Use F# ctor static constraints.
@@ -285,14 +285,14 @@ type GetBitCoin =
     SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code"
                         , connectionString>
 
-DeleteBitCoin().Execute(bitCoinCode) |> ignore
+(new DeleteBitCoin()).Execute(bitCoinCode) |> ignore
 let conn = new System.Data.SqlClient.SqlConnection(connectionString)
 conn.Open()
 let tran = conn.BeginTransaction()
-InsertBitCoin(tran).Execute(bitCoinCode, bitCoinName) = 1
-(GetBitCoin(tran).Execute(bitCoinCode) |> Seq.length) = 1
+(new InsertBitCoin(tran)).Execute(bitCoinCode, bitCoinName) = 1
+((new GetBitCoin(tran)).Execute(bitCoinCode) |> Seq.length) = 1
 tran.Rollback()
-(GetBitCoin(tran).Execute(bitCoinCode) |> Seq.length) = 0
+((new GetBitCoin(tran)).Execute(bitCoinCode) |> Seq.length) = 0
 
 (**
 
@@ -353,7 +353,7 @@ type IncrBy = SqlCommandProvider<"SELECT @x + ISNULL(CAST(@y AS INT), 1) ",
                                     connectionString, 
                                     AllParametersOptional = true, 
                                     SingleRow = true>
-let incrBy = IncrBy()
+let incrBy = new IncrBy()
 //pass both params passed 
 incrBy.Execute(Some 10, Some 2) = Some( Some 12) //true
 //omit second parameter. default to 1

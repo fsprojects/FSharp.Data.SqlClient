@@ -39,7 +39,7 @@ let query = "
 " 
 
 type SalesPersonQuery = SqlCommandProvider<query, connectionString>
-let cmd = SalesPersonQuery()
+let cmd = new SalesPersonQuery()
 
 cmd.AsyncExecute(TopN = 3L, regionName = "United States", salesMoreThan = 1000000M) 
 |> Async.RunSynchronously

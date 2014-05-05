@@ -49,7 +49,7 @@ Here is a typical snippet of SqlCommandProvider-enabled code:
 	" 
 
 	type SalesPersonQuery = SqlCommandProvider<query, connectionString>
-	let cmd = SalesPersonQuery()
+	let cmd = new SalesPersonQuery()
 
 	cmd.AsyncExecute(TopN = 3L, regionName = "United States", salesMoreThan = 1000000M) 
 	|> Async.RunSynchronously

@@ -132,10 +132,10 @@ type SqlCommandFactory private () =
             if isByName 
             then Configuration.GetConnectionStringRunTimeByName connectionStringName
             else connectionStringOrName
-        SqlCommand<_>(new SqlConnection(runTimeConnectionString), command, commandType, paramInfos, singleRow, mapper)  
+        new SqlCommand<_>(new SqlConnection(runTimeConnectionString), command, commandType, paramInfos, singleRow, mapper)  
    
     static member ByTransaction(transaction : SqlTransaction, command, commandType, paramInfos, singleRow, mapper) = 
-        SqlCommand<_>(transaction.Connection, command, commandType, paramInfos, singleRow, mapper, transaction) 
+        new SqlCommand<_>(transaction.Connection, command, commandType, paramInfos, singleRow, mapper, transaction) 
                 
     static member GetDataTable(sqlDataReader : SqlDataReader) =
         use reader = sqlDataReader
