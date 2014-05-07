@@ -323,7 +323,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
     member internal this.RecordType(columns) =
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
-        let properties, ctorParameters, parameters = 
+        let properties, ctorParameters, withParameters = 
             [
                 for col in columns do
                     let propertyName = col.Name
@@ -334,17 +334,15 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     let property = ProvidedProperty(propertyName, propType)
                     property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
                     let nullalbleParameter = ProvidedParameter(propertyName, propType, optionalValue = null)
-                    let ctorPropertyName = (propertyName.[0] |> string).ToLower() + propertyName.Substring(1)                    
-                    let ctorParameter = if col.IsNullable 
-                                        then ProvidedParameter(ctorPropertyName, propType, optionalValue = null)  
-                                        else ProvidedParameter( ctorPropertyName, propType )
+                    let ctorPropertyName = (propertyName.[0] |> string).ToLower() + propertyName.Substring(1)    
+                    let optionalValue = if col.IsNullable then Some null else None
+                    let ctorParameter = ProvidedParameter(ctorPropertyName, propType, ?optionalValue = optionalValue)  
                     yield property, ctorParameter, nullalbleParameter
             ] |> List.unzip3
         recordType.AddMembers properties
         let ctor = ProvidedConstructor(ctorParameters)
         ctor.InvokeCode <- fun args ->
-           let pairs =  (args, ctorParameters) 
-                        ||> Seq.zip 
+           let pairs =  Seq.zip args properties //Because we need original names in dictionary
                         |> Seq.map (fun (arg,p) -> <@@ (%%Expr.Value(p.Name):string), %%Expr.Coerce(arg, typeof<obj>) @@>)
                         |> List.ofSeq
            <@@
@@ -353,21 +351,18 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             @@> 
         recordType.AddMember ctor
         
-        let withMethod = ProvidedMethod("With", parameters, recordType)
+        let withMethod = ProvidedMethod("With", withParameters, recordType)
         withMethod.InvokeCode <- fun args ->
-            let nonEmpty = 
-                (args.Tail, parameters) 
-                ||> Seq.zip 
-                |> Seq.choose(function 
-                    | (Patterns.NewUnionCase (_, [value])), p -> Some (<@@ (%%Expr.Value(p.Name):string), %%Expr.Coerce(value, typeof<obj>) @@>) 
-                    | _ -> None)
-                |> List.ofSeq
+            let pairs =  Seq.zip args.Tail properties 
+                        |> Seq.map (fun (arg,p) -> <@@ (%%Expr.Value(p.Name):string), %%Expr.Coerce(arg, typeof<obj>) @@>)
+                        |> List.ofSeq
             <@@
                 let record : DynamicRecord = unbox %%args.Head 
                 let data = Dictionary<_,_>(record.Data())
-                let pairs : (string*obj) [] = %%Expr.NewArray(typeof<string * obj>, nonEmpty)
+                let pairs : (string*obj) [] = %%Expr.NewArray(typeof<string * obj>, pairs)
                 for key,value in pairs do
-                    data.[key] <- value
+                    if value <> null then
+                        data.[key] <- value
                 box(DynamicRecord data)
             @@>
         recordType.AddMember withMethod

@@ -7,8 +7,10 @@ open FsUnit.Xunit
 [<Literal>]
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
-type ResultTypeReader = 
-    SqlCommandProvider<"SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003), ('foo bar',NULL))  AS T(lang, DOB)", "name=AdventureWorks2012", ResultType = ResultType.DataReader>
+[<Literal>]
+let command = "SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003), ('foo bar',NULL))  AS T(lang, DOB)"
+
+type ResultTypeReader = SqlCommandProvider<command, "name=AdventureWorks2012", ResultType = ResultType.DataReader>
 
 let ReadToMaps(reader : System.Data.SqlClient.SqlDataReader) = seq{
             try 
@@ -38,3 +40,14 @@ let ResultTypeReader() =
         )
 
     Assert.Equal<Map<string, obj>[]>(expected, ReadToMaps(cmd.Execute()) |> Seq.toArray)
+
+type Record = SqlCommandProvider<command, "name=AdventureWorks2012">
+
+[<Fact>]
+let ``With on Record``() =
+    use cmd = new Record()
+    let record = cmd.Execute() |> Seq.nth 0
+    Assert.Equal(Record.Record("F#", Some 2005), record)
+    let newRecord = record.With("foo bar")
+    Assert.Equal<string>("foo bar", newRecord.lang)
+    Assert.Equal(Some 2005, newRecord.DOB)
