@@ -35,3 +35,4 @@
 * 1.2.18 - More Mono compatibility. Set TypeName property on SqlParameter only for TVP.
 * 1.2.19 - More Mono compatibility. Set TypeName property for TVP via reflection.
 * 1.2.20 - Fix auto-open connection. Introduce IDisposable on SqlCommand.
+* 1.2.21 - Bugfix for Record constructor and with method.
