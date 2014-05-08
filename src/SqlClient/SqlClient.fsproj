@@ -76,7 +76,7 @@
     <Compile Include="ProvidedTypes-head.fsi" />
     <Compile Include="ProvidedTypes-head.fs" />
     <Compile Include="Configuration.fs" />
-    <Compile Include="Data.fs" />
+    <Compile Include="HelperTypes.fs" />
     <Compile Include="DynamicRecord.fs" />
     <Compile Include="DataTable.fs" />
     <Compile Include="SqlClientExtensions.fs" />

@@ -39,6 +39,13 @@ type ResultType =
 [<assembly:InternalsVisibleTo("SqlClient.Tests")>]
 do()
 
+type internal Output = {
+    ProvidedType : Type
+    ErasedToType : Type
+    RowType : ProvidedTypeDefinition option
+    MapperFromReader : Expr
+}
+
 [<TypeProvider>]
 type public SqlCommandProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces()
@@ -117,7 +124,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             then this.GetOutputColumns(conn, commandText, sqlParameters)
             else []
         
-        let providedOutputType, runtimeType, (typeToAdd : ProvidedTypeDefinition option), mapper = this.GetReaderMapper(outputColumns, resultType, singleRow)
+        let { ProvidedType = providedOutputType; ErasedToType = runtimeType; RowType = typeToAdd; MapperFromReader = mapper } as output 
+            = this.GetReaderMapper(outputColumns, resultType, singleRow)
         
         let runtimeCommandType = typedefof<_ SqlCommand>.MakeGenericType( [| runtimeType |])
         let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some runtimeCommandType, HideObjectMethods = true)
@@ -197,22 +205,34 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
     member internal __.GetReaderMapper(outputColumns, resultType, singleRow) =    
         if resultType = ResultType.DataReader 
-        then typeof<SqlDataReader>, typeof<SqlDataReader>, None, <@@ fun (token : CancellationToken option) (sqlReader : SqlDataReader) -> sqlReader  @@>
+        then 
+            {
+                ProvidedType = typeof<SqlDataReader>
+                ErasedToType = typeof<SqlDataReader>
+                RowType = None
+                MapperFromReader = <@@ fun (token : CancellationToken option) (sqlReader : SqlDataReader) -> sqlReader  @@>
+            }
         elif outputColumns.IsEmpty
         then 
-            typeof<int>, 
-            typeof<int>, 
-            None, 
-            <@@ fun (token : CancellationToken option) (sqlReader : SqlDataReader) -> 0  @@>
+            {
+                ProvidedType = typeof<int>
+                ErasedToType = typeof<int>
+                RowType = None
+                MapperFromReader = <@@ fun (token : CancellationToken option) (sqlReader : SqlDataReader) -> 0  @@>
+            }
         elif resultType = ResultType.DataTable 
         then
             let rowType = this.GetDataRowType(outputColumns)
-            ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ rowType ]),
-            typeof<DataTable<DataRow>>,
-            Some rowType,            
-            <@@ fun (token : CancellationToken option) sqlReader -> SqlCommandFactory.GetDataTable(sqlReader) @@>
+
+            {
+                ProvidedType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ rowType ])
+                ErasedToType = typeof<DataTable<DataRow>>
+                RowType = Some rowType
+                MapperFromReader = <@@ fun (token : CancellationToken option) sqlReader -> SqlCommandFactory.GetDataTable(sqlReader) @@>
+            }
+
         else 
-            let providedType, runtimeType, typeToAdd, rowMapper = 
+            let rowProvidedType, rowErasedToType, rowType, rowMapper = 
                 if List.length outputColumns = 1
                 then
                     let column0 = outputColumns.Head
@@ -233,26 +253,28 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     let tupleType = 
                         match outputColumns with
                         | [ x ] -> x.ClrTypeConsideringNullable
-                        | xs' -> FSharpType.MakeTupleType [| for x in xs' -> x.ClrTypeConsideringNullable|]
+                        | xs -> FSharpType.MakeTupleType [| for x in xs -> x.ClrTypeConsideringNullable|]
                     let values = Var("values", typeof<obj[]>)
                     let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
                     let makeTuple = Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [ Expr.Var values; getTupleType ])
                     tupleType, tupleType, None, Expr.Lambda(values, Expr.Coerce(makeTuple, tupleType))
             
-            let genericOutputType, methodName = 
+            let genericOutputType, resultMapperName = 
                 if singleRow 
                 then typedefof<_ option>, "SingeRow" 
                 else typedefof<_ seq>, "GetTypedSequence"
             
+            let resultMapper = SqlCommandFactory.GetMethod(resultMapperName, rowErasedToType)
+            
             let columnTypes, isNullableColumn = outputColumns |> List.map (fun c -> c.TypeInfo.ClrTypeFullName, c.IsNullable) |> List.unzip
             let mapNullables = QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption") 
 
-            let methodInfo = SqlCommandFactory.GetMethod(methodName, runtimeType)
-            
-            ProvidedTypeBuilder.MakeGenericType(genericOutputType, [ providedType ]), 
-            genericOutputType.MakeGenericType([|runtimeType|]),
-            typeToAdd,
-            Expr.Call(methodInfo, [mapNullables; rowMapper])
+            {
+                ProvidedType = ProvidedTypeBuilder.MakeGenericType(genericOutputType, [ rowProvidedType ])
+                ErasedToType = genericOutputType.MakeGenericType([| rowErasedToType |])
+                RowType = rowType
+                MapperFromReader =  Expr.Call(resultMapper, [mapNullables; rowMapper])
+            }
         
     member internal this.GetOutputColumns(connection, commandText, sqlParameters) : Column list = 
         try
