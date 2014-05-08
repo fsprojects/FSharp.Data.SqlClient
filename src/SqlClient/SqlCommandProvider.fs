@@ -206,7 +206,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             <@@ fun (token : CancellationToken option) (sqlReader : SqlDataReader) -> 0  @@>
         elif resultType = ResultType.DataTable 
         then
-            let rowType = this.DataRowType(outputColumns)
+            let rowType = this.GetDataRowType(outputColumns)
             ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ rowType ]),
             typeof<DataTable<DataRow>>,
             Some rowType,            
@@ -223,7 +223,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
                 elif resultType = ResultType.Records 
                 then 
-                    let r = this.RecordType(outputColumns)
+                    let r = this.GetRecordType(outputColumns)
                     let names = Expr.NewArray(typeof<string>, outputColumns |> List.map (fun x -> Expr.Value(x.Name))) 
                     upcast r,
                     typeof<obj>,
@@ -239,14 +239,18 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     let makeTuple = Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [ Expr.Var values; getTupleType ])
                     tupleType, tupleType, None, Expr.Lambda(values, Expr.Coerce(makeTuple, tupleType))
             
-            let outputTypeBase, methodName = if singleRow then typedefof<_ option>, "SingeRow" else typedefof<_ seq>, "GetTypedSequence"
+            let genericOutputType, methodName = 
+                if singleRow 
+                then typedefof<_ option>, "SingeRow" 
+                else typedefof<_ seq>, "GetTypedSequence"
+            
             let columnTypes, isNullableColumn = outputColumns |> List.map (fun c -> c.TypeInfo.ClrTypeFullName, c.IsNullable) |> List.unzip
             let mapNullables = QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption") 
 
             let methodInfo = SqlCommandFactory.GetMethod(methodName, runtimeType)
             
-            ProvidedTypeBuilder.MakeGenericType(outputTypeBase, [ providedType ]), 
-            outputTypeBase.MakeGenericType([|runtimeType|]),
+            ProvidedTypeBuilder.MakeGenericType(genericOutputType, [ providedType ]), 
+            genericOutputType.MakeGenericType([|runtimeType|]),
             typeToAdd,
             Expr.Call(methodInfo, [mapNullables; rowMapper])
         
@@ -321,7 +325,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             )
     ]
 
-    member internal this.RecordType(columns) =
+    member internal this.GetRecordType(columns) =
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
         let properties, ctorParameters, withParameters = 
             [
@@ -368,7 +372,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         recordType.AddMember withMethod
         recordType    
 
-    member internal this.DataRowType (outputColumns) = 
+    member internal this.GetDataRowType (outputColumns) = 
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
         for col in outputColumns do
             let name = col.Name

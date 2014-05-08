@@ -100,15 +100,13 @@ let NullableStringInputParameter() =
     Assert.Equal(Some "", (new NullableStringInputStrict()).Execute(null))
     Assert.Equal(Some "boo", (new NullableStringInput()).Execute(Some "boo"))
 
+type Echo = SqlCommandProvider<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", connectionString, ResultType.Tuples>
 
-//     
-//open Microsoft.SqlServer.Types
-//
-//type Spatial = SqlCommandProvider<"select top 5 SpatialLocation from Person.Address", connectionString>
-//
-//[<Fact>]
-//let nativeTypes() =
-//    let result = Spatial().Execute()
-//    result |> Seq.iter (printfn "%A")
-
-
+[<Fact>]
+let ToTraceStriog() =
+    let now = DateTime.Now
+    let num = 42
+    let expected = sprintf "SELECT CAST(%O AS DATE), CAST(%O AS INT)" now num
+    let cmd = new Echo()
+    //Assert.Equal(expected, cmd.ToTraceString( now, num))
+    ()
