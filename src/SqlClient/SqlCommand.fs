@@ -127,7 +127,6 @@ type SqlCommandFactory private () =
     static member GetMethod(name, runtimeType) = 
         typeof<SqlCommandFactory>.GetMethod(name).MakeGenericMethod([| runtimeType |])
         
-
     static member ByConnectionString(connectionStringOrName, command, commandType, paramInfos, singleRow, mapper) = 
         let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
         let runTimeConnectionString = 
@@ -160,7 +159,7 @@ type SqlCommandFactory private () =
                 sqlDataReader.Close()
         }
     
-    static member SingeRow (mapNullables , rowMapper) =
+    static member SingeRow(mapNullables , rowMapper) =
         fun (_ : CancellationToken option) (sqlDataReader : SqlDataReader) ->
         try 
             if sqlDataReader.Read() then 

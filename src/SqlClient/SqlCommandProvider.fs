@@ -39,7 +39,7 @@ type ResultType =
 [<assembly:InternalsVisibleTo("SqlClient.Tests")>]
 do()
 
-type internal Output = {
+type internal ResultSetOutput = {
     ProvidedType : Type
     ErasedToType : Type
     RowType : ProvidedTypeDefinition option
@@ -121,58 +121,66 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             if resultType <> ResultType.DataReader
             then this.GetOutputColumns(conn, commandText, sqlParameters)
             else []
-        
+
         let output = this.GetOutputTypes(outputColumns, resultType, singleRow)
         
         let cmdProvidedType = 
             let eraseTo = typedefof<_ SqlCommand>.MakeGenericType( [| output.ErasedToType |])
             ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some eraseTo, HideObjectMethods = true)
 
-        output.RowType |> Option.iter cmdProvidedType.AddMember
-        
-        cmdProvidedType.AddMember(
-            ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
+        do  
+            cmdProvidedType.AddMember(
+                ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
 
-        let executeArgs = this.GetExecuteArgsForSqlParameters(cmdProvidedType, sqlParameters, allParametersOptional) 
-        let paramExpr = Expr.NewArray( typeof<SqlParameter>, sqlParameters |> List.map QuotationsFactory.ToSqlParam)
+        do  //Record
+            output.RowType |> Option.iter cmdProvidedType.AddMember
 
-        let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
-        let methodInfo = SqlCommandFactory.GetMethod("ByConnectionString", output.ErasedToType)
-        let paramTail = [Expr.Value commandText; Expr.Value CommandType.Text; paramExpr; Expr.Value singleRow; output.MapperFromReader ]
-        ctor.InvokeCode <- fun args -> 
-            let getConnString = <@@ if not( String.IsNullOrEmpty(%%args.[0])) then %%args.[0] else connectionStringOrName @@>
-            Expr.Call(methodInfo, getConnString::paramTail)
-           
-        cmdProvidedType.AddMember ctor
-
-        let ctor = ProvidedConstructor( [ ProvidedParameter("transaction", typeof<SqlTransaction>) ])
-        let methodInfo = SqlCommandFactory.GetMethod("ByTransaction", output.ErasedToType)
-
-        ctor.InvokeCode <- fun args -> Expr.Call(methodInfo, args.[0]::paramTail)
-
-        cmdProvidedType.AddMember ctor
-
-        let interfaceType = typedefof<_ ISqlCommand>.MakeGenericType([| output.ErasedToType |])
-        let name = "Execute" + if outputColumns.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
+        do  //ctors
+            let paramExpr = Expr.NewArray( typeof<SqlParameter>, sqlParameters |> List.map QuotationsFactory.ToSqlParam)
             
-        this.AddExecute(sqlParameters, 
-                        executeArgs, 
-                        allParametersOptional, 
-                        cmdProvidedType, 
-                        output.ProvidedType, 
-                        cmdProvidedType.BaseType, 
-                        interfaceType.GetMethod(name), 
-                        "Execute")
+            let ctor1 = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
+            let paramTail = [Expr.Value commandText; Expr.Value CommandType.Text; paramExpr; Expr.Value singleRow; output.MapperFromReader ]
+            ctor1.InvokeCode <- 
+                let methodInfo = SqlCommandFactory.GetMethod("ByConnectionString", output.ErasedToType)
+                fun args -> 
+                    let getConnString = <@@ if not( String.IsNullOrEmpty(%%args.[0])) then %%args.[0] else connectionStringOrName @@>
+                    Expr.Call(methodInfo, getConnString :: paramTail)
+           
+            cmdProvidedType.AddMember ctor1
+
+            let ctor2 = ProvidedConstructor( [ ProvidedParameter("transaction", typeof<SqlTransaction>) ])
+
+            ctor2.InvokeCode <- 
+                let methodInfo = SqlCommandFactory.GetMethod("ByTransaction", output.ErasedToType)
+                fun args -> Expr.Call(methodInfo, args.[0] :: paramTail)
+
+            cmdProvidedType.AddMember ctor2
+
+        do  //AsyncExecute & Execute
+
+            let executeArgs = this.GetExecuteArgsForSqlParameters(cmdProvidedType, sqlParameters, allParametersOptional) 
+
+            let interfaceType = typedefof<_ ISqlCommand>.MakeGenericType([| output.ErasedToType |])
+            let name = "Execute" + if outputColumns.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
+            
+            this.AddExecute(sqlParameters, 
+                            executeArgs, 
+                            allParametersOptional, 
+                            cmdProvidedType, 
+                            output.ProvidedType, 
+                            cmdProvidedType.BaseType, 
+                            interfaceType.GetMethod(name), 
+                            "Execute")
         
-        let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
-        this.AddExecute(sqlParameters, 
-                        executeArgs, 
-                        allParametersOptional, 
-                        cmdProvidedType, 
-                        asyncReturnType, 
-                        cmdProvidedType.BaseType, 
-                        interfaceType.GetMethod("Async" + name), 
-                        "AsyncExecute")
+            let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
+            this.AddExecute(sqlParameters, 
+                            executeArgs, 
+                            allParametersOptional, 
+                            cmdProvidedType, 
+                            asyncReturnType, 
+                            cmdProvidedType.BaseType, 
+                            interfaceType.GetMethod("Async" + name), 
+                            "AsyncExecute")
                 
         cmdProvidedType
 
