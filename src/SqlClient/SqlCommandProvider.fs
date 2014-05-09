@@ -70,7 +70,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             ],             
             instantiationFunction = (fun typeName args ->
                 let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5]
-                cache.GetOrAdd(key, this.CreateType)
+                cache.GetOrAdd(key, this.CreateRootType)
             ) 
             
         )
@@ -92,14 +92,12 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
            if watcher <> null
            then try watcher.Dispose() with _ -> ()
 
-    member internal this.CreateType((typeName, commandText : string, connectionStringOrName : string, resultType : ResultType, singleRow : bool, configFile : string, allParametersOptional : bool) as key) = 
+    member internal this.CreateRootType((typeName, commandText : string, connectionStringOrName : string, resultType : ResultType, singleRow : bool, configFile : string, allParametersOptional : bool) as key) = 
         
-        let resolutionFolder = config.ResolutionFolder
-
         let invalidator () =
             cache.TryRemove(key) |> ignore 
             this.Invalidate()
-        let commandText, watcher' = Configuration.ParseTextAtDesignTime(commandText, resolutionFolder, invalidator)
+        let commandText, watcher' = Configuration.ParseTextAtDesignTime(commandText, config.ResolutionFolder, invalidator)
         watcher' |> Option.iter (fun x -> watcher <- x)
 
         if connectionStringOrName.Trim() = ""
@@ -109,7 +107,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             
         let designTimeConnectionString = 
             if isByName
-            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, resolutionFolder, configFile)
+            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, config.ResolutionFolder, configFile)
             else connectionStringOrName
 
         use conn = new SqlConnection(designTimeConnectionString)
@@ -118,67 +116,67 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         conn.LoadDataTypesMap()
 
         let sqlParameters = this.ExtractSqlParameters(conn, commandText)
-        
+
         let outputColumns = 
             if resultType <> ResultType.DataReader
             then this.GetOutputColumns(conn, commandText, sqlParameters)
             else []
         
-        let { ProvidedType = providedOutputType; ErasedToType = runtimeType; RowType = typeToAdd; MapperFromReader = mapper } as output 
-            = this.GetReaderMapper(outputColumns, resultType, singleRow)
+        let output = this.GetOutputTypes(outputColumns, resultType, singleRow)
         
-        let runtimeCommandType = typedefof<_ SqlCommand>.MakeGenericType( [| runtimeType |])
-        let providedCommandType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some runtimeCommandType, HideObjectMethods = true)
+        let cmdProvidedType = 
+            let eraseTo = typedefof<_ SqlCommand>.MakeGenericType( [| output.ErasedToType |])
+            ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some eraseTo, HideObjectMethods = true)
+
+        output.RowType |> Option.iter cmdProvidedType.AddMember
         
-        typeToAdd |> Option.iter providedCommandType.AddMember
+        cmdProvidedType.AddMember(
+            ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
 
-        ProvidedProperty( "ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>) 
-        |> providedCommandType.AddMember
-
-        let executeArgs = this.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters, allParametersOptional) 
+        let executeArgs = this.GetExecuteArgsForSqlParameters(cmdProvidedType, sqlParameters, allParametersOptional) 
         let paramExpr = Expr.NewArray( typeof<SqlParameter>, sqlParameters |> List.map QuotationsFactory.ToSqlParam)
 
         let ctor = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
-        let methodInfo = SqlCommandFactory.GetMethod("ByConnectionString", runtimeType)
-        let paramTail = [Expr.Value commandText; Expr.Value CommandType.Text; paramExpr; Expr.Value singleRow; mapper]
+        let methodInfo = SqlCommandFactory.GetMethod("ByConnectionString", output.ErasedToType)
+        let paramTail = [Expr.Value commandText; Expr.Value CommandType.Text; paramExpr; Expr.Value singleRow; output.MapperFromReader ]
         ctor.InvokeCode <- fun args -> 
             let getConnString = <@@ if not( String.IsNullOrEmpty(%%args.[0])) then %%args.[0] else connectionStringOrName @@>
             Expr.Call(methodInfo, getConnString::paramTail)
            
-        providedCommandType.AddMember ctor
+        cmdProvidedType.AddMember ctor
 
         let ctor = ProvidedConstructor( [ ProvidedParameter("transaction", typeof<SqlTransaction>) ])
-        let methodInfo = SqlCommandFactory.GetMethod("ByTransaction", runtimeType)
+        let methodInfo = SqlCommandFactory.GetMethod("ByTransaction", output.ErasedToType)
 
         ctor.InvokeCode <- fun args -> Expr.Call(methodInfo, args.[0]::paramTail)
 
-        providedCommandType.AddMember ctor
+        cmdProvidedType.AddMember ctor
 
-        let interfaceType = typedefof<_ ISqlCommand>.MakeGenericType([|runtimeType|])
+        let interfaceType = typedefof<_ ISqlCommand>.MakeGenericType([| output.ErasedToType |])
         let name = "Execute" + if outputColumns.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
             
         this.AddExecute(sqlParameters, 
                         executeArgs, 
                         allParametersOptional, 
-                        providedCommandType, 
-                        providedOutputType, 
-                        runtimeCommandType, 
+                        cmdProvidedType, 
+                        output.ProvidedType, 
+                        cmdProvidedType.BaseType, 
                         interfaceType.GetMethod(name), 
                         "Execute")
         
-        let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ providedOutputType ])
+        let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
         this.AddExecute(sqlParameters, 
                         executeArgs, 
                         allParametersOptional, 
-                        providedCommandType, 
+                        cmdProvidedType, 
                         asyncReturnType, 
-                        runtimeCommandType, 
+                        cmdProvidedType.BaseType, 
                         interfaceType.GetMethod("Async" + name), 
                         "AsyncExecute")
                 
-        providedCommandType
+        cmdProvidedType
 
-    member internal __.AddExecute(sqlParameters, executeArgs, allParametersOptional, providedCommandType, providedOutputType, erasedType, methodCall, name) =
+    member internal __.AddExecute(sqlParameters, executeArgs, allParametersOptional, cmdProvidedType, providedOutputType, erasedType, methodCall, name) =
         let mappedParamValues (exprArgs : Expr list) = 
             (exprArgs.Tail, sqlParameters)
             ||> List.map2 (fun expr info ->
@@ -200,10 +198,10 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             let vals = mappedParamValues(exprArgs)
             let paramValues = Expr.NewArray(typeof<string*obj>, elements = vals)
             Expr.Call( Expr.Coerce(exprArgs.[0], erasedType), methodCall, [paramValues])
-        providedCommandType.AddMember executeMethod
+        cmdProvidedType.AddMember executeMethod
        
 
-    member internal __.GetReaderMapper(outputColumns, resultType, singleRow) =    
+    member internal __.GetOutputTypes(outputColumns, resultType, singleRow) =    
         if resultType = ResultType.DataReader 
         then 
             {
@@ -315,7 +313,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 }
     ]
 
-    member internal __.GetExecuteArgsForSqlParameters(providedCommandType, sqlParameters, allParametersOptional) = [
+    member internal __.GetExecuteArgsForSqlParameters(cmdProvidedType, sqlParameters, allParametersOptional) = [
         for p in sqlParameters do
             assert p.Name.StartsWith("@")
             let parameterName = p.Name.Substring 1
@@ -327,7 +325,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 else
                     assert(p.Direction = ParameterDirection.Input)
                     let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<obj[]>)
-                    providedCommandType.AddMember rowType
+                    cmdProvidedType.AddMember rowType
                     let parameters = [ 
                         for p in p.TypeInfo.TvpColumns -> 
                             ProvidedParameter(p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
