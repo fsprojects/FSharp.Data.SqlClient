@@ -92,7 +92,14 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
            if watcher <> null
            then try watcher.Dispose() with _ -> ()
 
-    member internal this.CreateRootType((typeName, commandText : string, connectionStringOrName : string, resultType : ResultType, singleRow : bool, configFile : string, allParametersOptional : bool) as key) = 
+    member internal this.CreateRootType((typeName, 
+                                         commandText : string, 
+                                         connectionStringOrName : string, 
+                                         resultType : ResultType, 
+                                         singleRow : bool, 
+                                         configFile : string, 
+                                         allParametersOptional : bool) 
+                                         as key) = 
         
         let invalidator () =
             cache.TryRemove(key) |> ignore 
@@ -156,14 +163,14 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
             cmdProvidedType.AddMember ctor2
 
-        do  //AsyncExecute & Execute
+        do  //AsyncExecute, Execute, and ToTraceString
 
             let executeArgs = this.GetExecuteArgsForSqlParameters(cmdProvidedType, sqlParameters, allParametersOptional) 
 
             let interfaceType = typedefof<_ ISqlCommand>.MakeGenericType([| output.ErasedToType |])
             let name = "Execute" + if outputColumns.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
             
-            this.AddExecute(sqlParameters, 
+            this.AddGeneratedMethodOverride(sqlParameters, 
                             executeArgs, 
                             allParametersOptional, 
                             cmdProvidedType, 
@@ -173,7 +180,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                             "Execute")
         
             let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
-            this.AddExecute(sqlParameters, 
+            this.AddGeneratedMethodOverride(sqlParameters, 
                             executeArgs, 
                             allParametersOptional, 
                             cmdProvidedType, 
@@ -181,10 +188,19 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                             cmdProvidedType.BaseType, 
                             interfaceType.GetMethod("Async" + name), 
                             "AsyncExecute")
+
+            this.AddGeneratedMethodOverride(sqlParameters, 
+                            executeArgs, 
+                            allParametersOptional, 
+                            cmdProvidedType, 
+                            typeof<string>, 
+                            cmdProvidedType.BaseType, 
+                            interfaceType.GetMethod("ToTraceString"), 
+                            "ToTraceString")
                 
         cmdProvidedType
 
-    member internal __.AddExecute(sqlParameters, executeArgs, allParametersOptional, cmdProvidedType, providedOutputType, erasedType, methodCall, name) =
+    member internal __.AddGeneratedMethodOverride(sqlParameters, executeArgs, allParametersOptional, cmdProvidedType, providedOutputType, erasedType, methodCall, name) =
         let mappedParamValues (exprArgs : Expr list) = 
             (exprArgs.Tail, sqlParameters)
             ||> List.map2 (fun expr info ->

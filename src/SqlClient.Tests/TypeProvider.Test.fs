@@ -4,6 +4,7 @@ open System
 open System.Data
 open System.Data.SqlClient
 open Xunit
+open FsUnit.Xunit
 
 [<Literal>]
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
@@ -77,15 +78,15 @@ type GetBitCoin = SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Curre
 
 [<Fact>]
 let asyncCustomRecord() =
-    Assert.Equal(1, (new GetBitCoin()).AsyncExecute("USD") |> Async.RunSynchronously |> Seq.length)
+    (new GetBitCoin()).AsyncExecute("USD") |> Async.RunSynchronously |> Seq.length |> should equal 1
 
 type NoneSingleton = SqlCommandProvider<"select 1 where 1 = 0", connectionString, SingleRow = true>
 type SomeSingleton = SqlCommandProvider<"select 1", connectionString, SingleRow = true>
 
 [<Fact>]
 let singleRowOption() =
-    Assert.True((new NoneSingleton()).Execute().IsNone)
-    Assert.Equal(Some 1, (new SomeSingleton()).AsyncExecute() |> Async.RunSynchronously)
+    (new NoneSingleton()).Execute().IsNone |> should be True
+    (new SomeSingleton()).AsyncExecute() |> Async.RunSynchronously |> should equal (Some 1)
 
 
 type NullableStringInput = SqlCommandProvider<"select  ISNULL(@P1, '')", connectionString, SingleRow = true, AllParametersOptional = true>
@@ -95,18 +96,28 @@ open System.Data.SqlClient
 
 [<Fact>]
 let NullableStringInputParameter() = 
-    Assert.Equal(Some "", (new NullableStringInput()).Execute(None))
-    Assert.Equal(Some "", (new NullableStringInput()).Execute())
-    Assert.Equal(Some "", (new NullableStringInputStrict()).Execute(null))
-    Assert.Equal(Some "boo", (new NullableStringInput()).Execute(Some "boo"))
+    (new NullableStringInput()).Execute(None) |> should equal (Some "")
+    (new NullableStringInput()).Execute() |> should equal (Some "")
+    (new NullableStringInputStrict()).Execute(null) |> should equal (Some "")
+    (new NullableStringInput()).Execute(Some "boo") |> should equal (Some "boo")
 
 type Echo = SqlCommandProvider<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", connectionString, ResultType.Tuples>
 
 [<Fact>]
-let ToTraceStriog() =
+let ToTraceString() =
     let now = DateTime.Now
     let num = 42
-    let expected = sprintf "SELECT CAST(%O AS DATE), CAST(%O AS INT)" now num
+    let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE), CAST(@Number AS INT)',N'@Date Date,@Number Int',@Date='%A',@Number='%d'" now num
     let cmd = new Echo()
-    //Assert.Equal(expected, cmd.ToTraceString( now, num))
-    ()
+    cmd.ToTraceString( now, num) |> should equal expected
+
+[<Fact>]
+let ``ToTraceString for CRUD``() =    
+    (new GetBitCoin()).ToTraceString(bitCoinCode) 
+    |> should equal "exec sp_executesql N'SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code',N'@code NChar(3)',@code='BTC'"
+    
+    (new InsertBitCoin()).ToTraceString(bitCoinCode, bitCoinName) 
+    |> should equal "exec sp_executesql N'INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())',N'@Code NChar(3),@Name NVarChar(7)',@Code='BTC',@Name='Bitcoin'"
+    
+    (new DeleteBitCoin()).ToTraceString(bitCoinCode) 
+    |> should equal "exec sp_executesql N'DELETE FROM Sales.Currency WHERE CurrencyCode = @Code',N'@Code NChar(3)',@Code='BTC'"

@@ -19,6 +19,7 @@ type ISqlCommand<'TResult> =
     abstract Execute : parameters: (string * obj)[] -> 'TResult
     abstract AsyncExecuteNonQuery : parameters: (string * obj)[] -> Async<int>
     abstract ExecuteNonQuery : parameters: (string * obj)[] -> int
+    abstract ToTraceString : parameters: (string * obj)[] -> string
 
 type SqlCommand<'TResult>(  connection: SqlConnection, 
                             command: string, 
@@ -116,6 +117,26 @@ type SqlCommand<'TResult>(  connection: SqlConnection,
             setParameters parameters  
             use disposable = cmd.Connection.UseConnection()
             cmd.ExecuteNonQuery() 
+        
+        member this.ToTraceString parameters =  
+            setParameters parameters  //Dirty hack to make command figure out sizes. Won't hurt because all executes do the same
+            let parameterDefinition (p : SqlParameter) =
+                if p.Size <> 0 then
+                    sprintf "%s %A(%d)" p.ParameterName p.SqlDbType p.Size
+                else
+                    sprintf "%s %A" p.ParameterName p.SqlDbType 
+            seq {
+              yield sprintf "exec sp_executesql N'%s'" cmd.CommandText
+              
+              yield cmd.Parameters
+                    |> Seq.cast<SqlParameter> 
+                    |> Seq.map parameterDefinition
+                    |> String.concat ","
+                    |> sprintf "N'%s'" 
+              yield parameters
+                    |> Seq.map(fun (name,value) -> sprintf "%s='%O'" name value) 
+                    |> String.concat ","
+            } |> String.concat "," //Using string.concat to handle annoying case with no parameters
 
     interface IDisposable with
         member this.Dispose() =
