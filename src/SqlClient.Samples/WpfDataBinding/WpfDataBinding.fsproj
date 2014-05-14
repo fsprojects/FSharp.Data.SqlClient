@@ -9,9 +9,10 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>DataBinding</RootNamespace>
     <AssemblyName>DataBinding</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <Name>WpfDataBinding</Name>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>
@@ -40,22 +41,23 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data.SqlClient">
-      <HintPath>..\..\..\bin\FSharp.Data.SqlClient.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.21\lib\net40\FSharp.Data.SqlClient.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.ConnectionInfo">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.12\lib\net40\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.21\lib\net40\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.12\lib\net40\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.21\lib\net40\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Smo">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.12\lib\net40\Microsoft.SqlServer.Smo.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.21\lib\net40\Microsoft.SqlServer.Smo.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Types">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.12\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.21\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
@@ -84,6 +86,13 @@
     <None Include="SqlServerTypes\readme.htm" />
     <None Include="SqlServerTypes\Loader.cs" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WebApi.Controllers\WebApi.Controllers.fsproj">
+      <Name>WebApi.Controllers</Name>
+      <Project>{92308b2e-43b4-4c4c-9446-87d02c4e455d}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>

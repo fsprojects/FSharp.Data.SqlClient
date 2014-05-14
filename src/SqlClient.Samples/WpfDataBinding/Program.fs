@@ -1,5 +1,8 @@
 ﻿module FSharp.Data.Application
 
+//open WebApi
+//let testExternalQuery = DataAccess.QueryProducts()
+
 open System
 open System.Windows
 open System.Windows.Controls
@@ -8,7 +11,7 @@ open System.Data.SqlClient
 open FSharp.Data
 
 [<Literal>]
-let queryTableSql = "select top 5 AddressLine1, City, SpatialLocation from Person.Address where AddressLine1 like @startsWith"
+let queryTableSql = "select top 5 AddressID, AddressLine1, City, SpatialLocation from Person.Address where AddressLine1 like @startsWith"
 
 type Query = SqlCommandProvider<queryTableSql, ConnectionStringOrName="name=AdventureWorks2012", ResultType=ResultType.DataTable>
 
@@ -20,7 +23,7 @@ let main argv =
     let save : Button = mainWindow.FindName "Save" |> unbox
     let grid : DataGrid = mainWindow.FindName "Grid" |> unbox
 
-    let cmd = Query()
+    let cmd = new Query()
     let data = cmd.Execute(startsWith = "c%")
     grid.ItemsSource <- data
 
