@@ -1,8 +1,9 @@
 ﻿module FSharp.Data.TransactionTests
 
-open System.Data.SqlClient
-open System.Transactions
 open System
+open System.Data
+open System.Transactions
+open System.Data.SqlClient
 
 open Xunit
 
@@ -64,3 +65,19 @@ let local() =
     Assert.Equal(1, (new GetBitCoin(tran)).Execute(bitCoinCode) |> Seq.length)
     tran.Rollback()
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
+
+
+type RaiseError = SqlCommandProvider<"SELECT 42;RAISERROR ('Error raised.', 16, 1 ) ", connectionString>
+
+[<Fact>]
+let notCloseExternalConnInCaseOfError() =
+    use conn = new SqlConnection(connectionString)
+    conn.Open()
+    let tran = conn.BeginTransaction()
+    use cmd = new RaiseError()
+    try
+        cmd.Execute() |> Seq.toArray |> ignore
+    with _ ->
+        Assert.True(conn.State = ConnectionState.Open)
+
+    

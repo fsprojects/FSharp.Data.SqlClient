@@ -14,6 +14,8 @@ open Samples.FSharp.ProvidedTypes
 
 open FSharp.Data.Internals
 
+type NullsToOptionsMapper = obj[] -> obj[]
+
 type ISqlCommand<'TResult> = 
     abstract AsyncExecute : parameters: (string * obj)[] -> Async<'TResult>
     abstract Execute : parameters: (string * obj)[] -> 'TResult
@@ -21,25 +23,21 @@ type ISqlCommand<'TResult> =
     abstract ExecuteNonQuery : parameters: (string * obj)[] -> int
     abstract ToTraceString : parameters: (string * obj)[] -> string
 
-type SqlCommand<'TResult>(  connection: SqlConnection, 
-                            command: string, 
-                            commandType: CommandType, 
-                            paramInfos: SqlParameter [], 
-                            singleRow : bool,
+    abstract AsyncExecuteDataTable : parameters: (string * obj)[] -> Async<FSharp.Data.DataTable<DataRow>>
+    abstract ExecuteDataTable : (string * obj)[] * NullsToOptionsMapper -> FSharp.Data.DataTable<DataRow>
+
+type SqlCommand<'TResult> (connection, command, parameters, singleRow, 
                             mapper: CancellationToken option -> SqlDataReader -> 'TResult,
                             ?transaction : SqlTransaction) = 
 
-    let cmd = new SqlCommand(command, connection, CommandType = commandType)
-    do
-      if transaction.IsSome then     
-        assert(connection = transaction.Value.Connection)
-        cmd.Transaction <- transaction.Value
-      cmd.Parameters.AddRange( paramInfos )
+    let cmd = new SqlCommand(command, connection)
+    do 
+        cmd.Parameters.AddRange( parameters)
+        transaction |> Option.iter cmd.set_Transaction
             
-    let behavior () =
+    let behavior() =
         let connBehavior = 
             if cmd.Connection.State <> ConnectionState.Open then
-                //sqlCommand.Connection.StateChange.Add <| fun args -> printfn "Connection %i state change: %O -> %O" (sqlCommand.Connection.GetHashCode()) args.OriginalState args.CurrentState
                 cmd.Connection.Open()
                 CommandBehavior.CloseConnection
             else
@@ -73,6 +71,13 @@ type SqlCommand<'TResult>(  connection: SqlConnection,
                 | SqlDbType.VarChar -> p.Size <- 8000
                 | _ -> ()
 
+    let executeReader parameters =  
+        setParameters parameters      
+        try 
+            cmd.ExecuteReader(behavior())
+        with _ ->
+            cmd.Connection.Close()
+            reraise()
     
     member this.ConnectionState () = cmd.Connection.State
 
@@ -110,7 +115,7 @@ type SqlCommand<'TResult>(  connection: SqlConnection,
             setParameters parameters  
             async {         
                 use disposable = cmd.Connection.UseConnection()
-                return! Async.FromBeginEnd(cmd.BeginExecuteNonQuery, cmd.EndExecuteNonQuery) 
+                return! cmd.AsyncExecuteNonQuery() 
             }
 
         member this.ExecuteNonQuery parameters = 
@@ -138,6 +143,16 @@ type SqlCommand<'TResult>(  connection: SqlConnection,
                     |> String.concat ","
             } |> String.concat "," //Using string.concat to handle annoying case with no parameters
 
+
+        member this.AsyncExecuteDataTable parameters = 
+            Unchecked.defaultof< Async<FSharp.Data.DataTable<DataRow>> >
+
+        member this.ExecuteDataTable(parameters, nullToOptionMapper) = 
+            use reader = executeReader parameters
+            let result = new FSharp.Data.DataTable<DataRow>()
+            result.Load(reader)
+            result
+            
     interface IDisposable with
         member this.Dispose() =
             cmd.Dispose()
@@ -148,16 +163,16 @@ type SqlCommandFactory private () =
     static member GetMethod(name, runtimeType) = 
         typeof<SqlCommandFactory>.GetMethod(name).MakeGenericMethod([| runtimeType |])
         
-    static member ByConnectionString(connectionStringOrName, command, commandType, paramInfos, singleRow, mapper) = 
+    static member ByConnectionString(connectionStringOrName, command, parameters, singleRow, mapper) = 
         let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
         let runTimeConnectionString = 
             if isByName 
             then Configuration.GetConnectionStringRunTimeByName connectionStringName
             else connectionStringOrName
-        new SqlCommand<_>(new SqlConnection(runTimeConnectionString), command, commandType, paramInfos, singleRow, mapper)  
+        new SqlCommand<_>(new SqlConnection(runTimeConnectionString), command, parameters, singleRow, mapper)  
    
-    static member ByTransaction(transaction : SqlTransaction, command, commandType, paramInfos, singleRow, mapper) = 
-        new SqlCommand<_>(transaction.Connection, command, commandType, paramInfos, singleRow, mapper, transaction) 
+    static member ByTransaction(transaction : SqlTransaction, command, parameters, singleRow, mapper) = 
+        new SqlCommand<_>(transaction.Connection, command, parameters, singleRow, mapper, transaction) 
                 
     static member GetDataTable(sqlDataReader : SqlDataReader) =
         use reader = sqlDataReader

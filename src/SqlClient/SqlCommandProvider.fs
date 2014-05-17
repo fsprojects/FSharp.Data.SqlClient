@@ -146,7 +146,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             let paramExpr = Expr.NewArray( typeof<SqlParameter>, sqlParameters |> List.map QuotationsFactory.ToSqlParam)
             
             let ctor1 = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
-            let paramTail = [Expr.Value commandText; Expr.Value CommandType.Text; paramExpr; Expr.Value singleRow; output.MapperFromReader ]
+            let paramTail = [Expr.Value commandText; paramExpr; Expr.Value singleRow; output.MapperFromReader ]
             ctor1.InvokeCode <- 
                 let methodInfo = SqlCommandFactory.GetMethod("ByConnectionString", output.ErasedToType)
                 fun args -> 
@@ -427,7 +427,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             let property = 
                 if col.IsNullable 
                 then
-                    ProvidedProperty(name, propertyType = col.ClrTypeConsideringNullable,
+                    ProvidedProperty(name, propertyType,
                         GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", col.TypeInfo.ClrType, name),
                         SetterCode = QuotationsFactory.GetBody("SetNullableValueInDataRow", col.TypeInfo.ClrType, name)
                     )
