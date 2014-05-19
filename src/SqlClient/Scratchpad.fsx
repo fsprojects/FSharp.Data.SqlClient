@@ -2,6 +2,16 @@
 open System
 open System.Data
 open System.Data.SqlClient
+
+let cmdBehaviour = 
+    seq {
+        if false
+        then 
+            yield CommandBehavior.CloseConnection
+        yield CommandBehavior.SingleRow
+    }
+    |> Seq.fold (|||) CommandBehavior.SingleResult
+
 let conn = new SqlConnection("""Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True""")
 conn.Close()
 conn.Open()
@@ -66,3 +76,9 @@ type Bar<'T>() =
 let t = typedefof<_ Bar>.MakeGenericType([|typeof<string>|])
 t.GetMethods()
 t.GetMethod("Foo")
+
+open Quotations.Patterns
+let expr = <@@ unbox<int>(box 5) @@>
+match expr with Call(None, mi, _) -> mi.DeclaringType.AssemblyQualifiedName | _ -> "hehe"
+
+let boxMethod = System.Type.GetType( "Microsoft.FSharp.Core.Operators, FSharp.Core").GetMethod("Box")

@@ -12,41 +12,62 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
 open Samples.FSharp.ProvidedTypes
 
-open FSharp.Data.Internals
+open FSharp.Data
 
-type NullsToOptionsMapper = obj[] -> obj[]
-
-type ISqlCommand<'TResult> = 
-    abstract AsyncExecute : parameters: (string * obj)[] -> Async<'TResult>
-    abstract Execute : parameters: (string * obj)[] -> 'TResult
-    abstract AsyncExecuteNonQuery : parameters: (string * obj)[] -> Async<int>
-    abstract ExecuteNonQuery : parameters: (string * obj)[] -> int
+type ISqlCommand = 
+    abstract Execute : parameters: (string * obj)[] -> obj
+    abstract AsyncExecute : parameters: (string * obj)[] -> obj
     abstract ToTraceString : parameters: (string * obj)[] -> string
+    abstract Raw : SqlCommand with get
 
-    abstract AsyncExecuteDataTable : parameters: (string * obj)[] -> Async<FSharp.Data.DataTable<DataRow>>
-    abstract ExecuteDataTable : (string * obj)[] * NullsToOptionsMapper -> FSharp.Data.DataTable<DataRow>
+//type RowMapping = 
+//    | Row of (obj[] -> obj)
+//    | NonQuery
+//
+//    static member WithNullsToOptions (nullsToOptions: obj[] -> unit, mapper) = 
+//        Row(fun values -> 
+//            nullsToOptions values
+//            mapper values
+//        ) 
 
-type SqlCommand<'TResult> (connection, command, parameters, singleRow, 
-                            mapper: CancellationToken option -> SqlDataReader -> 'TResult,
-                            ?transaction : SqlTransaction) = 
+type RowMapping = obj[] -> obj
 
-    let cmd = new SqlCommand(command, connection)
+type Connection =
+    | String of string
+    | Name of string
+    | Transaction of SqlTransaction
+
+type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singleRow, rowMapping : RowMapping) = 
+
+    let cmd = new SqlCommand(sqlStatement)
     do 
-        cmd.Parameters.AddRange( parameters)
-        transaction |> Option.iter cmd.set_Transaction
-            
-    let behavior() =
-        let connBehavior = 
-            if cmd.Connection.State <> ConnectionState.Open then
-                cmd.Connection.Open()
-                CommandBehavior.CloseConnection
-            else
-                CommandBehavior.Default 
-        connBehavior
-        ||| (if singleRow then CommandBehavior.SingleRow else CommandBehavior.Default)
-        ||| CommandBehavior.SingleResult
+        match connection with
+        | String x -> 
+            cmd.Connection <- new SqlConnection(x)
+        | Name x ->
+            let connStr = Configuration.GetConnectionStringRunTimeByName x
+            cmd.Connection <- new SqlConnection(connStr)
+        | Transaction t ->
+             cmd.Connection <- t.Connection
+             cmd.Transaction <- t
 
-    let setParameters (parameters : (string * obj)[]) = 
+    do
+        cmd.Parameters.AddRange( parameters)
+
+    let getExecuteBehavior() =
+        seq {
+            yield CommandBehavior.SingleResult
+
+            if cmd.Connection.State <> ConnectionState.Open 
+            then
+                cmd.Connection.Open() 
+                yield CommandBehavior.CloseConnection
+
+            if singleRow then yield CommandBehavior.SingleRow 
+        }
+        |> Seq.reduce (|||) 
+
+    let setParameters (cmd : SqlCommand) (parameters : (string * obj)[]) = 
         for name, value in parameters do
             
             let p = cmd.Parameters.[name]            
@@ -71,69 +92,131 @@ type SqlCommand<'TResult> (connection, command, parameters, singleRow,
                 | SqlDbType.VarChar -> p.Size <- 8000
                 | _ -> ()
 
-    let executeReader parameters =  
-        setParameters parameters      
-        try 
-            cmd.ExecuteReader(behavior())
-        with _ ->
-            cmd.Connection.Close()
-            reraise()
-    
-    member this.ConnectionState () = cmd.Connection.State
+    let executeReader parameters = 
+        setParameters cmd parameters      
+        cmd.ExecuteReader( getExecuteBehavior())
+
+    let asyncExecuteReader parameters = 
+        setParameters cmd parameters 
+        async {
+            let! token = Async.CancellationToken                
+            return! cmd.AsyncExecuteReader( getExecuteBehavior())
+        }
+
+    let executeDataTable parameters = 
+        use reader = executeReader parameters
+        let result = new FSharp.Data.DataTable<DataRow>()
+        result.Load(reader)
+        result
+
+    let asyncExecuteDataTable parameters = 
+        async {
+            use! reader = asyncExecuteReader parameters
+            let result = new FSharp.Data.DataTable<DataRow>()
+            result.Load(reader)
+            return result
+        }
+
+    let executeSeq rowMapper parameters = 
+        let xs = 
+            seq {
+                use reader = executeReader parameters
+                try 
+                    while reader.Read() do
+                        let values = Array.zeroCreate reader.FieldCount
+                        reader.GetValues(values) |> ignore
+                        yield values |> rowMapper |> unbox<'TItem>
+                finally
+                    reader.Close()
+            }
+
+        if singleRow 
+        then
+            match Seq.toList xs with
+            | [] -> None
+            | [ x ] -> Some x
+            | _ -> invalidOp "Single row was expected."
+            |> box
+        else
+            box xs 
+            
+    let asyncExecuteSeq rowMapper parameters = 
+        let xs = 
+            async {
+                let! reader = asyncExecuteReader parameters
+                return seq {
+                    try 
+                        while reader.Read() do
+                            let values = Array.zeroCreate reader.FieldCount
+                            reader.GetValues(values) |> ignore
+                            yield values |> rowMapper |> unbox<'TItem>
+                    finally
+                        reader.Close()
+                }
+            }
+
+        if singleRow 
+        then
+            async {
+                let! xs = xs 
+                return 
+                    match Seq.toList xs with
+                    | [] -> None
+                    | [ x ] -> Some x
+                    | _ -> invalidOp "Single row was expected."
+            }
+            |> box
+        else
+            box xs 
+
+    let executeNonQuery parameters = 
+        setParameters cmd parameters  
+        use openedConnection = cmd.Connection.UseConnection()
+        cmd.ExecuteNonQuery() 
+
+    let asyncExecuteNonQuery parameters = 
+        setParameters cmd parameters  
+        async {         
+            use openedConnection = cmd.Connection.UseConnection()
+            return! cmd.AsyncExecuteNonQuery() 
+        }
+
+    let execute, asyncExecute = 
+        match resultType with
+        | ResultType.Records | ResultType.Tuples->
+            if box rowMapping = null
+            then
+                executeNonQuery >> box , asyncExecuteNonQuery >> box
+            else
+                executeSeq rowMapping, asyncExecuteSeq rowMapping
+        | ResultType.DataTable ->
+            executeDataTable >> box, asyncExecuteDataTable >> box
+        | ResultType.DataReader -> 
+            executeReader >> box, asyncExecuteReader >> box
+        | unexpected -> failwithf "Unexpected ResultType value: %O" unexpected
 
     member this.AsSqlCommand () = 
         let clone = new SqlCommand(cmd.CommandText, new SqlConnection(cmd.Connection.ConnectionString), CommandType = cmd.CommandType)
         clone.Parameters.AddRange <| [| for p in cmd.Parameters -> SqlParameter(p.ParameterName, p.SqlDbType) |]
         clone
 
-    interface ISqlCommand<'TResult> with
+    interface ISqlCommand with
 
-        member this.AsyncExecute parameters = 
-            setParameters parameters 
-            async {
-                let! token = Async.CancellationToken                
-                let! reader = 
-                    try 
-                        Async.FromBeginEnd((fun(callback, state) -> cmd.BeginExecuteReader(callback, state, behavior())), cmd.EndExecuteReader)
-                    with _ ->
-                        cmd.Connection.Close()
-                        reraise()
-                return mapper (Some token) reader
-            }
+        member this.Execute parameters = execute parameters
+        member this.AsyncExecute parameters = asyncExecute parameters
 
-        member this.Execute parameters = 
-            setParameters parameters      
-            let reader = 
-                try 
-                    cmd.ExecuteReader(behavior())
-                with _ ->
-                    cmd.Connection.Close()
-                    reraise()
-            mapper None reader
-       
-        member this.AsyncExecuteNonQuery parameters = 
-            setParameters parameters  
-            async {         
-                use disposable = cmd.Connection.UseConnection()
-                return! cmd.AsyncExecuteNonQuery() 
-            }
-
-        member this.ExecuteNonQuery parameters = 
-            setParameters parameters  
-            use disposable = cmd.Connection.UseConnection()
-            cmd.ExecuteNonQuery() 
-        
         member this.ToTraceString parameters =  
-            setParameters parameters  //Dirty hack to make command figure out sizes. Won't hurt because all executes do the same
+            let clone = this.AsSqlCommand()
+            setParameters clone parameters  
             let parameterDefinition (p : SqlParameter) =
                 if p.Size <> 0 then
                     sprintf "%s %A(%d)" p.ParameterName p.SqlDbType p.Size
                 else
                     sprintf "%s %A" p.ParameterName p.SqlDbType 
             seq {
-              yield sprintf "exec sp_executesql N'%s'" cmd.CommandText
+              yield sprintf "exec sp_executesql N'%s'" clone.CommandText
               
-              yield cmd.Parameters
+              yield clone.Parameters
                     |> Seq.cast<SqlParameter> 
                     |> Seq.map parameterDefinition
                     |> String.concat ","
@@ -143,68 +226,9 @@ type SqlCommand<'TResult> (connection, command, parameters, singleRow,
                     |> String.concat ","
             } |> String.concat "," //Using string.concat to handle annoying case with no parameters
 
-
-        member this.AsyncExecuteDataTable parameters = 
-            Unchecked.defaultof< Async<FSharp.Data.DataTable<DataRow>> >
-
-        member this.ExecuteDataTable(parameters, nullToOptionMapper) = 
-            use reader = executeReader parameters
-            let result = new FSharp.Data.DataTable<DataRow>()
-            result.Load(reader)
-            result
+        member this.Raw = cmd
             
     interface IDisposable with
         member this.Dispose() =
             cmd.Dispose()
 
-
-type SqlCommandFactory private () =
-    
-    static member GetMethod(name, runtimeType) = 
-        typeof<SqlCommandFactory>.GetMethod(name).MakeGenericMethod([| runtimeType |])
-        
-    static member ByConnectionString(connectionStringOrName, command, parameters, singleRow, mapper) = 
-        let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
-        let runTimeConnectionString = 
-            if isByName 
-            then Configuration.GetConnectionStringRunTimeByName connectionStringName
-            else connectionStringOrName
-        new SqlCommand<_>(new SqlConnection(runTimeConnectionString), command, parameters, singleRow, mapper)  
-   
-    static member ByTransaction(transaction : SqlTransaction, command, parameters, singleRow, mapper) = 
-        new SqlCommand<_>(transaction.Connection, command, parameters, singleRow, mapper, transaction) 
-                
-    static member GetDataTable(sqlDataReader : SqlDataReader) =
-        use reader = sqlDataReader
-        let result = new FSharp.Data.DataTable<DataRow>()
-        result.Load(reader)
-        result
-
-    static member GetRecord(values : obj [], names : string []) = DynamicRecord((names, values) ||> Seq.zip |> dict)
-                                    
-    static member GetTypedSequence (mapNullables, rowMapper) =
-        fun (token : CancellationToken option) (sqlDataReader : SqlDataReader) ->
-        seq {
-            try 
-                while((token.IsNone || not token.Value.IsCancellationRequested) && sqlDataReader.Read()) do
-                    let values = Array.zeroCreate sqlDataReader.FieldCount
-                    sqlDataReader.GetValues(values) |> ignore
-                    mapNullables values
-                    yield rowMapper values
-            finally
-                sqlDataReader.Close()
-        }
-    
-    static member SingeRow(mapNullables , rowMapper) =
-        fun (_ : CancellationToken option) (sqlDataReader : SqlDataReader) ->
-        try 
-            if sqlDataReader.Read() then 
-                let values = Array.zeroCreate sqlDataReader.FieldCount                
-                sqlDataReader.GetValues(values) |> ignore
-                if sqlDataReader.Read() then raise <| InvalidOperationException("Single row was expected.")
-                mapNullables values
-                Some <| rowMapper values
-            else
-                None                
-        finally
-                sqlDataReader.Close()

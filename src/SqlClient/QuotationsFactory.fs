@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.Internals
+﻿namespace FSharp.Data.SqlClient
 
 open System
 open System.Data
@@ -57,7 +57,7 @@ type QuotationsFactory private() =
             x
         @@>
 
-    static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> SqlClient.DbNull @@>    
+    static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> Extensions.DbNull @@>    
         
     static member internal MapArrayOptionItemToObj<'T>(arr, index) =
         <@
@@ -70,6 +70,10 @@ type QuotationsFactory private() =
             let values : obj[] = %%arr
             values.[index] <- box <| if Convert.IsDBNull(values.[index]) then None else Some(unbox<'T> values.[index])
         @> 
+
+    static member internal MapArrayNullableItems(outputColumns : Column list, mapper : string) = 
+        let columnTypes, isNullableColumn = outputColumns |> List.map (fun c -> c.TypeInfo.ClrTypeFullName, c.IsNullable) |> List.unzip
+        QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, mapper)            
 
     static member internal MapArrayNullableItems(columnTypes : string list, isNullableColumn : bool list, mapper : string) = 
         assert(columnTypes.Length = isNullableColumn.Length)
@@ -105,3 +109,8 @@ type QuotationsFactory private() =
         <@
             (%%exprArgs.[0] : DataRow).[name] <- match (%%exprArgs.[1] : option<'T>) with None -> null | Some value -> box value
         @> 
+
+    static member GetMapperWithNullsToOptions(nullsToOptions, mapper: obj[] -> obj) = 
+        fun values -> 
+            nullsToOptions values
+            mapper values

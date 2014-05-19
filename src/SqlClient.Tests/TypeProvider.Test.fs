@@ -19,9 +19,11 @@ let asyncSinlgeColumn() =
 [<Fact>]
 let ConnectionClose() = 
     use cmd = new GetOddNumbers()
-    Assert.Equal(ConnectionState.Closed, cmd.ConnectionState())
+    let untypedCmd : SqlClient.ISqlCommand = upcast cmd
+    let underlyingConnection = untypedCmd.Raw.Connection
+    Assert.Equal(ConnectionState.Closed, underlyingConnection.State)
     Assert.Equal<int[]>([| 2; 4; 8;  24 |], cmd.Execute() |> Seq.toArray)    
-    Assert.Equal(ConnectionState.Closed, cmd.ConnectionState())
+    Assert.Equal(ConnectionState.Closed, underlyingConnection.State)
 
 type QueryWithTinyInt = SqlCommandProvider<"SELECT CAST(10 AS TINYINT) AS Value", connectionString, SingleRow = true>
 

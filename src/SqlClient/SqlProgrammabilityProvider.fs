@@ -1,6 +1,5 @@
 ﻿namespace FSharp.Data
 
-
 open System
 open System.Collections.Generic
 open System.Data
@@ -18,7 +17,6 @@ open Microsoft.SqlServer.Server
 
 open Samples.FSharp.ProvidedTypes
 
-open FSharp.Data.Internals
 open FSharp.Data.SqlClient
 
 [<TypeProvider>]
@@ -272,7 +270,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         providedCommandType.AddMember recordType
 
         let names = Expr.NewArray(typeof<string>, columns |> List.map (fun x -> Expr.Value(x.Name))) 
-        let arrayToRecord =  <@ fun(values : obj[]) ->  SqlCommandFactory.GetRecord(values, %%names) @>
+        let arrayToRecord = <@@ fun values -> let data = (%%names, values) ||> Array.zip |> dict in DynamicRecord( data) |> box @@>
 
         let getExecuteBody (args : Expr list) = 
             ProgrammabilityQuotationsFactory.GetTypedSequence<DynamicRecord>(args, paramInfos, arrayToRecord, singleRow, columns)

@@ -6,7 +6,7 @@ open Microsoft.SqlServer.Management.Smo
 open Microsoft.SqlServer.Management.Common
 open Xunit
 
-open FSharp.Data.Internals.SqlClient
+open FSharp.Data.SqlClient
 
 [<Literal>]
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"

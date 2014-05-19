@@ -16,6 +16,7 @@ SELECT TOP (@top) Name AS ProductName, SellStartDate, Size
 FROM Production.Product 
 WHERE SellStartDate > @SellStartDate
 "
+
 //Custom record types and connection string override
 type QueryProducts = SqlCommandProvider<queryProductsSql, connectionString>
 let cmd1 = new QueryProducts(connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")

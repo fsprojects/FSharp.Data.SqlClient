@@ -1,4 +1,4 @@
-﻿module FSharp.Data.Internals.ConfigurationTest
+﻿module FSharp.Data.SqlClient.ConfigurationTest
 
 open Xunit
 open FsUnit.Xunit

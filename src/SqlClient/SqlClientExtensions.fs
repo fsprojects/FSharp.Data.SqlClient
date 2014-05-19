@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-module FSharp.Data.Internals.SqlClient
+module FSharp.Data.SqlClient.Extensions
 
 open System
 open System.Text
@@ -12,14 +12,13 @@ open Microsoft.SqlServer.Management.Common
 let DbNull = box DBNull.Value
 
 type SqlCommand with
-
     member this.AsyncExecuteReader behavior =
         Async.FromBeginEnd((fun(callback, state) -> this.BeginExecuteReader(callback, state, behavior)), this.EndExecuteReader)
 
     member this.AsyncExecuteNonQuery() =
         Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) 
 
-let private dataTypeMappings = ref List.empty
+let private dataTypeMappings = ref List.empty<TypeInfo>
 
 let internal findBySqlEngineTypeIdAndUdt(id, udttName) = 
     !dataTypeMappings |> List.tryFind(fun x -> x.SqlEngineTypeId = id && (not x.TableType || x.UdttName = udttName))
@@ -125,11 +124,11 @@ type SqlConnection with
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
 
-    member internal this.FallbackToSETFMONLY(commandText, commandType, sqlParameters) = 
+    member internal this.FallbackToSETFMONLY(commandText, commandType, parameters) = 
         assert (this.State = ConnectionState.Open)
         
         use cmd = new SqlCommand(commandText, this, CommandType = commandType)
-        for p in sqlParameters do
+        for p in parameters do
             cmd.Parameters.Add(p.Name, p.TypeInfo.SqlDbType) |> ignore
         use reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly)
         match reader.GetSchemaTable() with
