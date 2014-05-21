@@ -54,7 +54,7 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
     do
         cmd.Parameters.AddRange( parameters)
 
-    let getExecuteBehavior() =
+    let getReaderBehavior() =
         seq {
             yield CommandBehavior.SingleResult
 
@@ -94,13 +94,13 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
 
     let executeReader parameters = 
         setParameters cmd parameters      
-        cmd.ExecuteReader( getExecuteBehavior())
+        cmd.ExecuteReader( getReaderBehavior())
 
     let asyncExecuteReader parameters = 
         setParameters cmd parameters 
         async {
             let! token = Async.CancellationToken                
-            return! cmd.AsyncExecuteReader( getExecuteBehavior())
+            return! cmd.AsyncExecuteReader( getReaderBehavior())
         }
 
     let executeDataTable parameters = 
@@ -117,26 +117,32 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
             return result
         }
 
+    let seqToOption source =  
+        match Seq.toList source with
+        | [] -> None
+        | [ x ] -> Some x
+        | _ -> invalidOp "Single row was expected."
+
+    let readerToSeq (reader : SqlDataReader) = 
+        seq {
+            use dispose = reader
+            while reader.Read() do
+                let values = Array.zeroCreate reader.FieldCount
+                reader.GetValues(values) |> ignore
+                yield values |> rowMapping |> unbox<'TItem>
+        }
+        
+
     let executeSeq rowMapper parameters = 
         let xs = 
             seq {
-                use reader = executeReader parameters
-                try 
-                    while reader.Read() do
-                        let values = Array.zeroCreate reader.FieldCount
-                        reader.GetValues(values) |> ignore
-                        yield values |> rowMapper |> unbox<'TItem>
-                finally
-                    reader.Close()
+                let reader = executeReader parameters
+                yield! readerToSeq reader
             }
 
         if singleRow 
         then
-            match Seq.toList xs with
-            | [] -> None
-            | [ x ] -> Some x
-            | _ -> invalidOp "Single row was expected."
-            |> box
+            xs |> seqToOption |> box
         else
             box xs 
             
@@ -144,26 +150,14 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
         let xs = 
             async {
                 let! reader = asyncExecuteReader parameters
-                return seq {
-                    try 
-                        while reader.Read() do
-                            let values = Array.zeroCreate reader.FieldCount
-                            reader.GetValues(values) |> ignore
-                            yield values |> rowMapper |> unbox<'TItem>
-                    finally
-                        reader.Close()
-                }
+                return readerToSeq reader
             }
 
         if singleRow 
         then
             async {
                 let! xs = xs 
-                return 
-                    match Seq.toList xs with
-                    | [] -> None
-                    | [ x ] -> Some x
-                    | _ -> invalidOp "Single row was expected."
+                return xs |> seqToOption
             }
             |> box
         else
