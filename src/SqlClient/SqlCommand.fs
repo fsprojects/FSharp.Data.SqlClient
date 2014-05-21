@@ -132,7 +132,6 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
                 yield values |> rowMapping |> unbox<'TItem>
         }
         
-
     let executeSeq rowMapper parameters = 
         let xs = 
             seq {
