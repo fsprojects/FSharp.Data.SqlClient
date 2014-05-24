@@ -271,10 +271,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                         match outputColumns with
                         | [ x ] -> x.ClrTypeConsideringNullable
                         | xs -> FSharpType.MakeTupleType [| for x in xs -> x.ClrTypeConsideringNullable|]
-                    let values = Var("values", typeof<obj[]>)
-                    let getTupleType = Expr.Call(typeof<Type>.GetMethod("GetType", [| typeof<string>|]), [ Expr.Value tupleType.AssemblyQualifiedName ])
-                    let makeTuple = Expr.Call(typeof<FSharpValue>.GetMethod("MakeTuple"), [ Expr.Var values; getTupleType ])
-                    None, tupleType, Expr.Lambda(values, makeTuple)
+
+                    let tupleTypeName = tupleType.AssemblyQualifiedName
+                    None, tupleType, <@@ FSharpValue.PreComputeTupleConstructor (Type.GetType (tupleTypeName))  @@>
             
             let nullsToOptions = QuotationsFactory.MapArrayNullableItems(outputColumns, "MapArrayObjItemToOption") 
             let combineWithNullsToOptions = typeof<QuotationsFactory>.GetMethod("GetMapperWithNullsToOptions") 
