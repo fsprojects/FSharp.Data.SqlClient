@@ -91,18 +91,6 @@ let singleRowOption() =
     (new SomeSingleton()).AsyncExecute() |> Async.RunSynchronously |> should equal (Some 1)
 
 
-type NullableStringInput = SqlCommandProvider<"select  ISNULL(@P1, '')", connectionString, SingleRow = true, AllParametersOptional = true>
-type NullableStringInputStrict = SqlCommandProvider<"select  ISNULL(@P1, '')", connectionString, SingleRow = true>
-
-open System.Data.SqlClient
-
-[<Fact>]
-let NullableStringInputParameter() = 
-    (new NullableStringInput()).Execute(None) |> should equal (Some "")
-    (new NullableStringInput()).Execute() |> should equal (Some "")
-    (new NullableStringInputStrict()).Execute(null) |> should equal (Some "")
-    (new NullableStringInput()).Execute(Some "boo") |> should equal (Some "boo")
-
 type Echo = SqlCommandProvider<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", connectionString, ResultType.Tuples>
 
 [<Fact>]
