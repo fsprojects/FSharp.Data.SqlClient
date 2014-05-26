@@ -41,23 +41,23 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data.SqlClient">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.21\lib\net40\FSharp.Data.SqlClient.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.22\lib\net40\FSharp.Data.SqlClient.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.ConnectionInfo">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.21\lib\net40\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.22\lib\net40\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.21\lib\net40\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.22\lib\net40\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Smo">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.21\lib\net40\Microsoft.SqlServer.Smo.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.22\lib\net40\Microsoft.SqlServer.Smo.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Types">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.21\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.22\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />

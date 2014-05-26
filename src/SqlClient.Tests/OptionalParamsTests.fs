@@ -1,4 +1,4 @@
-﻿module FSharp.Data.OptionalParamsTest
+﻿module FSharp.Data.OptionalParamsTests
 
 open System
 open System.Data

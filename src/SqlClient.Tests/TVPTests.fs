@@ -51,6 +51,17 @@ let SingleColumn() =
     let result = cmd.Execute(x = p) |> List.ofSeq
     Assert.Equal<int list>([1;2], result)    
 
+[<Fact>]
+let tvpSqlParamCleanUp() = 
+    let cmd = new TableValuedSingle()
+    let p = [ 
+        TableValuedSingle.SingleElementType(myId = 1) 
+        TableValuedSingle.SingleElementType(myId = 2) 
+    ]
+    cmd.Execute(x = p) |> List.ofSeq |> ignore
+    let result = cmd.Execute(x = p) |> List.ofSeq
+    Assert.Equal<int list>([1;2], result)    
+
 type TableValuedSprocTuple  = SqlCommandProvider<"exec myProc @x", ConnectionStringOrName = "name=AdventureWorks2012", SingleRow = true, ResultType = ResultType.Tuples>
 
 [<Fact>]
