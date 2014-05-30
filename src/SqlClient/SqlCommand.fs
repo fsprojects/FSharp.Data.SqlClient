@@ -125,7 +125,7 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
 
     let readerToSeq (reader : SqlDataReader) = 
         seq {
-            use dispose = reader
+            use __ = reader
             while reader.Read() do
                 let values = Array.zeroCreate reader.FieldCount
                 reader.GetValues(values) |> ignore
