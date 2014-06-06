@@ -4,6 +4,10 @@ open Xunit
 open FsUnit.Xunit
 open System.Configuration
 open System.IO
+open FSharp.Data
+
+type Get42RelativePath = SqlCommandProvider<"select 42 ", "name=AdventureWorks2012", ConfigFile="my.config", ResolutionFolder="MyConfigFolder">
+type Get42RootPath = SqlCommandProvider<"select 42 ", "name=AdventureWorks2012", ConfigFile="my.config", ResolutionFolder="""C:\Users\mitekm\Documents\GitHub\FSharp.Data.SqlClient\src\SqlClient.Tests\MyConfigFolder""">
 
 [<Fact>]
 let ``Wrong config file name`` () = 

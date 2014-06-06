@@ -37,3 +37,4 @@
 * 1.2.20 - Fix auto-open connection. Introduce IDisposable on SqlCommand.
 * 1.2.21 - Bugfix for Record constructor and with method.
 * 1.2.22 - ToTraceString added, can be used to get executable sql statement.
+* 1.2.23 - ResolutionFolder parameter

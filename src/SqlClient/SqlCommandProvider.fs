@@ -64,9 +64,10 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false)   
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
+                ProvidedStaticParameter("ResolutionFolder", typeof<string>, "") 
             ],             
             instantiationFunction = (fun typeName args ->
-                let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5]
+                let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6]
                 cache.GetOrAdd(key, this.CreateRootType)
             ) 
             
@@ -95,7 +96,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                                          resultType : ResultType, 
                                          singleRow : bool, 
                                          configFile : string, 
-                                         allParametersOptional : bool) 
+                                         allParametersOptional : bool,
+                                         resolutionFolder : string) 
                                          as key) = 
 
         if singleRow && not (resultType = ResultType.Records || resultType = ResultType.Tuples)
@@ -105,7 +107,15 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let invalidator () =
             cache.TryRemove(key) |> ignore 
             this.Invalidate()
-        let sqlStatement, watcher' = Configuration.ParseTextAtDesignTime(sqlStatementOrFile, config.ResolutionFolder, invalidator)
+
+        let resolutionFolder = 
+            if resolutionFolder = "" 
+            then config.ResolutionFolder 
+            elif Path.IsPathRooted (resolutionFolder)
+            then resolutionFolder
+            else Path.Combine (config.ResolutionFolder, resolutionFolder)
+
+        let sqlStatement, watcher' = Configuration.ParseTextAtDesignTime(sqlStatementOrFile, resolutionFolder, invalidator)
         watcher' |> Option.iter (fun x -> watcher <- x)
 
         if connectionStringOrName.Trim() = ""
@@ -115,7 +125,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             
         let designTimeConnectionString = 
             if isByName
-            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, config.ResolutionFolder, configFile)
+            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, resolutionFolder, configFile)
             else connectionStringOrName
 
         use conn = new SqlConnection(designTimeConnectionString)
