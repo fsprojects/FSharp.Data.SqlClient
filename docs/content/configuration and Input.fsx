@@ -6,30 +6,31 @@
 Configuration and Input
 ===================
 
-SQlCommandProvider parameters 
+SqlCommandProvider parameters 
 -------------------------------------
 
 <table class="table table-bordered table-striped">
 <thead><tr><td>Name</td><td>Default</td><td>Accepted values</td></tr></thead>
 <tbody>
-  <tr><td class="title">CommandText</td><td>-</td><td>T-SQL script or *.sql file</td></tr></thead>
-  <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr></thead>
-  <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable, or DataReader</td></tr></thead>
-  <tr><td class="title">SingleRow</td><td>false</td><td>true/false</td></tr></thead>
-  <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>valid file name</td></tr></thead>
-  <tr><td class="title">AllParametersOptional</td><td>false</td><td>true/false</td></tr></thead>
+  <tr><td class="title">CommandText</td><td>-</td><td>T-SQL script or *.sql file</td></tr>
+  <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr>
+  <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable, or DataReader</td></tr>
+  <tr><td class="title">SingleRow</td><td>false</td><td>true/false</td></tr>
+  <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>Valid file name</td></tr>
+  <tr><td class="title">AllParametersOptional</td><td>false</td><td>true/false</td></tr>
+  <tr><td class="title">ResolutionFolder</td><td>The folder that contains the project or script.</td><td>Valid file system path. Absolute or relative.</td></tr>
 </tbody>
 </table>
 
-SQlProgrammabilityProvider parameters 
+SqlProgrammabilityProvider parameters 
 -------------------------------------
 
 <table class="table table-bordered table-striped">
 <thead><tr><td>Name</td><td>Default</td><td>Accepted values</td></tr></thead>
 <tbody>
-  <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr></thead>
-  <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable, or DataReader</td></tr></thead>
-  <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>valid file name</td></tr></thead>
+  <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr>
+  <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable, or DataReader</td></tr>
+  <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>valid file name</td></tr>
 </tbody>
 </table>
 
