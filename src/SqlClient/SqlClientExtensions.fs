@@ -235,9 +235,8 @@ type SqlConnection with
                             WHERE tt.user_type_id = @user_type_id
                             ORDER BY column_id")
                         cmd.Parameters.AddWithValue("@user_type_id", user_type_id) |> ignore
-                        use conn = new SqlConnection(connectionString) 
-                        conn.Open()
-                        cmd.Connection <- conn
+                        use closeConn = this.UseConnection()
+                        cmd.Connection <- this
                         use reader = cmd.ExecuteReader()
                         while reader.Read() do 
                             let utid = reader.toOption "user_type_id"

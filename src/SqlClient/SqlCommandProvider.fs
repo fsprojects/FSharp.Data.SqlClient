@@ -128,8 +128,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, resolutionFolder, configFile)
             else connectionStringOrName
 
-        use conn = new SqlConnection(designTimeConnectionString)
-        conn.Open()
+        let conn = new SqlConnection(designTimeConnectionString)
+        use closeConn = conn.UseConnection()
         conn.CheckVersion()
         conn.LoadDataTypesMap()
 
