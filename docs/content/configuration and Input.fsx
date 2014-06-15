@@ -31,6 +31,7 @@ SqlProgrammabilityProvider parameters
   <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr>
   <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable, or DataReader</td></tr>
   <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>valid file name</td></tr>
+  <tr><td class="title">ResolutionFolder</td><td>The folder that contains the project or script.</td><td>Valid file system path. Absolute or relative.</td></tr>
 </tbody>
 </table>
 

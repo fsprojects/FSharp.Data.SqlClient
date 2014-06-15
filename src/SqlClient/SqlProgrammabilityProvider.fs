@@ -8,6 +8,7 @@ open System.Diagnostics
 open System.Dynamic
 open System.IO
 open System.Reflection
+open System.Collections.Concurrent
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
@@ -26,6 +27,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
     let runtimeAssembly = Assembly.LoadFrom( config.RuntimeAssembly)
     let nameSpace = this.GetType().Namespace
+    let cache = ConcurrentDictionary<_, ProvidedTypeDefinition>()
     
     let typeWithConnectionString name  members = 
         let spHostType = ProvidedTypeDefinition(name, baseType = Some typeof<obj>, HideObjectMethods = true)
@@ -44,8 +46,12 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
                 ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Records) 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
+                ProvidedStaticParameter("ResolutionFolder", typeof<string>, "") 
             ],             
-            instantiationFunction = this.CreateType
+            instantiationFunction = (fun typeName args ->
+                let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3]
+                cache.GetOrAdd(key, this.CreateRootType)
+            ) 
         )
 
         providerType.AddXmlDoc """
@@ -53,16 +59,19 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 <param name='ConnectionStringOrName'>String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&lt;connection string name&gt;”.</param>
 <param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
+<param name='ResolutionFolder'>A folder to be used to resolve relative file paths at compile time. The default value is the folder that contains the project or script.</param>
 """
 
         this.AddNamespace(nameSpace, [ providerType ])
     
-    member internal this.CreateType typeName parameters = 
-        let connectionStringOrName : string = unbox parameters.[0] 
-        let resultType : ResultType = unbox parameters.[1] 
-        let configFile : string = unbox parameters.[2] 
+    member internal this.CreateRootType( typeName, connectionStringOrName, resultType, configFile, resolutionFolder) =
 
-        let resolutionFolder = config.ResolutionFolder
+        let resolutionFolder = 
+            if resolutionFolder = "" 
+            then config.ResolutionFolder 
+            elif Path.IsPathRooted (resolutionFolder)
+            then resolutionFolder
+            else Path.Combine (config.ResolutionFolder, resolutionFolder)
 
         let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
 
@@ -270,7 +279,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         providedCommandType.AddMember recordType
 
         let names = Expr.NewArray(typeof<string>, columns |> List.map (fun x -> Expr.Value(x.Name))) 
-        let arrayToRecord = <@@ fun values -> let data = (%%names, values) ||> Array.zip |> dict in DynamicRecord( data) |> box @@>
+        let arrayToRecord = <@@ fun values -> let data = (%%names, values) ||> Array.zip |> dict in DynamicRecord( data) @@>
 
         let getExecuteBody (args : Expr list) = 
             ProgrammabilityQuotationsFactory.GetTypedSequence<DynamicRecord>(args, paramInfos, arrayToRecord, singleRow, columns)

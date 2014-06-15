@@ -39,3 +39,5 @@
 * 1.2.22 - ToTraceString added, can be used to get executable sql statement.
 * 1.2.23 - ResolutionFolder parameter
 * 1.2.24 - Fixed TVP handling for SQL Azure. Open only one connection.
+* 1.2.25 - SqlProgrammability types caching. 
+* 1.2.26 - ResolutionFolder parameter for SqlProgrammabilityProvider

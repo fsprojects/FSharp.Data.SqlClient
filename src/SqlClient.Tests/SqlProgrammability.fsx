@@ -37,17 +37,11 @@ a.nullOutput
 
 db.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(DateTime(2013,1,1), 1) |> Async.RunSynchronously |> Array.ofSeq
     
-let p = [ 
-    seType(myId = 2)
-    seType(myId = 1) 
-]
+let p = [ seType(myId = 2); seType(myId = 1) ]
 
 db.``Stored Procedures``.``dbo.SingleElementProc``.AsyncExecute(p) |> Async.RunSynchronously |> Array.ofSeq
 
-let m = [ 
-    myType(myId = 2)
-    myType(myId = 1) 
-]
+let m = [ myType(myId = 2); myType(myId = 1) ]
 
 let myArray = db.``Stored Procedures``.``dbo.MyProc``.AsyncExecute(m) |> Async.RunSynchronously |> Array.ofSeq
 
@@ -59,3 +53,4 @@ let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
             .AsyncExecute(291, true, DateTime(2013,1,1), "gatekeeper", "adventure-works\gat0", SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")))
             |> Async.RunSynchronously 
 res.ReturnValue
+

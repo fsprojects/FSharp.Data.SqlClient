@@ -81,6 +81,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 <param name='SingleRow'>If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
 <param name='AllParametersOptional'>If set all parameters become optional. NULL input values must be handled inside T-SQL.</param>
+<param name='ResolutionFolder'>A folder to be used to resolve relative file paths at compile time. The default value is the folder that contains the project or script.</param>
 """
 
         this.AddNamespace(nameSpace, [ providerType ])
@@ -90,15 +91,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
            if watcher <> null
            then try watcher.Dispose() with _ -> ()
 
-    member internal this.CreateRootType((typeName, 
-                                         sqlStatementOrFile : string, 
-                                         connectionStringOrName : string, 
-                                         resultType : ResultType, 
-                                         singleRow : bool, 
-                                         configFile : string, 
-                                         allParametersOptional : bool,
-                                         resolutionFolder : string) 
-                                         as key) = 
+    member internal this.CreateRootType((typeName, sqlStatementOrFile, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, resolutionFolder) as key) = 
 
         if singleRow && not (resultType = ResultType.Records || resultType = ResultType.Tuples)
         then 
