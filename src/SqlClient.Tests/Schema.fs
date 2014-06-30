@@ -5,12 +5,12 @@ open System.Data.SqlClient
 open Xunit
 
 [<Literal>]
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString = @"Server=tcp:mhknbn2kdz.database.windows.net,1433;Database=AdventureWorks2012;User ID=sqlfamily;Password= sqlf@m1ly;Trusted_Connection=False;Encrypt=True;Connection Timeout=30"
 
 let conn = new SqlConnection(connectionString)
 do conn.Open()
 
-//[<Fact>]
+[<Fact>]
 let ProcedureParameters() = 
     seq { 
                 for r in conn.GetSchema("ProcedureParameters").Rows do
@@ -20,17 +20,18 @@ let ProcedureParameters() =
     }
     |> Seq.iter (printfn "%A")
 
-//[<Fact>]
+[<Fact>]
 let Procedures() = 
+    let rows = conn.GetSchema("Procedures").Rows
     seq { 
-                for r in conn.GetSchema("Procedures").Rows do
-                if string r.["specific_catalog"] = conn.Database then
+                for r in rows do
+                //if string r.["specific_catalog"] = conn.Database then
                     yield r.["specific_name"], r.["specific_schema"]
 
     }
     |> Seq.iter (printfn "%A")
 
-//[<Fact>]
+[<Fact>]
 let DataTypes() = 
     seq { 
                 for row in conn.GetSchema("DataTypes").Rows do

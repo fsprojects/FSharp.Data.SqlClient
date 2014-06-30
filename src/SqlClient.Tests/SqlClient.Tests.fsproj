@@ -62,6 +62,7 @@
     <Compile Include="TVPTests.fs" />
     <Compile Include="SqlClientExtensionsTest.fs" />
     <Compile Include="SMO.fs" />
+    <Compile Include="ProgrammabilityTest.fs" />
     <Compile Include="DynamicRecord.fs" />
     <Compile Include="Schema.fs" />
     <None Include="app.config" />
