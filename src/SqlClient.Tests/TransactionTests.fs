@@ -16,7 +16,7 @@ let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWo
 let ``Closing connection on complete``() =
     use command = new DeleteBitCoin()
     command.Execute(bitCoinCode) |> ignore
-    Assert.Equal(System.Data.ConnectionState.Closed, (command :> SqlClient.ISqlCommand).Raw.Connection.State)
+    Assert.Equal(System.Data.ConnectionState.Closed, (command :> ISqlCommand).Raw.Connection.State)
 
 [<Fact>]
 let implicit() =

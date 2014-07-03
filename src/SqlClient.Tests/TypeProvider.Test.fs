@@ -19,7 +19,7 @@ let asyncSinlgeColumn() =
 [<Fact>]
 let ConnectionClose() = 
     use cmd = new GetOddNumbers()
-    let untypedCmd : SqlClient.ISqlCommand = upcast cmd
+    let untypedCmd : ISqlCommand = upcast cmd
     let underlyingConnection = untypedCmd.Raw.Connection
     Assert.Equal(ConnectionState.Closed, underlyingConnection.State)
     Assert.Equal<int[]>([| 2; 4; 8;  24 |], cmd.Execute() |> Seq.toArray)    

@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data.SqlClient
+﻿namespace FSharp.Data
 
 open System
 open System.Collections.Generic
@@ -12,7 +12,7 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
 open Samples.FSharp.ProvidedTypes
 
-open FSharp.Data
+open FSharp.Data.SqlClient
 
 type ISqlCommand = 
     abstract Execute : parameters: (string * obj)[] -> obj

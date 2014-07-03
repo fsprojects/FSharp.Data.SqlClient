@@ -1,4 +1,4 @@
-﻿module FSharp.Data.SqlClientExtensionsTest
+﻿module FSharp.Data.SqlClient.ExtensionsTest
 
 open System.Data
 open System.Data.SqlClient
@@ -27,7 +27,7 @@ let AllTypes() =
     |> Seq.groupBy(fun t->t.SqlEngineTypeId)
     |> Seq.iter (printfn "%A")
 
-[<Fact>]
+[<Fact(Skip = "Until we gen SQL Azure with permissions")>]
 let GetFullQualityColumnInfo() =
     conn.GetFullQualityColumnInfo("dbo.uspGetWhereUsedProductID") 
     |> Seq.iter (printfn "%A") 
