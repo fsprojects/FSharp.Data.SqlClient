@@ -367,13 +367,21 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     ]
 
     member internal this.GetRecordType(columns) =
+        
+        columns 
+            |> Seq.groupBy (fun x -> x.Name) 
+            |> Seq.tryFind (fun (_, xs) -> Seq.length xs > 1)
+            |> Option.iter (fun (name, _) -> failwithf "Non-unique column name %s is illegal for ResultType.Records." name)
+        
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
         let properties, ctorParameters, withParameters = 
             [
                 for col in columns do
+                    
                     let propertyName = col.Name
-                    if propertyName = "" 
-                    then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
+
+                    if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
+                    
                     let propType = col.ClrTypeConsideringNullable
 
                     let property = ProvidedProperty(propertyName, propType)
