@@ -45,23 +45,23 @@
     </Reference>
     <Reference Include="FSharp.Data.SqlClient, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.26\lib\net40\FSharp.Data.SqlClient.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.27\lib\net40\FSharp.Data.SqlClient.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.SqlServer.ConnectionInfo, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
       <Private>True</Private>
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.26\lib\net40\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.27\lib\net40\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
       <Private>True</Private>
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.26\lib\net40\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.27\lib\net40\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Smo, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
       <Private>True</Private>
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.26\lib\net40\Microsoft.SqlServer.Smo.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.27\lib\net40\Microsoft.SqlServer.Smo.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Types, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
       <Private>True</Private>
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.26\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.2.27\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Newtonsoft.Json.4.5.11\lib\net40\Newtonsoft.Json.dll</HintPath>
