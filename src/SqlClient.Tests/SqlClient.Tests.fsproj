@@ -64,7 +64,7 @@
     <Compile Include="SMO.fs" />
     <Compile Include="ProgrammabilityTest.fs" />
     <Compile Include="DynamicRecord.fs" />
-    <Compile Include="Schema.fs" />
+    <None Include="Schema.fsx" />
     <None Include="app.config" />
     <None Include="SqlCommand.fsx" />
     <None Include="SqlProgrammability.fsx" />

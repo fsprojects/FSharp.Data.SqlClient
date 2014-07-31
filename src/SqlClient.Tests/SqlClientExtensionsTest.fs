@@ -4,6 +4,7 @@ open System.Data
 open System.Data.SqlClient
 open Xunit
 open FsUnit.Xunit
+open System.Diagnostics
 
 open FSharp.Data.SqlClient
 
@@ -25,23 +26,26 @@ let TestUDTTs() =
 let AllTypes() =
     SqlClrTypes() 
     |> Seq.groupBy(fun t->t.SqlEngineTypeId)
-    |> Seq.iter (printfn "%A")
+    |> Seq.map (sprintf "%A")
+    |> Seq.iter Debug.WriteLine
 
 [<Fact(Skip = "Until we gen SQL Azure with permissions")>]
 let GetFullQualityColumnInfo() =
     conn.GetFullQualityColumnInfo("dbo.uspGetWhereUsedProductID") 
-    |> Seq.iter (printfn "%A") 
+    |> Seq.map (sprintf "%A")
+    |> Seq.iter Debug.WriteLine
 
 [<Fact>]
 let GetAllSPs() =
     conn.GetProcedures()
-    |> Seq.iter (printfn "%A")
+    |> Seq.map (sprintf "%A")
+    |> Seq.iter Debug.WriteLine
 
 [<Fact>]
 let GetParameters() =
     conn.GetParameters(Map.empty, "dbo.Swap")
-    //|> Seq.iter (printfn "%A")
-    |> ignore
+    |> Seq.map (sprintf "%A")
+    |> Seq.iter Debug.WriteLine
 
 [<Fact>]
 let ``Parse default value``() =

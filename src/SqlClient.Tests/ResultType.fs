@@ -12,17 +12,18 @@ let command = "SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003), ('foo bar',N
 
 type ResultTypeReader = SqlCommandProvider<command, "name=AdventureWorks2012", ResultType = ResultType.DataReader>
 
-let ReadToMaps(reader : System.Data.SqlClient.SqlDataReader) = seq{
-            try 
-                while(reader.Read()) do
-                    yield   Map.ofArray<string, obj> [| 
-                                for i = 0 to reader.FieldCount - 1 do
-                                        if not(reader.IsDBNull(i)) then yield reader.GetName(i), reader.GetValue(i)
-                            |]  
+let ReadToMaps(reader : System.Data.SqlClient.SqlDataReader) = 
+    seq {
+        try 
+            while(reader.Read()) do
+                yield [| 
+                    for i = 0 to reader.FieldCount - 1 do
+                        if not(reader.IsDBNull(i)) then yield reader.GetName(i), reader.GetValue(i)
+                |] |> Map.ofArray
+        finally
+            reader.Close()
+    }
 
-            finally
-                reader.Close()
-           }
 [<Fact>]
 let ResultTypeReader() = 
     use cmd = new ResultTypeReader()
@@ -51,3 +52,4 @@ let ``With on Record``() =
     let newRecord = record.With("foo bar")
     Assert.Equal<string>("foo bar", newRecord.lang)
     Assert.Equal(Some 2005, newRecord.DOB)
+

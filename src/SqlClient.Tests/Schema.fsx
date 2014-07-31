@@ -2,7 +2,6 @@
 
 open System.Data
 open System.Data.SqlClient
-open Xunit
 
 [<Literal>]
 let connectionString = @"Server=tcp:mhknbn2kdz.database.windows.net,1433;Database=AdventureWorks2012;User ID=sqlfamily;Password= sqlf@m1ly;Trusted_Connection=False;Encrypt=True;Connection Timeout=30"
@@ -10,7 +9,6 @@ let connectionString = @"Server=tcp:mhknbn2kdz.database.windows.net,1433;Databas
 let conn = new SqlConnection(connectionString)
 do conn.Open()
 
-[<Fact>]
 let ProcedureParameters() = 
     seq { 
                 for r in conn.GetSchema("ProcedureParameters").Rows do
@@ -20,7 +18,6 @@ let ProcedureParameters() =
     }
     |> Seq.iter (printfn "%A")
 
-[<Fact>]
 let Procedures() = 
     let rows = conn.GetSchema("Procedures").Rows
     seq { 
@@ -31,10 +28,10 @@ let Procedures() =
     }
     |> Seq.iter (printfn "%A")
 
-[<Fact>]
 let DataTypes() = 
     seq { 
                 for row in conn.GetSchema("DataTypes").Rows do
                     yield string row.["TypeName"],  unbox<int> row.["ProviderDbType"], string row.["DataType"]
     }
     |> Seq.iter (printfn "%A")
+

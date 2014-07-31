@@ -130,14 +130,11 @@ An instantaneous feedback is one of the most handy features of `SqlCommandProvid
 
 For example, an attempt to use following query will fail:
 
-<pre>
-<code>
-WHEN @x % 3 = 0 AND @x % 5 = 0 THEN 'FizzBuzz' 
-WHEN @x % 3 = 0 THEN 'Fizz' 
-WHEN @x % 5 = 0 THEN 'Buzz' 
-ELSE CAST(@x AS NVARCHAR) 
-</code>
-</pre>
+    [lang=sql]
+    WHEN @x % 3 = 0 AND @x % 5 = 0 THEN 'FizzBuzz' 
+    WHEN @x % 3 = 0 THEN 'Fizz' 
+    WHEN @x % 5 = 0 THEN 'Buzz' 
+    ELSE CAST(@x AS NVARCHAR) 
 
 You can work around this by declaring a local intermediate variable in t-sql script and assigning a paramater in question to that variable.
 *)

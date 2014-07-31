@@ -63,3 +63,15 @@ let ``JSON deserialize``() =
     //JsonConvert.DeserializeObject<DynamicRecord>(recordWithNullsString) |> should equal recordWithNulls
     let settings = JsonSerializerSettings(DateTimeZoneHandling = DateTimeZoneHandling.RoundtripKind)
     JsonConvert.DeserializeObject<DynamicRecord>(dateRecordString,  settings) |> should equal dateRecord
+
+open FSharp.Data
+type Get42 = SqlCommandProvider<"select 42 as Col1, 43 as Col2", "name=AdventureWorks2012", SingleRow = true>
+
+[<Fact(Skip="Fix Record.With")>]
+let SetValueToNone() =
+    use cmd = new Get42()
+    let xs = cmd.Execute().Value
+    let ys = xs.With(Col2 = 122) 
+    Assert.Equal(xs.Col1, ys.Col1)
+    Assert.Equal(122, ys.Col2)
+

@@ -42,3 +42,4 @@
 * 1.2.25 - SqlProgrammability types caching. 
 * 1.2.26 - ResolutionFolder parameter for SqlProgrammabilityProvider
 * 1.2.27 - ISqlCommand and SqlCommand<_> runtime types moved to FSharp.Data name space
+* 1.2.28 - Unique output column names for ResultType.Records
