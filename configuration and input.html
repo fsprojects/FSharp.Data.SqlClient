@@ -210,14 +210,10 @@ An instantaneous feedback is one of the most handy features of <code>SqlCommandP
 
 <p>For example, an attempt to use following query will fail:</p>
 
-<p><pre>
-<code>
-WHEN @x % 3 = 0 AND @x % 5 = 0 THEN 'FizzBuzz' 
-WHEN @x % 3 = 0 THEN 'Fizz' 
-WHEN @x % 5 = 0 THEN 'Buzz' 
-ELSE CAST(@x AS NVARCHAR) 
-</code>
-</pre></p>
+<pre lang="sql"><span class="k">WHEN</span> @x % 3 = 0 <span class="k">AND</span> @x % 5 = 0 <span class="k">THEN</span> &amp;#39;FizzBuzz&amp;#39; 
+<span class="k">WHEN</span> @x % 3 = 0 <span class="k">THEN</span> &amp;#39;Fizz&amp;#39; 
+<span class="k">WHEN</span> @x % 5 = 0 <span class="k">THEN</span> &amp;#39;Buzz&amp;#39; 
+<span class="k">ELSE</span> <span class="k">CAST</span>(@x <span class="k">AS</span> NVARCHAR) </pre>
 
 <p>You can work around this by declaring a local intermediate variable in t-sql script and assigning a paramater in question to that variable.</p>
 
