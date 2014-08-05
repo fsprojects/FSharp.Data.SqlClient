@@ -49,7 +49,7 @@ let ``With on Record``() =
     use cmd = new Record()
     let record = cmd.Execute() |> Seq.nth 0
     Assert.Equal(Record.Record("F#", Some 2005), record)
-    let newRecord = record.With("foo bar")
+    let newRecord = record.With(lang = Some "foo bar")
     Assert.Equal<string>("foo bar", newRecord.lang)
     Assert.Equal(Some 2005, newRecord.DOB)
 

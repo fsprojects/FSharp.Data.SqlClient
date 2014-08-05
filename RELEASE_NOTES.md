@@ -44,3 +44,4 @@
 * 1.2.27 - ISqlCommand and SqlCommand<_> runtime types moved to FSharp.Data name space
 * 1.2.28 - Unique output column names for ResultType.Records
 * 1.2.29 - TVP parameters are never optional even with if ‘AllParametersOptional’ is on
+* 1.3.0 - With method on generated records handles optionality properly.

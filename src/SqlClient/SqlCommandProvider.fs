@@ -358,7 +358,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                         cmdProvidedType.AddMember rowType
                         let parameters = [ 
                             for p in p.TypeInfo.TvpColumns -> 
-                                ProvidedParameter(p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
+                                ProvidedParameter( p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
                         ] 
 
                         let ctor = ProvidedConstructor( parameters)
@@ -380,7 +380,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             |> Option.iter (fun (name, _) -> failwithf "Non-unique column name %s is illegal for ResultType.Records." name)
         
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
-        let properties, ctorParameters, withParameters = 
+        let properties, ctorParameters, withMethodParameters = 
             [
                 for col in columns do
                     
@@ -392,11 +392,17 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
                     let property = ProvidedProperty(propertyName, propType)
                     property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
-                    let nullalbleParameter = ProvidedParameter(propertyName, propType, optionalValue = null)
+
                     let ctorPropertyName = (propertyName.[0] |> string).ToLower() + propertyName.Substring(1)    
-                    let optionalValue = if col.IsNullable then Some null else None
-                    let ctorParameter = ProvidedParameter(ctorPropertyName, propType, ?optionalValue = optionalValue)  
-                    yield property, ctorParameter, nullalbleParameter
+                    let ctorParameter = ProvidedParameter(ctorPropertyName, propType)  
+
+                    let withMethodParameter = 
+                        ProvidedParameter(
+                            parameterName = propertyName, 
+                            parameterType = typedefof<_ option>.MakeGenericType( propType), 
+                            optionalValue = null)
+
+                    yield property, ctorParameter, withMethodParameter
             ] |> List.unzip3
         recordType.AddMembers properties
         let ctor = ProvidedConstructor(ctorParameters)
@@ -410,18 +416,29 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             @@> 
         recordType.AddMember ctor
         
-        let withMethod = ProvidedMethod("With", withParameters, recordType)
+        let withMethod = ProvidedMethod("With", withMethodParameters, recordType)
         withMethod.InvokeCode <- fun args ->
-            let pairs =  Seq.zip args.Tail properties 
-                        |> Seq.map (fun (arg,p) -> <@@ (%%Expr.Value(p.Name):string), %%Expr.Coerce(arg, typeof<obj>) @@>)
-                        |> List.ofSeq
+            let pairs = [ 
+                for arg, p in Seq.zip args.Tail properties -> 
+                    let value =
+                        typeof<QuotationsFactory>
+                            .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
+                            .MakeGenericMethod( p.PropertyType)
+                            .Invoke(null, [| box arg |])
+                            |> unbox
+
+                    <@@ (%%Expr.Value(p.Name):string), %%value @@>
+            ]
+
             <@@
                 let record : DynamicRecord = unbox %%args.Head 
                 let data = Dictionary<_,_>(record.Data())
                 let pairs : (string*obj) [] = %%Expr.NewArray(typeof<string * obj>, pairs)
+                printfn "Input Array: pairs %A" pairs
                 for key,value in pairs do
-                    if value <> null then
+                    if value <> Extensions.DbNull then
                         data.[key] <- value
+                printfn "Output Array: pairs %A" pairs
                 box(DynamicRecord data)
             @@>
         recordType.AddMember withMethod

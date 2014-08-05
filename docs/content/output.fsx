@@ -43,7 +43,7 @@ records |> Seq.iter (printfn "%A")
 
 let record = records.Head 
 record = record
-record <> record.With(ProductName="foo", Size = Some "bar")
+record <> record.With(ProductName= Some "foo", Size = Some( Some "bar"))
 
 (**
  * Sync execution

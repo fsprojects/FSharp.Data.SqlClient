@@ -1,4 +1,4 @@
-﻿module FSharp.Data.Tests.RuntimeRecord
+﻿module FSharp.Data.Tests.DynamicRecord
 
 open System
 open System.Dynamic
@@ -65,13 +65,29 @@ let ``JSON deserialize``() =
     JsonConvert.DeserializeObject<DynamicRecord>(dateRecordString,  settings) |> should equal dateRecord
 
 open FSharp.Data
-type Get42 = SqlCommandProvider<"select 42 as Col1, 43 as Col2", "name=AdventureWorks2012", SingleRow = true>
+type Get42AndMaybe43 = SqlCommandProvider<"select 42 as Col1, CAST('43' as INT) as Col2", "name=AdventureWorks2012", SingleRow = true>
 
-[<Fact(Skip="Fix Record.With")>]
-let SetValueToNone() =
-    use cmd = new Get42()
+[<Fact()>]
+let NoOpWith() =
+    use cmd = new Get42AndMaybe43()
     let xs = cmd.Execute().Value
-    let ys = xs.With(Col2 = 122) 
+    Assert.Equal(xs, xs.With())
+
+[<Fact()>]
+let SetValue() =
+    use cmd = new Get42AndMaybe43()
+    let xs = cmd.Execute().Value
+    let ys = xs.With(Col1 = Some 122) 
+    Assert.Equal(122, ys.Col1)
+    Assert.Equal(xs.Col2, ys.Col2)
+
+[<Fact()>]
+let SetToNone() =
+    use cmd = new Get42AndMaybe43()
+    let xs = cmd.Execute().Value
+    let ys = xs.With(Col2 = Some None) 
     Assert.Equal(xs.Col1, ys.Col1)
-    Assert.Equal(122, ys.Col2)
+    Assert.Equal(ys.Col2, None)
+
+
 
