@@ -211,7 +211,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             (exprArgs.Tail, sqlParameters)
             ||> List.map2 (fun expr info ->
                 let value = 
-                    if allParametersOptional
+                    if allParametersOptional && not info.TypeInfo.TableType
                     then 
                         typeof<QuotationsFactory>
                             .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
@@ -334,37 +334,43 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 }
     ]
 
-    member internal __.GetExecuteArgs(cmdProvidedType, sqlParameters, allParametersOptional) = [
-        for p in sqlParameters do
-            assert p.Name.StartsWith("@")
-            let parameterName = p.Name.Substring 1
+    member internal __.GetExecuteArgs(cmdProvidedType, sqlParameters, allParametersOptional) = 
+        [
+            for p in sqlParameters do
+                assert p.Name.StartsWith("@")
+                let parameterName = p.Name.Substring 1
 
-            let parameterType = 
-                if not p.TypeInfo.TableType 
-                then
-                    p.TypeInfo.ClrType
-                else
-                    assert(p.Direction = ParameterDirection.Input)
-                    let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<obj[]>)
-                    cmdProvidedType.AddMember rowType
-                    let parameters = [ 
-                        for p in p.TypeInfo.TvpColumns -> 
-                            ProvidedParameter(p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
-                    ] 
+                yield 
+                    if not p.TypeInfo.TableType 
+                    then
+                        if allParametersOptional 
+                        then 
+                            ProvidedParameter(
+                                parameterName, 
+                                parameterType = typedefof<_ option>.MakeGenericType( p.TypeInfo.ClrType) , 
+                                optionalValue = null 
+                            )
+                        else
+                            ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType)
+                    else
+                        assert(p.Direction = ParameterDirection.Input)
+                        let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<obj[]>)
+                        cmdProvidedType.AddMember rowType
+                        let parameters = [ 
+                            for p in p.TypeInfo.TvpColumns -> 
+                                ProvidedParameter(p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
+                        ] 
 
-                    let ctor = ProvidedConstructor( parameters)
-                    ctor.InvokeCode <- fun args -> Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
-                    rowType.AddMember ctor
+                        let ctor = ProvidedConstructor( parameters)
+                        ctor.InvokeCode <- fun args -> Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
+                        rowType.AddMember ctor
 
-                    ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
+                        ProvidedParameter(
+                            parameterName, 
+                            parameterType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
+                        )
 
-            let optionalValue = if allParametersOptional then Some null else None
-            yield ProvidedParameter(
-                parameterName, 
-                parameterType = (if allParametersOptional then typedefof<_ option>.MakeGenericType( parameterType) else parameterType), 
-                ?optionalValue = optionalValue
-            )
-    ]
+        ]
 
     member internal this.GetRecordType(columns) =
         

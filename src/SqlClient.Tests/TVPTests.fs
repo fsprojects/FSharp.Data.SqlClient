@@ -74,4 +74,14 @@ let SprocTupleValue() =
     let actual = cmd.Execute(p).Value
     Assert.Equal((1, Some "monkey"), actual)    
 
-
+type TableValuedTupleWithOptionalParams = SqlCommandProvider<"exec myProc @x", "name=AdventureWorks2012", AllParametersOptional = true>
+[<Fact>]
+let TableValuedTupleWithOptionalParams() = 
+    let cmd = new TableValuedTupleWithOptionalParams()
+    cmd.Execute Array.empty |> ignore
+(*
+    don't delete this test. The previous line fails with if combo of TVP and AllParametersOptional = true is not handled properly
+Error	1	The type provider 'FSharp.Data.SqlCommandProvider' reported an error in the context of provided type 'FSharp.Data.SqlCommandProvider,CommandText="exec myProc @x",ConnectionStringOrName="name=AdventureWorks2012",AllParametersOptional="True"', member 'Execute'. 
+The error: Value cannot be null.	C:\Users\mitekm\Documents\GitHub\FSharp.Data.SqlClient\src\SqlClient.Tests\TVPTests.fs	83	5	SqlClient.Tests
+*)
+   
