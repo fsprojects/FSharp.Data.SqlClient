@@ -35,17 +35,8 @@ let records = queryProductAsRecords.AsyncExecute(top = 7L, SellStartDate = Syste
 records |> Seq.iter (printfn "%A")
 
 (**
- These records implement `DynamicObject` for easy binding and JSON.NET serialization, `Equals` for structural equality, 
- and `IDictionary<string,obj>` for classic serialization.
- Also, method `With` has parameters corresponding to all the properties of the record and produces modifed copy 
- similar to "copy and update record expression" in F#
-*)
+ These records implement `DynamicObject` for easy binding and JSON.NET serialization and `Equals` for structural equality.
 
-let record = records.Head 
-record = record
-record <> record.With(ProductName= Some "foo", Size = Some( Some "bar"))
-
-(**
  * Sync execution
  * Seq of tuples as result set type
 *)

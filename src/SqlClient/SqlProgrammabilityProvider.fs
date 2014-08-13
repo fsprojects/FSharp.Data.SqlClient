@@ -102,7 +102,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         spHostType.AddMember <| ProvidedConstructor( [], InvokeCode = fun _ -> <@@ obj() @@>)        
         databaseRootType.AddMember spHostType
 
-        let udttTypes = this.UDTTs()
+        let udttTypes = this.UDTTs( conn.ConnectionString)
            
         spHostType.AddMembers udttTypes
         
@@ -132,14 +132,14 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     
                     propertyType.AddMemberDelayed <| fun () ->
                         let columns, defaults = CallSmo designTimeConnectionString (fun db -> 
-                                let c = GetFunctionColumns db twoPartsName 
+                                let c = getFunctionColumns designTimeConnectionString db twoPartsName 
                                 assert(not c.IsEmpty)
                                 c, GetDefaults db (twoPartsName, true))
 
                         use connection = new SqlConnection(designTimeConnectionString)
                         connection.Open()
                         let parameters = connection.GetParameters(defaults, twoPartsName)
-                        this.AddExecuteMethod(udttTypes, propertyType, twoPartsName, resultType, false, columns, parameters)
+                        this.AddExecuteMethod(designTimeConnectionString, udttTypes, propertyType, twoPartsName, resultType, false, columns, parameters)
 
                     let property = ProvidedProperty(twoPartsName, propertyType)
                     property.GetterCode <- fun args -> Expr.NewObject( ctor, [ <@@ string %%args.[0] @@> ]) 
@@ -169,7 +169,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             then this.GetOutputColumns(connection, twoPartsName, parameters)
                             else []
         
-                        this.AddExecuteMethod(udttTypes, propertyType, twoPartsName, resultType, false, outputColumns, parameters)
+                        this.AddExecuteMethod(designTimeConnectionString, udttTypes, propertyType, twoPartsName, resultType, false, outputColumns, parameters)
 
                     let property = ProvidedProperty(twoPartsName, propertyType)
                     property.GetterCode <- fun args -> Expr.NewObject( ctor, [ <@@ string %%args.[0] @@> ]) 
@@ -184,9 +184,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 //        | ResultType.DataTable, _ -> typeof<DataTable<DataRow>>
 //        | ResultType., _ -> typeof<DataTable<DataRow>>
 //
-     member internal __.UDTTs() =
+     member internal __.UDTTs( connStr) =
          [
-                for t in UDTTs() do
+                for t in UDTTs( connStr) do
                     let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj[]>)
                     
                     let parameters = [ 
@@ -200,7 +200,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     yield rowType
             ]
 
-     member internal __.AddExecuteMethod(udttTypes, propertyType, twoPartsName, resultType, singleRow, outputColumns, parameters) = 
+     member internal __.AddExecuteMethod(connStr, udttTypes, propertyType, twoPartsName, resultType, singleRow, outputColumns, parameters) = 
         let syncReturnType, executeMethodBody = 
             if resultType = ResultType.DataReader then
                 let getExecuteBody(args : Expr list) = 
@@ -209,7 +209,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             else
                 if outputColumns.IsEmpty
                 then 
-                    this.GetExecuteNonQuery(propertyType, parameters)
+                    this.GetExecuteNonQuery(connStr, propertyType, parameters)
                 elif resultType = ResultType.DataTable
                 then 
                     this.DataTable(propertyType, parameters, twoPartsName, outputColumns, singleRow)
@@ -243,21 +243,21 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             with :? SqlException ->
                 raise why
 
-     member internal this.GetOutputRecord(paramInfos) = 
+     member internal this.GetOutputRecord(connStr, paramInfos) = 
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
-        for param in ReturnValue()::paramInfos do
+        for param in ReturnValue( connStr)::paramInfos do
             if param.Direction <> ParameterDirection.Input then
                 let propType, getter = ProgrammabilityQuotationsFactory.GetOutParameter param
                 recordType.AddMember <| ProvidedProperty(param.Name.Substring(1), propertyType = propType, GetterCode = getter)
         recordType
     
-     member internal this.GetExecuteNonQuery(providedCommandType, paramInfos)  = 
-        let recordType = this.GetOutputRecord(paramInfos)
+     member internal this.GetExecuteNonQuery(connStr, providedCommandType, paramInfos)  = 
+        let recordType = this.GetOutputRecord(connStr, paramInfos)
         providedCommandType.AddMember recordType
 
         let inputParamters = [for p in paramInfos do if p.Direction <> ParameterDirection.Output then yield p]
 
-        let returnName = ReturnValue().Name
+        let returnName = ReturnValue( connStr).Name
         let body expr =
             <@@
                 async {

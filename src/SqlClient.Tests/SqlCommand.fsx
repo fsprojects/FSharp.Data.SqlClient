@@ -25,7 +25,6 @@ result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %
 let records = cmd1.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> List.ofSeq
 records |> Seq.iter (printfn "%A")
 let record = records.Head
-record.With(ProductName = Some "foo", Size= Some (Some "bar"))
 
 //Record constructor
 let newrecord = QueryProducts.Record("foo", System.DateTime(2000,1,1), Some "bar")

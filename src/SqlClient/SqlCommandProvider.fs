@@ -322,7 +322,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     else ParameterDirection.Input
                     
                 let typeInfo = 
-                    match findBySqlEngineTypeIdAndUdt(sqlEngineTypeId, udtName) with
+                    match findBySqlEngineTypeIdAndUdt(connection.ConnectionString, sqlEngineTypeId, udtName) with
                     | Some x -> x
                     | None -> failwithf "Cannot map unbound variable of sql engine type %i and UDT %s to CLR/SqlDbType type. Parameter name: %s" sqlEngineTypeId udtName paramName
 
@@ -380,7 +380,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             |> Option.iter (fun (name, _) -> failwithf "Non-unique column name %s is illegal for ResultType.Records." name)
         
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
-        let properties, ctorParameters, withMethodParameters = 
+        let properties, ctorParameters = 
             [
                 for col in columns do
                     
@@ -396,14 +396,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     let ctorPropertyName = (propertyName.[0] |> string).ToLower() + propertyName.Substring(1)    
                     let ctorParameter = ProvidedParameter(ctorPropertyName, propType)  
 
-                    let withMethodParameter = 
-                        ProvidedParameter(
-                            parameterName = propertyName, 
-                            parameterType = typedefof<_ option>.MakeGenericType( propType), 
-                            optionalValue = null)
-
-                    yield property, ctorParameter, withMethodParameter
-            ] |> List.unzip3
+                    yield property, ctorParameter
+            ] |> List.unzip
         recordType.AddMembers properties
         let ctor = ProvidedConstructor(ctorParameters)
         ctor.InvokeCode <- fun args ->
@@ -411,37 +405,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                         |> Seq.map (fun (arg,p) -> <@@ (%%Expr.Value(p.Name):string), %%Expr.Coerce(arg, typeof<obj>) @@>)
                         |> List.ofSeq
            <@@
-                let pairs : (string*obj) [] = %%Expr.NewArray(typeof<string * obj>, pairs)
+                let pairs : (string * obj) [] = %%Expr.NewArray(typeof<string * obj>, pairs)
                 DynamicRecord (dict pairs)
             @@> 
         recordType.AddMember ctor
         
-        let withMethod = ProvidedMethod("With", withMethodParameters, recordType)
-        withMethod.InvokeCode <- fun args ->
-            let pairs = [ 
-                for arg, p in Seq.zip args.Tail properties -> 
-                    let value =
-                        typeof<QuotationsFactory>
-                            .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
-                            .MakeGenericMethod( p.PropertyType)
-                            .Invoke(null, [| box arg |])
-                            |> unbox
-
-                    <@@ (%%Expr.Value(p.Name):string), %%value @@>
-            ]
-
-            <@@
-                let record : DynamicRecord = unbox %%args.Head 
-                let data = Dictionary<_,_>(record.Data())
-                let pairs : (string*obj) [] = %%Expr.NewArray(typeof<string * obj>, pairs)
-                printfn "Input Array: pairs %A" pairs
-                for key,value in pairs do
-                    if value <> Extensions.DbNull then
-                        data.[key] <- value
-                printfn "Output Array: pairs %A" pairs
-                box(DynamicRecord data)
-            @@>
-        recordType.AddMember withMethod
         recordType    
 
     member internal this.GetDataRowType (outputColumns) = 

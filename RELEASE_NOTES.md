@@ -45,3 +45,4 @@
 * 1.2.28 - Unique output column names for ResultType.Records
 * 1.2.29 - TVP parameters are never optional even with if ‘AllParametersOptional’ is on
 * 1.3.0 - With method on generated records handles optionality properly.
+* 1.3.1 - Method "With" removed from record type. It was bad design decision to have it.

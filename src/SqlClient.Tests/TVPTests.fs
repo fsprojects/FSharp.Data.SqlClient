@@ -4,6 +4,8 @@ open FSharp.Data
 open System.Data
 open Xunit
 
+type Get42FromMasterDb = SqlCommandProvider<"SELECT 42", @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True">
+
 // If compile fails here, check prereqs.sql
 type TableValuedTuple = SqlCommandProvider<"exec myProc @x", "name=AdventureWorks2012", SingleRow = true, ResultType = ResultType.Tuples>
 type MyTableType = TableValuedTuple.MyTableType
