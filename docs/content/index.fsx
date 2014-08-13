@@ -80,7 +80,7 @@ Features at glance
     * Connection string is either inline or name from config file (app.config is default for config file)
     * Connection string can be overridden at run-time via constructor optional parameter
     * Constructor optionally accepts `SqlTransaction` and uses associated connection to execute command
-    * "ResolutionFolder" parameter - a folder to be used to resolve relative file paths at compile time. Applied to command text *.sql files and config files (app.config/web.config).
+    * "ResolutionFolder" parameter - a folder to be used to resolve relative file paths at compile time. Applied to command text *.sql files only.
 * Input:
     * Statically typed
     * Unbound sql variables/input parameters mapped to mandatory arguments for `AsyncExecute/Execute`

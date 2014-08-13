@@ -81,7 +81,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 <param name='SingleRow'>If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
 <param name='AllParametersOptional'>If set all parameters become optional. NULL input values must be handled inside T-SQL.</param>
-<param name='ResolutionFolder'>A folder to be used to resolve relative file paths at compile time. The default value is the folder that contains the project or script.</param>
+<param name='ResolutionFolder'>A folder to be used to resolve relative file paths to *.sql script files at compile time. The default value is the folder that contains the project or script.</param>
 """
 
         this.AddNamespace(nameSpace, [ providerType ])
@@ -100,15 +100,17 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let invalidator () =
             cache.TryRemove(key) |> ignore 
             this.Invalidate()
+            
+        let sqlStatement, watcher' = 
+            let sqlScriptResolutionFolder = 
+                if resolutionFolder = "" 
+                then config.ResolutionFolder 
+                elif Path.IsPathRooted (resolutionFolder)
+                then resolutionFolder
+                else Path.Combine (config.ResolutionFolder, resolutionFolder)
 
-        let resolutionFolder = 
-            if resolutionFolder = "" 
-            then config.ResolutionFolder 
-            elif Path.IsPathRooted (resolutionFolder)
-            then resolutionFolder
-            else Path.Combine (config.ResolutionFolder, resolutionFolder)
+            Configuration.ParseTextAtDesignTime(sqlStatementOrFile, sqlScriptResolutionFolder, invalidator)
 
-        let sqlStatement, watcher' = Configuration.ParseTextAtDesignTime(sqlStatementOrFile, resolutionFolder, invalidator)
         watcher' |> Option.iter (fun x -> watcher <- x)
 
         if connectionStringOrName.Trim() = ""
@@ -118,7 +120,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             
         let designTimeConnectionString = 
             if isByName
-            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, resolutionFolder, configFile)
+            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, config.ResolutionFolder, configFile)
             else connectionStringOrName
 
         let conn = new SqlConnection(designTimeConnectionString)
@@ -313,7 +315,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 let paramName = string reader.["name"]
                 let sqlEngineTypeId = unbox<int> reader.["suggested_system_type_id"]
 
-                let udtName = Convert.ToString(value = reader.["suggested_user_type_name"])
+                let udttName = Convert.ToString(value = reader.["suggested_user_type_name"])
                 let direction = 
                     let output = unbox reader.["suggested_is_output"]
                     let input = unbox reader.["suggested_is_input"]
@@ -322,9 +324,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     else ParameterDirection.Input
                     
                 let typeInfo = 
-                    match findBySqlEngineTypeIdAndUdt(connection.ConnectionString, sqlEngineTypeId, udtName) with
+                    match findBySqlEngineTypeIdAndUdtt(connection.ConnectionString, sqlEngineTypeId, udttName) with
                     | Some x -> x
-                    | None -> failwithf "Cannot map unbound variable of sql engine type %i and UDT %s to CLR/SqlDbType type. Parameter name: %s" sqlEngineTypeId udtName paramName
+                    | None -> failwithf "Cannot map unbound variable of sql engine type %i and UDT %s to CLR/SqlDbType type. Parameter name: %s" sqlEngineTypeId udttName paramName
 
                 yield { 
                     Name = paramName

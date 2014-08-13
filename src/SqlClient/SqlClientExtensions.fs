@@ -21,15 +21,19 @@ type SqlCommand with
 
 let private dataTypeMappings = Dictionary<string, TypeInfo[]>()
 
-let internal findBySqlEngineTypeIdAndUdt(connStr, id, udttName) = 
+let internal findBySqlEngineTypeIdAndUdtt(connStr, id, udttName) = 
     assert (dataTypeMappings.ContainsKey connStr)
     dataTypeMappings.[connStr] |> Array.tryFind(fun x -> x.SqlEngineTypeId = id && (not x.TableType || x.UdttName = udttName))
     
-let internal findTypeInfoBySqlEngineTypeId (connStr, systemId, userId : int option) = 
+let internal findTypeInfoBySqlEngineTypeId (connStr, system_type_id, user_type_id : int option) = 
     assert (dataTypeMappings.ContainsKey connStr)
-    match dataTypeMappings.[connStr] |> Array.filter(fun x -> x.SqlEngineTypeId = systemId ) with
-    | [| v |] -> v
-    | _-> failwithf "error resolving systemid %A and userid %A" systemId userId
+
+    match dataTypeMappings.[connStr] |> Array.filter(fun x -> x.SqlEngineTypeId = system_type_id ) with
+    | [| x |] -> x
+    | xs -> 
+        match xs |> Array.filter(fun x -> user_type_id.IsNone || x.UserTypeId = user_type_id.Value) with
+        | [| x |] -> x
+        | _-> failwithf "error resolving systemid %A and userid %A" system_type_id user_type_id
 
 let internal UDTTs connStr =
     assert (dataTypeMappings.ContainsKey connStr)
@@ -158,12 +162,12 @@ type SqlConnection with
         use reader = cmd.ExecuteReader()
 
         while reader.Read() do
-            let utid = reader.toOption<int> "user_type_id"
-            let stid = reader.["system_type_id"] |> unbox<int>
+            let user_type_id = reader.toOption<int> "user_type_id"
+            let system_type_id = reader.["system_type_id"] |> unbox<int>
             yield { 
                 Column.Name = string reader.["name"]
                 Ordinal = unbox reader.["column_ordinal"]
-                TypeInfo = findTypeInfoBySqlEngineTypeId (this.ConnectionString, stid, utid)
+                TypeInfo = findTypeInfoBySqlEngineTypeId (this.ConnectionString, system_type_id, user_type_id)
                 IsNullable = unbox reader.["is_nullable"]
                 MaxLength = reader.["max_length"] |> unbox<int16> |> int
             }
@@ -244,12 +248,12 @@ type SqlConnection with
                                 cmd.Connection <- this
                                 use reader = cmd.ExecuteReader()
                                 while reader.Read() do 
-                                    let utid = reader.toOption "user_type_id"
+                                    let user_type_id = reader.toOption "user_type_id"
                                     let stid = reader.["system_type_id"] |> unbox<byte> |> int
                                     yield {
                                         Column.Name = string reader.["name"]
                                         Ordinal = unbox reader.["column_id"]
-                                        TypeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, stid, utid)
+                                        TypeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, stid, user_type_id)
                                         IsNullable = unbox reader.["is_nullable"]
                                         MaxLength = reader.["max_length"] |> unbox<int16> |> int
                                     }
