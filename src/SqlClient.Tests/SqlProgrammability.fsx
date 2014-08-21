@@ -16,12 +16,9 @@ let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;
 
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
 
-type seType = AdventureWorks2012.``User-Defined Table Types``.SingleElementType
-
-type myType = AdventureWorks2012.``User-Defined Table Types``.MyTableType
-
 let db = AdventureWorks2012()
 
+//Table-valued UDF selecting single row
 let f = db.Functions.``dbo.ufnGetContactInformation``.AsyncExecute(1) |> Async.RunSynchronously |> Seq.exactlyOne
 f.BusinessEntityType
 f.FirstName
@@ -29,18 +26,18 @@ f.JobTitle
 f.LastName
 f.PersonID
 
+//Mix of input and output parameters in SP
 let a = db.``Stored Procedures``.``dbo.Swap``.AsyncExecute(input=5) |> Async.RunSynchronously 
 a.output
 a.nullStringOutput
 a.ReturnValue
 a.nullOutput
 
+//UDF returning list of records similar to SqlCommandProvider
 db.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(DateTime(2013,1,1), 1) |> Async.RunSynchronously |> Array.ofSeq
-    
-let p = [ seType(myId = 2); seType(myId = 1) ]
 
-db.``Stored Procedures``.``dbo.SingleElementProc``.AsyncExecute(p) |> Async.RunSynchronously |> Array.ofSeq
-
+//UDTT with nullable column
+type myType = AdventureWorks2012.``User-Defined Table Types``.MyTableType
 let m = [ myType(myId = 2); myType(myId = 1) ]
 
 let myArray = db.``Stored Procedures``.``dbo.MyProc``.AsyncExecute(m) |> Async.RunSynchronously |> Array.ofSeq
@@ -49,6 +46,7 @@ let myRes = myArray.[0]
 myRes.myId
 myRes.myName
 
+//Call stored procedure to update
 let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
             .AsyncExecute(291, true, DateTime(2013,1,1), "gatekeeper", "adventure-works\gat0", SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")))
             |> Async.RunSynchronously 

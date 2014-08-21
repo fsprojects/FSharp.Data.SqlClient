@@ -21,6 +21,7 @@ begin
 	set @output = @input
 	return @input
 end
+go
 
 CREATE TYPE MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
 GO
