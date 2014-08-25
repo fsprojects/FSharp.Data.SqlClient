@@ -94,13 +94,11 @@ let tsqlReader = new StringReader(spBody)
 let mutable errors: IList<ParseError> = null
 let fragment = parser.Parse(tsqlReader, &errors)
 let sps = List<CreateProcedureStatement>()
-fragment.Accept(
-    {
-        new TSqlFragmentVisitor() with
-            override __.Visit(node : CreateProcedureStatement) = 
-                sps.Add node
-    }
-)
+fragment.Accept {
+    new TSqlFragmentVisitor() with
+        member __.Visit(node : CreateProcedureStatement) = 
+            sps.Add node
+}
 
 for sp in sps do
     let name = sp.ProcedureReference.Name
