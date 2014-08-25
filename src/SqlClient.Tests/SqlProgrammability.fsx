@@ -26,15 +26,15 @@ f.JobTitle
 f.LastName
 f.PersonID
 
+//Stored Procedure returning list of records similar to SqlCommandProvider
+db.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(DateTime(2013,1,1), 1) |> Async.RunSynchronously |> Array.ofSeq
+
 //Mix of input and output parameters in SP
 let a = db.``Stored Procedures``.``dbo.Swap``.AsyncExecute(input=5) |> Async.RunSynchronously 
 a.output
 a.nullStringOutput
 a.ReturnValue
 a.nullOutput
-
-//UDF returning list of records similar to SqlCommandProvider
-db.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(DateTime(2013,1,1), 1) |> Async.RunSynchronously |> Array.ofSeq
 
 //UDTT with nullable column
 type myType = AdventureWorks2012.``User-Defined Table Types``.MyTableType
