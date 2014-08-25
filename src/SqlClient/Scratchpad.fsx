@@ -97,6 +97,7 @@ let sps = List<CreateProcedureStatement>()
 fragment.Accept {
     new TSqlFragmentVisitor() with
         member __.Visit(node : CreateProcedureStatement) = 
+            base.Visit node
             sps.Add node
 }
 
