@@ -3,17 +3,8 @@ open System
 open System.Data
 open System.Data.SqlClient
 
-let cmdBehaviour = 
-    seq {
-        if false
-        then 
-            yield CommandBehavior.CloseConnection
-        yield CommandBehavior.SingleRow
-    }
-    |> Seq.fold (|||) CommandBehavior.SingleResult
-
 let conn = new SqlConnection("""Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True""")
-conn.Close()
+//conn.Close()
 conn.Open()
 
 let cmd = new SqlCommand("select 'HAHA' as name, 1 as val where 1 = 1", conn)
@@ -82,3 +73,42 @@ let expr = <@@ unbox<int>(box 5) @@>
 match expr with Call(None, mi, _) -> mi.DeclaringType.AssemblyQualifiedName | _ -> "hehe"
 
 let boxMethod = System.Type.GetType( "Microsoft.FSharp.Core.Operators, FSharp.Core").GetMethod("Box")
+
+//DEFAULT PARAMS
+
+#r "Microsoft.SqlServer.TransactSql.ScriptDom"
+
+open Microsoft.SqlServer.TransactSql.ScriptDom
+open System.IO
+open System.Collections.Generic
+open System.Data.SqlClient
+open System.Data
+
+let getUspSearchCandidateResumesBody = new SqlCommand("exec sp_helptext 'dbo.uspSearchCandidateResumes'")
+getUspSearchCandidateResumesBody.Connection <- new SqlConnection(@"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
+getUspSearchCandidateResumesBody.Connection.Open()
+let spBody = getUspSearchCandidateResumesBody.ExecuteReader() |> Seq.cast<IDataRecord> |> Seq.map (fun x -> string x.[0]) |> String.concat "\n"
+
+let parser = TSql110Parser(true)
+let tsqlReader = new StringReader(spBody)
+let mutable errors: IList<ParseError> = null
+let fragment = parser.Parse(tsqlReader, &errors)
+let sps = List<CreateProcedureStatement>()
+fragment.Accept(
+    {
+        new TSqlFragmentVisitor() with
+            override __.Visit(node : CreateProcedureStatement) = 
+                sps.Add node
+    }
+)
+
+for sp in sps do
+    let name = sp.ProcedureReference.Name
+    printfn "SP name: %s.%s" name.SchemaIdentifier.Value name.BaseIdentifier.Value
+    printfn "Params info:\n"    
+    for p in sp.Parameters do
+        match p.Value with
+        | :? Literal as literal -> 
+            printfn "%A=%A of type %O" p.VariableName.Value literal.Value literal.LiteralType
+        | _ -> ()
+        
