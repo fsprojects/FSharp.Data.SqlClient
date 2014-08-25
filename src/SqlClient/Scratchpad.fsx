@@ -93,21 +93,19 @@ let parser = TSql110Parser(true)
 let tsqlReader = new StringReader(spBody)
 let mutable errors: IList<ParseError> = null
 let fragment = parser.Parse(tsqlReader, &errors)
-let sps = List<CreateProcedureStatement>()
+
+let paramInfo = List<ProcedureParameter>()
+
 fragment.Accept {
     new TSqlFragmentVisitor() with
-        member __.Visit(node : CreateProcedureStatement) = 
+        member __.Visit(node : ProcedureParameter) = 
             base.Visit node
-            sps.Add node
+            paramInfo.Add node
 }
 
-for sp in sps do
-    let name = sp.ProcedureReference.Name
-    printfn "SP name: %s.%s" name.SchemaIdentifier.Value name.BaseIdentifier.Value
-    printfn "Params info:\n"    
-    for p in sp.Parameters do
-        match p.Value with
-        | :? Literal as literal -> 
-            printfn "%A=%A of type %O" p.VariableName.Value literal.Value literal.LiteralType
-        | _ -> ()
+for p in paramInfo do
+    match p.Value with
+    | :? Literal as literal -> 
+        printfn "%A=%A of type %O" p.VariableName.Value literal.Value literal.LiteralType
+    | _ -> ()
         
