@@ -47,3 +47,4 @@
 * 1.3.0 - With method on generated records handles optionality properly.
 * 1.3.1 - Method "With" removed from record type. It was bad design decision to have it.
 * 1.3.2 - Resolution folder overrides only path to *.sql files.
+* 1.3.3 - Add KeyInfo to ResultType.DataTable

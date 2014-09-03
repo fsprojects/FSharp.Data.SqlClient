@@ -64,6 +64,8 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
                 yield CommandBehavior.CloseConnection
 
             if singleRow then yield CommandBehavior.SingleRow 
+
+            if resultType = ResultType.DataTable then yield CommandBehavior.KeyInfo
         }
         |> Seq.reduce (|||) 
 
