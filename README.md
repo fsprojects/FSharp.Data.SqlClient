@@ -10,3 +10,7 @@ More information can be found in the [documentation](http://fsprojects.github.io
 
 
 
+Build Status 
+-----------
+
+[![Build status (Windows Server 2012, AppVeyor)](https://ci.appveyor.com/api/projects/status/gxou8oe4lt5adxbq)](https://ci.appveyor.com/project/fsgit/fsharp-data-sqlclient)
