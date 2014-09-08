@@ -58,9 +58,6 @@ let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
             |> Async.RunSynchronously 
 res.ReturnValue
 
-[<Literal>] 
-let dbElephant = @"Server=tcp:alyxyktetm.database.windows.net,1433;Database=dbElephant;User ID=SQLAdmin@alyxyktetm;Password=!luv2d3vluv2d3v;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
-
 
 
 
