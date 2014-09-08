@@ -118,7 +118,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
        
         databaseRootType           
 
-    
     member internal __.Functions(udttTypes, functions, conn, resultType) =
         typeWithConnectionString "Functions"
             <| fun () -> 

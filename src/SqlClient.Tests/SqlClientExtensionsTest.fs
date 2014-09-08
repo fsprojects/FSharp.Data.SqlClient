@@ -54,8 +54,4 @@ type ExtensionsTest() =
         |> Seq.map (sprintf "%A")
         |> Seq.iter Debug.WriteLine
 
-    [<Fact>]
-    member  __. ``Parse default value``() =
-        parseDefaultValue("0", typeof<bool>) |> should equal (box false)
-        parseDefaultValue("1", typeof<bool>) |> should equal (box true)
-        parseDefaultValue("1", typeof<int8>) |> should equal (box 1y)
+    
