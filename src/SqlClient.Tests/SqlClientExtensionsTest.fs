@@ -12,7 +12,8 @@ open FSharp.Data.SqlClient
 type ExtensionsTest() = 
     
     [<Literal>]
-    let connectionString = @"Server=tcp:mhknbn2kdz.database.windows.net,1433;Database=AdventureWorks2012;User ID=sqlfamily;Password= sqlf@m1ly;Trusted_Connection=False;Encrypt=True;Connection Timeout=30"
+    let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+    //let connectionString = @"Server=tcp:mhknbn2kdz.database.windows.net,1433;Database=AdventureWorks2012;User ID=sqlfamily;Password= sqlf@m1ly;Trusted_Connection=False;Encrypt=True;Connection Timeout=30"
     let conn = new SqlConnection(connectionString)
     do
         conn.Open()
@@ -35,7 +36,6 @@ type ExtensionsTest() =
         |> Seq.map (sprintf "%A")
         |> Seq.iter Debug.WriteLine
 
-    [<Fact(Skip = "Until we gen SQL Azure with permissions")>]
     member  __. GetFullQualityColumnInfo() =
         conn.GetFullQualityColumnInfo("dbo.uspGetWhereUsedProductID") 
         |> Seq.map (sprintf "%A")
@@ -43,13 +43,14 @@ type ExtensionsTest() =
 
     [<Fact>]
     member  __. GetAllSPs() =
-        conn.GetProcedures()
+        conn.GetRoutines ("Procedure")
         |> Seq.map (sprintf "%A")
         |> Seq.iter Debug.WriteLine
 
+    //[<Fact(Skip = "Until we gen SQL Azure with permissions")>]
     [<Fact>]
     member  __. GetParameters() =
-        conn.GetParameters(Map.empty, "dbo.Swap")
+        conn.GetParameters( "dbo.Swap")
         |> Seq.map (sprintf "%A")
         |> Seq.iter Debug.WriteLine
 

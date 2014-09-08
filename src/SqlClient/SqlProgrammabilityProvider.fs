@@ -29,7 +29,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     let nameSpace = this.GetType().Namespace
     let cache = ConcurrentDictionary<_, ProvidedTypeDefinition>()
     
-    let typeWithConnectionString name  members = 
+    let typeWithConnectionString name members = 
         let spHostType = ProvidedTypeDefinition(name, baseType = Some typeof<obj>, HideObjectMethods = true)
         let ctor = ProvidedConstructor( [ProvidedParameter("connectionString", typeof<string>)], InvokeCode = fun args -> <@@ %%args.[0] : string @@>)
         spHostType.AddMember ctor
@@ -92,8 +92,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         databaseRootType.AddMember ctor
 
-        use conn = new SqlConnection(designTimeConnectionString)
-        conn.Open()
+        let conn = new SqlConnection(designTimeConnectionString)
+        use closeConn = conn.UseConnection()
         conn.CheckVersion()
         conn.LoadDataTypesMap()
 
@@ -107,48 +107,42 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         spHostType.AddMembers udttTypes
         
         //Stored procedures
-        let spHostType = this.SPs(udttTypes, conn.GetProcedures(), designTimeConnectionString, resultType)
+        let spHostType = this.SPs(udttTypes, conn.GetRoutines( "Procedure"), conn, resultType)
         databaseRootType.AddMember spHostType               
         databaseRootType.AddMember <| ProvidedProperty( "Stored Procedures", spHostType, GetterCode = fun args -> Expr.NewObject( ctor, [ <@@ string %%args.[0] @@>]))
                
         //Functions
-        let spHostType = this.Functions(udttTypes, designTimeConnectionString, resultType)
+        let spHostType = this.Functions(udttTypes, conn.GetRoutines( "Function"), conn, resultType)
         databaseRootType.AddMember spHostType               
         databaseRootType.AddMember <| ProvidedProperty( "Functions", spHostType, GetterCode = fun args -> Expr.NewObject( ctor, [ <@@ string %%args.[0] @@>]))
        
         databaseRootType           
 
     
-    member internal __.Functions(udttTypes, designTimeConnectionString, resultType) =
+    member internal __.Functions(udttTypes, functions, conn, resultType) =
         typeWithConnectionString "Functions"
             <| fun () -> 
                 [
-                let functions = CallSmo designTimeConnectionString GetFunctions
-                for twoPartsName in functions do                    
-                    let ctor = ProvidedConstructor([ProvidedParameter("connectionString", typeof<string>)])
-                    ctor.InvokeCode <- fun args -> <@@ new SqlCommand(twoPartsName, new SqlConnection(%%args.[0]:string)) @@>
-                    let propertyType = ProvidedTypeDefinition(twoPartsName, baseType = Some typeof<obj>, HideObjectMethods = true)
-                    propertyType.AddMember ctor
+                    for twoPartsName in functions do                    
+                        let ctor = ProvidedConstructor([ProvidedParameter("connectionString", typeof<string>)])
+                        ctor.InvokeCode <- fun args -> <@@ new SqlCommand( twoPartsName, new SqlConnection(%%args.[0]:string)) @@>
+                        let propertyType = ProvidedTypeDefinition( twoPartsName, baseType = Some typeof<obj>, HideObjectMethods = true)
+                        propertyType.AddMember ctor
                     
-                    propertyType.AddMemberDelayed <| fun () ->
-                        let columns, defaults = CallSmo designTimeConnectionString (fun db -> 
-                                let c = getFunctionColumns designTimeConnectionString db twoPartsName 
-                                assert(not c.IsEmpty)
-                                c, GetDefaults db (twoPartsName, true))
+                        propertyType.AddMemberDelayed <| fun () ->
+                            use closeConn = conn.UseConnection()
+                            let parameters = conn.GetParameters(twoPartsName)
+                            let columns = conn.GetFunctionOutputColumns( twoPartsName, parameters)
+                            this.AddExecuteMethod( conn, udttTypes, propertyType, twoPartsName, resultType, false, columns, parameters)
 
-                        use connection = new SqlConnection(designTimeConnectionString)
-                        connection.Open()
-                        let parameters = connection.GetParameters(defaults, twoPartsName)
-                        this.AddExecuteMethod(designTimeConnectionString, udttTypes, propertyType, twoPartsName, resultType, false, columns, parameters)
-
-                    let property = ProvidedProperty(twoPartsName, propertyType)
-                    property.GetterCode <- fun args -> Expr.NewObject( ctor, [ <@@ string %%args.[0] @@> ]) 
+                        let property = ProvidedProperty(twoPartsName, propertyType)
+                        property.GetterCode <- fun args -> Expr.NewObject( ctor, [ <@@ string %%args.[0] @@> ]) 
                         
-                    yield propertyType :> MemberInfo
-                    yield property :> MemberInfo
-            ]
+                        yield propertyType :> MemberInfo
+                        yield property :> MemberInfo
+                ]
 
-    member internal __.SPs(udttTypes, procedures, designTimeConnectionString, resultType) =
+    member internal __.SPs(udttTypes, procedures, conn, resultType) =
         typeWithConnectionString "StoredProcedures"
             <| fun () -> 
                 [
@@ -159,17 +153,16 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     propertyType.AddMember ctor
                     
                     propertyType.AddMemberDelayed <| fun () ->
-                        let defaults = CallSmo designTimeConnectionString GetDefaults (twoPartsName, false)
-                        use connection = new SqlConnection(designTimeConnectionString)
-                        connection.Open() 
-                        let parameters = connection.GetParameters(defaults, twoPartsName)
+                        use closeConn = conn.UseConnection()
+                        let parameters = conn.GetParameters( twoPartsName)
+
                         let outputColumns = 
-                            let anyOutputParameters = parameters |> Seq.exists(fun p -> p.Direction <> ParameterDirection.Input)
-                            if resultType <> ResultType.DataReader && not anyOutputParameters
-                            then this.GetOutputColumns(connection, twoPartsName, parameters)
+                            let hasOutputParameters = parameters |> Seq.exists(fun p -> p.Direction <> ParameterDirection.Input)
+                            if resultType <> ResultType.DataReader && not hasOutputParameters
+                            then conn.GetOutputColumns( twoPartsName, parameters)
                             else []
         
-                        this.AddExecuteMethod(designTimeConnectionString, udttTypes, propertyType, twoPartsName, resultType, false, outputColumns, parameters)
+                        this.AddExecuteMethod( conn, udttTypes, propertyType, twoPartsName, resultType, false, outputColumns, parameters)
 
                     let property = ProvidedProperty(twoPartsName, propertyType)
                     property.GetterCode <- fun args -> Expr.NewObject( ctor, [ <@@ string %%args.[0] @@> ]) 
@@ -184,21 +177,20 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 //        | ResultType.DataTable, _ -> typeof<DataTable<DataRow>>
 //        | ResultType., _ -> typeof<DataTable<DataRow>>
 //
-     member internal __.UDTTs( connStr) =
-         [
-                for t in UDTTs( connStr) do
-                    let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj[]>)
+     member internal __.UDTTs( connStr) = [
+            for t in UDTTs( connStr) do
+                let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj[]>)
                     
-                    let parameters = [ 
-                        for p in t.TvpColumns -> 
-                            ProvidedParameter(p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
-                    ] 
+                let parameters = [ 
+                    for p in t.TvpColumns -> 
+                        ProvidedParameter(p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
+                ] 
 
-                    let ctor = ProvidedConstructor( parameters)
-                    ctor.InvokeCode <- fun args -> Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
-                    rowType.AddMember ctor
-                    yield rowType
-            ]
+                let ctor = ProvidedConstructor( parameters)
+                ctor.InvokeCode <- fun args -> Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
+                rowType.AddMember ctor
+                yield rowType
+    ]
 
      member internal __.AddExecuteMethod(connStr, udttTypes, propertyType, twoPartsName, resultType, singleRow, outputColumns, parameters) = 
         let syncReturnType, executeMethodBody = 
@@ -234,30 +226,21 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         execute.InvokeCode <- executeMethodBody
         execute        
 
-     member internal this.GetOutputColumns(connection, commandText, sqlParameters) = 
-        try
-            connection.GetFullQualityColumnInfo commandText
-        with :? SqlException as why ->
-            try 
-                connection.FallbackToSETFMONLY(commandText, CommandType.StoredProcedure, sqlParameters) 
-            with :? SqlException ->
-                raise why
-
-     member internal this.GetOutputRecord(connStr, paramInfos) = 
+     member internal this.GetOutputRecord(conn, paramInfos) = 
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
-        for param in ReturnValue( connStr)::paramInfos do
+        for param in ReturnValue( conn) :: paramInfos do
             if param.Direction <> ParameterDirection.Input then
                 let propType, getter = ProgrammabilityQuotationsFactory.GetOutParameter param
                 recordType.AddMember <| ProvidedProperty(param.Name.Substring(1), propertyType = propType, GetterCode = getter)
         recordType
     
-     member internal this.GetExecuteNonQuery(connStr, providedCommandType, paramInfos)  = 
-        let recordType = this.GetOutputRecord(connStr, paramInfos)
+     member internal this.GetExecuteNonQuery(conn, providedCommandType, paramInfos)  = 
+        let recordType = this.GetOutputRecord(conn, paramInfos)
         providedCommandType.AddMember recordType
 
         let inputParamters = [for p in paramInfos do if p.Direction <> ParameterDirection.Output then yield p]
 
-        let returnName = ReturnValue( connStr).Name
+        let returnName = ReturnValue( conn).Name
         let body expr =
             <@@
                 async {
@@ -310,9 +293,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let rowType = udttTypes |> List.find(fun x -> x.Name = p.TypeInfo.UdttName)
                         ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ rowType ])
 
-                let optionalValue = if String.IsNullOrWhiteSpace(p.DefaultValue) 
-                                    then if p.Direction <> ParameterDirection.Input then Some null else None
-                                    else Some (parseDefaultValue(p.DefaultValue, parameterType))
+                let optionalValue = 
+                    if p.DefaultValue.IsNone
+                    then if p.Direction <> ParameterDirection.Input then Some null else None
+                    else p.DefaultValue
 
                 let parType = if p.Direction <> ParameterDirection.Input
                               then typedefof<_ option>.MakeGenericType( parameterType) 

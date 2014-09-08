@@ -34,6 +34,6 @@ type Parameter = {
     Name : string
     TypeInfo : TypeInfo
     Direction : ParameterDirection 
-    DefaultValue : string
+    DefaultValue : obj option
 }
 

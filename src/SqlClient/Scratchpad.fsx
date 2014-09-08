@@ -1,31 +1,15 @@
 
+#r "System.Transactions"
+
 open System
 open System.Data
 open System.Data.SqlClient
 
 let conn = new SqlConnection("""Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True""")
-//conn.Close()
 conn.Open()
 
-let cmd = new SqlCommand("select 'HAHA' as name, 1 as val where 1 = 1", conn)
-let reader = cmd.ExecuteReader(CommandBehavior.CloseConnection ||| CommandBehavior.SingleRow)
-let xs = seq {
-    use closeReader = reader
-    while reader.Read() do
-        yield [
-            for i = 0 to reader.FieldCount - 1 do
-                if not(reader.IsDBNull(i)) 
-                then yield reader.GetName(i), reader.GetValue(i)
-        ] |> Map.ofList 
-}
+let procsAndFuncs = conn.GetSchema("Procedures")
 
-reader |> Seq.cast<IDataRecord> |> Seq.map( fun x -> Map.ofList [ for i = 0 to x.FieldCount - 1 do yield x.GetName(i), x.GetValue(i) ])
-conn.State
-
-let myFucc() = 
-    use __ = { new System.IDisposable with member __.Dispose() = printfn "Bye-bye!" }
-    ()
-myFucc()
 
 #r "Microsoft.SqlServer.ConnectionInfo"
 #r "Microsoft.SqlServer.Management.Sdk.Sfc" 
@@ -84,7 +68,7 @@ open System.Collections.Generic
 open System.Data.SqlClient
 open System.Data
 
-let getUspSearchCandidateResumesBody = new SqlCommand("exec sp_helptext 'dbo.uspSearchCandidateResumes'")
+let getUspSearchCandidateResumesBody = new SqlCommand("exec sp_helptext 'dbo.ufnGetContactInformation'")
 getUspSearchCandidateResumesBody.Connection <- new SqlConnection(@"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
 getUspSearchCandidateResumesBody.Connection.Open()
 let spBody = getUspSearchCandidateResumesBody.ExecuteReader() |> Seq.cast<IDataRecord> |> Seq.map (fun x -> string x.[0]) |> String.concat "\n"
@@ -103,9 +87,25 @@ fragment.Accept {
             paramInfo.Add node
 }
 
-for p in paramInfo do
+let rec getParamDefaultValue (p: ProcedureParameter) = 
     match p.Value with
-    | :? Literal as literal -> 
-        printfn "%A=%A of type %O" p.VariableName.Value literal.Value literal.LiteralType
+    | :? Literal as x ->
+        match x.LiteralType with
+        | LiteralType.Default | LiteralType.Null -> Some null
+        | LiteralType.Integer -> x.Value |> int |> box |> Some
+        | LiteralType.Money | LiteralType.Numeric -> x.Value |> decimal |> box |> Some
+        | LiteralType.Real -> x.Value |> float |> box |> Some 
+        | _ -> None
+    //| :? UnaryExpression as expr ->
+    | _ -> None 
+
+
+for p in paramInfo do
+    let xxx = p.Value 
+    match p.Value with
+    | :? Literal as expr -> 
+        printfn "%A=%A of type %O" p.VariableName.Value expr.Value expr.LiteralType
+    //|:? UnaryExpression as expr
+
     | _ -> ()
         

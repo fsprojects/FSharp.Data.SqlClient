@@ -332,7 +332,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     Name = paramName
                     TypeInfo = typeInfo 
                     Direction = direction 
-                    DefaultValue = ""
+                    DefaultValue = None
                 }
     ]
 

@@ -9,10 +9,9 @@ open Microsoft.SqlServer.Types
 
 [<Literal>] 
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
- 
+
 [<Literal>] 
 let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
-
 
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
 
@@ -27,7 +26,7 @@ f.LastName
 f.PersonID
 
 //Stored Procedure returning list of records similar to SqlCommandProvider
-db.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(DateTime(2013,1,1), 1) |> Async.RunSynchronously |> Array.ofSeq
+db.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(1, DateTime(2013,1,1)) |> Async.RunSynchronously |> Array.ofSeq
 
 //Mix of input and output parameters in SP
 let a = db.``Stored Procedures``.``dbo.Swap``.AsyncExecute(input=5) |> Async.RunSynchronously 
@@ -48,7 +47,21 @@ myRes.myName
 
 //Call stored procedure to update
 let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
-            .AsyncExecute(291, true, DateTime(2013,1,1), "gatekeeper", "adventure-works\gat0", SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")))
+            .AsyncExecute(
+                291, 
+                SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")),
+                "adventure-works\gat0", 
+                "gatekeeper", 
+                DateTime(2013,1,1), 
+                true 
+            )
             |> Async.RunSynchronously 
 res.ReturnValue
+
+[<Literal>] 
+let dbElephant = @"Server=tcp:alyxyktetm.database.windows.net,1433;Database=dbElephant;User ID=SQLAdmin@alyxyktetm;Password=!luv2d3vluv2d3v;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
+
+
+
+
 

@@ -7,8 +7,8 @@ open System.Data
 open System.Collections.Generic
 open System.Data.SqlClient
 open Microsoft.FSharp.Reflection
-open Microsoft.SqlServer.Management.Smo
-open Microsoft.SqlServer.Management.Common
+open Microsoft.SqlServer.TransactSql.ScriptDom
+open System.IO
 
 let DbNull = box DBNull.Value
 
@@ -49,7 +49,8 @@ let internal findTypeInfoByProviderType( connStr, sqlDbType, udttName)  =
 
 let internal findTypeInfoByName( connStr, name) = 
     assert (dataTypeMappings.ContainsKey connStr)
-    dataTypeMappings.[connStr] |> Array.find(fun x -> x.TypeName = name || x.UdttName = name)
+    let dbTypes = dataTypeMappings.[connStr] 
+    dbTypes|> Array.find(fun x -> x.TypeName = name || x.UdttName = name)
 
 let splitName (twoPartsName : string) =
    let parts = twoPartsName.Split('.')
@@ -60,60 +61,34 @@ let parseDefaultValue (value: string, typ:Type) =
     then box (value.Trim() = "1")
     else Convert.ChangeType(value, typ)
      
-let internal ReturnValue connStr = { 
+let internal ReturnValue (conn : SqlConnection) = { 
     Name = "@ReturnValue" 
     Direction = ParameterDirection.ReturnValue
-    TypeInfo = findTypeInfoByName ( connStr, "int") 
-    DefaultValue = "" }
-
-let CallSmo connString f = 
-    let conn = new SqlConnection(connString)
-    let server = Server( ServerConnection(conn))
-    use disposable = {new IDisposable with member __.Dispose() = server.ConnectionContext.Disconnect()}
-    let db = Server( ServerConnection(conn)).Databases.[conn.Database]
-    f db
-
-let GetDefaults (db:Database) (twoPartsName, isFunction) =         
-        let schema, name =  splitName twoPartsName
-        let coll = if isFunction 
-                    then db.UserDefinedFunctions.[name, schema].Parameters :> ParameterCollectionBase 
-                    else db.StoredProcedures.[name, schema].Parameters :> ParameterCollectionBase 
-        seq {for p in coll |> Seq.cast<Microsoft.SqlServer.Management.Smo.Parameter> -> p.Name, p.DefaultValue } |> Map.ofSeq
-
-
-let getFunctionColumns connStr (db:Database) twoPartsName = 
-        let schema, name =  splitName twoPartsName
-        let types = db.UserDefinedDataTypes |> Seq.cast<UserDefinedDataType> |> Seq.map(fun t -> t.Name, t.SystemType) |> Map.ofSeq
-        db.UserDefinedFunctions.[name, schema].Columns
-        |> Seq.cast<Microsoft.SqlServer.Management.Smo.Column>
-        |> Seq.mapi ( fun i c ->
-                let dataType = defaultArg (types.TryFind(c.DataType.Name)) c.DataType.Name
-                {
-                    Name = c.Name 
-                    TypeInfo =  findTypeInfoByName (connStr, dataType)
-                    IsNullable = c.Nullable
-                    Ordinal = i
-                    MaxLength = c.DataType.MaximumLength
-                })
-        |> List.ofSeq
-
-let GetFunctions (db:Database) = 
-        [ 
-            for f in db.UserDefinedFunctions do
-                if not f.IsSystemObject && f.DataType = null then 
-                    yield sprintf "%s.%s" f.Schema f.Name
-        ]
+    TypeInfo = findTypeInfoByName ( conn.ConnectionString, "int") 
+    DefaultValue = None }
 
 type SqlDataReader with
-    
     member this.toOption<'a> (key:string) =
         let v = this.[key] 
         if v = DbNull then None else Some(unbox<'a> v)
+    
 
 type DataRow with
+    member this.toOption<'a> (key:string) = if this.IsNull(key) then None else Some(unbox<'a> this.[key])
 
-    member this.toOption<'a> (key:string) = 
-        if this.IsNull(key) then None else Some(unbox<'a> this.[key])
+let rec getParamDefaultValue (body: string) (p: ProcedureParameter) = 
+    match p.Value with
+    | :? Literal as x ->
+        match x.LiteralType with
+        | LiteralType.Default | LiteralType.Null -> Some null
+        | LiteralType.Integer -> x.Value |> int |> box |> Some
+        | LiteralType.Money | LiteralType.Numeric -> x.Value |> decimal |> box |> Some
+        | LiteralType.Real -> x.Value |> float |> box |> Some 
+        | _ -> None
+    | :? UnaryExpression as expr ->
+        let ssss = expr.ToString()
+        None
+    | _ -> None 
 
 type SqlConnection with
 
@@ -130,6 +105,93 @@ type SqlConnection with
         let majorVersion = this.ServerVersion.Split('.').[0]
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
+
+    member internal this.GetRoutines(routineType : string) = 
+        assert (this.State = ConnectionState.Open)
+        use cmd = new SqlCommand( "SELECT CONCAT(ROUTINE_SCHEMA,'.',ROUTINE_NAME) FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = @routineType", this)
+        cmd.Parameters.AddWithValue( "@routineType", routineType) |> ignore
+        use reader = cmd.ExecuteReader()
+        reader 
+        |> Seq.unfold (fun x -> if x.Read() then Some( x.GetString(0), reader) else None)
+        |> Seq.toArray  
+            
+    member internal this.GetParameters( twoPartsName) =      
+        assert (this.State = ConnectionState.Open)
+
+        let spDefinition = 
+            let query = sprintf "EXEC sp_helptext '%s'" twoPartsName
+            use getParameterDefaultValues = new SqlCommand( query, this)
+            use reader = getParameterDefaultValues.ExecuteReader()
+            reader |> Seq.unfold (fun current -> if current.Read() then Some( current.GetString (0), current) else None) |> String.concat "\n"
+
+        let parser = TSql110Parser(true)
+        let tsqlReader = new StringReader(spDefinition)
+        let mutable errors : IList<ParseError> = null
+        let fragment = parser.Parse(tsqlReader, &errors)
+
+        let paramDefaults = Dictionary()
+
+        fragment.Accept {
+            new TSqlFragmentVisitor() with
+                member __.Visit(node : ProcedureParameter) = 
+                    base.Visit node
+                    paramDefaults.[node.VariableName.Value] <- getParamDefaultValue spDefinition node
+        }
+
+        let query = sprintf "
+            SELECT * 
+            FROM INFORMATION_SCHEMA.PARAMETERS 
+            WHERE SPECIFIC_CATALOG = '%s' AND CONCAT(SPECIFIC_SCHEMA,'.',SPECIFIC_NAME) = '%s'
+            ORDER BY ORDINAL_POSITION" this.Database twoPartsName
+        use getParameters = new SqlCommand( query, this)
+        use reader = getParameters.ExecuteReader()
+        reader |> Seq.unfold (fun record -> 
+            if record.Read() 
+            then 
+                let name = string record.["PARAMETER_NAME"]
+                let direction = 
+                    match string record.["PARAMETER_MODE"] with 
+                    | "IN" -> ParameterDirection.Input 
+                    | "OUT" -> ParameterDirection.Output
+                    | "INOUT" -> ParameterDirection.InputOutput
+                    | _ -> failwithf "Parameter %s has unsupported direction %O" name record.["PARAMETER_MODE"]
+
+                let udt = 
+                    match string record.["DATA_TYPE"] with
+                    | "table type" -> string record.["USER_DEFINED_TYPE_NAME"]
+                    | x -> x
+                
+                let typeInfo = findTypeInfoByName(this.ConnectionString, udt) 
+
+                let param = { 
+                    Name = name 
+                    TypeInfo = typeInfo
+                    Direction = direction 
+                    DefaultValue = paramDefaults.[name] 
+                }
+                Some ( param, record)
+            else 
+                None
+        )
+        |> Seq.toList
+
+    member internal this.GetFullQualityColumnInfo commandText = [
+        assert (this.State = ConnectionState.Open)
+        use cmd = new SqlCommand("sys.sp_describe_first_result_set", this, CommandType = CommandType.StoredProcedure)
+        cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
+        use reader = cmd.ExecuteReader()
+
+        while reader.Read() do
+            let user_type_id = reader.toOption<int> "user_type_id"
+            let system_type_id = reader.["system_type_id"] |> unbox<int>
+            yield { 
+                Column.Name = string reader.["name"]
+                Ordinal = unbox reader.["column_ordinal"]
+                TypeInfo = findTypeInfoBySqlEngineTypeId (this.ConnectionString, system_type_id, user_type_id)
+                IsNullable = unbox reader.["is_nullable"]
+                MaxLength = reader.["max_length"] |> unbox<int16> |> int
+            }
+    ] 
 
     member internal this.FallbackToSETFMONLY(commandText, commandType, parameters) = 
         assert (this.State = ConnectionState.Open)
@@ -154,55 +216,19 @@ type SqlConnection with
                     }
             ]
 
-    member internal this.GetFullQualityColumnInfo commandText = [
-        assert (this.State = ConnectionState.Open)
-        
-        use cmd = new SqlCommand("sys.sp_describe_first_result_set", this, CommandType = CommandType.StoredProcedure)
-        cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
-        use reader = cmd.ExecuteReader()
+     member internal this.GetOutputColumns(commandText, sqlParameters) = 
+        try
+            this.GetFullQualityColumnInfo commandText
+        with :? SqlException as why ->
+            try 
+                this.FallbackToSETFMONLY(commandText, CommandType.StoredProcedure, sqlParameters) 
+            with :? SqlException ->
+                raise why
 
-        while reader.Read() do
-            let user_type_id = reader.toOption<int> "user_type_id"
-            let system_type_id = reader.["system_type_id"] |> unbox<int>
-            yield { 
-                Column.Name = string reader.["name"]
-                Ordinal = unbox reader.["column_ordinal"]
-                TypeInfo = findTypeInfoBySqlEngineTypeId (this.ConnectionString, system_type_id, user_type_id)
-                IsNullable = unbox reader.["is_nullable"]
-                MaxLength = reader.["max_length"] |> unbox<int16> |> int
-            }
-    ] 
+    member internal this.GetFunctionOutputColumns( functionName : string, parameters ) =
+        let commandText = parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT * FROM %s(%s)" functionName  
+        this.GetOutputColumns( commandText, parameters)
 
-    
-    member internal this.GetParameters(defaults : Map<string,string>, twoPartsName) =         
-            assert (this.State = ConnectionState.Open)
-            [
-                for r in this.GetSchema("ProcedureParameters").Rows do
-                    let fullName = sprintf "%s.%s" (string r.["specific_schema"]) (string r.["specific_name"]) 
-                    if  string r.["specific_catalog"] = this.Database && fullName = twoPartsName then
-                        let name = string r.["parameter_name"]
-                        let direction = match string r.["parameter_mode"] with 
-                                        | "IN" -> ParameterDirection.Input 
-                                        | "OUT" -> ParameterDirection.Output
-                                        | "INOUT" -> ParameterDirection.InputOutput
-                                        | _ -> failwithf "Parameter %s has unsupported direction %O" name r.["parameter_mode"]
-                        let udt = string r.["data_type"]
-                        yield { 
-                            Name = name 
-                            TypeInfo = findTypeInfoByName(this.ConnectionString, udt) 
-                            Direction = direction 
-                            DefaultValue = defaultArg (defaults.TryFind(name)) ""}
-            ]
- 
-
-    member internal this.GetProcedures() = 
-        assert (this.State = ConnectionState.Open)
-        [ 
-            for r in this.GetSchema("Procedures").Rows do
-                if string r.["routine_type"] = "PROCEDURE" then 
-                    yield sprintf "%s.%s" (string r.["specific_schema"]) (string r.["specific_name"])
-        ]
-    
     member internal this.LoadDataTypesMap() = 
         if not <| dataTypeMappings.ContainsKey this.ConnectionString
         then
@@ -219,9 +245,10 @@ type SqlConnection with
             |]
 
             let sqlEngineTypes = [|
-                use cmd = new SqlCommand("SELECT t.name, ISNULL(assembly_class, t.name), t.system_type_id, t.user_type_id, t.is_table_type
-                                            FROM sys.types t
-                                            left join sys.assembly_types a on t.user_type_id = a.user_type_id ", this) 
+                use cmd = new SqlCommand("
+                    SELECT t.name, ISNULL(assembly_class, t.name), t.system_type_id, t.user_type_id, t.is_table_type
+                    FROM sys.types AS t
+                    LEFT JOIN sys.assembly_types ON t.user_type_id = sys.assembly_types.user_type_id ", this) 
                 use reader = cmd.ExecuteReader()
                 while reader.Read() do
                     yield reader.GetString(0), reader.GetString(1), reader.GetByte(2) |> int, reader.GetInt32(3), reader.GetBoolean(4)
