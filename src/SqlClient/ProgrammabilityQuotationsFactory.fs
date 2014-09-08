@@ -117,7 +117,7 @@ type ProgrammabilityQuotationsFactory private() =
                     reader.GetValues(values) |> ignore
                     let mapNullables :  obj[] -> unit = %%QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, "MapArrayObjItemToOption")
                     mapNullables values
-                    (%%rowMapper : obj[] -> 'Row) values
+                    box((%%rowMapper : obj[] -> 'Row) values)
             @>
 
         let getTypedSeqAsync = ProgrammabilityQuotationsFactory.GetRows(exprArgs, paramInfos, mapper, singleRow)

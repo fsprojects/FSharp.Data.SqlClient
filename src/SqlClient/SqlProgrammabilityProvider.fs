@@ -269,13 +269,13 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         upcast recordType, getExecuteBody
     
     member internal this.RecordType(columns) =
-        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<DynamicRecord>, HideObjectMethods = true)
+        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
         for col in columns do
             let propertyName = col.Name
             if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
 
             let property = ProvidedProperty(propertyName, propertyType = col.ClrTypeConsideringNullable)
-            property.GetterCode <- fun args -> <@@ (%%args.[0] : DynamicRecord).[propertyName] @@>
+            property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
 
             recordType.AddMember property
         recordType
