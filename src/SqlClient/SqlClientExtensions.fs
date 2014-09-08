@@ -56,11 +56,6 @@ let splitName (twoPartsName : string) =
    let parts = twoPartsName.Split('.')
    parts.[0], parts.[1]
 
-let parseDefaultValue (value: string, typ:Type) =
-    if typ = typeof<bool> 
-    then box (value.Trim() = "1")
-    else Convert.ChangeType(value, typ)
-     
 let internal ReturnValue (conn : SqlConnection) = { 
     Name = "@ReturnValue" 
     Direction = ParameterDirection.ReturnValue
@@ -76,8 +71,8 @@ type SqlDataReader with
 type DataRow with
     member this.toOption<'a> (key:string) = if this.IsNull(key) then None else Some(unbox<'a> this.[key])
 
-let rec getParamDefaultValue (body: string) (p: ProcedureParameter) = 
-    match p.Value with
+let rec parseDefaultValue (definition: string) (expr: ScalarExpression) = 
+    match expr with
     | :? Literal as x ->
         match x.LiteralType with
         | LiteralType.Default | LiteralType.Null -> Some null
@@ -85,9 +80,16 @@ let rec getParamDefaultValue (body: string) (p: ProcedureParameter) =
         | LiteralType.Money | LiteralType.Numeric -> x.Value |> decimal |> box |> Some
         | LiteralType.Real -> x.Value |> float |> box |> Some 
         | _ -> None
-    | :? UnaryExpression as expr ->
-        let ssss = expr.ToString()
-        None
+    | :? UnaryExpression as x when x.UnaryExpressionType <> UnaryExpressionType.BitwiseNot ->
+        let fragment = definition.Substring( x.StartOffset, x.FragmentLength)
+        match x.Expression with
+        | :? Literal as x ->
+            match x.LiteralType with
+            | LiteralType.Integer -> fragment |> int |> box |> Some
+            | LiteralType.Money | LiteralType.Numeric -> fragment |> decimal |> box |> Some
+            | LiteralType.Real -> fragment |> float |> box |> Some 
+            | _ -> None
+        | _  -> None 
     | _ -> None 
 
 type SqlConnection with
@@ -124,10 +126,10 @@ type SqlConnection with
             use reader = getParameterDefaultValues.ExecuteReader()
             reader |> Seq.unfold (fun current -> if current.Read() then Some( current.GetString (0), current) else None) |> String.concat "\n"
 
-        let parser = TSql110Parser(true)
+        let parser = TSql110Parser( true)
         let tsqlReader = new StringReader(spDefinition)
-        let mutable errors : IList<ParseError> = null
-        let fragment = parser.Parse(tsqlReader, &errors)
+        let errors = ref Unchecked.defaultof<_>
+        let fragment = parser.Parse(tsqlReader, errors)
 
         let paramDefaults = Dictionary()
 
@@ -135,7 +137,7 @@ type SqlConnection with
             new TSqlFragmentVisitor() with
                 member __.Visit(node : ProcedureParameter) = 
                     base.Visit node
-                    paramDefaults.[node.VariableName.Value] <- getParamDefaultValue spDefinition node
+                    paramDefaults.[node.VariableName.Value] <- parseDefaultValue spDefinition node.Value
         }
 
         let query = sprintf "
