@@ -114,9 +114,7 @@ type SqlConnection with
         use cmd = new SqlCommand( "SELECT CONCAT(ROUTINE_SCHEMA,'.',ROUTINE_NAME) FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = @routineType", this)
         cmd.Parameters.AddWithValue( "@routineType", routineType) |> ignore
         use reader = cmd.ExecuteReader()
-        reader 
-        |> Seq.unfold (fun x -> if x.Read() then Some( x.GetString(0), reader) else None)
-        |> Seq.toArray  
+        reader |> SqlDataReader.map (fun x -> x.GetString (0)) |> Seq.toArray
             
     member internal this.GetParameters( routine) =      
         assert (this.State = ConnectionState.Open)
