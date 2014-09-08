@@ -5,10 +5,11 @@ open System
 open System.Text
 open System.Data
 open System.Collections.Generic
+open System.IO
+open System.Threading.Tasks
 open System.Data.SqlClient
 open Microsoft.FSharp.Reflection
 open Microsoft.SqlServer.TransactSql.ScriptDom
-open System.IO
 
 let DbNull = box DBNull.Value
 
@@ -52,21 +53,11 @@ let internal findTypeInfoByName( connStr, name) =
     let dbTypes = dataTypeMappings.[connStr] 
     dbTypes|> Array.find(fun x -> x.TypeName = name || x.UdttName = name)
 
-let splitName (twoPartsName : string) =
-   let parts = twoPartsName.Split('.')
-   parts.[0], parts.[1]
-
 let internal ReturnValue (conn : SqlConnection) = { 
     Name = "@ReturnValue" 
     Direction = ParameterDirection.ReturnValue
     TypeInfo = findTypeInfoByName ( conn.ConnectionString, "int") 
     DefaultValue = None }
-
-type SqlDataReader with
-    member this.toOption<'a> (key:string) =
-        let v = this.[key] 
-        if v = DbNull then None else Some(unbox<'a> v)
-    
 
 type DataRow with
     member this.toOption<'a> (key:string) = if this.IsNull(key) then None else Some(unbox<'a> this.[key])
@@ -92,6 +83,15 @@ let rec parseDefaultValue (definition: string) (expr: ScalarExpression) =
         | _  -> None 
     | _ -> None 
 
+module SqlDataReader = 
+
+    let internal map mapping (reader: SqlDataReader) = 
+        reader |> Seq.unfold (fun current -> if current.Read() then Some( mapping reader, current) else None) 
+
+    let internal getOption<'a> (key: string) (reader: SqlDataReader) =
+        let v = reader.[key] 
+        if v = DbNull then None else Some(unbox<'a> v)
+        
 type SqlConnection with
 
  //address an issue when regular Dispose on SqlConnection needed for async computation 
@@ -110,6 +110,7 @@ type SqlConnection with
 
     member internal this.GetRoutines(routineType : string) = 
         assert (this.State = ConnectionState.Open)
+        assert (routineType = "Procedure" || routineType = "Function")
         use cmd = new SqlCommand( "SELECT CONCAT(ROUTINE_SCHEMA,'.',ROUTINE_NAME) FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = @routineType", this)
         cmd.Parameters.AddWithValue( "@routineType", routineType) |> ignore
         use reader = cmd.ExecuteReader()
@@ -117,63 +118,64 @@ type SqlConnection with
         |> Seq.unfold (fun x -> if x.Read() then Some( x.GetString(0), reader) else None)
         |> Seq.toArray  
             
-    member internal this.GetParameters( twoPartsName) =      
+    member internal this.GetParameters( routine) =      
         assert (this.State = ConnectionState.Open)
 
-        let spDefinition = 
-            let query = sprintf "EXEC sp_helptext '%s'" twoPartsName
-            use getParameterDefaultValues = new SqlCommand( query, this)
-            use reader = getParameterDefaultValues.ExecuteReader()
-            reader |> Seq.unfold (fun current -> if current.Read() then Some( current.GetString (0), current) else None) |> String.concat "\n"
-
-        let parser = TSql110Parser( true)
-        let tsqlReader = new StringReader(spDefinition)
-        let errors = ref Unchecked.defaultof<_>
-        let fragment = parser.Parse(tsqlReader, errors)
-
-        let paramDefaults = Dictionary()
-
-        fragment.Accept {
-            new TSqlFragmentVisitor() with
-                member __.Visit(node : ProcedureParameter) = 
-                    base.Visit node
-                    paramDefaults.[node.VariableName.Value] <- parseDefaultValue spDefinition node.Value
-        }
-
-        let query = sprintf "
+        let bodyAndParamsInfoQuery = sprintf "
+            -- get body 
+            EXEC sp_helptext '%s'; 
+            -- get params info
             SELECT * 
             FROM INFORMATION_SCHEMA.PARAMETERS 
             WHERE SPECIFIC_CATALOG = '%s' AND CONCAT(SPECIFIC_SCHEMA,'.',SPECIFIC_NAME) = '%s'
-            ORDER BY ORDINAL_POSITION" this.Database twoPartsName
-        use getParameters = new SqlCommand( query, this)
-        use reader = getParameters.ExecuteReader()
-        reader |> Seq.unfold (fun record -> 
-            if record.Read() 
-            then 
-                let name = string record.["PARAMETER_NAME"]
-                let direction = 
-                    match string record.["PARAMETER_MODE"] with 
-                    | "IN" -> ParameterDirection.Input 
-                    | "OUT" -> ParameterDirection.Output
-                    | "INOUT" -> ParameterDirection.InputOutput
-                    | _ -> failwithf "Parameter %s has unsupported direction %O" name record.["PARAMETER_MODE"]
+            ORDER BY ORDINAL_POSITION" routine this.Database routine 
 
-                let udt = 
-                    match string record.["DATA_TYPE"] with
-                    | "table type" -> string record.["USER_DEFINED_TYPE_NAME"]
-                    | x -> x
+        use getBodyAndParamsInfo = new SqlCommand( bodyAndParamsInfoQuery, this)
+        use reader = getBodyAndParamsInfo.ExecuteReader()
+        let spDefinition = 
+            reader |> SqlDataReader.map (fun x -> x.GetString (0)) |> String.concat "\n"
+
+        let paramDefaults = Task.Factory.StartNew( fun() ->
+
+            let parser = TSql110Parser( true)
+            let tsqlReader = new StringReader(spDefinition)
+            let errors = ref Unchecked.defaultof<_>
+            let fragment = parser.Parse(tsqlReader, errors)
+
+            let result = Dictionary()
+
+            fragment.Accept {
+                new TSqlFragmentVisitor() with
+                    member __.Visit(node : ProcedureParameter) = 
+                        base.Visit node
+                        result.[node.VariableName.Value] <- parseDefaultValue spDefinition node.Value
+            }
+
+            result
+        )
+
+        let paramsDataAvailable = reader.NextResult()
+        assert paramsDataAvailable
+        reader |> SqlDataReader.map (fun record -> 
+            let name = string record.["PARAMETER_NAME"]
+            let direction = 
+                match string record.["PARAMETER_MODE"] with 
+                | "IN" -> ParameterDirection.Input 
+                | "OUT" -> ParameterDirection.Output
+                | "INOUT" -> ParameterDirection.InputOutput
+                | _ -> failwithf "Parameter %s has unsupported direction %O" name record.["PARAMETER_MODE"]
+
+            let udt = 
+                match string record.["DATA_TYPE"] with
+                | "table type" -> string record.["USER_DEFINED_TYPE_NAME"]
+                | x -> x
                 
-                let typeInfo = findTypeInfoByName(this.ConnectionString, udt) 
-
-                let param = { 
-                    Name = name 
-                    TypeInfo = typeInfo
-                    Direction = direction 
-                    DefaultValue = paramDefaults.[name] 
-                }
-                Some ( param, record)
-            else 
-                None
+            { 
+                Name = name 
+                TypeInfo = findTypeInfoByName(this.ConnectionString, udt)
+                Direction = direction 
+                DefaultValue = paramDefaults.Result.[name] 
+            }
         )
         |> Seq.toList
 
@@ -184,7 +186,7 @@ type SqlConnection with
         use reader = cmd.ExecuteReader()
 
         while reader.Read() do
-            let user_type_id = reader.toOption<int> "user_type_id"
+            let user_type_id = reader |> SqlDataReader.getOption<int> "user_type_id"
             let system_type_id = reader.["system_type_id"] |> unbox<int>
             yield { 
                 Column.Name = string reader.["name"]
@@ -277,7 +279,7 @@ type SqlConnection with
                                 cmd.Connection <- this
                                 use reader = cmd.ExecuteReader()
                                 while reader.Read() do 
-                                    let user_type_id = reader.toOption "user_type_id"
+                                    let user_type_id = reader |> SqlDataReader.getOption "user_type_id"
                                     let stid = reader.["system_type_id"] |> unbox<byte> |> int
                                     yield {
                                         Column.Name = string reader.["name"]
