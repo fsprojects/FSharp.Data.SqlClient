@@ -12,10 +12,10 @@ open Samples.FSharp.ProvidedTypes
 open FSharp.Data.SqlClient
 
 type ISqlCommand = 
-    abstract Execute : parameters: (string * obj)[] -> obj
-    abstract AsyncExecute : parameters: (string * obj)[] -> obj
-    abstract ToTraceString : parameters: (string * obj)[] -> string
-    abstract Raw : SqlCommand with get
+    abstract Execute: parameters: (string * obj)[] -> obj
+    abstract AsyncExecute: parameters: (string * obj)[] -> obj
+    abstract ToTraceString: parameters: (string * obj)[] -> string
+    abstract Raw: SqlCommand with get
 
 type RowMapping = obj[] -> obj
 
@@ -24,9 +24,9 @@ type Connection =
     | Name of string
     | Transaction of SqlTransaction
 
-type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singleRow, rowMapping : RowMapping) = 
+type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singleRow, rowMapping: RowMapping, isStoredProcedure) = 
 
-    let cmd = new SqlCommand(sqlStatement)
+    let cmd = new SqlCommand(sqlStatement, CommandType = if isStoredProcedure then CommandType.StoredProcedure else CommandType.Text)
     do 
         match connection with
         | String x -> 
@@ -41,7 +41,7 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
     do
         cmd.Parameters.AddRange( parameters)
 
-    let getReaderBehavior = fun() ->
+    let getReaderBehavior() = 
         seq {
             yield CommandBehavior.SingleResult
 
@@ -63,7 +63,7 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
 
             if value = null 
             then 
-                p.Value <- DbNull 
+                p.Value <- DBNull.Value 
             else
                 if not( p.SqlDbType = SqlDbType.Structured)
                 then 
@@ -74,7 +74,7 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
                     for rowValues in unbox<seq<obj[]>> value do
                         table.Rows.Add( rowValues) |> ignore
 
-            if p.Value = DbNull 
+            if Convert.IsDBNull p.Value 
             then 
                 match p.SqlDbType with
                 | SqlDbType.NVarChar -> p.Size <- 4000

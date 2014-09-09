@@ -24,7 +24,6 @@ open FSharp.Data.SqlClient
 type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces()
 
-
     let runtimeAssembly = Assembly.LoadFrom( config.RuntimeAssembly)
     let nameSpace = this.GetType().Namespace
     let cache = ConcurrentDictionary<_, ProvidedTypeDefinition>()

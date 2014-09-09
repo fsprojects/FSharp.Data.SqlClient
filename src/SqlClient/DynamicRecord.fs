@@ -6,7 +6,7 @@ open System.Collections.Generic
 
 [<Sealed>]
 ///<summary>Custom implementation of <see cref='DynamicObject'/></summary>
-type DynamicRecord (data : IDictionary<string,obj>) = 
+type DynamicRecord(data: IDictionary<string, obj>) = 
     inherit DynamicObject() 
 
     do
