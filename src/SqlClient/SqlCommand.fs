@@ -1,12 +1,9 @@
 ﻿namespace FSharp.Data
 
 open System
-open System.Collections.Generic
 open System.Data
 open System.Data.SqlClient
-open System.Dynamic
 open System.Reflection
-open System.Threading
 
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
@@ -19,16 +16,6 @@ type ISqlCommand =
     abstract AsyncExecute : parameters: (string * obj)[] -> obj
     abstract ToTraceString : parameters: (string * obj)[] -> string
     abstract Raw : SqlCommand with get
-
-//type RowMapping = 
-//    | Row of (obj[] -> obj)
-//    | NonQuery
-//
-//    static member WithNullsToOptions (nullsToOptions: obj[] -> unit, mapper) = 
-//        Row(fun values -> 
-//            nullsToOptions values
-//            mapper values
-//        ) 
 
 type RowMapping = obj[] -> obj
 
@@ -54,7 +41,7 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
     do
         cmd.Parameters.AddRange( parameters)
 
-    let getReaderBehavior() =
+    let getReaderBehavior = fun() ->
         seq {
             yield CommandBehavior.SingleResult
 
@@ -100,10 +87,7 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
 
     let asyncExecuteReader parameters = 
         setParameters cmd parameters 
-        async {
-            let! token = Async.CancellationToken                
-            return! cmd.AsyncExecuteReader( getReaderBehavior())
-        }
+        cmd.AsyncExecuteReader( getReaderBehavior())
 
     let executeDataTable parameters = 
         use reader = executeReader parameters
@@ -135,17 +119,11 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
         }
         
     let executeSeq rowMapper parameters = 
-        let xs = 
-            seq {
-                let reader = executeReader parameters
-                yield! readerToSeq reader
-            }
+        let xs = parameters |> executeReader |> readerToSeq
 
-        if singleRow 
-        then
-            xs |> seqToOption |> box
-        else
-            box xs 
+        if singleRow  
+        then xs |> seqToOption |> box
+        else box xs 
             
     let asyncExecuteSeq rowMapper parameters = 
         let xs = 

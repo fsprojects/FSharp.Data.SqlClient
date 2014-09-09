@@ -38,11 +38,11 @@ let ``Not equal with different keys``() = recordWithNulls = DynamicRecord(dict [
 let ``Not equal with different values``() = recordWithNulls = DynamicRecord(dict ["DBNull", box DBNull.Value; "foo", box "foo"]) |> should be False
 
 [<Fact>] 
-let Equal() = recordWithNulls = DynamicRecord(Dictionary<_,_>(recordWithNulls.Data())) |> should be True
+let Equal() = recordWithNulls = DynamicRecord(Dictionary<_,_>(recordWithNulls.Data)) |> should be True
 
 [<Fact>] 
 let ``GetHashCode is same when equal``() = 
-    let clone = DynamicRecord( Dictionary<_,_>( recordWithNulls.Data()))
+    let clone = DynamicRecord( Dictionary<_,_>( recordWithNulls.Data))
     if recordWithNulls = clone //did if to make assertion more granular
     then 
         recordWithNulls.GetHashCode() = clone.GetHashCode() |> should be True
