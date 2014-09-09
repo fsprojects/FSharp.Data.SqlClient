@@ -50,7 +50,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     let mutable watcher = null : IDisposable
 
     let nameSpace = this.GetType().Namespace
-    let assembly = Assembly.GetExecutingAssembly()
+    let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, HideObjectMethods = true)
 
     let cache = ConcurrentDictionary<_, ProvidedTypeDefinition>()
