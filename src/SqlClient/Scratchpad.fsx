@@ -8,9 +8,17 @@ open System.Data.SqlClient
 let conn = new SqlConnection("""Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True""")
 conn.Open()
 
-let cmd = new SqlCommand("sp_help", conn)
-cmd.Parameters.AddWithValue("@objname", "[dbo].[ufnGetContactInformation]") |> ignore
+//let cmd = new SqlCommand("sp_help", conn)
+//cmd.Parameters.AddWithValue("@objname", "[dbo].[ufnGetContactInformation]") |> ignore
+let cmd = new SqlCommand("dbo.Swap", conn, CommandType = CommandType.StoredProcedure)
+SqlCommandBuilder.DeriveParameters(cmd)
+cmd.Parameters.["@input"].Value <- 12
+cmd.Parameters.["@output"].Value <- DBNull.Value
+cmd.Parameters.["@nullOutput"].Value <- DBNull.Value
+cmd.Parameters.["@nullStringOutput"].Value <- DBNull.Value
+[ for p in cmd.Parameters -> sprintf "\n%A, %A: [%O]" p.ParameterName p.Direction p.Value] |> String.concat "," |> printfn "Params: %A" 
 using(cmd.ExecuteReader()) (fun reader -> reader |> Seq.cast<IDataRecord> |> Seq.map (fun x -> x.[1], x,[2]) |> Seq.toArray)
+[ for p in cmd.Parameters -> sprintf "%A: [%O]" p.ParameterName p.Value] |> String.concat "," |> printfn "Params: %A" 
 
 //DEFAULT PARAMS
 
@@ -63,3 +71,5 @@ for p in paramInfo do
 
     | _ -> ()
         
+
+

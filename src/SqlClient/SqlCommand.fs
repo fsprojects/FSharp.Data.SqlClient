@@ -24,7 +24,13 @@ type Connection =
     | Name of string
     | Transaction of SqlTransaction
 
-type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singleRow, rowMapping: RowMapping, isStoredProcedure) = 
+[<RequireQualifiedAccess>]
+type ResultRank = 
+    | Sequence = 0
+    | SingleRow = 1
+    | ScalarValue = 2
+
+type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, rank: ResultRank, rowMapping: RowMapping, isStoredProcedure) = 
 
     let cmd = new SqlCommand(sqlStatement, CommandType = if isStoredProcedure then CommandType.StoredProcedure else CommandType.Text)
     do 
@@ -50,7 +56,7 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
                 cmd.Connection.Open() 
                 yield CommandBehavior.CloseConnection
 
-            if singleRow then yield CommandBehavior.SingleRow 
+            if rank = ResultRank.SingleRow then yield CommandBehavior.SingleRow 
 
             if resultType = ResultType.DataTable then yield CommandBehavior.KeyInfo
         }
@@ -107,7 +113,7 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
         match Seq.toList source with
         | [] -> None
         | [ x ] -> Some x
-        | _ -> invalidOp "Single row was expected."
+        | xs -> invalidOp "Single row was expected."
 
     let readerToSeq (reader : SqlDataReader) = 
         seq {
@@ -119,11 +125,13 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
         }
         
     let executeSeq rowMapper parameters = 
-        let xs = parameters |> executeReader |> readerToSeq
-
-        if singleRow  
+        let xs = parameters |> executeReader |> readerToSeq 
+        if rank = ResultRank.SingleRow 
         then xs |> seqToOption |> box
-        else box xs 
+        elif rank = ResultRank.ScalarValue 
+        then xs |> Seq.exactlyOne |> box
+        else // ResultRank.Sequence
+            box xs 
             
     let asyncExecuteSeq rowMapper parameters = 
         let xs = 
@@ -132,7 +140,7 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
                 return readerToSeq reader
             }
 
-        if singleRow 
+        if rank = ResultRank.SingleRow
         then
             async {
                 let! xs = xs 
@@ -142,21 +150,32 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, singl
         else
             box xs 
 
+    let executeScalar parameters = 
+        setParameters cmd parameters  
+        use openedConnection = cmd.Connection.UseLocally()
+        cmd.ExecuteScalar()
+
+    let asyncExecuteScalar parameters = 
+        async {
+            let! reader = asyncExecuteReader parameters
+            return reader |> readerToSeq |> Seq.exactlyOne |> box
+        }
+
     let executeNonQuery parameters = 
         setParameters cmd parameters  
-        use openedConnection = cmd.Connection.UseConnection()
+        use openedConnection = cmd.Connection.UseLocally()
         cmd.ExecuteNonQuery() 
 
     let asyncExecuteNonQuery parameters = 
         setParameters cmd parameters  
         async {         
-            use openedConnection = cmd.Connection.UseConnection()
+            use openedConnection = cmd.Connection.UseLocally()
             return! cmd.AsyncExecuteNonQuery() 
         }
 
     let execute, asyncExecute = 
         match resultType with
-        | ResultType.Records | ResultType.Tuples->
+        | ResultType.Records | ResultType.Tuples ->
             if box rowMapping = null
             then
                 executeNonQuery >> box , asyncExecuteNonQuery >> box

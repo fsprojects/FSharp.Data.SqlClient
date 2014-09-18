@@ -14,40 +14,53 @@ let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWo
 let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
 
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
+type Functions = AdventureWorks2012.Functions
+type StoredProcedures = AdventureWorks2012.``Stored Procedures``
 
-let db = AdventureWorks2012()
+//Scalar-Value
+type LeadingZeros = Functions.``dbo.ufnLeadingZeros``
+let leadingZeros = new LeadingZeros()
+leadingZeros.Execute( 12) 
 
 //Table-valued UDF selecting single row
-let f = db.Functions.``dbo.ufnGetContactInformation``.AsyncExecute(1) |> Async.RunSynchronously |> Seq.exactlyOne
+type GetContactInformation = Functions.``dbo.ufnGetContactInformation``
+let f = (new GetContactInformation()).AsyncExecute(1) |> Async.RunSynchronously |> Seq.exactlyOne
 f.BusinessEntityType
 f.FirstName
 f.JobTitle
 f.LastName
 f.PersonID
 
-//Stored Procedure returning list of records similar to SqlCommandProvider
-db.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(1, DateTime(2013,1,1)) |> Async.RunSynchronously |> Array.ofSeq
-
-//Mix of input and output parameters in SP
-let a = db.``Stored Procedures``.``dbo.Swap``.AsyncExecute(input=5) |> Async.RunSynchronously 
-a.output
-a.nullStringOutput
-a.ReturnValue
-a.nullOutput
+////Stored Procedure returning list of records similar to SqlCommandProvider
+//type GetWhereUsedProductID = StoredProcedures.``dbo.uspGetWhereUsedProductID``
+//let getWhereUsedProductID = new GetWhereUsedProductID()
+//getWhereUsedProductID.AsyncExecute(1, DateTime(2013,1,1)) |> Async.RunSynchronously |> Array.ofSeq
+//
+////Mix of input and output parameters in SP
+//type Swap = StoredProcedures.``dbo.Swap``
+//let swap = new Swap() 
+//swap.Execute(input=5) |> Async.RunSynchronously 
+//a.output
+//a.nullStringOutput
+//a.ReturnValue
+//a.nullOutput
 
 //UDTT with nullable column
 type myType = AdventureWorks2012.``User-Defined Table Types``.MyTableType
 let m = [ myType(myId = 2); myType(myId = 1) ]
 
-let myArray = db.``Stored Procedures``.``dbo.MyProc``.AsyncExecute(m) |> Async.RunSynchronously |> Array.ofSeq
+type MyProc = AdventureWorks2012.``Stored Procedures``.``dbo.MyProc``
+let myArray = (new MyProc()).AsyncExecute(m) |> Async.RunSynchronously |> Array.ofSeq
 
 let myRes = myArray.[0]
 myRes.myId
 myRes.myName
 
 //Call stored procedure to update
-let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
-            .AsyncExecute(
+type UpdateEmployeeLogin = StoredProcedures.``HumanResources.uspUpdateEmployeeLogin``
+let updateEmployeeLogin = new UpdateEmployeeLogin()
+
+let res = updateEmployeeLogin.AsyncExecute(
                 291, 
                 SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")),
                 "adventure-works\gat0", 
@@ -56,9 +69,7 @@ let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
                 true 
             )
             |> Async.RunSynchronously 
-res.ReturnValue
-
-
+//res.ReturnValue
 
 
 

@@ -11,14 +11,26 @@ open System.Data.SqlClient
 open Microsoft.FSharp.Reflection
 open Microsoft.SqlServer.TransactSql.ScriptDom
 
-let DbNull = box DBNull.Value
-
 type SqlCommand with
     member this.AsyncExecuteReader behavior =
         Async.FromBeginEnd((fun(callback, state) -> this.BeginExecuteReader(callback, state, behavior)), this.EndExecuteReader)
 
     member this.AsyncExecuteNonQuery() =
         Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) 
+
+type DataRow with
+    member this.toOption<'a> (key:string) = if this.IsNull(key) then None else Some(unbox<'a> this.[key])
+
+module SqlDataReader = 
+
+    let internal map mapping (reader: SqlDataReader) = 
+        reader |> Seq.unfold (fun current -> if current.Read() then Some( mapping reader, current) else None) 
+
+    let internal getOption<'a> (key: string) (reader: SqlDataReader) =
+        let v = reader.[key] 
+        if DBNull.Value.Equals(v) then None else Some(unbox<'a> v)
+        
+let DbNull = box DBNull.Value
 
 type Column = {
     Name : string
@@ -54,7 +66,7 @@ type Parameter = {
     DefaultValue : obj option
 }
 
-let private dataTypeMappings = Dictionary<string, TypeInfo[]>()
+let internal dataTypeMappings = Dictionary<string, TypeInfo[]>()
 
 let internal findBySqlEngineTypeIdAndUdtt(connStr, id, udttName) = 
     assert (dataTypeMappings.ContainsKey connStr)
@@ -70,31 +82,9 @@ let internal findTypeInfoBySqlEngineTypeId (connStr, system_type_id, user_type_i
         | [| x |] -> x
         | _-> failwithf "error resolving systemid %A and userid %A" system_type_id user_type_id
 
-let internal UDTTs connStr =
-    assert (dataTypeMappings.ContainsKey connStr)
-    dataTypeMappings.[connStr] |> Array.filter (fun x -> x.TableType )
-
-let internal SqlClrTypes connStr = 
-    assert (dataTypeMappings.ContainsKey connStr)
-    dataTypeMappings.[connStr] 
-    
 let internal findTypeInfoByProviderType( connStr, sqlDbType, udttName)  = 
     assert (dataTypeMappings.ContainsKey connStr)
     dataTypeMappings.[connStr] |> Array.tryFind (fun x -> x.SqlDbType = sqlDbType && x.UdttName = udttName)
-
-let internal findTypeInfoByName( connStr, name) = 
-    assert (dataTypeMappings.ContainsKey connStr)
-    let dbTypes = dataTypeMappings.[connStr] 
-    dbTypes|> Array.find(fun x -> x.TypeName = name || x.UdttName = name)
-
-let internal ReturnValue (conn : SqlConnection) = { 
-    Name = "@ReturnValue" 
-    Direction = ParameterDirection.ReturnValue
-    TypeInfo = findTypeInfoByName ( conn.ConnectionString, "int") 
-    DefaultValue = None }
-
-type DataRow with
-    member this.toOption<'a> (key:string) = if this.IsNull(key) then None else Some(unbox<'a> this.[key])
 
 let rec parseDefaultValue (definition: string) (expr: ScalarExpression) = 
     match expr with
@@ -117,20 +107,29 @@ let rec parseDefaultValue (definition: string) (expr: ScalarExpression) =
         | _  -> None 
     | _ -> None 
 
-module SqlDataReader = 
+type RoutineType = | StoredProcedure | TableValuedFunction | ScalarValuedFunction 
 
-    let internal map mapping (reader: SqlDataReader) = 
-        reader |> Seq.unfold (fun current -> if current.Read() then Some( mapping reader, current) else None) 
+type Routine = {
+    Schema: string
+    Name: string 
+    Type: RoutineType
+}   with 
 
-    let internal getOption<'a> (key: string) (reader: SqlDataReader) =
-        let v = reader.[key] 
-        if v = DbNull then None else Some(unbox<'a> v)
-        
+    member this.TwoPartName = sprintf "%s.%s" this.Schema this.Name
+
+    member this.CommantText(parameters: Parameter list) = 
+        match this.Type with 
+        | StoredProcedure -> this.TwoPartName
+        | TableValuedFunction -> 
+            parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT * FROM %s(%s)" this.TwoPartName
+        | ScalarValuedFunction ->     
+            parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT %s(%s)" this.TwoPartName
+
 type SqlConnection with
 
  //address an issue when regular Dispose on SqlConnection needed for async computation 
  //wipes out all properties like ConnectionString in addition to closing connection to db
-    member this.UseConnection() =
+    member this.UseLocally() =
         if this.State = ConnectionState.Closed then 
             this.Open()
             { new IDisposable with member __.Dispose() = this.Close() }
@@ -142,25 +141,38 @@ type SqlConnection with
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
 
-    member internal this.GetRoutines(routineType : string) = 
+    member internal this.GetRoutines() = 
         assert (this.State = ConnectionState.Open)
-        assert (routineType = "Procedure" || routineType = "Function")
-        use cmd = new SqlCommand( "SELECT CONCAT(ROUTINE_SCHEMA,'.',ROUTINE_NAME) FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = @routineType", this)
-        cmd.Parameters.AddWithValue( "@routineType", routineType) |> ignore
+        use cmd = new SqlCommand("SELECT ROUTINE_SCHEMA, ROUTINE_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.ROUTINES", this)
         use reader = cmd.ExecuteReader()
-        reader |> SqlDataReader.map (fun x -> x.GetString (0)) |> Seq.toArray
+        reader 
+        |> SqlDataReader.map (fun x -> 
+            let schema, name = unbox x.["ROUTINE_SCHEMA"], unbox x.["ROUTINE_NAME"]
+            let dataType = x.["DATA_TYPE"]
+            match x.["DATA_TYPE"] with
+            | :? string as x when x = "TABLE" -> { Name = name; Schema = schema; Type = TableValuedFunction }
+            | :? DBNull -> { Name = name; Schema = schema; Type = StoredProcedure }
+            | _ -> { Name = name; Schema = schema; Type = ScalarValuedFunction } 
+        ) 
+        |> Seq.toArray
             
-    member internal this.GetParameters( routine) =      
+    member internal this.GetParameters( twoPartName) =      
         assert (this.State = ConnectionState.Open)
 
         let bodyAndParamsInfoQuery = sprintf "
             -- get body 
             EXEC sp_helptext '%s'; 
             -- get params info
-            SELECT * 
-            FROM INFORMATION_SCHEMA.PARAMETERS 
-            WHERE SPECIFIC_CATALOG = '%s' AND CONCAT(SPECIFIC_SCHEMA,'.',SPECIFIC_NAME) = '%s'
-            ORDER BY ORDINAL_POSITION" routine this.Database routine 
+            SELECT 
+	            ps.PARAMETER_NAME AS name
+	            ,CAST(ts.system_type_id AS INT) AS suggested_system_type_id
+	            ,ps.USER_DEFINED_TYPE_NAME AS suggested_user_type_name
+	            ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_output
+	            ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'IN' THEN 1 WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_input 
+            FROM INFORMATION_SCHEMA.PARAMETERS AS ps
+	            JOIN sys.types AS ts ON (ps.PARAMETER_NAME <> '' AND ps.DATA_TYPE = ts.name OR (ps.DATA_TYPE = 'table type' AND ps.USER_DEFINED_TYPE_NAME = ts.name))
+            WHERE SPECIFIC_CATALOG = db_name() AND CONCAT(SPECIFIC_SCHEMA,'.',SPECIFIC_NAME) = '%s'
+            ORDER BY ORDINAL_POSITION" twoPartName twoPartName
 
         use getBodyAndParamsInfo = new SqlCommand( bodyAndParamsInfoQuery, this)
         use reader = getBodyAndParamsInfo.ExecuteReader()
@@ -189,22 +201,18 @@ type SqlConnection with
         let paramsDataAvailable = reader.NextResult()
         assert paramsDataAvailable
         reader |> SqlDataReader.map (fun record -> 
-            let name = string record.["PARAMETER_NAME"]
+            let name = string record.["name"]
             let direction = 
-                match string record.["PARAMETER_MODE"] with 
-                | "IN" -> ParameterDirection.Input 
-                | "OUT" -> ParameterDirection.Output
-                | "INOUT" -> ParameterDirection.InputOutput
-                | _ -> failwithf "Parameter %s has unsupported direction %O" name record.["PARAMETER_MODE"]
+                match unbox record.["suggested_is_input"], unbox record.["suggested_is_output"] with 
+                | true, false -> ParameterDirection.Input 
+                | true, true -> ParameterDirection.InputOutput
+                | input, output -> failwithf "Parameter %s has unsupported direction %b/%b" name input output
 
-            let udt = 
-                match string record.["DATA_TYPE"] with
-                | "table type" -> string record.["USER_DEFINED_TYPE_NAME"]
-                | x -> x
-                
+            let system_type_id: int = unbox record.["suggested_system_type_id"]
+            let user_type_name: string = string record.["suggested_user_type_name"]
             { 
                 Name = name 
-                TypeInfo = findTypeInfoByName(this.ConnectionString, udt)
+                TypeInfo = findBySqlEngineTypeIdAndUdtt( this.ConnectionString, system_type_id, user_type_name).Value
                 Direction = direction 
                 DefaultValue = paramDefaults.Result.[name] 
             }
@@ -229,7 +237,7 @@ type SqlConnection with
             }
     ] 
 
-    member internal this.FallbackToSETFMONLY(commandText, commandType, parameters) = 
+    member internal this.FallbackToSETFMONLY(commandText, commandType, parameters: Parameter list) = 
         assert (this.State = ConnectionState.Open)
         
         use cmd = new SqlCommand(commandText, this, CommandType = commandType)
@@ -260,10 +268,6 @@ type SqlConnection with
                 this.FallbackToSETFMONLY(commandText, CommandType.StoredProcedure, sqlParameters) 
             with :? SqlException ->
                 raise why
-
-    member internal this.GetFunctionOutputColumns( functionName : string, parameters ) =
-        let commandText = parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT * FROM %s(%s)" functionName  
-        this.GetOutputColumns( commandText, parameters)
 
     member internal this.LoadDataTypesMap() = 
         if not <| dataTypeMappings.ContainsKey this.ConnectionString
@@ -307,7 +311,7 @@ type SqlConnection with
                                     WHERE tt.user_type_id = @user_type_id
                                     ORDER BY column_id")
                                 cmd.Parameters.AddWithValue("@user_type_id", user_type_id) |> ignore
-                                use closeConn = this.UseConnection()
+                                use closeConn = this.UseLocally()
                                 cmd.Connection <- this
                                 use reader = cmd.ExecuteReader()
                                 while reader.Read() do 

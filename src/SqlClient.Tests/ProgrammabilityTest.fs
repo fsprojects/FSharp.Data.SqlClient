@@ -12,10 +12,10 @@ open FsUnit.Xunit
 //let connectionString = @"Server=tcp:mhknbn2kdz.database.windows.net,1433;Database=AdventureWorks2012;User ID=sqlfamily;Password= sqlf@m1ly;Trusted_Connection=False;Encrypt=True;Connection Timeout=30"
 let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
-type Test = SqlProgrammabilityProvider<connectionString>
+//type Test = SqlProgrammabilityProvider<connectionString>
 
 [<Fact>]
 let TestFunctionCall() =
-    let output = Test().Functions.``dbo.ufnGetContactInformation``.AsyncExecute(123) |> Async.RunSynchronously |> Seq.map (sprintf "%A") |> String.concat "\n"
+    //let output = Test().Functions.``dbo.ufnGetContactInformation``.AsyncExecute(123) |> Async.RunSynchronously |> Seq.map (sprintf "%A") |> String.concat "\n"
     //printfn "%s" output
     ()

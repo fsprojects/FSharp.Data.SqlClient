@@ -24,17 +24,17 @@ type ExtensionsTest() =
 //            conn.ClearDataTypesMap()
 
     [<Fact>]
-    member  __.TestUDTTs() =
-        UDTTs( conn.ConnectionString) 
-        |> Seq.collect (fun x -> x.TvpColumns)
-        |> Seq.iter (printfn "%A")    
-
-    [<Fact>]
-    member  __.AllTypes() =
-        SqlClrTypes( conn.ConnectionString) 
-        |> Seq.groupBy(fun t->t.SqlEngineTypeId)
-        |> Seq.map (sprintf "%A")
-        |> Seq.iter Debug.WriteLine
+//    member  __.TestUDTTs() =
+//        UDTTs( conn.ConnectionString) 
+//        |> Seq.collect (fun x -> x.TvpColumns)
+//        |> Seq.iter (printfn "%A")    
+//
+//    [<Fact>]
+//    member  __.AllTypes() =
+//        SqlClrTypes( conn.ConnectionString) 
+//        |> Seq.groupBy(fun t->t.SqlEngineTypeId)
+//        |> Seq.map (sprintf "%A")
+//        |> Seq.iter Debug.WriteLine
 
     member  __. GetFullQualityColumnInfo() =
         conn.GetFullQualityColumnInfo("dbo.uspGetWhereUsedProductID") 
@@ -43,7 +43,7 @@ type ExtensionsTest() =
 
     [<Fact>]
     member  __. GetAllSPs() =
-        conn.GetRoutines ("Procedure")
+        conn.GetRoutines ()
         |> Seq.map (sprintf "%A")
         |> Seq.iter Debug.WriteLine
 
