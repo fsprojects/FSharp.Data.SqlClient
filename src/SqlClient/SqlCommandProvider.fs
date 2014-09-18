@@ -108,15 +108,15 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         conn.CheckVersion()
         conn.LoadDataTypesMap()
 
-        let parameters = DesignTime.extractParameters conn sqlStatement
+        let parameters = DesignTime.ExtractParameters(conn, sqlStatement)
 
         let outputColumns = 
             if resultType <> ResultType.DataReader
-            then DesignTime.getOutputColumns conn sqlStatement parameters false
+            then DesignTime.GetOutputColumns(conn, sqlStatement, parameters, isStoredProcedure = false)
             else []
 
         let rank = if singleRow then ResultRank.SingleRow else ResultRank.Sequence
-        let output = DesignTime.getOutputTypes outputColumns resultType rank
+        let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank)
         
         let cmdEraseToType = typedefof<_ SqlCommand>.MakeGenericType( [| output.ErasedToRowType |])
         let cmdProvidedType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some cmdEraseToType, HideObjectMethods = true)
@@ -161,12 +161,14 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         do  //AsyncExecute, Execute, and ToTraceString
 
-            let executeArgs = DesignTime.getExecuteArgs cmdProvidedType parameters allParametersOptional []
+            let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, allParametersOptional, udtts = [])
 
             let interfaceType = typedefof<ISqlCommand>
             let name = "Execute" + if outputColumns.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
             
-            let addRedirectToISqlCommandMethod = DesignTime.addGeneratedMethod parameters executeArgs allParametersOptional cmdProvidedType cmdProvidedType.BaseType 
+            let addRedirectToISqlCommandMethod outputType name = 
+                DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType, cmdProvidedType.BaseType, outputType, name) 
+
             addRedirectToISqlCommandMethod output.ProvidedType "Execute" 
                             
             let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])

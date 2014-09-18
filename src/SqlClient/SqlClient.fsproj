@@ -76,7 +76,6 @@
     <Compile Include="QuotationsFactory.fs" />
     <Compile Include="DesignTime.fs" />
     <Compile Include="SqlCommandProvider.fs" />
-    <Compile Include="ProgrammabilityQuotationsFactory.fs" />
     <Compile Include="SqlProgrammabilityProvider.fs" />
     <None Include="Scratchpad.fsx" />
     <None Include="packages.config" />

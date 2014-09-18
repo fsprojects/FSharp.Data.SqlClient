@@ -18,9 +18,6 @@ type SqlCommand with
     member this.AsyncExecuteNonQuery() =
         Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) 
 
-type DataRow with
-    member this.toOption<'a> (key:string) = if this.IsNull(key) then None else Some(unbox<'a> this.[key])
-
 module SqlDataReader = 
 
     let internal map mapping (reader: SqlDataReader) = 
@@ -28,7 +25,7 @@ module SqlDataReader =
 
     let internal getOption<'a> (key: string) (reader: SqlDataReader) =
         let v = reader.[key] 
-        if DBNull.Value.Equals(v) then None else Some(unbox<'a> v)
+        if Convert.IsDBNull v then None else Some(unbox<'a> v)
         
 let DbNull = box DBNull.Value
 
@@ -281,7 +278,13 @@ type SqlConnection with
                         | [name] -> name, string row.["DataType"]
                         | name::_ -> name, fullTypeName
                         | [] -> failwith "Unaccessible"
-                    yield typeName,  unbox<int> row.["ProviderDbType"], clrType, row.toOption<bool> "IsFixedLength" 
+
+                    let isFixedLength = 
+                        if row.IsNull("IsFixedLength") 
+                        then None 
+                        else row.["IsFixedLength"] |> unbox |> Some
+
+                    yield typeName,  unbox<int> row.["ProviderDbType"], clrType, isFixedLength
             |]
 
             let sqlEngineTypes = [|

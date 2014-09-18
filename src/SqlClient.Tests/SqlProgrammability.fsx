@@ -31,12 +31,12 @@ f.JobTitle
 f.LastName
 f.PersonID
 
-////Stored Procedure returning list of records similar to SqlCommandProvider
-//type GetWhereUsedProductID = StoredProcedures.``dbo.uspGetWhereUsedProductID``
-//let getWhereUsedProductID = new GetWhereUsedProductID()
-//getWhereUsedProductID.AsyncExecute(1, DateTime(2013,1,1)) |> Async.RunSynchronously |> Array.ofSeq
-//
-////Mix of input and output parameters in SP
+//Stored Procedure returning list of records similar to SqlCommandProvider
+type GetWhereUsedProductID = StoredProcedures.``dbo.uspGetWhereUsedProductID``
+let getWhereUsedProductID = new GetWhereUsedProductID()
+getWhereUsedProductID.AsyncExecute(1, DateTime(2013,1,1)) |> Async.RunSynchronously |> Array.ofSeq
+
+//Mix of input and output parameters in SP
 //type Swap = StoredProcedures.``dbo.Swap``
 //let swap = new Swap() 
 //swap.Execute(input=5) |> Async.RunSynchronously 
@@ -69,7 +69,6 @@ let res = updateEmployeeLogin.AsyncExecute(
                 true 
             )
             |> Async.RunSynchronously 
-//res.ReturnValue
 
 
 

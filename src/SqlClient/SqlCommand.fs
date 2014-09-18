@@ -3,11 +3,6 @@
 open System
 open System.Data
 open System.Data.SqlClient
-open System.Reflection
-
-open Microsoft.FSharp.Quotations
-open Microsoft.FSharp.Reflection
-open Samples.FSharp.ProvidedTypes
 
 open FSharp.Data.SqlClient
 
@@ -110,10 +105,10 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, rank:
         }
 
     let seqToOption source =  
-        match Seq.toList source with
-        | [] -> None
-        | [ x ] -> Some x
-        | xs -> invalidOp "Single row was expected."
+        match source |> Seq.truncate 2 |> Seq.toArray with
+        | [||] -> None
+        | [| x |] -> Some x
+        | _ -> invalidOp "Single row was expected."
 
     let readerToSeq (reader : SqlDataReader) = 
         seq {
@@ -126,10 +121,13 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, rank:
         
     let executeSeq rowMapper parameters = 
         let xs = parameters |> executeReader |> readerToSeq 
+
         if rank = ResultRank.SingleRow 
-        then xs |> seqToOption |> box
+        then 
+            xs |> seqToOption |> box
         elif rank = ResultRank.ScalarValue 
-        then xs |> Seq.exactlyOne |> box
+        then 
+            xs |> Seq.exactlyOne |> box
         else // ResultRank.Sequence
             box xs 
             
@@ -149,17 +147,6 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, rank:
             |> box
         else
             box xs 
-
-    let executeScalar parameters = 
-        setParameters cmd parameters  
-        use openedConnection = cmd.Connection.UseLocally()
-        cmd.ExecuteScalar()
-
-    let asyncExecuteScalar parameters = 
-        async {
-            let! reader = asyncExecuteReader parameters
-            return reader |> readerToSeq |> Seq.exactlyOne |> box
-        }
 
     let executeNonQuery parameters = 
         setParameters cmd parameters  
