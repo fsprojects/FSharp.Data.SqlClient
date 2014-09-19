@@ -30,10 +30,11 @@ open System.Collections.Generic
 open System.Data.SqlClient
 open System.Data
 
-let getUspSearchCandidateResumesBody = new SqlCommand("exec sp_helptext 'dbo.ufnGetContactInformation'")
-getUspSearchCandidateResumesBody.Connection <- new SqlConnection(@"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
-getUspSearchCandidateResumesBody.Connection.Open()
-let spBody = getUspSearchCandidateResumesBody.ExecuteReader() |> Seq.cast<IDataRecord> |> Seq.map (fun x -> string x.[0]) |> String.concat "\n"
+let getSpBody = new SqlCommand("exec sp_helptext 'hw.usp_InjectionWellConversion'")
+//getUspSearchCandidateResumesBody.Connection <- new SqlConnection(@"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
+getSpBody.Connection <- new SqlConnection(@"Data Source=.;Initial Catalog=dbElephant;Integrated Security=True")
+getSpBody.Connection.Open()
+let spBody = getSpBody.ExecuteReader() |> Seq.cast<IDataRecord> |> Seq.map (fun x -> string x.[0]) |> String.concat ""
 
 let parser = TSql110Parser(true)
 let tsqlReader = new StringReader(spBody)

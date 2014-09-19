@@ -14,22 +14,25 @@ let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWo
 let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
 
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
+
 type Functions = AdventureWorks2012.Functions
 type StoredProcedures = AdventureWorks2012.``Stored Procedures``
 
-//Scalar-Value
-type LeadingZeros = Functions.``dbo.ufnLeadingZeros``
-let leadingZeros = new LeadingZeros()
-leadingZeros.Execute( 12) 
-
 //Table-valued UDF selecting single row
 type GetContactInformation = Functions.``dbo.ufnGetContactInformation``
-let f = (new GetContactInformation()).AsyncExecute(1) |> Async.RunSynchronously |> Seq.exactlyOne
+let getContactInformation = new GetContactInformation()
+getContactInformation.Execute() |> printfn "%A"
+let f = getContactInformation.Execute( 1) |> Seq.exactlyOne
 f.BusinessEntityType
 f.FirstName
 f.JobTitle
 f.LastName
 f.PersonID
+
+//Scalar-Value
+type LeadingZeros = Functions.``dbo.ufnLeadingZeros``
+let leadingZeros = new LeadingZeros()
+leadingZeros.Execute( 12) 
 
 //Stored Procedure returning list of records similar to SqlCommandProvider
 type GetWhereUsedProductID = StoredProcedures.``dbo.uspGetWhereUsedProductID``
@@ -69,6 +72,22 @@ let res = updateEmployeeLogin.AsyncExecute(
                 true 
             )
             |> Async.RunSynchronously 
+
+
+//module DbElephant = 
+//    [<Literal>]
+//    let local = "Data Source=.;Initial Catalog=dbElephant;Integrated Security=True"
+//   
+//    type Database = SqlProgrammabilityProvider<local>
+//    Database.``User-Defined Table Types``.IntList
+//    type Functions = Database.dbo.Functions
+//    type StoredProcedures = Database.``Stored Procedures``
+//    
+//    type GetMeasureTypeId = Functions.``dbo.MeasureTypeId``
+//    let getMeasureTypeId = new GetMeasureTypeId()
+//
+//DbElephant.getMeasureTypeId.AsyncExecute( 1, "Rod Pump", "water cut") |> Async.RunSynchronously
+//
 
 
 

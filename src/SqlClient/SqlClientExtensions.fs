@@ -67,7 +67,11 @@ let internal dataTypeMappings = Dictionary<string, TypeInfo[]>()
 
 let internal findBySqlEngineTypeIdAndUdtt(connStr, id, udttName) = 
     assert (dataTypeMappings.ContainsKey connStr)
-    dataTypeMappings.[connStr] |> Array.tryFind(fun x -> x.SqlEngineTypeId = id && (not x.TableType || x.UdttName = udttName))
+    let database = dataTypeMappings.[connStr] 
+    database |> Array.tryFind(fun x -> 
+        let isItTable = x.TableType
+        x.SqlEngineTypeId = id && (not x.TableType || x.UdttName = udttName)
+    )
     
 let internal findTypeInfoBySqlEngineTypeId (connStr, system_type_id, user_type_id : int option) = 
     assert (dataTypeMappings.ContainsKey connStr)
@@ -174,7 +178,7 @@ type SqlConnection with
         use getBodyAndParamsInfo = new SqlCommand( bodyAndParamsInfoQuery, this)
         use reader = getBodyAndParamsInfo.ExecuteReader()
         let spDefinition = 
-            reader |> SqlDataReader.map (fun x -> x.GetString (0)) |> String.concat "\n"
+            reader |> SqlDataReader.map (fun x -> x.GetString (0)) |> String.concat ""
 
         let paramDefaults = Task.Factory.StartNew( fun() ->
 
@@ -207,9 +211,19 @@ type SqlConnection with
 
             let system_type_id: int = unbox record.["suggested_system_type_id"]
             let user_type_name: string = string record.["suggested_user_type_name"]
+
+            let typeInfo = 
+                match findBySqlEngineTypeIdAndUdtt(this.ConnectionString, system_type_id, user_type_name) with
+                | Some x -> x
+                | None -> 
+                    let x' = findBySqlEngineTypeIdAndUdtt(this.ConnectionString, system_type_id, user_type_name) 
+                    failwithf "Cannot map parameter of sql engine type %i and user type %s to CLR/SqlDbType type. Parameter name: %s" system_type_id user_type_name name
+
+            let keys = paramDefaults.Result.Keys
+
             { 
                 Name = name 
-                TypeInfo = findBySqlEngineTypeIdAndUdtt( this.ConnectionString, system_type_id, user_type_name).Value
+                TypeInfo = typeInfo
                 Direction = direction 
                 DefaultValue = paramDefaults.Result.[name] 
             }

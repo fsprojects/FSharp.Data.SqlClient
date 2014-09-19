@@ -132,7 +132,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                     if outputColumns.IsSome
                     then 
-                        //let singleRow = routine.Type = ScalarValuedFunction
                         let rank = if routine.Type = ScalarValuedFunction then ResultRank.ScalarValue else ResultRank.Sequence
                         let output = DesignTime.GetOutputTypes(outputColumns.Value, resultType, rank)
         

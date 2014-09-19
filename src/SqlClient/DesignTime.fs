@@ -245,13 +245,9 @@ type DesignTime private() =
                     then
                         if allParametersOptional 
                         then 
-                            ProvidedParameter(
-                                parameterName, 
-                                parameterType = typedefof<_ option>.MakeGenericType( p.TypeInfo.ClrType) , 
-                                optionalValue = null 
-                            )
+                            ProvidedParameter(parameterName, parameterType = typedefof<_ option>.MakeGenericType( p.TypeInfo.ClrType) , optionalValue = null)
                         else
-                            ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType)
+                            ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType, ?optionalValue = p.DefaultValue)
                     else
                         assert(p.Direction = ParameterDirection.Input)
 
