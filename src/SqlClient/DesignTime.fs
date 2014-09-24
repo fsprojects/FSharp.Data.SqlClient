@@ -81,7 +81,9 @@ type DesignTime private() =
 
                     yield property, ctorParameter
             ] |> List.unzip
+
         recordType.AddMembers properties
+
         let ctor = ProvidedConstructor(ctorParameters)
         ctor.InvokeCode <- fun args ->
             let pairs =  Seq.zip args properties //Because we need original names in dictionary
@@ -258,7 +260,7 @@ type DesignTime private() =
                                 let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<obj[]>)
                                 cmdProvidedType.AddMember rowType
                                 let parameters = [ 
-                                    for p in p.TypeInfo.TvpColumns -> 
+                                    for p in p.TypeInfo.TableTypeColumns -> 
                                         ProvidedParameter( p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
                                 ] 
 

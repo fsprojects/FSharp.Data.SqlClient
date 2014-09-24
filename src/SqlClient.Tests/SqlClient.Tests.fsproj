@@ -60,10 +60,10 @@
     <Compile Include="TransactionTests.fs" />
     <Compile Include="ResultType.fs" />
     <Compile Include="TVPTests.fs" />
-    <Compile Include="SqlClientExtensionsTest.fs" />
-    <Compile Include="SMO.fs" />
-    <Compile Include="ProgrammabilityTest.fs" />
-    <Compile Include="DynamicRecord.fs" />
+    <Compile Include="SqlClientExtensionsTests.fs" />
+    <Compile Include="ProgrammabilityTests.fs" />
+    <Compile Include="DynamicRecordTests.fs" />
+    <Compile Include="SqlEnumTests.fs" />
     <None Include="Schema.fsx" />
     <None Include="app.config" />
     <None Include="SqlCommand.fsx" />
@@ -72,7 +72,6 @@
     <None Include="prereqs.sql" />
     <None Include="packages.config" />
     <None Include="Performance.fsx" />
-    <None Include="Demo.fsx" />
     <None Include="Ado.fsx" />
   </ItemGroup>
   <ItemGroup>
@@ -89,15 +88,6 @@
     <Reference Include="FsUnit.Xunit">
       <HintPath>..\..\packages\FsUnit.xUnit.1.2.1.2\Lib\Net40\FsUnit.Xunit.dll</HintPath>
       <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.ConnectionInfo">
-      <HintPath>..\..\lib\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc">
-      <HintPath>..\..\lib\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Smo">
-      <HintPath>..\..\lib\Microsoft.SqlServer.Smo.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Types, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91">
       <HintPath>..\..\packages\Microsoft.SqlServer.Types.11.0.1\lib\net20\Microsoft.SqlServer.Types.dll</HintPath>

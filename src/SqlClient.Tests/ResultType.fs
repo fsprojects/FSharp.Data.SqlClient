@@ -1,4 +1,4 @@
-﻿module FSharp.Data.Tests.ResultType 
+﻿module FSharp.Data.ResultTypeTests
 
 open FSharp.Data
 open Xunit
@@ -53,3 +53,13 @@ let DataTableHasKeyInfo() =
     Assert.True(productId.Unique)
     Assert.Equal<_ []>(table.PrimaryKey, [| productId |])
     
+
+type ProductShortQuery = SqlCommandProvider<"SELECT Name, ProductNumber FROM Production.Product", "name=AdventureWorks2012", ResultType = ResultType.DataTable>
+
+[<Fact>]
+let DataTableRowCtor() = 
+    use cmd = new ProductShortQuery()
+    let table = cmd.Execute()
+    let newRow = table.NewRow()
+    ()
+

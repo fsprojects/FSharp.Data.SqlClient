@@ -1,4 +1,4 @@
-﻿module FSharp.Data.Tests.DynamicRecord
+﻿module FSharp.Data.DynamicRecordTests
 
 open System
 open System.Dynamic

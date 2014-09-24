@@ -1,4 +1,4 @@
-﻿module FSharp.Data.Tests.TVP
+﻿module FSharp.Data.TVPTests
 
 open FSharp.Data
 open System.Data

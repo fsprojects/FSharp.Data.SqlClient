@@ -54,7 +54,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         this.AddNamespace(nameSpace, [ providerType ])
     
     member internal this.CreateRootType( typeName, connectionStringOrName, resultType, configFile) =
-
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         
         let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
@@ -96,7 +95,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj[]>)
                     
                 let parameters = [ 
-                    for p in t.TvpColumns -> 
+                    for p in t.TableTypeColumns -> 
                         ProvidedParameter(p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
                 ] 
 

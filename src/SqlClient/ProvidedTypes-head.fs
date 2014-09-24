@@ -26,10 +26,17 @@ type internal ExpectedStackState =
 
 [<AutoOpen>]
 module internal Misc =
-    let TypeBuilderInstantiationType = typeof<TypeBuilder>.Assembly.GetType("System.Reflection.Emit.TypeBuilderInstantiation")
+    let TypeBuilderInstantiationType = 
+        let runningOnMono = try System.Type.GetType("Mono.Runtime") <> null with e -> false
+        let typeName = if runningOnMono then "System.Reflection.MonoGenericClass" else "System.Reflection.Emit.TypeBuilderInstantiation"
+        typeof<TypeBuilder>.Assembly.GetType(typeName)
     let GetTypeFromHandleMethod = typeof<Type>.GetMethod("GetTypeFromHandle")
     let LanguagePrimitivesType = typedefof<list<_>>.Assembly.GetType("Microsoft.FSharp.Core.LanguagePrimitives")
     let ParseInt32Method = LanguagePrimitivesType.GetMethod "ParseInt32"
+    let DecimalConstructor = typeof<decimal>.GetConstructor([| typeof<int>; typeof<int>; typeof<int>; typeof<bool>; typeof<byte> |])
+    let DateTimeConstructor = typeof<DateTime>.GetConstructor([| typeof<int64>; typeof<DateTimeKind> |])
+    let DateTimeOffsetConstructor = typeof<DateTimeOffset>.GetConstructor([| typeof<int64>; typeof<TimeSpan> |])
+    let TimeSpanConstructor = typeof<TimeSpan>.GetConstructor([|typeof<int64>|])
     let isEmpty s = s = ExpectedStackState.Empty
     let isAddress s = s = ExpectedStackState.Address
 
@@ -295,7 +302,7 @@ module internal Misc =
             | TypeAttributes.NestedFamANDAssem when not isNested -> TypeAttributes.NotPublic
             | a -> a
         (attributes &&& ~~~TypeAttributes.VisibilityMask) ||| visibilityAttributes
-        
+
 type ProvidedStaticParameter(parameterName:string,parameterType:Type,?parameterDefaultValue:obj) = 
     inherit System.Reflection.ParameterInfo()
 
@@ -323,6 +330,7 @@ type ProvidedParameter(name:string,parameterType:Type,?isOut:bool,?optionalValue
     override this.Attributes = (base.Attributes ||| (if isOut then ParameterAttributes.Out else enum 0)
                                                 ||| (match optionalValue with None -> enum 0 | Some _ -> ParameterAttributes.Optional ||| ParameterAttributes.HasDefault))
     override this.RawDefaultValue = defaultArg optionalValue null
+    member this.HasDefaultParameterValue = Option.isSome optionalValue
     member __.GetCustomAttributesDataImpl() = customAttributesImpl.GetCustomAttributesData()
 #if FX_NO_CUSTOMATTRIBUTEDATA
 #else
@@ -940,7 +948,7 @@ type ProvidedTypeDefinition(container:TypeContainer,className : string, baseType
         TypeAttributes.Sealed |||
         enum (int32 TypeProviderTypeAttributes.IsErased)
 
-
+    let mutable enumUnderlyingType = typeof<int>
     let mutable baseType   =  lazy baseType
     let mutable membersKnown   = ResizeArray<MemberInfo>()
     let mutable membersQueue   = ResizeArray<(unit -> list<MemberInfo>)>()       
@@ -1046,6 +1054,9 @@ type ProvidedTypeDefinition(container:TypeContainer,className : string, baseType
     new (className,baseType) = new ProvidedTypeDefinition(TypeContainer.TypeToBeDecided, className, baseType)
     // state ops
 
+    override this.UnderlyingSystemType = typeof<Type>
+    member this.SetEnumUnderlyingType(ty) = enumUnderlyingType <- ty
+    override this.GetEnumUnderlyingType() = if this.IsEnum then enumUnderlyingType else invalidOp "not enum type"
     member this.SetBaseType t = baseType <- lazy Some t
     member this.SetBaseTypeDelayed t = baseType <- t
     member this.SetAttributes x = attributes <- x
@@ -1262,7 +1273,6 @@ type ProvidedTypeDefinition(container:TypeContainer,className : string, baseType
     override this.IsPrimitiveImpl() = false
     override this.IsCOMObjectImpl() = false
     override this.HasElementTypeImpl() = false
-    override this.UnderlyingSystemType = typeof<System.Type>
     override this.Name = className
     override this.DeclaringType = declaringType.Force()
     override this.MemberType = if this.IsNested then MemberTypes.NestedType else MemberTypes.TypeInfo      
@@ -1397,7 +1407,7 @@ type AssemblyGenerator(assemblyFileName) =
 
         let ctorMap = Dictionary<ProvidedConstructor, ConstructorBuilder>(HashIdentity.Reference)
         let methMap = Dictionary<ProvidedMethod, MethodBuilder>(HashIdentity.Reference)
-        let fieldMap = Dictionary<ProvidedField, FieldBuilder>(HashIdentity.Reference)
+        let fieldMap = Dictionary<FieldInfo, FieldBuilder>(HashIdentity.Reference)
 
         let iterateTypes f = 
             let rec typeMembers (ptd : ProvidedTypeDefinition) = 
@@ -1458,21 +1468,49 @@ type AssemblyGenerator(assemblyFileName) =
                             cb
                     ctorMap.[pcinfo] <- cb
                 | _ -> () 
-                    
+            
+            if ptd.IsEnum then
+                tb.DefineField("value__", ptd.GetEnumUnderlyingType(), FieldAttributes.Public ||| FieldAttributes.SpecialName ||| FieldAttributes.RTSpecialName)
+                |> ignore
+
             for finfo in ptd.GetFields(ALL) do
-                match finfo with 
-                | :? ProvidedField as pfinfo when not (fieldMap.ContainsKey pfinfo)  -> 
-                    let fb = tb.DefineField(finfo.Name, convType finfo.FieldType, finfo.Attributes)
-                    let cattr = pfinfo.GetCustomAttributesDataImpl() 
+                let fieldInfo = 
+                    match finfo with
+                    | :? ProvidedField as pinfo -> 
+                        Some (pinfo.Name, convType finfo.FieldType, finfo.Attributes, pinfo.GetCustomAttributesDataImpl(), None)
+                    | :? ProvidedLiteralField as pinfo ->
+                        Some (pinfo.Name, convType finfo.FieldType, finfo.Attributes, pinfo.GetCustomAttributesDataImpl(), Some (pinfo.GetRawConstantValue()))
+                    | _ -> None
+                match fieldInfo with
+                | Some (name, ty, attr, cattr, constantVal) when not (fieldMap.ContainsKey finfo) ->
+                    let fb = tb.DefineField(name, ty, attr)
+                    if constantVal.IsSome then
+                        fb.SetConstant constantVal.Value
                     defineCustomAttrs fb.SetCustomAttribute cattr
-                    fieldMap.[pfinfo] <- fb
-                | _ -> () 
+                    fieldMap.[finfo] <- fb
+                | _ -> ()
             for minfo in ptd.GetMethods(ALL) do
                 match minfo with 
                 | :? ProvidedMethod as pminfo when not (methMap.ContainsKey pminfo)  -> 
                     let mb = tb.DefineMethod(minfo.Name, minfo.Attributes, convType minfo.ReturnType, [| for p in minfo.GetParameters() -> convType p.ParameterType |])
-                    for (i,p) in minfo.GetParameters() |> Seq.mapi (fun i x -> (i,x)) do
-                        mb.DefineParameter(i+1, ParameterAttributes.None, p.Name) |> ignore
+                    for (i, p) in minfo.GetParameters() |> Seq.mapi (fun i x -> (i,x :?> ProvidedParameter)) do
+                        // TODO: check why F# compiler doesn't emit default value when just p.Attributes is used (thus bad metadata is emitted)
+                        let mutable attrs = ParameterAttributes.None
+                        
+                        if p.IsOut then attrs <- attrs ||| ParameterAttributes.Out
+                        if p.HasDefaultParameterValue then attrs <- attrs ||| ParameterAttributes.Optional
+
+                        let pb = mb.DefineParameter(i+1, attrs, p.Name)
+                        if p.HasDefaultParameterValue then 
+                            do
+                                let ctor = typeof<System.Runtime.InteropServices.DefaultParameterValueAttribute>.GetConstructor([|typeof<obj>|])
+                                let builder = new CustomAttributeBuilder(ctor, [|p.RawDefaultValue|])
+                                pb.SetCustomAttribute builder
+                            do
+                                let ctor = typeof<System.Runtime.InteropServices.OptionalAttribute>.GetConstructor([||])
+                                let builder = new CustomAttributeBuilder(ctor, [||])
+                                pb.SetCustomAttribute builder
+                            pb.SetConstant p.RawDefaultValue
                     methMap.[pminfo] <- mb
                 | _ -> () 
 
@@ -1742,16 +1780,24 @@ type AssemblyGenerator(assemblyFileName) =
                         popIfEmptyExpected expectedState
 
                     | Quotations.Patterns.FieldGet (objOpt,field) -> 
-                        match objOpt with 
-                        | None -> () 
-                        | Some e -> 
-                          let s = if e.Type.IsValueType then ExpectedStackState.Address else ExpectedStackState.Value
-                          emit s e
-                        let field = match field with :? ProvidedField as pf when fieldMap.ContainsKey pf -> fieldMap.[pf] :> FieldInfo | m -> m
-                        if field.IsStatic then 
-                            ilg.Emit(OpCodes.Ldsfld, field)
-                        else
-                            ilg.Emit(OpCodes.Ldfld, field)
+                        match field with
+                        | :? ProvidedLiteralField as plf when plf.DeclaringType.IsEnum ->
+                            if expectedState <> ExpectedStackState.Empty then
+                                emit expectedState (Quotations.Expr.Value(field.GetRawConstantValue(), field.FieldType.GetEnumUnderlyingType()))
+                        | _ ->
+                            match objOpt with 
+                            | None -> () 
+                            | Some e -> 
+                              let s = if e.Type.IsValueType then ExpectedStackState.Address else ExpectedStackState.Value
+                              emit s e
+                            let field = 
+                                match field with 
+                                | :? ProvidedField as pf when fieldMap.ContainsKey pf -> fieldMap.[pf] :> FieldInfo 
+                                | m -> m
+                            if field.IsStatic then 
+                                ilg.Emit(OpCodes.Ldsfld, field)
+                            else
+                                ilg.Emit(OpCodes.Ldfld, field)
 
                     | Quotations.Patterns.FieldSet (objOpt,field,v) -> 
                         match objOpt with 
@@ -1841,6 +1887,27 @@ type AssemblyGenerator(assemblyFileName) =
                             | :? Type as ty ->
                                 ilg.Emit(OpCodes.Ldtoken, convType ty)
                                 ilg.Emit(OpCodes.Call, Misc.GetTypeFromHandleMethod)
+                            | :? decimal as x ->
+                                let bits = System.Decimal.GetBits x
+                                ilg.Emit(OpCodes.Ldc_I4, bits.[0])
+                                ilg.Emit(OpCodes.Ldc_I4, bits.[1])
+                                ilg.Emit(OpCodes.Ldc_I4, bits.[2])
+                                do
+                                    let sign = (bits.[3] &&& 0x80000000) <> 0
+                                    ilg.Emit(if sign then OpCodes.Ldc_I4_1 else OpCodes.Ldc_I4_0)
+                                do
+                                    let scale = byte ((bits.[3] >>> 16) &&& 0x7F)
+                                    ilg.Emit(OpCodes.Ldc_I4_S, scale)
+                                ilg.Emit(OpCodes.Newobj, Misc.DecimalConstructor)
+                            | :? DateTime as x ->
+                                ilg.Emit(OpCodes.Ldc_I8, x.Ticks)
+                                ilg.Emit(OpCodes.Ldc_I4, int x.Kind)
+                                ilg.Emit(OpCodes.Newobj, Misc.DateTimeConstructor)
+                            | :? DateTimeOffset as x ->
+                                ilg.Emit(OpCodes.Ldc_I8, x.Ticks)
+                                ilg.Emit(OpCodes.Ldc_I8, x.Offset.Ticks)
+                                ilg.Emit(OpCodes.Newobj, Misc.TimeSpanConstructor)
+                                ilg.Emit(OpCodes.Newobj, Misc.DateTimeOffsetConstructor)
                             | null -> ilg.Emit(OpCodes.Ldnull)
                             | _ -> failwithf "unknown constant '%A' in generated method" v
                         if isEmpty expectedState then ()

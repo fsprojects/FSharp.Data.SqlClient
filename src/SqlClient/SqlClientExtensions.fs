@@ -49,7 +49,7 @@ and TypeInfo = {
     IsFixedLength : bool option
     ClrTypeFullName : string
     UdttName : string 
-    TvpColumns : Column seq
+    TableTypeColumns : Column seq
 }   with
     member this.SqlDbType : SqlDbType = enum this.SqlDbTypeId
     member this.ClrType : Type = Type.GetType this.ClrTypeFullName
@@ -317,7 +317,7 @@ type SqlConnection with
                     join (typename, providerdbtype, clrType, isFixedLength) in providerTypes on (name = typename)
                     //the next line fix the issue when ADO.NET SQL provider maps tinyint to byte despite of claiming to map it to SByte according to GetSchema("DataTypes")
                     let clrTypeFixed = if system_type_id = 48 (*tinyint*) then typeof<byte>.FullName else clrType
-                    let tvpColumns = 
+                    let columns = 
                         if is_table_type
                         then
                             seq {
@@ -354,7 +354,7 @@ type SqlConnection with
                         IsFixedLength = isFixedLength
                         ClrTypeFullName = clrTypeFixed
                         UdttName = if is_table_type then name else ""
-                        TvpColumns = tvpColumns
+                        TableTypeColumns = columns
                     }
                 }
 
