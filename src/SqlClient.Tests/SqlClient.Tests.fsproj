@@ -56,9 +56,9 @@
   <ItemGroup>
     <Compile Include="ConfigurationTest.fs" />
     <Compile Include="OptionalParamsTests.fs" />
-    <Compile Include="TypeProvider.Test.fs" />
+    <Compile Include="TypeProviderTest.fs" />
     <Compile Include="TransactionTests.fs" />
-    <Compile Include="ResultType.fs" />
+    <Compile Include="ResultTypeTests.fs" />
     <Compile Include="TVPTests.fs" />
     <Compile Include="SqlClientExtensionsTests.fs" />
     <Compile Include="ProgrammabilityTests.fs" />

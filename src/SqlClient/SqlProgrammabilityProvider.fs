@@ -80,10 +80,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         let storedProcedures, functions = conn.GetRoutines() |> Array.partition (fun x -> x.Type = StoredProcedure)
 
-        let spHostType = this.StoredProcedures(conn, storedProcedures, udtts, resultType, isByName, designTimeConnectionString, connectionStringOrName)
+        let spHostType = this.StoredProcedures(conn, storedProcedures, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
         databaseRootType.AddMember spHostType               
        
-        let spHostType = this.Functions(conn, functions, udtts, resultType, isByName, designTimeConnectionString, connectionStringOrName)
+        let spHostType = this.Functions(conn, functions, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
         databaseRootType.AddMember spHostType               
 
         databaseRootType           

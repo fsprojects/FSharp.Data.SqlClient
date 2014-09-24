@@ -48,7 +48,11 @@
 #### 1.3.1 - Method "With" removed from record type. It was bad design decision to have it.
 #### 1.3.2 - Resolution folder overrides only path to ####.sql files.
 #### 1.3.3 - Add KeyInfo to ResultType.DataTable
+
 #### 1.3.4-beta - September 23 2014
 	* SqlProgrammability significant refactoring.
 	* SqlEnumProvider merged in.
+
+#### 1.3.5-beta - September 23 2014
+	* Fixed connection string by name problem for SqlProgrammabilityProvider
 	
