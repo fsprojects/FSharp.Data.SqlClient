@@ -43,14 +43,14 @@ type ExtensionsTest() =
 
     [<Fact>]
     member  __. GetAllSPs() =
-        conn.GetRoutines ()
+        conn.GetRoutines("dbo")
         |> Seq.map (sprintf "%A")
         |> Seq.iter Debug.WriteLine
 
     //[<Fact(Skip = "Until we gen SQL Azure with permissions")>]
     [<Fact>]
     member  __. GetParameters() =
-        conn.GetParameters( "dbo.Swap")
+        conn.GetParameters( StoredProcedure("dbo", "Swap"))
         |> Seq.map (sprintf "%A")
         |> Seq.iter Debug.WriteLine
 

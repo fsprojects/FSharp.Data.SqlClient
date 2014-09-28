@@ -128,7 +128,8 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, rank:
         elif rank = ResultRank.ScalarValue 
         then 
             xs |> Seq.exactlyOne |> box
-        else // ResultRank.Sequence
+        else 
+            assert (rank = ResultRank.Sequence)
             box xs 
             
     let asyncExecuteSeq rowMapper parameters = 
@@ -145,7 +146,15 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, rank:
                 return xs |> seqToOption
             }
             |> box
-        else
+        elif rank = ResultRank.ScalarValue 
+        then 
+            async {
+                let! xs = xs 
+                return xs |> Seq.exactlyOne
+            }
+            |> box       
+        else 
+            assert (rank = ResultRank.Sequence)
             box xs 
 
     let executeNonQuery parameters = 

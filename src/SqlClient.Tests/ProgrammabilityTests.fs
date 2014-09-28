@@ -8,10 +8,8 @@ open FsUnit.Xunit
 let connectionString = @"name = AdventureWorks2012"
 
 type AdventureWorks = SqlProgrammabilityProvider<connectionString>
-type Functions = AdventureWorks.Functions
-type StoredProcedures = AdventureWorks.``Stored Procedures``
 
-type GetContactInformation = Functions.``dbo.ufnGetContactInformation``
+type GetContactInformation = AdventureWorks.dbo.ufnGetContactInformation
 
 [<Fact>]
 let TableValuedFunction() =
@@ -20,11 +18,13 @@ let TableValuedFunction() =
     let expected = GetContactInformation.Record(personID = 1, firstName = Some "Ken", lastName = Some "Sánchez", jobTitle = Some "Chief Executive Officer", businessEntityType = Some "Employee")
     Assert.Equal(expected, person)
 
-type GetLeadingZeros = Functions.``dbo.ufnLeadingZeros``
+type GetLeadingZeros = AdventureWorks.dbo.ufnLeadingZeros
 
 [<Fact>]
 let ScalarValuedFunction() =
     let cmd = new GetLeadingZeros()
     let x = 42
     Assert.Equal(Some(sprintf "%08i" x), cmd.Execute(x))
-
+    //async execution
+    Assert.Equal(Some(sprintf "%08i" x), cmd.AsyncExecute(x) |> Async.RunSynchronously)
+    

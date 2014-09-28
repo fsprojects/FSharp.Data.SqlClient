@@ -30,11 +30,11 @@ module SqlDataReader =
 let DbNull = box DBNull.Value
 
 type Column = {
-    Name : string
-    Ordinal : int
-    TypeInfo : TypeInfo
-    IsNullable : bool
-    MaxLength : int
+    Name: string
+    Ordinal: int
+    TypeInfo: TypeInfo
+    IsNullable: bool
+    MaxLength: int
 }   with
     member this.ClrTypeConsideringNullable = 
         if this.IsNullable 
@@ -42,14 +42,15 @@ type Column = {
         else this.TypeInfo.ClrType
 
 and TypeInfo = {
-    TypeName : string
-    SqlEngineTypeId : int
-    UserTypeId : int
-    SqlDbTypeId : int
-    IsFixedLength : bool option
-    ClrTypeFullName : string
-    UdttName : string 
-    TableTypeColumns : Column seq
+    TypeName: string
+    Schema: string
+    SqlEngineTypeId: int
+    UserTypeId: int
+    SqlDbTypeId: int
+    IsFixedLength: bool option
+    ClrTypeFullName: string
+    UdttName: string 
+    TableTypeColumns: Column seq
 }   with
     member this.SqlDbType : SqlDbType = enum this.SqlDbTypeId
     member this.ClrType : Type = Type.GetType this.ClrTypeFullName
@@ -57,10 +58,10 @@ and TypeInfo = {
     member this.IsValueType = not this.TableType && this.ClrType.IsValueType
 
 type Parameter = {
-    Name : string
-    TypeInfo : TypeInfo
-    Direction : ParameterDirection 
-    DefaultValue : obj option
+    Name: string
+    TypeInfo: TypeInfo
+    Direction: ParameterDirection 
+    DefaultValue: obj option
 }
 
 let internal dataTypeMappings = Dictionary<string, TypeInfo[]>()
@@ -108,22 +109,29 @@ let rec parseDefaultValue (definition: string) (expr: ScalarExpression) =
         | _  -> None 
     | _ -> None 
 
-type RoutineType = | StoredProcedure | TableValuedFunction | ScalarValuedFunction 
 
-type Routine = {
-    Schema: string
-    Name: string 
-    Type: RoutineType
-}   with 
 
-    member this.TwoPartName = sprintf "%s.%s" this.Schema this.Name
+type Routine = 
+    | StoredProcedure of schema: string * name: string
+    | TableValuedFunction of schema: string * name: string 
+    | ScalarValuedFunction of schema: string * name: string
 
+    member this.Name = 
+        match this with
+        | StoredProcedure(_, name) | TableValuedFunction(_, name) | ScalarValuedFunction(_, name) -> name
+
+    member this.TwoPartName = 
+        match this with
+        | StoredProcedure(schema, name) | TableValuedFunction(schema, name) | ScalarValuedFunction(schema, name) -> sprintf "%s.%s" schema name
+
+    member this.IsStoredProc = match this with StoredProcedure _ -> true | _ -> false
+    
     member this.CommantText(parameters: Parameter list) = 
-        match this.Type with 
-        | StoredProcedure -> this.TwoPartName
-        | TableValuedFunction -> 
+        match this with 
+        | StoredProcedure(schema, name) -> sprintf "%s" this.TwoPartName
+        | TableValuedFunction(schema, name) -> 
             parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT * FROM %s(%s)" this.TwoPartName
-        | ScalarValuedFunction ->     
+        | ScalarValuedFunction(schema, name) ->     
             parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT %s(%s)" this.TwoPartName
 
 type SqlConnection with
@@ -142,22 +150,29 @@ type SqlConnection with
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
 
-    member internal this.GetRoutines() = 
+    member internal this.GetUserSchemas() = 
+        use __ = this.UseLocally()
+        use cmd = new SqlCommand("SELECT name FROM SYS.SCHEMAS WHERE principal_id = 1", this)
+        use reader = cmd.ExecuteReader()
+        reader |> SqlDataReader.map (fun record -> record.GetString(0)) |> Seq.toList
+
+    member internal this.GetRoutines( schema) = 
         assert (this.State = ConnectionState.Open)
-        use cmd = new SqlCommand("SELECT ROUTINE_SCHEMA, ROUTINE_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.ROUTINES", this)
+        let getRoutinesQuery = sprintf "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_SCHEMA = '%s'" schema
+        use cmd = new SqlCommand(getRoutinesQuery, this)
         use reader = cmd.ExecuteReader()
         reader 
         |> SqlDataReader.map (fun x -> 
             let schema, name = unbox x.["ROUTINE_SCHEMA"], unbox x.["ROUTINE_NAME"]
             let dataType = x.["DATA_TYPE"]
             match x.["DATA_TYPE"] with
-            | :? string as x when x = "TABLE" -> { Name = name; Schema = schema; Type = TableValuedFunction }
-            | :? DBNull -> { Name = name; Schema = schema; Type = StoredProcedure }
-            | _ -> { Name = name; Schema = schema; Type = ScalarValuedFunction } 
+            | :? string as x when x = "TABLE" -> TableValuedFunction(schema, name)
+            | :? DBNull -> StoredProcedure(schema, name)
+            | _ -> ScalarValuedFunction(schema, name)
         ) 
         |> Seq.toArray
             
-    member internal this.GetParameters( twoPartName) =      
+    member internal this.GetParameters( routine: Routine) =      
         assert (this.State = ConnectionState.Open)
 
         let bodyAndParamsInfoQuery = sprintf "
@@ -173,7 +188,7 @@ type SqlConnection with
             FROM INFORMATION_SCHEMA.PARAMETERS AS ps
 	            JOIN sys.types AS ts ON (ps.PARAMETER_NAME <> '' AND ps.DATA_TYPE = ts.name OR (ps.DATA_TYPE = 'table type' AND ps.USER_DEFINED_TYPE_NAME = ts.name))
             WHERE SPECIFIC_CATALOG = db_name() AND CONCAT(SPECIFIC_SCHEMA,'.',SPECIFIC_NAME) = '%s'
-            ORDER BY ORDINAL_POSITION" twoPartName twoPartName
+            ORDER BY ORDINAL_POSITION" routine.TwoPartName routine.TwoPartName
 
         use getBodyAndParamsInfo = new SqlCommand( bodyAndParamsInfoQuery, this)
         use reader = getBodyAndParamsInfo.ExecuteReader()
@@ -303,17 +318,18 @@ type SqlConnection with
 
             let sqlEngineTypes = [|
                 use cmd = new SqlCommand("
-                    SELECT t.name, ISNULL(assembly_class, t.name), t.system_type_id, t.user_type_id, t.is_table_type
+                    SELECT t.name, ISNULL(assembly_class, t.name), t.system_type_id, t.user_type_id, t.is_table_type, s.name as schema_name
                     FROM sys.types AS t
-                    LEFT JOIN sys.assembly_types ON t.user_type_id = sys.assembly_types.user_type_id ", this) 
+	                    JOIN sys.schemas AS s ON t.schema_id = s.schema_id
+	                    LEFT JOIN sys.assembly_types ON t.user_type_id = sys.assembly_types.user_type_id ", this) 
                 use reader = cmd.ExecuteReader()
                 while reader.Read() do
-                    yield reader.GetString(0), reader.GetString(1), reader.GetByte(2) |> int, reader.GetInt32(3), reader.GetBoolean(4)
+                    yield reader.GetString(0), reader.GetString(1), reader.GetByte(2) |> int, reader.GetInt32(3), reader.GetBoolean(4), reader.GetString(5)
             |]
 
             let typeInfos = 
                 query {
-                    for properName, name, system_type_id, user_type_id, is_table_type in sqlEngineTypes do
+                    for properName, name, system_type_id, user_type_id, is_table_type, schema_name in sqlEngineTypes do
                     join (typename, providerdbtype, clrType, isFixedLength) in providerTypes on (name = typename)
                     //the next line fix the issue when ADO.NET SQL provider maps tinyint to byte despite of claiming to map it to SByte according to GetSchema("DataTypes")
                     let clrTypeFixed = if system_type_id = 48 (*tinyint*) then typeof<byte>.FullName else clrType
@@ -348,6 +364,7 @@ type SqlConnection with
 
                     select {
                         TypeName = properName
+                        Schema = schema_name
                         SqlEngineTypeId = system_type_id
                         UserTypeId = user_type_id
                         SqlDbTypeId = providerdbtype

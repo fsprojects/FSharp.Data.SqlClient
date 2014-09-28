@@ -70,27 +70,31 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         let databaseRootType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
 
-        //UDTTs
-        let spHostType = ProvidedTypeDefinition("User-Defined Table Types", baseType = Some typeof<obj>, HideObjectMethods = true)
-        spHostType.AddMember <| ProvidedConstructor( [], InvokeCode = fun _ -> <@@ obj() @@>)        
-        databaseRootType.AddMember spHostType
+        databaseRootType.AddMembersDelayed <| fun () ->
+            conn.GetUserSchemas() 
+            |> List.map (fun schema ->
+                let schemaRoot = ProvidedTypeDefinition(schema, baseType = Some typeof<obj>, HideObjectMethods = true)
+                schemaRoot.AddMembersDelayed <| fun() -> 
+                    [
+                        let udtts = this.UDTTs (conn.ConnectionString, schema)
+                        yield! udtts
 
-        let udtts = this.UDTTs( conn.ConnectionString)
-        spHostType.AddMembers udtts
+                        let __ = conn.UseLocally()
+                        let storedProcedures, functions = conn.GetRoutines( schema) |> Array.partition (fun x -> x.IsStoredProc)
 
-        let storedProcedures, functions = conn.GetRoutines() |> Array.partition (fun x -> x.Type = StoredProcedure)
-
-        let spHostType = this.StoredProcedures(conn, storedProcedures, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
-        databaseRootType.AddMember spHostType               
+                        yield! this.StoredProcedures(conn, storedProcedures, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
        
-        let spHostType = this.Functions(conn, functions, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
-        databaseRootType.AddMember spHostType               
+                        yield! this.Functions(conn, functions, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
+
+                    ]
+                schemaRoot            
+            )
 
         databaseRootType           
 
-     member internal __.UDTTs( connStr) = [
+     member internal __.UDTTs( connStr, schema) = [
         for t in dataTypeMappings.[connStr] do
-            if t.TableType
+            if t.TableType && t.Schema = schema
             then 
                 let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj[]>)
                     
@@ -112,83 +116,78 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         this.Routines("Functions", conn, routines, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
 
     member internal __.Routines(rootTypeName, conn, routines, udtts, resultType, isByName, connectionStringName, connectionStringOrName) = 
+        [
+            use close = conn.UseLocally()
+            for routine in routines do 
+                let parameters = conn.GetParameters( routine)
 
-        let root = ProvidedTypeDefinition(rootTypeName, baseType = Some typeof<obj>, HideObjectMethods = true)
-        root.AddMembersDelayed <| fun() -> 
-            [
-                use close = conn.UseLocally()
-                for routine in routines do 
-                    let parameters = conn.GetParameters( routine.TwoPartName)
-
-                    let commandText = routine.CommantText(parameters)
-                    let outputColumns = 
-                        if resultType <> ResultType.DataReader
-                        then 
-                            let isStoredProcedure = routine.Type = StoredProcedure
-                            DesignTime.TryGetOutputColumns(conn, commandText, parameters, isStoredProcedure)
-                        else 
-                            Some []
-
-                    if outputColumns.IsSome
+                let commandText = routine.CommantText(parameters)
+                let outputColumns = 
+                    if resultType <> ResultType.DataReader
                     then 
-                        let rank = if routine.Type = ScalarValuedFunction then ResultRank.ScalarValue else ResultRank.Sequence
-                        let output = DesignTime.GetOutputTypes(outputColumns.Value, resultType, rank)
+                        DesignTime.TryGetOutputColumns(conn, commandText, parameters, routine.IsStoredProc)
+                    else 
+                        Some []
+
+                if outputColumns.IsSome
+                then 
+                    let rank = match routine with ScalarValuedFunction _ -> ResultRank.ScalarValue | _ -> ResultRank.Sequence
+                    let output = DesignTime.GetOutputTypes(outputColumns.Value, resultType, rank)
         
-                        let cmdEraseToType = typedefof<_ SqlCommand>.MakeGenericType( [| output.ErasedToRowType |])
-                        let cmdProvidedType = ProvidedTypeDefinition(routine.TwoPartName, baseType = Some cmdEraseToType, HideObjectMethods = true)
+                    let cmdEraseToType = typedefof<_ SqlCommand>.MakeGenericType( [| output.ErasedToRowType |])
+                    let cmdProvidedType = ProvidedTypeDefinition(routine.Name, baseType = Some cmdEraseToType, HideObjectMethods = true)
 
-                        do  //Record
-                            output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
+                    do  //Record
+                        output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
 
-                        do  //ctors
-                            let sqlParameters = Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
+                    do  //ctors
+                        let sqlParameters = Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
             
-                            let ctor1 = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
-                            let ctorArgsExceptConnection = [
-                                Expr.Value commandText                      //sqlStatement
-                                sqlParameters                               //parameters
-                                Expr.Value resultType                       //resultType
-                                Expr.Value (
-                                    if routine.Type = ScalarValuedFunction 
-                                    then ResultRank.ScalarValue 
-                                    else ResultRank.Sequence)               //rank
-                                output.RowMapping                           //rowMapping
-                                Expr.Value(routine.Type = StoredProcedure)  //isStoredProcedure
-                            ]
-                            let ctorImpl = cmdEraseToType.GetConstructors() |> Seq.exactlyOne
-                            ctor1.InvokeCode <- 
-                                fun args -> 
-                                    let connArg =
-                                        <@@ 
-                                            if not( String.IsNullOrEmpty(%%args.[0])) then Connection.String %%args.[0] 
-                                            elif isByName then Connection.Name connectionStringName
-                                            else Connection.String connectionStringOrName
-                                        @@>
-                                    Expr.NewObject(ctorImpl, connArg :: ctorArgsExceptConnection)
+                        let ctor1 = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
+                        let ctorArgsExceptConnection = [
+                            Expr.Value commandText                      //sqlStatement
+                            sqlParameters                               //parameters
+                            Expr.Value resultType                       //resultType
+                            Expr.Value (
+                                match routine with 
+                                | ScalarValuedFunction _ ->  
+                                    ResultRank.ScalarValue 
+                                | _ -> ResultRank.Sequence)               //rank
+                            output.RowMapping                           //rowMapping
+                            Expr.Value(routine.IsStoredProc)  //isStoredProcedure
+                        ]
+                        let ctorImpl = cmdEraseToType.GetConstructors() |> Seq.exactlyOne
+                        ctor1.InvokeCode <- 
+                            fun args -> 
+                                let connArg =
+                                    <@@ 
+                                        if not( String.IsNullOrEmpty(%%args.[0])) then Connection.String %%args.[0] 
+                                        elif isByName then Connection.Name connectionStringName
+                                        else Connection.String connectionStringOrName
+                                    @@>
+                                Expr.NewObject(ctorImpl, connArg :: ctorArgsExceptConnection)
            
-                            cmdProvidedType.AddMember ctor1
+                        cmdProvidedType.AddMember ctor1
 
-                            let ctor2 = ProvidedConstructor( [ ProvidedParameter("transaction", typeof<SqlTransaction>) ])
+                        let ctor2 = ProvidedConstructor( [ ProvidedParameter("transaction", typeof<SqlTransaction>) ])
 
-                            ctor2.InvokeCode <- 
-                                fun args -> Expr.NewObject(ctorImpl, <@@ Connection.Transaction %%args.[0] @@> :: ctorArgsExceptConnection)
+                        ctor2.InvokeCode <- 
+                            fun args -> Expr.NewObject(ctorImpl, <@@ Connection.Transaction %%args.[0] @@> :: ctorArgsExceptConnection)
 
-                            cmdProvidedType.AddMember ctor2
+                        cmdProvidedType.AddMember ctor2
 
-                        do  //AsyncExecute, Execute, and ToTraceString
+                    do  //AsyncExecute, Execute, and ToTraceString
 
-                            let allParametersOptional = false
-                            let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, allParametersOptional, udtts)
+                        let allParametersOptional = false
+                        let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, allParametersOptional, udtts)
 
-                            let interfaceType = typedefof<ISqlCommand>
-                            let name = "Execute" + if outputColumns.Value.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
+                        let interfaceType = typedefof<ISqlCommand>
+                        let name = "Execute" + if outputColumns.Value.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
             
-                            DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType, cmdProvidedType.BaseType, output.ProvidedType, "Execute")
+                        DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType, cmdProvidedType.BaseType, output.ProvidedType, "Execute")
                             
-                            let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
-                            DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType, cmdProvidedType.BaseType, asyncReturnType, "AsyncExecute")
+                        let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
+                        DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType, cmdProvidedType.BaseType, asyncReturnType, "AsyncExecute")
                 
-                        yield cmdProvidedType
-            ]
-
-        root        
+                    yield cmdProvidedType
+        ]
