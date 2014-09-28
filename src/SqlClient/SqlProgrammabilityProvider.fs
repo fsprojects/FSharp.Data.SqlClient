@@ -79,12 +79,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let udtts = this.UDTTs (conn.ConnectionString, schema)
                         yield! udtts
 
-                        let __ = conn.UseLocally()
-                        let storedProcedures, functions = conn.GetRoutines( schema) |> Array.partition (fun x -> x.IsStoredProc)
-
-                        yield! this.StoredProcedures(conn, storedProcedures, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
-       
-                        yield! this.Functions(conn, functions, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
+                        yield! this.Routines(conn, schema, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
 
                     ]
                 schemaRoot            
@@ -109,15 +104,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 yield rowType
     ]
 
-    member internal this.StoredProcedures(conn, routines, udtts, resultType, isByName, connectionStringName, connectionStringOrName) = 
-        this.Routines("Stored Procedures", conn, routines, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
-
-    member internal this.Functions(conn, routines, udtts, resultType, isByName, connectionStringName, connectionStringOrName) = 
-        this.Routines("Functions", conn, routines, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
-
-    member internal __.Routines(rootTypeName, conn, routines, udtts, resultType, isByName, connectionStringName, connectionStringOrName) = 
+    member internal __.Routines(conn, schema, udtts, resultType, isByName, connectionStringName, connectionStringOrName) = 
         [
             use close = conn.UseLocally()
+            let routines = conn.GetRoutines( schema) 
             for routine in routines do 
                 let parameters = conn.GetParameters( routine)
 

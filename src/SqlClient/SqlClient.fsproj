@@ -82,7 +82,6 @@
     <None Include="packages.config" />
     <None Include="SqlServerTypes\readme.htm" />
     <None Include="SqlServerTypes\Loader.cs" />
-    <None Include="ExpressionTest.fsx" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
