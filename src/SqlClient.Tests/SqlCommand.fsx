@@ -8,7 +8,7 @@ open System.Data
 open FSharp.Data
 
 [<Literal>] 
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True;MultipleActiveResultSets=True"
 
 [<Literal>]
 let queryProductsSql = "
@@ -48,9 +48,9 @@ cmd.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> Seq
 //DataTable for data binding scenarios and update
 type QueryProductDataTable = SqlCommandProvider<queryProductsSql, connectionString, ResultType = ResultType.DataTable>
 let cmd2 = new QueryProductDataTable() //top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
-let result2 : Async<DataTable<QueryProductDataTable.Row>> = cmd2.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
-result2 |> Async.RunSynchronously  |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
-cmd2.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
+let result2  = cmd2.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> Async.RunSynchronously
+result2.Rows |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
+cmd2.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01").Rows |> Seq.iter (fun row -> printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
 
 //Single row hint and optional output columns. Records result type.
 type QueryPersonInfoSingletone = SqlCommandProvider<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString, ResultType = ResultType.Records, SingleRow=true>
@@ -78,12 +78,12 @@ type QueryPersonInfoSingletoneDataTable = SqlCommandProvider<"SELECT * FROM dbo.
 let cmd37 = new QueryPersonInfoSingletoneDataTable()
 let result37 = cmd37.AsyncExecute(PersonId = 2) |> Async.RunSynchronously 
 let printPersonInfo(x : QueryPersonInfoSingletoneDataTable.Row) = printfn "Person info: Id - %i, FirstName - %O, LastName - %O, JobTitle - %O, BusinessEntityType - %O" x.PersonID x.FirstName x.LastName x.JobTitle x.BusinessEntityType
-result37 |> Seq.iter printPersonInfo
-result37.[0].FirstName <- result37.[0].FirstName |> Option.map (fun x -> x + "1")
-result37 |> Seq.iter printPersonInfo
-result37.[0].FirstName <- None
-result37 |> Seq.iter printPersonInfo
-cmd37.Execute(PersonId = 2) |> Seq.iter printPersonInfo
+result37.Rows |> Seq.iter printPersonInfo
+result37.Rows.[0].FirstName <- result37.Rows.[0].FirstName |> Option.map (fun x -> x + "1")
+result37.Rows |> Seq.iter printPersonInfo
+result37.Rows.[0].FirstName <- None
+result37.Rows |> Seq.iter printPersonInfo
+cmd37.Execute(PersonId = 2).Rows |> Seq.iter printPersonInfo
 
 //Single value
 type GetServerTime = SqlCommandProvider<"IF @IsUtc = CAST(1 AS BIT) SELECT GETUTCDATE() ELSE SELECT GETDATE()", connectionString, SingleRow=true>

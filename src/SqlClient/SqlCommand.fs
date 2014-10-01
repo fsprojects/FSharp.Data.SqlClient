@@ -14,10 +14,22 @@ type ISqlCommand =
 
 type RowMapping = obj[] -> obj
 
-type Connection =
-    | String of string
-    | Name of string
-    | Transaction of SqlTransaction
+module Seq = 
+
+    let internal toOption source =  
+        match source |> Seq.truncate 2 |> Seq.toArray with
+        | [||] -> None
+        | [| x |] -> Some x
+        | _ -> invalidArg "source" "The input sequence contains more than one element."
+
+    let internal ofReader<'TItem> rowMapping (reader : SqlDataReader) = 
+        seq {
+            use __ = reader
+            while reader.Read() do
+                let values = Array.zeroCreate reader.FieldCount
+                reader.GetValues(values) |> ignore
+                yield values |> rowMapping |> unbox<'TItem>
+        }
 
 [<RequireQualifiedAccess>]
 type ResultRank = 
@@ -25,39 +37,9 @@ type ResultRank =
     | SingleRow = 1
     | ScalarValue = 2
 
-type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, rank: ResultRank, rowMapping: RowMapping, isStoredProcedure) = 
+module SqlCommand = 
 
-    let cmd = new SqlCommand(sqlStatement, CommandType = if isStoredProcedure then CommandType.StoredProcedure else CommandType.Text)
-    do 
-        match connection with
-        | String x -> 
-            cmd.Connection <- new SqlConnection(x)
-        | Name x ->
-            let connStr = Configuration.GetConnectionStringRunTimeByName x
-            cmd.Connection <- new SqlConnection(connStr)
-        | Transaction t ->
-             cmd.Connection <- t.Connection
-             cmd.Transaction <- t
-
-    do
-        cmd.Parameters.AddRange( parameters)
-
-    let getReaderBehavior() = 
-        seq {
-            yield CommandBehavior.SingleResult
-
-            if cmd.Connection.State <> ConnectionState.Open 
-            then
-                cmd.Connection.Open() 
-                yield CommandBehavior.CloseConnection
-
-            if rank = ResultRank.SingleRow then yield CommandBehavior.SingleRow 
-
-            if resultType = ResultType.DataTable then yield CommandBehavior.KeyInfo
-        }
-        |> Seq.reduce (|||) 
-
-    let setParameters (cmd : SqlCommand) (parameters : (string * obj)[]) = 
+    let setParameters (cmd: SqlCommand) (parameters: (string * obj)[]) = 
         for name, value in parameters do
             
             let p = cmd.Parameters.[name]            
@@ -82,49 +64,34 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, rank:
                 | SqlDbType.VarChar -> p.Size <- 8000
                 | _ -> ()
 
-    let executeReader parameters = 
+    let executeReader cmd getReaderBehavior parameters = 
         setParameters cmd parameters      
         cmd.ExecuteReader( getReaderBehavior())
 
-    let asyncExecuteReader parameters = 
+    let asyncExecuteReader cmd getReaderBehavior parameters = 
         setParameters cmd parameters 
         cmd.AsyncExecuteReader( getReaderBehavior())
-
-    let executeDataTable parameters = 
-        use reader = executeReader parameters
+    
+    let executeDataTable cmd getReaderBehavior parameters = 
+        use reader = executeReader cmd getReaderBehavior parameters 
         let result = new FSharp.Data.DataTable<DataRow>()
         result.Load(reader)
         result
 
-    let asyncExecuteDataTable parameters = 
+    let asyncExecuteDataTable cmd getReaderBehavior parameters = 
         async {
-            use! reader = asyncExecuteReader parameters
+            use! reader = asyncExecuteReader cmd getReaderBehavior parameters 
             let result = new FSharp.Data.DataTable<DataRow>()
             result.Load(reader)
             return result
         }
 
-    let seqToOption source =  
-        match source |> Seq.truncate 2 |> Seq.toArray with
-        | [||] -> None
-        | [| x |] -> Some x
-        | _ -> invalidOp "Single row was expected."
-
-    let readerToSeq (reader : SqlDataReader) = 
-        seq {
-            use __ = reader
-            while reader.Read() do
-                let values = Array.zeroCreate reader.FieldCount
-                reader.GetValues(values) |> ignore
-                yield values |> rowMapping |> unbox<'TItem>
-        }
-        
-    let executeSeq rowMapper parameters = 
-        let xs = parameters |> executeReader |> readerToSeq 
+    let executeSeq<'TItem> cmd rowMapper getReaderBehavior rank parameters = 
+        let xs = parameters |> executeReader cmd getReaderBehavior |> Seq.ofReader<'TItem> rowMapper
 
         if rank = ResultRank.SingleRow 
         then 
-            xs |> seqToOption |> box
+            xs |> Seq.toOption |> box
         elif rank = ResultRank.ScalarValue 
         then 
             xs |> Seq.exactlyOne |> box
@@ -132,18 +99,18 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, rank:
             assert (rank = ResultRank.Sequence)
             box xs 
             
-    let asyncExecuteSeq rowMapper parameters = 
+    let asyncExecuteSeq<'TItem> cmd rowMapper getReaderBehavior rank parameters = 
         let xs = 
             async {
-                let! reader = asyncExecuteReader parameters
-                return readerToSeq reader
+                let! reader = asyncExecuteReader cmd getReaderBehavior parameters 
+                return reader |> Seq.ofReader<'TItem> rowMapper
             }
 
         if rank = ResultRank.SingleRow
         then
             async {
                 let! xs = xs 
-                return xs |> seqToOption
+                return xs |> Seq.toOption
             }
             |> box
         elif rank = ResultRank.ScalarValue 
@@ -157,30 +124,68 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, rank:
             assert (rank = ResultRank.Sequence)
             box xs 
 
-    let executeNonQuery parameters = 
+    let executeNonQuery cmd parameters = 
         setParameters cmd parameters  
         use openedConnection = cmd.Connection.UseLocally()
         cmd.ExecuteNonQuery() 
 
-    let asyncExecuteNonQuery parameters = 
+    let asyncExecuteNonQuery cmd parameters = 
         setParameters cmd parameters  
         async {         
             use openedConnection = cmd.Connection.UseLocally()
             return! cmd.AsyncExecuteNonQuery() 
         }
 
+type Connection =
+    | Literal of string
+    | NameInConfig of string
+    | Transaction of SqlTransaction
+
+type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, rank: ResultRank, rowMapping: RowMapping, isStoredProcedure) = 
+
+    let cmd = new SqlCommand(sqlStatement, CommandType = if isStoredProcedure then CommandType.StoredProcedure else CommandType.Text)
+    do 
+        match connection with
+        | Literal x -> 
+            cmd.Connection <- new SqlConnection(x)
+        | NameInConfig x ->
+            let connStr = Configuration.GetConnectionStringRunTimeByName x
+            cmd.Connection <- new SqlConnection(connStr)
+        | Transaction t ->
+             cmd.Connection <- t.Connection
+             cmd.Transaction <- t
+
+    do
+        cmd.Parameters.AddRange( parameters)
+
+    let getReaderBehavior() = 
+        seq {
+            yield CommandBehavior.SingleResult
+
+            if cmd.Connection.State <> ConnectionState.Open 
+            then
+                cmd.Connection.Open() 
+                yield CommandBehavior.CloseConnection
+
+            if rank = ResultRank.SingleRow then yield CommandBehavior.SingleRow 
+
+            if resultType = ResultType.DataTable then yield CommandBehavior.KeyInfo
+        }
+        |> Seq.reduce (|||) 
+
     let execute, asyncExecute = 
         match resultType with
         | ResultType.Records | ResultType.Tuples ->
             if box rowMapping = null
             then
-                executeNonQuery >> box , asyncExecuteNonQuery >> box
+                SqlCommand.executeNonQuery cmd >> box, SqlCommand.asyncExecuteNonQuery cmd >> box
             else
-                executeSeq rowMapping, asyncExecuteSeq rowMapping
+                SqlCommand.executeSeq<'TItem> cmd rowMapping getReaderBehavior rank >> box, 
+                SqlCommand.asyncExecuteSeq<'TItem> cmd rowMapping getReaderBehavior rank >> box
         | ResultType.DataTable ->
-            executeDataTable >> box, asyncExecuteDataTable >> box
+            SqlCommand.executeDataTable cmd getReaderBehavior >> box, SqlCommand.asyncExecuteDataTable cmd getReaderBehavior >> box
         | ResultType.DataReader -> 
-            executeReader >> box, asyncExecuteReader >> box
+            SqlCommand.executeReader cmd getReaderBehavior >> box, SqlCommand.asyncExecuteReader cmd getReaderBehavior >> box
         | unexpected -> failwithf "Unexpected ResultType value: %O" unexpected
 
     member this.AsSqlCommand () = 
@@ -195,7 +200,7 @@ type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, rank:
 
         member this.ToTraceString parameters =  
             let clone = this.AsSqlCommand()
-            setParameters clone parameters  
+            SqlCommand.setParameters clone parameters  
             let parameterDefinition (p : SqlParameter) =
                 if p.Size <> 0 then
                     sprintf "%s %A(%d)" p.ParameterName p.SqlDbType p.Size

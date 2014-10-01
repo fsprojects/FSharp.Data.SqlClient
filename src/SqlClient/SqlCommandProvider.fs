@@ -144,9 +144,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 fun args -> 
                     let connArg =
                         <@@ 
-                            if not( String.IsNullOrEmpty(%%args.[0])) then Connection.String %%args.[0] 
-                            elif isByName then Connection.Name connectionStringName
-                            else Connection.String connectionStringOrName
+                            if not( String.IsNullOrEmpty(%%args.[0])) then Connection.Literal %%args.[0] 
+                            elif isByName then Connection.NameInConfig connectionStringName
+                            else Connection.Literal connectionStringOrName
                         @@>
                     Expr.NewObject(ctorImpl, connArg :: ctorArgsExceptConnection)
            
@@ -167,7 +167,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             let name = "Execute" + if outputColumns.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
             
             let addRedirectToISqlCommandMethod outputType name = 
-                DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType, cmdProvidedType.BaseType, outputType, name) 
+                DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType.BaseType, outputType, name) 
+                |> cmdProvidedType.AddMember
 
             addRedirectToISqlCommandMethod output.ProvidedType "Execute" 
                             

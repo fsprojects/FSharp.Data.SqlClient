@@ -75,6 +75,7 @@
     <Compile Include="SqlCommand.fs" />
     <Compile Include="QuotationsFactory.fs" />
     <Compile Include="DesignTime.fs" />
+    <Compile Include="SqlCommandTypeGenerationStrategies.fs" />
     <Compile Include="SqlCommandProvider.fs" />
     <Compile Include="SqlProgrammabilityProvider.fs" />
     <Compile Include="SqlEnumProvider.fs" />

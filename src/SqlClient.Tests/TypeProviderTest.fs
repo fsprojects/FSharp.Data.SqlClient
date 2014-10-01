@@ -15,7 +15,6 @@ type GetOddNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (2
 let asyncSinlgeColumn() = 
     Assert.Equal<int[]>([| 2; 4; 8;  24 |], (new GetOddNumbers()).AsyncExecute() |> Async.RunSynchronously |> Seq.toArray)    
 
-
 [<Fact>]
 let ConnectionClose() = 
     use cmd = new GetOddNumbers()

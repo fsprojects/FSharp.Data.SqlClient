@@ -8,7 +8,6 @@ open System.Collections.Generic
 open System.IO
 open System.Threading.Tasks
 open System.Data.SqlClient
-open Microsoft.FSharp.Reflection
 open Microsoft.SqlServer.TransactSql.ScriptDom
 
 type SqlCommand with
@@ -109,8 +108,6 @@ let rec parseDefaultValue (definition: string) (expr: ScalarExpression) =
         | _  -> None 
     | _ -> None 
 
-
-
 type Routine = 
     | StoredProcedure of schema: string * name: string
     | TableValuedFunction of schema: string * name: string 
@@ -174,7 +171,6 @@ type SqlConnection with
             
     member internal this.GetParameters( routine: Routine) =      
         assert (this.State = ConnectionState.Open)
-
         let bodyAndParamsInfoQuery = sprintf "
             -- get body 
             EXEC sp_helptext '%s'; 
@@ -247,6 +243,7 @@ type SqlConnection with
 
     member internal this.GetFullQualityColumnInfo commandText = [
         assert (this.State = ConnectionState.Open)
+        use __ = this.UseLocally()
         use cmd = new SqlCommand("sys.sp_describe_first_result_set", this, CommandType = CommandType.StoredProcedure)
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
         use reader = cmd.ExecuteReader()
@@ -285,15 +282,6 @@ type SqlConnection with
                         MaxLength = unbox row.["ColumnSize"]
                     }
             ]
-
-     member internal this.GetOutputColumns(commandText, sqlParameters) = 
-        try
-            this.GetFullQualityColumnInfo commandText
-        with :? SqlException as why ->
-            try 
-                this.FallbackToSETFMONLY(commandText, CommandType.StoredProcedure, sqlParameters) 
-            with :? SqlException ->
-                raise why
 
     member internal this.LoadDataTypesMap() = 
         if not <| dataTypeMappings.ContainsKey this.ConnectionString

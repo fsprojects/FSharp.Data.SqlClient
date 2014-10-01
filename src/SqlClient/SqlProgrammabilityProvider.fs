@@ -108,29 +108,50 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         [
             use close = conn.UseLocally()
             let routines = conn.GetRoutines( schema) 
-            for routine in routines do 
-                let parameters = conn.GetParameters( routine)
+            for routine in routines do
+             
+                let cmdProvidedType = ProvidedTypeDefinition(routine.Name, baseType = None, HideObjectMethods = true)
+                cmdProvidedType.SetBaseTypeDelayed <| 
+                    lazy 
+                        use __ = conn.UseLocally()
+                        let parameters = conn.GetParameters( routine)
 
-                let commandText = routine.CommantText(parameters)
-                let outputColumns = 
-                    if resultType <> ResultType.DataReader
-                    then 
-                        DesignTime.TryGetOutputColumns(conn, commandText, parameters, routine.IsStoredProc)
-                    else 
-                        Some []
+                        let commandText = routine.CommantText(parameters)
+                        let outputColumns = 
+                            if resultType <> ResultType.DataReader
+                            then 
+                                DesignTime.TryGetOutputColumns(conn, commandText, parameters, routine.IsStoredProc)
+                            else 
+                                Some []
 
-                if outputColumns.IsSome
-                then 
-                    let rank = match routine with ScalarValuedFunction _ -> ResultRank.ScalarValue | _ -> ResultRank.Sequence
-                    let output = DesignTime.GetOutputTypes(outputColumns.Value, resultType, rank)
+                        let rank = match routine with ScalarValuedFunction _ -> ResultRank.ScalarValue | _ -> ResultRank.Sequence
+                        let output = DesignTime.GetOutputTypes(outputColumns.Value, resultType, rank)
         
-                    let cmdEraseToType = typedefof<_ SqlCommand>.MakeGenericType( [| output.ErasedToRowType |])
-                    let cmdProvidedType = ProvidedTypeDefinition(routine.Name, baseType = Some cmdEraseToType, HideObjectMethods = true)
+                        let cmdEraseToType = typedefof<_ SqlCommand>.MakeGenericType( [| output.ErasedToRowType |])
+                        Some cmdEraseToType
+                
+                cmdProvidedType.AddMembersDelayed <| fun() ->
+                    [
+                        use __ = conn.UseLocally()
+                        let parameters = conn.GetParameters( routine)
 
-                    do  //Record
-                        output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
+                        let commandText = routine.CommantText(parameters)
+                        let outputColumns = 
+                            if resultType <> ResultType.DataReader
+                            then 
+                                DesignTime.TryGetOutputColumns(conn, commandText, parameters, routine.IsStoredProc)
+                            else 
+                                Some []
 
-                    do  //ctors
+                        let rank = match routine with ScalarValuedFunction _ -> ResultRank.ScalarValue | _ -> ResultRank.Sequence
+                        let output = DesignTime.GetOutputTypes(outputColumns.Value, resultType, rank)
+        
+                        let cmdEraseToType = typedefof<_ SqlCommand>.MakeGenericType( [| output.ErasedToRowType |])
+
+                        do  //Record
+                            output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
+
+                        //ctors
                         let sqlParameters = Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
             
                         let ctor1 = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
@@ -151,22 +172,19 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             fun args -> 
                                 let connArg =
                                     <@@ 
-                                        if not( String.IsNullOrEmpty(%%args.[0])) then Connection.String %%args.[0] 
-                                        elif isByName then Connection.Name connectionStringName
-                                        else Connection.String connectionStringOrName
+                                        if not( String.IsNullOrEmpty(%%args.[0])) then Connection.Literal %%args.[0] 
+                                        elif isByName then Connection.NameInConfig connectionStringName
+                                        else Connection.Literal connectionStringOrName
                                     @@>
                                 Expr.NewObject(ctorImpl, connArg :: ctorArgsExceptConnection)
-           
-                        cmdProvidedType.AddMember ctor1
 
+                        yield (ctor1 :> MemberInfo)
+                           
                         let ctor2 = ProvidedConstructor( [ ProvidedParameter("transaction", typeof<SqlTransaction>) ])
-
                         ctor2.InvokeCode <- 
                             fun args -> Expr.NewObject(ctorImpl, <@@ Connection.Transaction %%args.[0] @@> :: ctorArgsExceptConnection)
 
-                        cmdProvidedType.AddMember ctor2
-
-                    do  //AsyncExecute, Execute, and ToTraceString
+                        yield upcast ctor2
 
                         let allParametersOptional = false
                         let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, allParametersOptional, udtts)
@@ -174,10 +192,11 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let interfaceType = typedefof<ISqlCommand>
                         let name = "Execute" + if outputColumns.Value.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
             
-                        DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType, cmdProvidedType.BaseType, output.ProvidedType, "Execute")
+                        yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType.BaseType, output.ProvidedType, "Execute") 
                             
                         let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
-                        DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType, cmdProvidedType.BaseType, asyncReturnType, "AsyncExecute")
-                
-                    yield cmdProvidedType
+                        yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType.BaseType, asyncReturnType, "AsyncExecute")
+                    ]
+
+                yield cmdProvidedType
         ]

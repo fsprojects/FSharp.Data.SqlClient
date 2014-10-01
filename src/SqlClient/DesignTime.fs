@@ -27,7 +27,7 @@ type internal ResultTypes = {
 
 type DesignTime private() = 
     static member internal AddGeneratedMethod
-        (sqlParameters: Parameter list, executeArgs: ProvidedParameter list, allParametersOptional, cmdProvidedType: ProvidedTypeDefinition, erasedType, providedOutputType, name) =
+        (sqlParameters: Parameter list, executeArgs: ProvidedParameter list, allParametersOptional, erasedType, providedOutputType, name) =
 
         let mappedParamValues (exprArgs: Expr list) = 
             (exprArgs.Tail, sqlParameters)
@@ -53,7 +53,7 @@ type DesignTime private() =
             let paramValues = Expr.NewArray(typeof<string*obj>, elements = vals)
             Expr.Call( Expr.Coerce(exprArgs.[0], erasedType), methodInfo, [paramValues])
 
-        cmdProvidedType.AddMember m
+        m
 
     static member internal GetRecordType(columns: Column list) =
         
