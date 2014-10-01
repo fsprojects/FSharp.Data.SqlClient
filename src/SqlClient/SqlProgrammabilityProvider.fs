@@ -157,6 +157,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let ctor1 = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
                         let ctorArgsExceptConnection = [
                             Expr.Value commandText                      //sqlStatement
+                            Expr.Value(routine.IsStoredProc)  //isStoredProcedure
                             sqlParameters                               //parameters
                             Expr.Value resultType                       //resultType
                             Expr.Value (
@@ -165,7 +166,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                     ResultRank.ScalarValue 
                                 | _ -> ResultRank.Sequence)               //rank
                             output.RowMapping                           //rowMapping
-                            Expr.Value(routine.IsStoredProc)  //isStoredProcedure
                         ]
                         let ctorImpl = cmdEraseToType.GetConstructors() |> Seq.exactlyOne
                         ctor1.InvokeCode <- 

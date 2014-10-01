@@ -131,13 +131,14 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             let sqlParameters = Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
             
             let ctor1 = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
+            let isStoredProcedure = false
             let ctorArgsExceptConnection = [
                 Expr.Value sqlStatement; 
+                Expr.Value isStoredProcedure 
                 sqlParameters; 
                 Expr.Value resultType; 
                 Expr.Value rank
                 output.RowMapping; 
-                Expr.Value false 
             ]
             let ctorImpl = cmdEraseToType.GetConstructors() |> Seq.exactlyOne
             ctor1.InvokeCode <- 

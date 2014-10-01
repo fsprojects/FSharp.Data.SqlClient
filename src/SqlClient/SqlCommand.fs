@@ -156,7 +156,7 @@ type Connection =
     | NameInConfig of string
     | Transaction of SqlTransaction
 
-type SqlCommand<'TItem> (connection, sqlStatement, parameters, resultType, rank, rowMapping: RowMapping, isStoredProcedure) = 
+type SqlCommand<'TItem> (connection, sqlStatement, isStoredProcedure, parameters, resultType, rank, rowMapping: RowMapping) = 
 
     let cmd = new SqlCommand(sqlStatement, CommandType = if isStoredProcedure then CommandType.StoredProcedure else CommandType.Text)
     do 
