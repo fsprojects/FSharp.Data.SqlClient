@@ -23,7 +23,7 @@ let ``From config file`` () =
 [<Fact>]
 let RuntimeConfig () = 
     let name = "AdventureWorks2012"
-    Configuration.GetConnectionStringRunTimeByName name
+    Configuration.GetConnectionStringAtRunTime name
     |> should equal ConfigurationManager.ConnectionStrings.[name].ConnectionString
 
 type Get42RelativePath = SqlCommandProvider<"sampleCommand.sql", "name=AdventureWorks2012", ResolutionFolder="MySqlFolder">

@@ -72,7 +72,7 @@ type Configuration() =
         | null, _ | _, Lazy null -> failwithf "Cannot find name %s in <connectionStrings> section of %s file." name configFilename
         | _, Lazy x -> x.ConnectionString
 
-    static member GetConnectionStringRunTimeByName(name: string) = 
+    static member GetConnectionStringAtRunTime(name: string) = 
         let section = ConfigurationManager.ConnectionStrings.[name]
         if section = null 
         then failwithf "Cannot find name %s in <connectionStrings> section of config file." name
