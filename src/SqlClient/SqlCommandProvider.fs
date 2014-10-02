@@ -70,6 +70,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         member this.Dispose() = 
            if watcher <> null
            then try watcher.Dispose() with _ -> ()
+           cache.Clear()
 
     member internal this.CreateRootType((typeName, sqlStatementOrFile, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, resolutionFolder) as key) = 
 

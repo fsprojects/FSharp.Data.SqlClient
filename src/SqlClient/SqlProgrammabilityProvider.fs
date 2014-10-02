@@ -53,6 +53,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         this.AddNamespace(nameSpace, [ providerType ])
     
+    interface IDisposable with member this.Dispose() = cache.Clear()
+
     member internal this.CreateRootType( typeName, connectionStringOrName, resultType, configFile) =
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         

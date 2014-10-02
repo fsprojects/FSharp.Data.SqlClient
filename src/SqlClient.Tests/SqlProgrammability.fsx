@@ -8,25 +8,25 @@ open FSharp.Data
 open Microsoft.SqlServer.Types
 
 [<Literal>] 
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
-//let connectionString = @"Server=tcp:mhknbn2kdz.database.windows.net,1433;Database=AdventureWorks2012;User ID=sqlfamily;Password= sqlf@m1ly;Trusted_Connection=False;Encrypt=True;Connection Timeout=30"
+//let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString = @"Server=tcp:mhknbn2kdz.database.windows.net,1433;Database=AdventureWorks2012;User ID=sqlfamily;Password= sqlf@m1ly;Trusted_Connection=False;Encrypt=True;Connection Timeout=30"
 
 [<Literal>] 
 let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
 
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
-//type dbo = AdventureWorks2012.dbo
-////Table-valued UDF selecting single row
-//type GetContactInformation = dbo.ufnGetContactInformation
-//let getContactInformation = new GetContactInformation()
+type dbo = AdventureWorks2012.dbo
+//Table-valued UDF selecting single row
+type GetContactInformation = dbo.ufnGetContactInformation
+let getContactInformation = new GetContactInformation()
 //getContactInformation.Execute() |> printfn "%A"
-//let f = getContactInformation.Execute( 1) |> Seq.exactlyOne
-//f.BusinessEntityType
-//f.FirstName
-//f.JobTitle
-//f.LastName
-//f.PersonID
-//
+let f = getContactInformation.Execute( 1) |> Seq.exactlyOne
+f.BusinessEntityType
+f.FirstName
+f.JobTitle
+f.LastName
+f.PersonID
+
 ////Scalar-Value
 //type LeadingZeros = dbo.ufnLeadingZeros
 //let leadingZeros = new LeadingZeros()
