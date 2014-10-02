@@ -37,125 +37,12 @@ type ResultRank =
     | SingleRow = 1
     | ScalarValue = 2
 
-module SqlCommand = 
-
-    let internal setParameters (cmd: SqlCommand) (parameters: (string * obj)[]) = 
-        for name, value in parameters do
-            
-            let p = cmd.Parameters.[name]            
-
-            if value = null 
-            then 
-                p.Value <- DBNull.Value 
-            else
-                if not( p.SqlDbType = SqlDbType.Structured)
-                then 
-                    p.Value <- value
-                else
-                    let table : DataTable = unbox p.Value
-                    table.Rows.Clear()
-                    for rowValues in unbox<seq<obj[]>> value do
-                        table.Rows.Add( rowValues) |> ignore
-
-            if Convert.IsDBNull p.Value 
-            then 
-                match p.SqlDbType with
-                | SqlDbType.NVarChar -> p.Size <- 4000
-                | SqlDbType.VarChar -> p.Size <- 8000
-                | _ -> ()
-
-    let internal executeReader(cmd, getReaderBehavior, parameters) = 
-        setParameters cmd parameters      
-        cmd.ExecuteReader( getReaderBehavior())
-
-    let internal asyncExecuteReader(cmd, getReaderBehavior, parameters) = 
-        setParameters cmd parameters 
-        cmd.AsyncExecuteReader( getReaderBehavior())
-    
-    let internal executeDataTable(cmd, getReaderBehavior, parameters) = 
-        use reader = executeReader(cmd, getReaderBehavior, parameters)  
-        let result = new FSharp.Data.DataTable<DataRow>()
-        result.Load(reader)
-        result
-
-    let internal asyncExecuteDataTable(cmd, getReaderBehavior, parameters) = 
-        async {
-            use! reader = asyncExecuteReader(cmd, getReaderBehavior, parameters) 
-            let result = new FSharp.Data.DataTable<DataRow>()
-            result.Load(reader)
-            return result
-        }
-
-    let internal executeSeq<'TItem> (rank, rowMapper) (cmd, getReaderBehavior, parameters) = 
-        let xs = executeReader(cmd, getReaderBehavior, parameters) |> Seq.ofReader<'TItem> rowMapper
-
-        if rank = ResultRank.SingleRow 
-        then 
-            xs |> Seq.toOption |> box
-        elif rank = ResultRank.ScalarValue 
-        then 
-            xs |> Seq.exactlyOne |> box
-        else 
-            assert (rank = ResultRank.Sequence)
-            box xs 
-            
-    let internal asyncExecuteSeq<'TItem> (rank, rowMapper) (cmd, getReaderBehavior, parameters) = 
-        let xs = 
-            async {
-                let! reader = asyncExecuteReader(cmd, getReaderBehavior, parameters)
-                return reader |> Seq.ofReader<'TItem> rowMapper
-            }
-
-        if rank = ResultRank.SingleRow
-        then
-            async {
-                let! xs = xs 
-                return xs |> Seq.toOption
-            }
-            |> box
-        elif rank = ResultRank.ScalarValue 
-        then 
-            async {
-                let! xs = xs 
-                return xs |> Seq.exactlyOne
-            }
-            |> box       
-        else 
-            assert (rank = ResultRank.Sequence)
-            box xs 
-
-    let internal executeNonQuery(cmd, _, parameters) = 
-        setParameters cmd parameters  
-        use openedConnection = cmd.Connection.UseLocally()
-        cmd.ExecuteNonQuery() 
-
-    let internal asyncExecuteNonQuery(cmd, _, parameters) = 
-        setParameters cmd parameters  
-        async {         
-            use openedConnection = cmd.Connection.UseLocally()
-            return! cmd.AsyncExecuteNonQuery() 
-        }
-
-    let getExecuteImplementations<'TItem>(cmd, resultType, rank, rowMapping) = 
-        match resultType with
-        | ResultType.Records | ResultType.Tuples ->
-            if box rowMapping = null
-            then
-                executeNonQuery >> box, asyncExecuteNonQuery >> box
-            else
-                executeSeq<'TItem> (rank, rowMapping) >> box, asyncExecuteSeq<'TItem> (rank, rowMapping) >> box
-        | ResultType.DataTable ->
-            executeDataTable >> box, asyncExecuteDataTable >> box
-        | ResultType.DataReader -> 
-            executeReader >> box, asyncExecuteReader >> box
-        | unexpected -> failwithf "Unexpected ResultType value: %O" unexpected
-
 type Connection =
     | Literal of string
     | NameInConfig of string
     | Transaction of SqlTransaction
 
-type SqlCommand<'TItem> (connection, sqlStatement, isStoredProcedure, parameters, resultType, rank, rowMapping: RowMapping) = 
+type SqlCommand<'TItem1> (connection, sqlStatement, isStoredProcedure, parameters, resultType, rank, rowMapping: RowMapping) = 
 
     let cmd = new SqlCommand(sqlStatement, CommandType = if isStoredProcedure then CommandType.StoredProcedure else CommandType.Text)
     do 
@@ -187,7 +74,7 @@ type SqlCommand<'TItem> (connection, sqlStatement, isStoredProcedure, parameters
         }
         |> Seq.reduce (|||) 
 
-    let execute, asyncExecute = SqlCommand.getExecuteImplementations<'TItem>(cmd, resultType, rank, rowMapping)
+    let execute, asyncExecute = SqlCommand<_>.GetExecuteImplementations(cmd, resultType, rank, rowMapping)
 
     member this.AsSqlCommand() = 
         let clone = new SqlCommand(cmd.CommandText, new SqlConnection(cmd.Connection.ConnectionString), CommandType = cmd.CommandType)
@@ -201,7 +88,7 @@ type SqlCommand<'TItem> (connection, sqlStatement, isStoredProcedure, parameters
 
         member this.ToTraceString parameters =  
             let clone = this.AsSqlCommand()
-            SqlCommand.setParameters clone parameters  
+            SqlCommand<_>.SetParameters(clone, parameters)  
             let parameterDefinition (p : SqlParameter) =
                 if p.Size <> 0 then
                     sprintf "%s %A(%d)" p.ParameterName p.SqlDbType p.Size
@@ -225,4 +112,117 @@ type SqlCommand<'TItem> (connection, sqlStatement, isStoredProcedure, parameters
     interface IDisposable with
         member this.Dispose() =
             cmd.Dispose()
+
+//Execute/AsyncExecute versions
+    static member SetParameters(cmd: SqlCommand, parameters: (string * obj)[]) = 
+        for name, value in parameters do
+            
+            let p = cmd.Parameters.[name]            
+
+            if value = null 
+            then 
+                p.Value <- DBNull.Value 
+            else
+                if not( p.SqlDbType = SqlDbType.Structured)
+                then 
+                    p.Value <- value
+                else
+                    let table : DataTable = unbox p.Value
+                    table.Rows.Clear()
+                    for rowValues in unbox<seq<obj[]>> value do
+                        table.Rows.Add( rowValues) |> ignore
+
+            if Convert.IsDBNull p.Value 
+            then 
+                match p.SqlDbType with
+                | SqlDbType.NVarChar -> p.Size <- 4000
+                | SqlDbType.VarChar -> p.Size <- 8000
+                | _ -> ()
+
+    static member ExecuteReader(cmd, getReaderBehavior, parameters) = 
+        SqlCommand<_>.SetParameters(cmd, parameters)
+        cmd.ExecuteReader( getReaderBehavior())
+
+    static member AsyncExecuteReader(cmd, getReaderBehavior, parameters) = 
+        SqlCommand<_>.SetParameters(cmd, parameters)
+        cmd.AsyncExecuteReader( getReaderBehavior())
+    
+    static member ExecuteDataTable(cmd, getReaderBehavior, parameters) = 
+        use reader = SqlCommand<_>.ExecuteReader(cmd, getReaderBehavior, parameters)  
+        let result = new FSharp.Data.DataTable<DataRow>()
+        result.Load(reader)
+        result
+
+    static member AsyncExecuteDataTable(cmd, getReaderBehavior, parameters) = 
+        async {
+            use! reader = SqlCommand<_>.AsyncExecuteReader(cmd, getReaderBehavior, parameters) 
+            let result = new FSharp.Data.DataTable<DataRow>()
+            result.Load(reader)
+            return result
+        }
+
+    static member ExecuteSeq<'TItem> (rank, rowMapper) (cmd, getReaderBehavior, parameters) = 
+        let xs = SqlCommand<_>.ExecuteReader(cmd, getReaderBehavior, parameters) |> Seq.ofReader<'TItem> rowMapper
+
+        if rank = ResultRank.SingleRow 
+        then 
+            xs |> Seq.toOption |> box
+        elif rank = ResultRank.ScalarValue 
+        then 
+            xs |> Seq.exactlyOne |> box
+        else 
+            assert (rank = ResultRank.Sequence)
+            box xs 
+            
+    static member AsyncExecuteSeq<'TItem> (rank, rowMapper) (cmd, getReaderBehavior, parameters) = 
+        let xs = 
+            async {
+                let! reader = SqlCommand<_>.AsyncExecuteReader(cmd, getReaderBehavior, parameters)
+                return reader |> Seq.ofReader<'TItem> rowMapper
+            }
+
+        if rank = ResultRank.SingleRow
+        then
+            async {
+                let! xs = xs 
+                return xs |> Seq.toOption
+            }
+            |> box
+        elif rank = ResultRank.ScalarValue 
+        then 
+            async {
+                let! xs = xs 
+                return xs |> Seq.exactlyOne
+            }
+            |> box       
+        else 
+            assert (rank = ResultRank.Sequence)
+            box xs 
+
+    static member ExecuteNonQuery(cmd, _, parameters) = 
+        SqlCommand<_>.SetParameters(cmd, parameters)  
+        use openedConnection = cmd.Connection.UseLocally()
+        cmd.ExecuteNonQuery() 
+
+    static member AsyncExecuteNonQuery(cmd, _, parameters) = 
+        SqlCommand<_>.SetParameters(cmd, parameters)  
+        async {         
+            use openedConnection = cmd.Connection.UseLocally()
+            return! cmd.AsyncExecuteNonQuery() 
+        }
+
+    static member GetExecuteImplementations(cmd, resultType, rank, rowMapping) = 
+        match resultType with
+        | ResultType.Records | ResultType.Tuples ->
+            if box rowMapping = null
+            then
+                SqlCommand<_>.ExecuteNonQuery >> box, SqlCommand<_>.AsyncExecuteNonQuery >> box
+            else
+                SqlCommand<_>.ExecuteSeq<'TItem1> (rank, rowMapping) >> box, SqlCommand<_>.AsyncExecuteSeq<'TItem1> (rank, rowMapping) >> box
+        | ResultType.DataTable ->
+            SqlCommand<_>.ExecuteDataTable >> box, SqlCommand<_>.AsyncExecuteDataTable >> box
+        | ResultType.DataReader -> 
+            SqlCommand<_>.ExecuteReader >> box, SqlCommand<_>.AsyncExecuteReader >> box
+        | unexpected -> failwithf "Unexpected ResultType value: %O" unexpected
+
 
