@@ -118,8 +118,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let rank = if singleRow then ResultRank.SingleRow else ResultRank.Sequence
         let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank)
         
-        let cmdEraseToType = typedefof<_ SqlCommand>.MakeGenericType( [| output.ErasedToRowType |])
-        let cmdProvidedType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some cmdEraseToType, HideObjectMethods = true)
+        let cmdProvidedType = ProvidedTypeDefinition(assembly, nameSpace, typeName, Some typeof<RuntimeSqlCommand>, HideObjectMethods = true)
 
         do  
             cmdProvidedType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
@@ -139,8 +138,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 Expr.Value resultType; 
                 Expr.Value rank
                 output.RowMapping; 
+                Expr.Value output.ErasedToRowType.AssemblyQualifiedName
             ]
-            let ctorImpl = cmdEraseToType.GetConstructors() |> Seq.exactlyOne
+            let ctorImpl = typeof<RuntimeSqlCommand>.GetConstructors() |> Seq.exactlyOne
             ctor1.InvokeCode <- 
                 fun args -> 
                     let connArg =

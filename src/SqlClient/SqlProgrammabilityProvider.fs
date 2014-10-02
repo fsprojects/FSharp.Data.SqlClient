@@ -110,25 +110,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             let routines = conn.GetRoutines( schema) 
             for routine in routines do
              
-                let cmdProvidedType = ProvidedTypeDefinition(routine.Name, baseType = None, HideObjectMethods = true)
-                cmdProvidedType.SetBaseTypeDelayed <| 
-                    lazy 
-                        use __ = conn.UseLocally()
-                        let parameters = conn.GetParameters( routine)
-
-                        let commandText = routine.CommantText(parameters)
-                        let outputColumns = 
-                            if resultType <> ResultType.DataReader
-                            then 
-                                DesignTime.TryGetOutputColumns(conn, commandText, parameters, routine.IsStoredProc)
-                            else 
-                                Some []
-
-                        let rank = match routine with ScalarValuedFunction _ -> ResultRank.ScalarValue | _ -> ResultRank.Sequence
-                        let output = DesignTime.GetOutputTypes(outputColumns.Value, resultType, rank)
-        
-                        let cmdEraseToType = typedefof<_ SqlCommand>.MakeGenericType( [| output.ErasedToRowType |])
-                        Some cmdEraseToType
+                let cmdProvidedType = ProvidedTypeDefinition(routine.Name, Some typeof<RuntimeSqlCommand>, HideObjectMethods = true)
                 
                 cmdProvidedType.AddMembersDelayed <| fun() ->
                     [
@@ -146,8 +128,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let rank = match routine with ScalarValuedFunction _ -> ResultRank.ScalarValue | _ -> ResultRank.Sequence
                         let output = DesignTime.GetOutputTypes(outputColumns.Value, resultType, rank)
         
-                        let cmdEraseToType = typedefof<_ SqlCommand>.MakeGenericType( [| output.ErasedToRowType |])
-
                         do  //Record
                             output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
 
@@ -166,8 +146,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                     ResultRank.ScalarValue 
                                 | _ -> ResultRank.Sequence)               //rank
                             output.RowMapping                           //rowMapping
+                            Expr.Value output.ErasedToRowType.AssemblyQualifiedName
                         ]
-                        let ctorImpl = cmdEraseToType.GetConstructors() |> Seq.exactlyOne
+                        let ctorImpl = typeof<RuntimeSqlCommand>.GetConstructors() |> Seq.exactlyOne
                         ctor1.InvokeCode <- 
                             fun args -> 
                                 let connArg =
