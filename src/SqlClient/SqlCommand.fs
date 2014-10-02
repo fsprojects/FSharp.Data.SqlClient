@@ -3,6 +3,7 @@
 open System
 open System.Data
 open System.Data.SqlClient
+open System.Reflection
 
 open FSharp.Data.SqlClient
 
@@ -87,10 +88,21 @@ type RuntimeSqlCommand (connection, sqlStatement, isStoredProcedure, parameters,
             | rowMapping, itemTypeName ->
                 assert (rowMapping <> null && itemTypeName <> null)
                 let itemType = Type.GetType itemTypeName
+                
                 let executeHandle = 
-                    typeof<RuntimeSqlCommand>.GetMethod("ExecuteSeq").MakeGenericMethod(itemType).Invoke(null, [| rank; rowMapping |]) |> unbox
+                    typeof<RuntimeSqlCommand>
+                        .GetMethod("ExecuteSeq", BindingFlags.NonPublic ||| BindingFlags.Static)
+                        .MakeGenericMethod(itemType)
+                        .Invoke(null, [| rank; rowMapping |]) 
+                        |> unbox
+                
                 let asyncExecuteHandle = 
-                    typeof<RuntimeSqlCommand>.GetMethod("AsyncExecuteSeq").MakeGenericMethod(itemType).Invoke(null, [| rank; rowMapping |]) |> unbox
+                    typeof<RuntimeSqlCommand>
+                        .GetMethod("AsyncExecuteSeq", BindingFlags.NonPublic ||| BindingFlags.Static)
+                        .MakeGenericMethod(itemType)
+                        .Invoke(null, [| rank; rowMapping |]) 
+                        |> unbox
+                
                 executeHandle >> box, asyncExecuteHandle >> box
         | unexpected -> failwithf "Unexpected ResultType value: %O" unexpected
 
@@ -132,7 +144,7 @@ type RuntimeSqlCommand (connection, sqlStatement, isStoredProcedure, parameters,
             cmd.Dispose()
 
 //Execute/AsyncExecute versions
-    static member SetParameters(cmd: SqlCommand, parameters: (string * obj)[]) = 
+    static member internal SetParameters(cmd: SqlCommand, parameters: (string * obj)[]) = 
         for name, value in parameters do
             
             let p = cmd.Parameters.[name]            
@@ -157,21 +169,21 @@ type RuntimeSqlCommand (connection, sqlStatement, isStoredProcedure, parameters,
                 | SqlDbType.VarChar -> p.Size <- 8000
                 | _ -> ()
 
-    static member ExecuteReader(cmd, getReaderBehavior, parameters) = 
+    static member internal ExecuteReader(cmd, getReaderBehavior, parameters) = 
         RuntimeSqlCommand.SetParameters(cmd, parameters)
         cmd.ExecuteReader( getReaderBehavior())
 
-    static member AsyncExecuteReader(cmd, getReaderBehavior, parameters) = 
+    static member internal AsyncExecuteReader(cmd, getReaderBehavior, parameters) = 
         RuntimeSqlCommand.SetParameters(cmd, parameters)
         cmd.AsyncExecuteReader( getReaderBehavior())
     
-    static member ExecuteDataTable(cmd, getReaderBehavior, parameters) = 
+    static member internal ExecuteDataTable(cmd, getReaderBehavior, parameters) = 
         use reader = RuntimeSqlCommand.ExecuteReader(cmd, getReaderBehavior, parameters)  
         let result = new FSharp.Data.DataTable<DataRow>()
         result.Load(reader)
         result
 
-    static member AsyncExecuteDataTable(cmd, getReaderBehavior, parameters) = 
+    static member internal AsyncExecuteDataTable(cmd, getReaderBehavior, parameters) = 
         async {
             use! reader = RuntimeSqlCommand.AsyncExecuteReader(cmd, getReaderBehavior, parameters) 
             let result = new FSharp.Data.DataTable<DataRow>()
@@ -179,7 +191,7 @@ type RuntimeSqlCommand (connection, sqlStatement, isStoredProcedure, parameters,
             return result
         }
 
-    static member ExecuteSeq<'TItem> (rank, rowMapper) = fun(cmd, getReaderBehavior, parameters) -> 
+    static member internal ExecuteSeq<'TItem> (rank, rowMapper) = fun(cmd, getReaderBehavior, parameters) -> 
         let xs = RuntimeSqlCommand.ExecuteReader(cmd, getReaderBehavior, parameters) |> Seq.ofReader<'TItem> rowMapper
 
         if rank = ResultRank.SingleRow 
@@ -192,7 +204,7 @@ type RuntimeSqlCommand (connection, sqlStatement, isStoredProcedure, parameters,
             assert (rank = ResultRank.Sequence)
             box xs 
             
-    static member AsyncExecuteSeq<'TItem> (rank, rowMapper) = fun(cmd, getReaderBehavior, parameters) ->
+    static member internal AsyncExecuteSeq<'TItem> (rank, rowMapper) = fun(cmd, getReaderBehavior, parameters) ->
         let xs = 
             async {
                 let! reader = RuntimeSqlCommand.AsyncExecuteReader(cmd, getReaderBehavior, parameters)
@@ -217,12 +229,12 @@ type RuntimeSqlCommand (connection, sqlStatement, isStoredProcedure, parameters,
             assert (rank = ResultRank.Sequence)
             box xs 
 
-    static member ExecuteNonQuery(cmd, _, parameters) = 
+    static member internal ExecuteNonQuery(cmd, _, parameters) = 
         RuntimeSqlCommand.SetParameters(cmd, parameters)  
         use openedConnection = cmd.Connection.UseLocally()
         cmd.ExecuteNonQuery() 
 
-    static member AsyncExecuteNonQuery(cmd, _, parameters) = 
+    static member internal AsyncExecuteNonQuery(cmd, _, parameters) = 
         RuntimeSqlCommand.SetParameters(cmd, parameters)  
         async {         
             use openedConnection = cmd.Connection.UseLocally()
