@@ -67,7 +67,7 @@ let local() =
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
 
 
-type RaiseError = SqlCommandProvider<"SELECT 42;RAISERROR ('Error raised.', 16, 1 ) ", connectionString>
+type RaiseError = SqlCommandProvider<"SELECT 42; THROW 51000, 'Error raised.', 1 ", connectionString>
 
 [<Fact>]
 let notCloseExternalConnInCaseOfError() =
