@@ -200,12 +200,6 @@ type DesignTime private() =
             with :? SqlException ->
                 raise why
 
-    static member internal TryGetOutputColumns(connection, commandText, parameters, isStoredProcedure) = 
-        try
-            DesignTime.GetOutputColumns(connection, commandText, parameters, isStoredProcedure) |> Some
-        with _ ->
-            None
-
     static member internal ExtractParameters(connection, commandText: string) =  [
         use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", connection, CommandType = CommandType.StoredProcedure)
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
@@ -217,11 +211,16 @@ type DesignTime private() =
 
             let udttName = Convert.ToString(value = reader.["suggested_user_type_name"])
             let direction = 
-                let output = unbox reader.["suggested_is_output"]
-                let input = unbox reader.["suggested_is_input"]
-                if input && output then ParameterDirection.InputOutput
-                elif output then ParameterDirection.Output
-                else ParameterDirection.Input
+                match unbox reader.["suggested_is_input"], unbox reader.["suggested_is_output"] with 
+                | true, false -> ParameterDirection.Input 
+                //| true, true -> ParameterDirection.InputOutput
+                | input, output -> failwithf "Parameter %s has unsupported direction input: %b/output: %b" paramName input output
+
+//                let output = unbox reader.["suggested_is_output"]
+//                let input = unbox reader.["suggested_is_input"]
+//                if input && output then ParameterDirection.InputOutput
+//                elif output then ParameterDirection.Output
+//                else ParameterDirection.Input
                     
             let typeInfo = 
                 match findBySqlEngineTypeIdAndUdtt(connection.ConnectionString, sqlEngineTypeId, udttName) with

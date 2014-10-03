@@ -123,12 +123,12 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let outputColumns = 
                             if resultType <> ResultType.DataReader
                             then 
-                                DesignTime.TryGetOutputColumns(conn, commandText, parameters, routine.IsStoredProc)
+                                DesignTime.GetOutputColumns(conn, commandText, parameters, routine.IsStoredProc)
                             else 
-                                Some []
+                                []
 
                         let rank = match routine with ScalarValuedFunction _ -> ResultRank.ScalarValue | _ -> ResultRank.Sequence
-                        let output = DesignTime.GetOutputTypes(outputColumns.Value, resultType, rank)
+                        let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank)
         
                         do  //Record
                             output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
@@ -173,7 +173,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, allParametersOptional, udtts)
 
                         let interfaceType = typedefof<ISqlCommand>
-                        let name = "Execute" + if outputColumns.Value.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
+                        let name = "Execute" + if outputColumns.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
             
                         yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType.BaseType, output.ProvidedType, "Execute") 
                             

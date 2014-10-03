@@ -217,8 +217,8 @@ type SqlConnection with
             let direction = 
                 match unbox record.["suggested_is_input"], unbox record.["suggested_is_output"] with 
                 | true, false -> ParameterDirection.Input 
-                | true, true -> ParameterDirection.InputOutput
-                | input, output -> failwithf "Parameter %s has unsupported direction %b/%b" name input output
+                //| true, true -> ParameterDirection.InputOutput
+                | input, output -> failwithf "Parameter %s has unsupported direction input: %b/output: %b" name input output
 
             let system_type_id: int = unbox record.["suggested_system_type_id"]
             let user_type_name: string = string record.["suggested_user_type_name"]
