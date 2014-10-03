@@ -211,16 +211,12 @@ type DesignTime private() =
 
             let udttName = Convert.ToString(value = reader.["suggested_user_type_name"])
             let direction = 
-                match unbox reader.["suggested_is_input"], unbox reader.["suggested_is_output"] with 
-                | true, false -> ParameterDirection.Input 
-                //| true, true -> ParameterDirection.InputOutput
-                | input, output -> failwithf "Parameter %s has unsupported direction input: %b/output: %b" paramName input output
-
-//                let output = unbox reader.["suggested_is_output"]
-//                let input = unbox reader.["suggested_is_input"]
-//                if input && output then ParameterDirection.InputOutput
-//                elif output then ParameterDirection.Output
-//                else ParameterDirection.Input
+                if unbox reader.["suggested_is_output"]
+                then 
+                    invalidArg paramName "Output parameters are not supported"
+                else 
+                    assert(unbox reader.["suggested_is_input"])
+                    ParameterDirection.Input 
                     
             let typeInfo = 
                 match findBySqlEngineTypeIdAndUdtt(connection.ConnectionString, sqlEngineTypeId, udttName) with

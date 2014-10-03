@@ -39,7 +39,7 @@ getWhereUsedProductID.AsyncExecute(1, DateTime(2013,1,1)) |> Async.RunSynchronou
 
 //Mix of input and output parameters in SP
 type Swap = dbo.Swap
-let swap = new Swap() 
+let swap = new dbo.Swap()
 swap.Execute(input=5) |> Async.RunSynchronously 
 a.output
 a.nullStringOutput
@@ -97,3 +97,5 @@ let res = updateEmployeeLogin.AsyncExecute(
 //
 
 //DbElephant.getAssetTypeId.AsyncExecute("Tank", 1) |> Async.RunSynchronously
+
+//let x = new Run
