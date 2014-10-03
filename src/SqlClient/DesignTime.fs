@@ -6,7 +6,7 @@ open System.Data
 open System.Data.SqlClient
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
-open Samples.FSharp.ProvidedTypes
+open ProviderImplementation.ProvidedTypes
 open FSharp.Data
 
 type internal ResultTypes = {

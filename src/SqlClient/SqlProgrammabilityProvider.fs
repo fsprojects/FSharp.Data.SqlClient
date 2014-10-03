@@ -15,7 +15,7 @@ open Microsoft.FSharp.Reflection
 
 open Microsoft.SqlServer.Server
 
-open Samples.FSharp.ProvidedTypes
+open ProviderImplementation.ProvidedTypes
 
 open FSharp.Data.SqlClient
 

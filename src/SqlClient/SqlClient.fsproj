@@ -66,8 +66,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ProvidedTypes-head.fsi" />
-    <Compile Include="ProvidedTypes-head.fs" />
+    <Compile Include="ProvidedTypes.fsi" />
+    <Compile Include="ProvidedTypes.fs" />
+    <Compile Include="DebugProvidedTypes.fs" />
     <Compile Include="Configuration.fs" />
     <Compile Include="DataTable.fs" />
     <Compile Include="DynamicRecord.fs" />

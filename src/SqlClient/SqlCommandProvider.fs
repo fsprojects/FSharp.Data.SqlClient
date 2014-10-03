@@ -17,7 +17,7 @@ open Microsoft.FSharp.Quotations
 
 open FSharp.Data.SqlClient
 
-open Samples.FSharp.ProvidedTypes
+open ProviderImplementation.ProvidedTypes
 
 [<assembly:TypeProviderAssembly()>]
 [<assembly:InternalsVisibleTo("SqlClient.Tests")>]

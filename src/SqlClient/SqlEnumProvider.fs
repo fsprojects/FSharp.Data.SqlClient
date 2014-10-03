@@ -13,7 +13,7 @@ open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
 
-open Samples.FSharp.ProvidedTypes
+open ProviderImplementation.ProvidedTypes
 
 [<assembly:TypeProviderAssembly()>]
 [<assembly: AssemblyTitleAttribute("FSharp.Data.SqlEnumProvider")>]

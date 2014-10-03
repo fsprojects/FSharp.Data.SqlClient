@@ -1,14 +1,16 @@
-﻿// Copyright (c) Microsoft Corporation 2005-2012.
+#nowarn "40"
+// Based on code for the F# 3.0 Developer Preview release of September 2011,
+// Copyright (c) Microsoft Corporation 2005-2012.
 // This sample code is provided "as is" without warranty of any kind. 
 // We disclaim all warranties, either express or implied, including the 
 // warranties of merchantability and fitness for a particular purpose. 
 
 // This file contains a set of helper types and methods for providing types in an implementation 
 // of ITypeProvider.
-//
-// This code is a sample for use in conjunction with the F# 3.0 Beta release of March 2012
 
-namespace Samples.FSharp.ProvidedTypes
+// This code has been modified and is appropriate for use in conjunction with the F# 3.0, F# 3.1, and F# 3.1.1 releases
+
+namespace ProviderImplementation.ProvidedTypes
 
 open System
 open System.Text
@@ -19,6 +21,11 @@ open System.Linq.Expressions
 open System.Collections.Generic
 open Microsoft.FSharp.Core.CompilerServices
 
+type E = Quotations.Expr
+module P = Quotations.Patterns
+module ES = Quotations.ExprShape
+module DP = Quotations.DerivedPatterns
+
 type internal ExpectedStackState = 
     | Empty = 1
     | Address = 2
@@ -27,7 +34,7 @@ type internal ExpectedStackState =
 [<AutoOpen>]
 module internal Misc =
     let TypeBuilderInstantiationType = 
-        let runningOnMono = try System.Type.GetType("Mono.Runtime") <> null with e -> false
+        let runningOnMono = try System.Type.GetType("Mono.Runtime") <> null with e -> false 
         let typeName = if runningOnMono then "System.Reflection.MonoGenericClass" else "System.Reflection.Emit.TypeBuilderInstantiation"
         typeof<TypeBuilder>.Assembly.GetType(typeName)
     let GetTypeFromHandleMethod = typeof<Type>.GetMethod("GetTypeFromHandle")
@@ -148,6 +155,7 @@ module internal Misc =
         member __.AddXmlDocDelayed(xmlDoc : unit -> string) = xmlDocDelayed <- Some xmlDoc
         member this.AddXmlDoc(text:string) =  this.AddXmlDocDelayed (fun () -> text)
         member __.HideObjectMethods with set v = hideObjectMethods <- v
+        member __.AddCustomAttribute(attribute) = customAttributes.Add(attribute)
         member __.GetCustomAttributesData() = 
             [| yield! customAttributesOnce.Force()
                match xmlDocAlwaysRecomputed with None -> () | Some f -> customAttributes.Add(mkXmlDocCustomAttributeData (f()))  |]
@@ -279,13 +287,155 @@ module internal Misc =
             else r
         trans q
 
-    let transQuotationToCode isGenerated qexprf (argExprs: Quotations.Expr[]) = 
+    let getFastFuncType (args : list<E>) resultType =
+        let types =
+            [|
+                for arg in args -> arg.Type
+                yield resultType
+            |]
+        let fastFuncTy = 
+            match List.length args with
+            | 2 -> typedefof<OptimizedClosures.FSharpFunc<_, _, _>>.MakeGenericType(types)
+            | 3 -> typedefof<OptimizedClosures.FSharpFunc<_, _, _, _>>.MakeGenericType(types)
+            | 4 -> typedefof<OptimizedClosures.FSharpFunc<_, _, _, _, _>>.MakeGenericType(types)
+            | 5 -> typedefof<OptimizedClosures.FSharpFunc<_, _, _, _, _, _>>.MakeGenericType(types)
+            | _ -> invalidArg "args" "incorrect number of arguments"
+        fastFuncTy.GetMethod("Adapt")
+    
+    let inline (===) a b = LanguagePrimitives.PhysicalEquality a b
+    
+    let traverse f = 
+        let rec fallback e = 
+            match e with
+            | P.Let(v, value, body) ->
+                let fixedValue = f fallback value
+                let fixedBody = f fallback body
+                if fixedValue === value && fixedBody === body then 
+                    e
+                else
+                    E.Let(v, fixedValue, fixedBody) 
+            | ES.ShapeVar _ -> e
+            | ES.ShapeLambda(v, body) -> 
+                let fixedBody = f fallback body 
+                if fixedBody === body then 
+                    e
+                else
+                    E.Lambda(v, fixedBody)
+            | ES.ShapeCombination(shape, exprs) -> 
+                let exprs1 = List.map (f fallback) exprs
+                if List.forall2 (===) exprs exprs1 then 
+                    e
+                else
+                    ES.RebuildShapeCombination(shape, exprs1)
+        fun e -> f fallback e
+
+    let RightPipe = <@@ (|>) @@>
+    let inlineRightPipe expr = 
+        let rec loop expr = traverse loopCore expr
+        and loopCore fallback orig = 
+            match orig with
+            | DP.SpecificCall RightPipe (None, _, [operand; applicable]) ->
+                let fixedOperand = loop operand
+                match loop applicable with
+                | P.Lambda(arg, body) ->
+                    let v = Quotations.Var("__temp", operand.Type)
+                    let ev = E.Var v
+
+                    let fixedBody = loop body
+                    E.Let(v, fixedOperand, fixedBody.Substitute(fun v1 -> if v1 = arg then Some ev else None))
+                | fixedApplicable -> E.Application(fixedApplicable, fixedOperand)
+            | x -> fallback x
+        loop expr
+
+    let inlineValueBindings e = 
+        let map = Dictionary(HashIdentity.Reference)
+        let rec loop expr = traverse loopCore expr
+        and loopCore fallback orig = 
+            match orig with
+            | P.Let(id, (P.Value(_) as v), body) when not id.IsMutable ->
+                map.[id] <- v
+                let fixedBody = loop body
+                map.Remove(id) |> ignore
+                fixedBody
+            | ES.ShapeVar v -> 
+                match map.TryGetValue v with
+                | true, e -> e
+                | _ -> orig
+            | x -> fallback x
+        loop e
+
+
+    let optimizeCurriedApplications expr = 
+        let rec loop expr = traverse loopCore expr
+        and loopCore fallback orig = 
+            match orig with
+            | P.Application(e, arg) -> 
+                let e1 = tryPeelApplications e [loop arg]
+                if e1 === e then 
+                    orig 
+                else 
+                    e1
+            | x -> fallback x
+        and tryPeelApplications orig args = 
+            let n = List.length args
+            match orig with
+            | P.Application(e, arg) -> 
+                let e1 = tryPeelApplications e ((loop arg)::args)
+                if e1 === e then 
+                    orig 
+                else 
+                    e1
+            | P.Let(id, applicable, (P.Lambda(_) as body)) when n > 0 -> 
+                let numberOfApplication = countPeelableApplications body id 0
+                if numberOfApplication = 0 then orig
+                elif n = 1 then E.Application(applicable, List.head args)
+                elif n <= 5 then
+                    let resultType = 
+                        applicable.Type 
+                        |> Seq.unfold (fun t -> 
+                            if not t.IsGenericType then None
+                            else
+                            let args = t.GetGenericArguments()
+                            if args.Length <> 2 then None
+                            else
+                            Some (args.[1], args.[1])
+                        )
+                        |> Seq.nth (n - 1)
+
+                    let adaptMethod = getFastFuncType args resultType
+                    let adapted = E.Call(adaptMethod, [loop applicable])
+                    let invoke = adapted.Type.GetMethod("Invoke", [| for arg in args -> arg.Type |])
+                    E.Call(adapted, invoke, args)
+                else
+                    (applicable, args) ||> List.fold (fun e a -> E.Application(e, a))
+            | _ -> 
+                orig
+        and countPeelableApplications expr v n =
+            match expr with
+            // v - applicable entity obtained on the prev step
+            // \arg -> let v1 = (f arg) in rest ==> f 
+            | P.Lambda(arg, P.Let(v1, P.Application(P.Var f, P.Var arg1), rest)) when v = f && arg = arg1 -> countPeelableApplications rest v1 (n + 1)
+            // \arg -> (f arg) ==> f
+            | P.Lambda(arg, P.Application(P.Var f, P.Var arg1)) when v = f && arg = arg1 -> n
+            | _ -> n
+        loop expr
+    
+    // FSharp.Data change: use the real variable names instead of indices, to improve output of Debug.fs
+    let transQuotationToCode isGenerated qexprf (paramNames: string[]) (argExprs: Quotations.Expr[]) = 
         // add let bindings for arguments to ensure that arguments will be evaluated
-        let vars = argExprs |> Array.mapi (fun i e -> Quotations.Var(("var" + string i), e.Type))
+        let vars = argExprs |> Array.mapi (fun i e -> Quotations.Var(paramNames.[i], e.Type))
         let expr = qexprf ([for v in vars -> Quotations.Expr.Var v])
 
         let pairs = Array.zip argExprs vars
         let expr = Array.foldBack (fun (arg, var) e -> Quotations.Expr.Let(var, arg, e)) pairs expr
+        let expr = 
+            if isGenerated then
+                let e1 = inlineRightPipe expr
+                let e2 = optimizeCurriedApplications e1
+                let e3 = inlineValueBindings e2
+                e3
+            else
+                expr
 
         transExpr isGenerated expr
 
@@ -302,7 +452,7 @@ module internal Misc =
             | TypeAttributes.NestedFamANDAssem when not isNested -> TypeAttributes.NotPublic
             | a -> a
         (attributes &&& ~~~TypeAttributes.VisibilityMask) ||| visibilityAttributes
-
+        
 type ProvidedStaticParameter(parameterName:string,parameterType:Type,?parameterDefaultValue:obj) = 
     inherit System.Reflection.ParameterInfo()
 
@@ -386,7 +536,14 @@ type ProvidedConstructor(parameters : ProvidedParameter list) =
 
     member this.GetInvokeCodeInternal isGenerated =
         match invokeCode with
-        | Some f -> transQuotationToCode isGenerated f
+        | Some f -> 
+            // FSharp.Data change: use the real variable names instead of indices, to improve output of Debug.fs
+            let paramNames = 
+                parameters
+                |> List.map (fun p -> p.Name) 
+                |> List.append (if not isGenerated || this.IsStatic then [] else ["this"])
+                |> Array.ofList
+            transQuotationToCode isGenerated f paramNames
         | None -> failwith (sprintf "ProvidedConstructor: no invoker for '%s'" (nameText()))
 
     member this.GetBaseConstructorCallInternal isGenerated =
@@ -425,6 +582,7 @@ type ProvidedMethod(methodName: string, parameters: ProvidedParameter list, retu
     member this.AddXmlDoc xmlDoc                            = customAttributesImpl.AddXmlDoc xmlDoc
     member this.AddObsoleteAttribute (msg,?isError)         = customAttributesImpl.AddObsolete (msg,defaultArg isError false)
     member this.AddDefinitionLocation(line,column,filePath) = customAttributesImpl.AddDefinitionLocation(line, column, filePath)
+    member __.AddCustomAttribute(attribute) = customAttributesImpl.AddCustomAttribute(attribute)
     member __.GetCustomAttributesDataImpl() = customAttributesImpl.GetCustomAttributesData()
 #if FX_NO_CUSTOMATTRIBUTEDATA
 #else
@@ -447,7 +605,14 @@ type ProvidedMethod(methodName: string, parameters: ProvidedParameter list, retu
 
     member this.GetInvokeCodeInternal isGenerated =
         match invokeCode with
-        | Some f ->  transQuotationToCode isGenerated f
+        | Some f -> 
+            // FSharp.Data change: use the real variable names instead of indices, to improve output of Debug.fs
+            let paramNames = 
+                parameters
+                |> List.map (fun p -> p.Name) 
+                |> List.append (if this.IsStatic then [] else ["this"])
+                |> Array.ofList
+            transQuotationToCode isGenerated f paramNames
         | None -> failwith (sprintf "ProvidedMethod: no invoker for %s on type %s" this.Name (if declaringType=null then "<not yet known type>" else declaringType.FullName))
    // Implement overloads
     override this.GetParameters() = argParams |> Array.ofList
@@ -504,6 +669,7 @@ type ProvidedProperty(propertyName:string,propertyType:Type, ?parameters:Provide
     member this.AddObsoleteAttribute (msg,?isError)         = customAttributesImpl.AddObsolete (msg,defaultArg isError false)
     member this.AddDefinitionLocation(line,column,filePath) = customAttributesImpl.AddDefinitionLocation(line, column, filePath)
     member __.GetCustomAttributesDataImpl() = customAttributesImpl.GetCustomAttributesData()
+    member this.AddCustomAttribute attribute                = customAttributesImpl.AddCustomAttribute attribute
 #if FX_NO_CUSTOMATTRIBUTEDATA
 #else
     override this.GetCustomAttributesData()                 = customAttributesImpl.GetCustomAttributesData()
@@ -675,6 +841,7 @@ type ProvidedField(fieldName:string,fieldType:Type) =
     override this.FieldHandle = notRequired "FieldHandle" this.Name
 
 /// Represents the type constructor in a provided symbol type.
+[<NoComparison>]
 type SymbolKind = 
     | SDArray 
     | Array of int 
@@ -816,8 +983,8 @@ type ProvidedSymbolType(kind: SymbolKind, args: Type list) =
         | _ -> false
 
     member this.Kind = kind
-    member this.Args = args    
-
+    member this.Args = args
+    
     override this.GetConstructors _bindingAttr                                                      = notRequired "GetConstructors" this.Name
     override this.GetMethodImpl(_name, _bindingAttr, _binderBinder, _callConvention, _types, _modifiers) = 
         match kind with
@@ -859,6 +1026,9 @@ type ProvidedSymbolType(kind: SymbolKind, args: Type list) =
     override this.GetCustomAttributes(_inherit)                                                    = [| |]
     override this.GetCustomAttributes(_attributeType, _inherit)                                    = [| |]
     override this.IsDefined(_attributeType, _inherit)                                              = false
+    // FSharp.Data addition: this was added to support arrays of arrays
+    override this.MakeArrayType() = ProvidedSymbolType(SymbolKind.SDArray, [this]) :> Type
+    override this.MakeArrayType arg = ProvidedSymbolType(SymbolKind.Array arg, [this]) :> Type
 
 type ProvidedSymbolMethod(genericMethodDefinition: MethodInfo, parameters: Type list) =
     inherit System.Reflection.MethodInfo()
@@ -909,6 +1079,19 @@ type ProvidedTypeBuilder() =
 [<Class>]
 type ProvidedMeasureBuilder() =
 
+    // TODO: this shouldn't be hardcoded, but without creating a dependency on Microsoft.FSharp.Metadata in F# PowerPack
+    // there seems to be no way to check if a type abbreviation exists
+    let unitNamesTypeAbbreviations = 
+        [ "meter"; "hertz"; "newton"; "pascal"; "joule"; "watt"; "coulomb"; 
+          "volt"; "farad"; "ohm"; "siemens"; "weber"; "tesla"; "henry"
+          "lumen"; "lux"; "becquerel"; "gray"; "sievert"; "katal" ]
+        |> Set.ofList
+
+    let unitSymbolsTypeAbbreviations = 
+        [ "m"; "kg"; "s"; "A"; "K"; "mol"; "cd"; "Hz"; "N"; "Pa"; "J"; "W"; "C"
+          "V"; "F"; "S"; "Wb"; "T"; "lm"; "lx"; "Bq"; "Gy"; "Sv"; "kat"; "H" ]
+        |> Set.ofList
+
     static let theBuilder = ProvidedMeasureBuilder()
     static member Default = theBuilder
     member b.One = typeof<Core.CompilerServices.MeasureOne> 
@@ -916,21 +1099,35 @@ type ProvidedMeasureBuilder() =
     member b.Inverse m = typedefof<Core.CompilerServices.MeasureInverse<_>>.MakeGenericType [| m |] 
     member b.Ratio (m1, m2) = b.Product(m1, b.Inverse m2)
     member b.Square m = b.Product(m, m)
-    member b.SI m = 
-        match typedefof<list<int>>.Assembly.GetType("Microsoft.FSharp.Data.UnitSystems.SI.UnitNames."+m) with 
-        | null ->         
+
+    // FSharp.Data change: if the unit is not a valid type, instead 
+    // of assuming it's a type abbreviation, which may not be the case and cause a
+    // problem later on, check the list of valid abbreviations
+    member b.SI (m:string) = 
+        let mLowerCase = m.ToLowerInvariant()
+        let abbreviation =            
+            if unitNamesTypeAbbreviations.Contains mLowerCase then
+                Some ("Microsoft.FSharp.Data.UnitSystems.SI.UnitNames", mLowerCase)
+            elif unitSymbolsTypeAbbreviations.Contains m then
+                Some ("Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols", m)
+            else
+                None
+        match abbreviation with
+        | Some (ns, unitName) ->
             ProvidedSymbolType
                (SymbolKind.FSharpTypeAbbreviation
                    (typeof<Core.CompilerServices.MeasureOne>.Assembly,
-                    "Microsoft.FSharp.Data.UnitSystems.SI.UnitNames", 
-                    [| m |]), 
+                    ns,
+                    [| unitName |]), 
                 []) :> Type
-        | v -> v
+        | None ->
+            typedefof<list<int>>.Assembly.GetType("Microsoft.FSharp.Data.UnitSystems.SI.UnitNames." + mLowerCase)
+
     member b.AnnotateType (basicType, annotation) = ProvidedSymbolType(Generic basicType, annotation) :> Type
 
 
 
-[<RequireQualifiedAccess>]
+[<RequireQualifiedAccess; NoComparison>]
 type TypeContainer =
   | Namespace of Assembly * string // namespace
   | Type of System.Type
@@ -947,6 +1144,7 @@ type ProvidedTypeDefinition(container:TypeContainer,className : string, baseType
         TypeAttributes.Class ||| 
         TypeAttributes.Sealed |||
         enum (int32 TypeProviderTypeAttributes.IsErased)
+
 
     let mutable enumUnderlyingType = typeof<int>
     let mutable baseType   =  lazy baseType
@@ -1043,6 +1241,7 @@ type ProvidedTypeDefinition(container:TypeContainer,className : string, baseType
     member this.AddDefinitionLocation(line,column,filePath) = customAttributesImpl.AddDefinitionLocation(line, column, filePath)
     member this.HideObjectMethods with set v                = customAttributesImpl.HideObjectMethods <- v
     member __.GetCustomAttributesDataImpl() = customAttributesImpl.GetCustomAttributesData()
+    member this.AddCustomAttribute attribute                = customAttributesImpl.AddCustomAttribute attribute
 #if FX_NO_CUSTOMATTRIBUTEDATA
 #else
     override this.GetCustomAttributesData()                 = customAttributesImpl.GetCustomAttributesData()
@@ -1213,6 +1412,35 @@ type ProvidedTypeDefinition(container:TypeContainer,className : string, baseType
     override this.MakePointerType() = ProvidedSymbolType(SymbolKind.Pointer, [this]) :> Type
     override this.MakeByRefType() = ProvidedSymbolType(SymbolKind.ByRef, [this]) :> Type
 
+    // FSharp.Data addition: this method is used by Debug.fs and QuotationBuilder.fs
+    // Emulate the F# type provider type erasure mechanism to get the 
+    // actual (erased) type. We erase ProvidedTypes to their base type
+    // and we erase array of provided type to array of base type. In the
+    // case of generics all the generic type arguments are also recursively
+    // replaced with the erased-to types
+    static member EraseType(t:Type) =
+        match t with
+        | :? ProvidedTypeDefinition -> ProvidedTypeDefinition.EraseType t.BaseType 
+        | :? ProvidedSymbolType as sym ->
+            match sym.Kind, sym.Args with
+            | SymbolKind.SDArray, [typ] -> 
+                let (t:Type) = ProvidedTypeDefinition.EraseType typ
+                t.MakeArrayType()
+            | SymbolKind.Generic genericTypeDefinition, typeArgs ->
+                let genericArguments =
+                  typeArgs
+                  |> List.toArray
+                  |> Array.map ProvidedTypeDefinition.EraseType
+                genericTypeDefinition.MakeGenericType(genericArguments)
+            | _ -> failwith "getTypeErasedTo: Unsupported ProvidedSymbolType" 
+        | t when t.IsGenericType && not t.IsGenericTypeDefinition ->
+            let genericTypeDefinition = t.GetGenericTypeDefinition()
+            let genericArguments = 
+              t.GetGenericArguments()
+              |> Array.map ProvidedTypeDefinition.EraseType
+            genericTypeDefinition.MakeGenericType(genericArguments)
+        | t -> t
+
     // The binding attributes are always set to DeclaredOnly ||| Static ||| Instance ||| Public when GetMembers is called directly by the F# compiler
     // However, it's possible for the framework to generate other sets of flags in some corner cases (e.g. via use of `enum` with a provided type as the target)
     override this.GetMembers bindingAttr = 
@@ -1240,7 +1468,9 @@ type ProvidedTypeDefinition(container:TypeContainer,className : string, baseType
 
         if bindingAttr.HasFlag(BindingFlags.DeclaredOnly) || this.BaseType = null then mems
         else 
-            let baseMems = this.BaseType.GetMembers bindingAttr
+            // FSharp.Data change: just using this.BaseType is not enough in the case of CsvProvider,
+            // because the base type is CsvRow<RowType>, so we have to erase recursively to CsvRow<TupleType>
+            let baseMems = (ProvidedTypeDefinition.EraseType this.BaseType).GetMembers bindingAttr
             Array.append mems baseMems
 
     override this.GetNestedTypes bindingAttr = 
@@ -1328,6 +1558,7 @@ type AssemblyGenerator(assemblyFileName) =
     let uniqueLambdaTypeName() = 
         // lambda name should be unique across all types that all type provider might contribute in result assembly
         sprintf "Lambda%O" (Guid.NewGuid()) 
+
     member __.Assembly = assembly :> Assembly
     /// Emit the given provided type definitions into an assembly and adjust 'Assembly' property of all type definitions to return that
     /// assembly.
@@ -1468,19 +1699,19 @@ type AssemblyGenerator(assemblyFileName) =
                             cb
                     ctorMap.[pcinfo] <- cb
                 | _ -> () 
-            
+                    
             if ptd.IsEnum then
                 tb.DefineField("value__", ptd.GetEnumUnderlyingType(), FieldAttributes.Public ||| FieldAttributes.SpecialName ||| FieldAttributes.RTSpecialName)
                 |> ignore
 
             for finfo in ptd.GetFields(ALL) do
                 let fieldInfo = 
-                    match finfo with
-                    | :? ProvidedField as pinfo -> 
-                        Some (pinfo.Name, convType finfo.FieldType, finfo.Attributes, pinfo.GetCustomAttributesDataImpl(), None)
-                    | :? ProvidedLiteralField as pinfo ->
-                        Some (pinfo.Name, convType finfo.FieldType, finfo.Attributes, pinfo.GetCustomAttributesDataImpl(), Some (pinfo.GetRawConstantValue()))
-                    | _ -> None
+                    match finfo with 
+                        | :? ProvidedField as pinfo -> 
+                            Some (pinfo.Name, convType finfo.FieldType, finfo.Attributes, pinfo.GetCustomAttributesDataImpl(), None)
+                        | :? ProvidedLiteralField as pinfo ->
+                            Some (pinfo.Name, convType finfo.FieldType, finfo.Attributes, pinfo.GetCustomAttributesDataImpl(), Some (pinfo.GetRawConstantValue()))
+                        | _ -> None
                 match fieldInfo with
                 | Some (name, ty, attr, cattr, constantVal) when not (fieldMap.ContainsKey finfo) ->
                     let fb = tb.DefineField(name, ty, attr)
@@ -1488,19 +1719,19 @@ type AssemblyGenerator(assemblyFileName) =
                         fb.SetConstant constantVal.Value
                     defineCustomAttrs fb.SetCustomAttribute cattr
                     fieldMap.[finfo] <- fb
-                | _ -> ()
+                | _ -> () 
             for minfo in ptd.GetMethods(ALL) do
                 match minfo with 
                 | :? ProvidedMethod as pminfo when not (methMap.ContainsKey pminfo)  -> 
                     let mb = tb.DefineMethod(minfo.Name, minfo.Attributes, convType minfo.ReturnType, [| for p in minfo.GetParameters() -> convType p.ParameterType |])
                     for (i, p) in minfo.GetParameters() |> Seq.mapi (fun i x -> (i,x :?> ProvidedParameter)) do
                         // TODO: check why F# compiler doesn't emit default value when just p.Attributes is used (thus bad metadata is emitted)
-                        let mutable attrs = ParameterAttributes.None
-                        
-                        if p.IsOut then attrs <- attrs ||| ParameterAttributes.Out
-                        if p.HasDefaultParameterValue then attrs <- attrs ||| ParameterAttributes.Optional
+//                        let mutable attrs = ParameterAttributes.None
+//                        
+//                        if p.IsOut then attrs <- attrs ||| ParameterAttributes.Out
+//                        if p.HasDefaultParameterValue then attrs <- attrs ||| ParameterAttributes.Optional
 
-                        let pb = mb.DefineParameter(i+1, attrs, p.Name)
+                        let pb = mb.DefineParameter(i+1, p.Attributes, p.Name)
                         if p.HasDefaultParameterValue then 
                             do
                                 let ctor = typeof<System.Runtime.InteropServices.DefaultParameterValueAttribute>.GetConstructor([|typeof<obj>|])
@@ -1569,7 +1800,7 @@ type AssemblyGenerator(assemblyFileName) =
                 emitExpr (ilg, copyOfLocals, [| Quotations.Var("this", lambda); v|]) expectedState body
                 ilg.Emit(OpCodes.Ret) 
 
-                let ty = lambda.CreateType()
+                lambda.CreateType() |> ignore
 
                 callSiteIlg.Emit(OpCodes.Newobj, ctor)
                 for (v, f) in fields do
@@ -1696,7 +1927,7 @@ type AssemblyGenerator(assemblyFileName) =
                           ilg.Emit(OpCodes.Castclass, targetTy)
                               
                         popIfEmptyExpected expectedState
-                    | Quotations.DerivedPatterns.SpecificCall <@ (-) @>(None, [t1; t2; t3], [a1; a2]) ->
+                    | Quotations.DerivedPatterns.SpecificCall <@ (-) @>(None, [t1; t2; _], [a1; a2]) ->
                         assert(t1 = t2)
                         emit ExpectedStackState.Value a1
                         emit ExpectedStackState.Value a2
@@ -1708,7 +1939,7 @@ type AssemblyGenerator(assemblyFileName) =
 
                         popIfEmptyExpected expectedState
 
-                    | Quotations.DerivedPatterns.SpecificCall <@ (/) @> (None, [t1; t2; t3], [a1; a2]) ->
+                    | Quotations.DerivedPatterns.SpecificCall <@ (/) @> (None, [t1; t2; _], [a1; a2]) ->
                         assert (t1 = t2)
                         emit ExpectedStackState.Value a1
                         emit ExpectedStackState.Value a2
@@ -1785,19 +2016,19 @@ type AssemblyGenerator(assemblyFileName) =
                             if expectedState <> ExpectedStackState.Empty then
                                 emit expectedState (Quotations.Expr.Value(field.GetRawConstantValue(), field.FieldType.GetEnumUnderlyingType()))
                         | _ ->
-                            match objOpt with 
-                            | None -> () 
-                            | Some e -> 
-                              let s = if e.Type.IsValueType then ExpectedStackState.Address else ExpectedStackState.Value
-                              emit s e
-                            let field = 
-                                match field with 
-                                | :? ProvidedField as pf when fieldMap.ContainsKey pf -> fieldMap.[pf] :> FieldInfo 
-                                | m -> m
-                            if field.IsStatic then 
-                                ilg.Emit(OpCodes.Ldsfld, field)
-                            else
-                                ilg.Emit(OpCodes.Ldfld, field)
+                        match objOpt with 
+                        | None -> () 
+                        | Some e -> 
+                          let s = if e.Type.IsValueType then ExpectedStackState.Address else ExpectedStackState.Value
+                          emit s e
+                        let field = 
+                            match field with 
+                            | :? ProvidedField as pf when fieldMap.ContainsKey pf -> fieldMap.[pf] :> FieldInfo 
+                            | m -> m
+                        if field.IsStatic then 
+                            ilg.Emit(OpCodes.Ldsfld, field)
+                        else
+                            ilg.Emit(OpCodes.Ldfld, field)
 
                     | Quotations.Patterns.FieldSet (objOpt,field,v) -> 
                         match objOpt with 
@@ -1880,7 +2111,7 @@ type AssemblyGenerator(assemblyFileName) =
                             | :? bool as x -> ilg.Emit(OpCodes.Ldc_I4, if x then 1 else 0)
                             | :? float32 as x -> ilg.Emit(OpCodes.Ldc_R4, x)
                             | :? float as x -> ilg.Emit(OpCodes.Ldc_R8, x)
-#if BROWSER
+#if FX_NO_GET_ENUM_UNDERLYING_TYPE
 #else
                             | :? System.Enum as x when x.GetType().GetEnumUnderlyingType() = typeof<int32> -> ilg.Emit(OpCodes.Ldc_I4, unbox<int32> v)
 #endif
@@ -2138,7 +2369,7 @@ type ProvidedAssembly(assemblyFileName: string) =
         //printfn "registered assembly in '%s'" fileName
         let assemblyBytes = System.IO.File.ReadAllBytes fileName
         let assembly = Assembly.Load(assemblyBytes,null,System.Security.SecurityContextSource.CurrentAppDomain)
-        GlobalProvidedAssemblyElementsTable.theTable.Add(assembly, Lazy.CreateFromValue assemblyBytes)
+        GlobalProvidedAssemblyElementsTable.theTable.Add(assembly, Lazy<_>.CreateFromValue assemblyBytes)
         assembly
 #endif
 
@@ -2160,7 +2391,11 @@ module Local =
         }
 
 
+#if FX_NO_LOCAL_FILESYSTEM
+type TypeProviderForNamespaces(namespacesAndTypes : list<(string * list<ProvidedTypeDefinition>)>) =
+#else
 type TypeProviderForNamespaces(namespacesAndTypes : list<(string * list<ProvidedTypeDefinition>)>) as this =
+#endif
     let otherNamespaces = ResizeArray<string * list<ProvidedTypeDefinition>>()
 
     let providedNamespaces = 
@@ -2170,6 +2405,8 @@ type TypeProviderForNamespaces(namespacesAndTypes : list<(string * list<Provided
                      yield Local.makeProvidedNamespace namespaceName types |]
 
     let invalidateE = new Event<EventHandler,EventArgs>()    
+
+    let disposing = Event<EventHandler,EventArgs>()
 
 #if FX_NO_LOCAL_FILESYSTEM
 #else
@@ -2181,9 +2418,13 @@ type TypeProviderForNamespaces(namespacesAndTypes : list<(string * list<Provided
     new (namespaceName:string,types:list<ProvidedTypeDefinition>) = new TypeProviderForNamespaces([(namespaceName,types)])
     new () = new TypeProviderForNamespaces([])
 
+    [<CLIEvent>]
+    member this.Disposing = disposing.Publish
+
 #if FX_NO_LOCAL_FILESYSTEM
     interface System.IDisposable with 
-        member x.Dispose() = ()
+        member x.Dispose() = 
+            disposing.Trigger(x, EventArgs.Empty)
 #else
     abstract member ResolveAssembly : args : System.ResolveEventArgs -> Assembly
     default this.ResolveAssembly(args) = 
@@ -2204,11 +2445,16 @@ type TypeProviderForNamespaces(namespacesAndTypes : list<(string * list<Provided
         cfg.RuntimeAssembly
         |> IO.Path.GetDirectoryName
         |> this.RegisterProbingFolder
+
     interface System.IDisposable with 
-        member x.Dispose() = AppDomain.CurrentDomain.remove_AssemblyResolve handler
+        member x.Dispose() = 
+            disposing.Trigger(x, EventArgs.Empty)
+            AppDomain.CurrentDomain.remove_AssemblyResolve handler
 #endif
 
     member __.AddNamespace (namespaceName,types:list<_>) = otherNamespaces.Add (namespaceName,types)
+    // FSharp.Data addition: this method is used by Debug.fs
+    member __.Namespaces = Seq.readonly otherNamespaces
     member self.Invalidate() = invalidateE.Trigger(self,EventArgs())
     interface ITypeProvider with
         [<CLIEvent>]
@@ -2306,6 +2552,6 @@ type TypeProviderForNamespaces(namespacesAndTypes : list<(string * list<Provided
             | true,bytes -> bytes.Force()
             | _ -> 
                 let bytes = System.IO.File.ReadAllBytes assembly.ManifestModule.FullyQualifiedName
-                GlobalProvidedAssemblyElementsTable.theTable.[assembly] <- Lazy.CreateFromValue bytes
+                GlobalProvidedAssemblyElementsTable.theTable.[assembly] <- Lazy<_>.CreateFromValue bytes
                 bytes
 #endif
