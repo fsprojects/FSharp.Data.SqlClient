@@ -55,4 +55,8 @@
 
 #### 1.3.5-beta - September 23 2014
 	* Fixed connection string by name problem for SqlProgrammabilityProvider
+
+#### 1.3.6-beta - October 2 2014
+	* SqlProgrammabilityProvider dev experience improved significantly 
+	* All entities: UDTT, SPs and Functions under a namespace they belong to 
 	
