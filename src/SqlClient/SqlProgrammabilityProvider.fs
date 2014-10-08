@@ -103,6 +103,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 let ctor = ProvidedConstructor( parameters)
                 ctor.InvokeCode <- fun args -> Expr.NewArray(typeof<obj>, [ for a in args -> Expr.Coerce(a, typeof<obj>) ])
                 rowType.AddMember ctor
+                rowType.AddXmlDoc "User-Defined Table Type"
                 yield rowType
     ]
 
@@ -113,6 +114,11 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             for routine in routines do
              
                 let cmdProvidedType = ProvidedTypeDefinition(routine.Name, Some typeof<RuntimeSqlCommand>, HideObjectMethods = true)
+                cmdProvidedType.AddXmlDoc <| 
+                    match routine with 
+                    | StoredProcedure _ -> "Stored Procedure"
+                    | TableValuedFunction _ -> "Table-Valued Function"
+                    | ScalarValuedFunction _ -> "Scalar-Valued Function"
                 
                 cmdProvidedType.AddMembersDelayed <| fun() ->
                     [
