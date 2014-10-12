@@ -252,7 +252,7 @@ type DesignTime private() =
                             match udtts |> List.tryFind (fun x -> x.Name = p.TypeInfo.UdttName) with
                             | Some x -> x
                             | None ->
-                                let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<obj[]>)
+                                let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<obj>, HideObjectMethods = true)
                                 cmdProvidedType.AddMember rowType
                                 let parameters = [ 
                                     for p in p.TypeInfo.TableTypeColumns -> 

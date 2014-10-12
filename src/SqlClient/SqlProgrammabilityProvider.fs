@@ -93,7 +93,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         for t in dataTypeMappings.[connStr] do
             if t.TableType && t.Schema = schema
             then 
-                let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj[]>)
+                let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj>, HideObjectMethods = true)
                     
                 let parameters = [ 
                     for p in t.TableTypeColumns -> 

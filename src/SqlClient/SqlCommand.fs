@@ -159,8 +159,8 @@ type RuntimeSqlCommand (connection, sqlStatement, isStoredProcedure, parameters,
                 else
                     let table : DataTable = unbox p.Value
                     table.Rows.Clear()
-                    for rowValues in unbox<seq<obj[]>> value do
-                        table.Rows.Add( rowValues) |> ignore
+                    for rowValues in unbox<seq<obj>> value do
+                        table.Rows.Add( rowValues :?> obj[]) |> ignore
 
             if Convert.IsDBNull p.Value 
             then 
