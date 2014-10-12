@@ -49,7 +49,8 @@ let ``GetHashCode is same when equal``() =
 
 let dt = DateTime(2012,1,1)
 let offset = DateTimeOffset(dt,TimeSpan.FromHours(2.))
-let dateRecord = DynamicRecord(dict ["Date", box dt; "Offset", box offset]) 
+let data = dict ["Date", box dt; "Offset", box offset]
+let dateRecord = DynamicRecord(data) 
 let dateRecordString = """{"Date":"2012-01-01T00:00:00","Offset":"2012-01-01T00:00:00+02:00"}"""
 let recordWithNullsString = """{"DBNull":null,"null":null,"foo":"bar"}"""
 
@@ -58,11 +59,10 @@ let ``JSON serialize``() =
     JsonConvert.SerializeObject(recordWithNulls) |> should equal recordWithNullsString
     JsonConvert.SerializeObject(dateRecord) |> should equal dateRecordString
 
-//[<Fact>] 
-let ``JSON deserialize``() = 
-    //JsonConvert.DeserializeObject<DynamicRecord>(recordWithNullsString) |> should equal recordWithNulls
-    let settings = JsonSerializerSettings(DateTimeZoneHandling = DateTimeZoneHandling.RoundtripKind)
-    JsonConvert.DeserializeObject<DynamicRecord>(dateRecordString,  settings) |> should equal dateRecord
+[<Fact>] 
+let ToString() = 
+    let expected = sprintf "{ Date = %A; Offset = %A }" data.["Date"] data.["Offset"]
+    Assert.Equal<string>(expected, dateRecord.ToString())
 
 
 
