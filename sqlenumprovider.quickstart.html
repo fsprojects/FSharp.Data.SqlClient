@@ -1,0 +1,374 @@
+      <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>FSharp.Data.SqlEnumProvider
+</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way. SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code.">
+    <meta name="author" content="Dmitry Morozov, Dmitry Sevastianov">
+
+    <script src="http://code.jquery.com/jquery-1.8.0.js"></script>
+    <script src="http://code.jquery.com/ui/1.8.23/jquery-ui.js"></script>
+    <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
+    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet">
+
+    <link type="text/css" rel="stylesheet" href="/FSharp.Data.SqlClient/content/style.css" />
+    <script type="text/javascript" src="/FSharp.Data.SqlClient/content/tips.js"></script>
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+</head>
+<body>
+    <div class="container">
+        <div class="masthead">
+            <ul class="nav nav-pills pull-right">
+                <li><a href="http://fsharp.org">fsharp.org</a></li>
+                <li><a href="http://fsprojects.github.io/">fsprojects</a></li>
+                <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient">github page</a></li>
+            </ul>
+            <h3 class="muted">FSharp.Data.SqlClient</h3>
+        </div>
+        <hr />
+        <div class="row">
+            <div class="span9" id="main">
+                
+<h1>FSharp.Data.SqlEnumProvider</h1>
+
+<h2>Motivation</h2>
+
+<p>Often there is a certain amount of reference/lookup data in a database. This information changes relatively rare. At same time it's never represented in an application types.</p>
+
+<p>Here is the specific example. We'll use AdventureWorks2012 as sample database.</p>
+
+<p>Let's say we need to retrieve number of orders shipped in certain way since specific date.</p>
+
+<p>Order shippment types defined in Purchasing.ShipMethod table.</p>
+
+<p>A query "SELECT Name, ShipMethodID FROM Purchasing.ShipMethod" returns:</p>
+
+<table>
+<thead>
+<tr class="header">
+<th><p>Name</p></th>
+<th><p>ShipMethodID</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><p>CARGO TRANSPORT 5</p></td>
+<td><p>5</p></td>
+</tr>
+<tr class="even">
+<td><p>OVERNIGHT J-FAST</p></td>
+<td><p>4</p></td>
+</tr>
+<tr class="odd">
+<td><p>OVERSEAS - DELUXE</p></td>
+<td><p>3</p></td>
+</tr>
+<tr class="even">
+<td><p>XRQ - TRUCK GROUND</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="odd">
+<td><p>ZY - EXPRESS</p></td>
+<td><p>2</p></td>
+</tr>
+</tbody>
+</table>
+
+
+<p>A typical implementation for overnight orders shipped since Jan 1, 2008 is following:
+<code></code>`fsharp
+[<Literal>]
+let connStr = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"</p>
+
+<p>open System 
+open System.Data.SqlClient</p>
+
+<p>let conn = new SqlConnection (connStr)
+conn.Open()</p>
+
+<p>let cmd = new SqlCommand ("
+    SELECT COUNT(*) 
+    FROM Purchasing.PurchaseOrderHeader 
+    WHERE ShipDate > @shippedLaterThan AND ShipMethodID = @shipMethodId", conn)</p>
+
+<p>cmd.Parameters.AddWithValue("@shippedLaterThan", DateTime(2008, 1, 1)) |> ignore
+cmd.Parameters.AddWithValue("@shipMethodId", 4) |> ignore
+cmd.ExecuteScalar() |> unbox<int>
+<code></code>`</p>
+
+<p>The query returns valid answer 748 but suffers from a serious issue - it uses  magic number (4).</p>
+
+<p>The problem can alleviated by ad-hoc enum definition:
+<code>`fsharp
+...
+type ShippingMethod = 
+    |</code>XRQ - TRUCK GROUND<code>= 1
+    |</code>ZY - EXPRESS<code>= 2
+    |</code>OVERSEAS - DELUXE<code>= 3
+    |</code>OVERNIGHT J-FAST<code>= 4
+    |</code>CARGO TRANSPORT 5<code>= 5
+...    
+cmd.Parameters.AddWithValue("@shippedLaterThan", DateTime(2008, 1, 1)) |&gt; ignore
+cmd.Parameters.AddWithValue("@shipMethodId", ShippingMethod.</code>OVERNIGHT J-FAST<code>) |&gt; ignore
+cmd.ExecuteScalar() |&gt; unbox&lt;int&gt;</code>`
+But improvement is questionable because we traded one problem for another – keeping this enum type definition in sync with database changes.</p>
+
+<h2>Solution - SqlEnumProvider</h2>
+
+<h3>F# idiomatic enum-like type</h3>
+
+<p>Idea is to generate enumeration like type based on a query to database leveraging F# type providers feature.</p>
+
+<p>The code above can be rewritten as follows:</p>
+
+<p><code></code>`fsharp
+open FSharp.Data</p>
+
+<p>//by convention: first column is Name, second is Value
+type ShipMethod = SqlEnumProvider<"SELECT Name, ShipMethodID FROM Purchasing.ShipMethod ORDER BY ShipMethodID", connStr></p>
+
+<p>//Now combining 2 F# type providers: SqlEnumProvider and SqlCommandProvider
+type OrdersByShipTypeSince = SqlCommandProvider<"
+    SELECT COUNT(*) 
+    FROM Purchasing.PurchaseOrderHeader 
+    WHERE ShipDate > @shippedLaterThan AND ShipMethodID = @shipMethodId", connStr, SingleRow = true></p>
+
+<p>let cmd2 = new OrdersByShipTypeSince() 
+cmd2.Execute( DateTime( 2008, 1, 1), ShipMethod.<code>OVERNIGHT J-FAST</code>) |> Option.get |> Option.get<br />
+<code></code>`</p>
+
+<p>To amplify effect the snippet combines SqlEnumProvider with another useful <a href="http://fsprojects.github.io/FSharp.Data.SqlClient/">SqlCommandProvider</a>. Follow this  <a href="http://fsprojects.github.io/FSharp.Data.SqlClient/">link</a> for details.</p>
+
+<p>So what happened in the code above exactly? Let's explore ShipMethod type definition pasted from FSI:
+<code>`fsharp
+type ShipMethod =
+  class
+    static val</code>CARGO TRANSPORT 5<code>: int
+    static val Items : List&lt;string * int&gt;
+    static val</code>OVERNIGHT J-FAST<code>: int
+    static val</code>OVERSEAS - DELUXE<code>: int
+    static member Parse : value: string * ignoreCase: bool -&gt; int + 1 overload
+    static member TryParse : value: string * ignoreCase: bool -&gt; Option&lt;int&gt;
+     + 1 overload
+    static val</code>XRQ - TRUCK GROUND<code>: int
+    static val</code>ZY - EXPRESS<code>: int
+  end</code>`
+This type has semantics similar to standard BCL Enum type and stays in sync with database SqlEnumProvider pointed to. We get readability, up-to date lookup data verified by compiler and intellisense.</p>
+
+<p><strong>Important presumption that source reference data is synchronized with production environment</strong> because SqlEnumProvider usually points to development environment database.</p>
+
+<p>The SQL statement used to query database has to return resultset of certain shape:</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+<span class="l">5: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="o">-</span> <span class="i">It</span> <span class="i">has</span> <span class="k">to</span> <span class="i">have</span> <span class="n">2</span> <span class="k">or</span> <span class="i">more</span> <span class="i">columns</span>
+<span class="o">-</span> <span class="i">The</span> <span class="i">first</span> <span class="i">columns</span> <span class="i">is</span> <span class="i">unique</span> <span class="i">name</span> (<span class="k">or</span> <span class="i">tag</span><span class="o">/</span><span class="i">label</span>)<span class="o">.</span>
+<span class="o">-</span> <span class="i">The</span> <span class="i">second</span> <span class="i">column</span> <span class="i">is</span> <span class="i">value</span><span class="o">.</span> <span class="i">In</span> <span class="i">contrast</span> <span class="k">to</span> <span class="i">BCL</span> <span class="i">Enum</span> <span class="i">it</span> <span class="i">can</span> <span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">not</span> <span class="i">only</span> <span class="i">numeric</span> <span class="k">type</span> <span class="i">but</span> <span class="i">also</span> 
+<span onmouseout="hideTip(event, 'fs2', 2)" onmouseover="showTip(event, 'fs2', 2)" class="i">decimal</span>, <span class="i">DateTime</span>, <span class="i">DateTimeOffet</span> <span class="k">or</span> <span onmouseout="hideTip(event, 'fs3', 3)" onmouseover="showTip(event, 'fs3', 3)" class="i">string</span>
+<span class="o">-</span> <span class="i">If</span> <span class="i">value</span> <span class="i">consists</span> <span class="k">of</span> <span class="i">more</span> <span class="i">than</span> <span class="i">one</span> <span class="i">column</span> <span class="i">it</span> <span class="i">represented</span> <span class="k">as</span> <span class="i">Tuple</span><span class="o">.</span> <span class="i">It</span> <span class="i">makes</span> <span class="i">it</span> <span class="i">similar</span> <span class="k">to</span> <span class="i">Java</span> <span class="i">enums</span> </pre>
+</td>
+</tr>
+</table>
+
+<p>Again the idea is straightforward – anywhere in the code tag/label will be replace by value: <code>XRQ - TRUCK GROUND</code> with 1, <code>ZY - EXPRESS</code> with 1, etc.</p>
+
+<p>The <code>ShipMethod</code> type provides more idiomatic interface that standard BCL Enum:
+  - <code>Items</code> is read-only field of <code>list&lt;string * 'T&gt;</code> where <code>'T</code> is type of value
+  - <code>TryParse</code> return <code>option&lt;'T&gt;</code></p>
+
+<p>Below are sample invocations and output from FSI:
+<code></code>`fsharp
+//Utility methods - provide more idiomatic F# interface
+ShipMethod.Items
+//val it : List<string * int> =
+//  [("XRQ - TRUCK GROUND", 1); ("ZY - EXPRESS", 2); ("OVERSEAS - DELUXE", 3);
+//   ("OVERNIGHT J-FAST", 4); ("CARGO TRANSPORT 5", 5)]</p>
+
+<p>ShipMethod.<code>CARGO TRANSPORT 5</code>
+//val it : int = 5
+ShipMethod.<code>OVERNIGHT J-FAST</code>
+//val it : int = 4
+ShipMethod.TryParse("CARGO TRANSPORT 5") 
+//val it : Option<int> = Some 5
+ShipMethod.TryParse("cargo transport 5") 
+//val it : Option<int> = None
+ShipMethod.TryParse("cargo transport 5", ignoreCase = true) 
+//val it : Option<int> = Some 5
+ShipMethod.TryParse("Unknown") 
+//val it : Option<int> = None
+ShipMethod.Parse("CARGO TRANSPORT 5") 
+//val it : int = 5
+<code></code>`</p>
+
+<h3>F# tuple-valued enums</h3>
+
+<p>As mentioned above result set with more than 2 columns is mapped to enum with tuple as value. This makes it similar to [Java enums] (http://javarevisited.blogspot.com/2011/08/enum-in-java-example-tutorial.html).</p>
+
+<p><code></code>`fsharp</p>
+
+<p>//ShipRate is included into the resultset in addition to ShipMethodID<code></code>` 
+type ShipInfo = 
+    SqlEnumProvider<"SELECT Name, ShipMethodID, ShipRate FROM Purchasing.ShipMethod ORDER BY ShipMethodID", connStr></p>
+
+<p>type TheLatestOrder = SqlCommandProvider<"
+    SELECT TOP 1 * 
+    FROM Purchasing.PurchaseOrderHeader 
+    ORDER BY ShipDate DESC
+    ", connStr, SingleRow = true></p>
+
+<p>let cmd3 = new TheLatestOrder() 
+let theLatestOrder = cmd3.Execute().Value</p>
+
+<p>//exploring multi-item value for application logic</p>
+
+<p>//using the first item for conditional logic
+if theLatestOrder.ShipMethodID = fst ShipInfo.<code>OVERSEAS - DELUXE</code>
+then 
+    //using the second item for computation
+    printfn "Some calculation: %M" &lt;| 50M * snd ShipInfo.<code>OVERSEAS - DELUXE</code>
+<code></code>`
+<em>I have mixed feelings about applicability of multi-item value type. Please provide feedback/examples that prove it useful or otherwise.</em></p>
+
+<h3>CLI native enums</h3>
+
+<p>SqlEnumProvider is unique because it supports two type generation strategies: F# idiomatic enum-behaving type and standard CLI enumerated types. Second can be useful where compiler allows only const declaration - attribute constructors for example. Set "CLIEnum" parameter to generate standard enum.</p>
+
+<p><code></code>`fsharp
+//CLI Enum</p>
+
+<h1>r "System.Web.Http.dll"</h1>
+
+<h1>r "System.Net.Http.dll"</h1>
+
+<p>open System.Web.Http</p>
+
+<p>type Roles = 
+    SqlEnumProvider<"SELECT * FROM (VALUES(('Read'), 1), ('Write', 2), ('Admin', 4)) AS T(Name, Value)", @"Data Source=(LocalDb)\v11.0;Integrated Security=True", CLIEnum = true></p>
+
+<p>type CustomAuthorizeAttribute(roles: Roles) = 
+    inherit AuthorizeAttribute()</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">override</span> <span class="i">__</span><span class="o">.</span><span class="i">OnAuthorization</span> <span class="i">actionContext</span> <span class="o">=</span> 
+    <span class="c">//auth logic here</span>
+    ()</pre>
+</td>
+</tr>
+</table>
+
+<p>[<CustomAuthorizeAttribute(Roles.Admin)>]
+type MyController() = 
+    inherit ApiController()</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">member</span> <span class="i">__</span><span class="o">.</span><span class="i">Get</span>() <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs4', 4)" onmouseover="showTip(event, 'fs4', 4)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs5', 5)" onmouseover="showTip(event, 'fs5', 5)" class="i">empty</span><span class="o">&lt;</span><span onmouseout="hideTip(event, 'fs3', 6)" onmouseover="showTip(event, 'fs3', 6)" class="i">string</span><span class="o">&gt;</span></pre>
+</td>
+</tr>
+</table>
+
+<p><code></code>`</p>
+
+<p>It also makes this types <strong>accessible from C#</strong> or any other .NET language.</p>
+
+<h3>Multi-platform.</h3>
+
+<h5>Any ADO.NET supported database</h5>
+
+<p>SqlEnumProvider has a static parameter "Provider" which allows to pass ADO.NET provider <a href="http://msdn.microsoft.com/en-us/library/h508h681.aspx">invariant name</a>. This makes it usable with any ADO.NET supported database. “System.Data.SqlClient”  is default value for ADO.NET provider.</p>
+
+<p>Invariant names of available ADO.NET providers can be retrieved as follows:
+<code>`fsharp
+open System.Data.Common
+[ for r in DbProviderFactories.GetFactoryClasses().Rows -&gt; r.["InvariantName"] ]</code>`</p>
+
+<h5>Generated types accesable from C#, Visual Basic and other .NET languages</h5>
+
+<p>Show your fellow C#/VB developers magic of F# type provider accessible from their favorite language!!! Sample project is here. <a href="https://github.com/dmitry-a-morozov/FSharp.Data.SqlEnumProvider/blob/master/demos/CSharp.Client/Program.cs">Demo solution</a> includes example.</p>
+
+<h5>Xamarin ???</h5>
+
+<p>The type provider should work in XS when a project targets Mono runtime. Nothing technically stops to make it available for Xamarin supported mobile platforms (iOS, Android &amp; Windows Phone) to access SQLite.</p>
+
+<h5>Future extensions: <a href="http://msdn.microsoft.com/en-us/library/system.flagsattribute.aspx">FlagsAttribute</a> Enums ?</h5>
+
+<h3>Educational</h3>
+
+<p>F# developers often ask about simple examples of “generated types” type providers. Here you go. I hope it will be useful.</p>
+
+<h2>Library license</h2>
+
+<p>The library is available under Apache 2.0. For more information see the <a href="https://github.com/dmitry-a-morozov/FSharp.Data.SqlEnumProvider/blob/master/LICENSE.md">License file</a> in the GitHub repository.</p>
+
+<div class="tip" id="fs1">val not : value:bool -&gt; bool<br /><br />Full name: Microsoft.FSharp.Core.Operators.not</div>
+<div class="tip" id="fs2">Multiple items<br />val decimal : value:&#39;T -&gt; decimal (requires member op_Explicit)<br /><br />Full name: Microsoft.FSharp.Core.Operators.decimal<br /><br />--------------------<br />type decimal = System.Decimal<br /><br />Full name: Microsoft.FSharp.Core.decimal<br /><br />--------------------<br />type decimal&lt;&#39;Measure&gt; = decimal<br /><br />Full name: Microsoft.FSharp.Core.decimal&lt;_&gt;</div>
+<div class="tip" id="fs3">Multiple items<br />val string : value:&#39;T -&gt; string<br /><br />Full name: Microsoft.FSharp.Core.Operators.string<br /><br />--------------------<br />type string = System.String<br /><br />Full name: Microsoft.FSharp.Core.string</div>
+<div class="tip" id="fs4">module Seq<br /><br />from Microsoft.FSharp.Collections</div>
+<div class="tip" id="fs5">val empty&lt;&#39;T&gt; : seq&lt;&#39;T&gt;<br /><br />Full name: Microsoft.FSharp.Collections.Seq.empty</div>
+
+            </div>
+
+            <div class="span3">
+                <a href="http://www.nuget.org/packages/FSharp.Data.SqlClient">
+                    <img src="img/logo.png" style="width: 200px; height: 200px; margin: 10px 0px 0px 35px; border-style: none;" />
+                </a>
+                <ul class="nav nav-list" id="menu">
+                    <li class="nav-header">FSharp.Data.SqlClient</li>
+                    <li><a href="/FSharp.Data.SqlClient/index.html">Home page</a></li>
+                    <li class="divider"></li>
+                    <li><a href="http://www.nuget.org/packages/FSharp.Data.SqlClient">Get Library via NuGet</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient">Source Code on GitHub</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient/blob/master/LICENSE.md">License</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
+
+                    <li class="nav-header">SqlCommandProvider</li>
+                    <li><a href="/FSharp.Data.SqlClient/configuration and input.html">Configuration and Input</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/output.html">Output</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/data binding and updates.html">Data binding and updates</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/comparison.html">Comparison</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/reference architecture.html">Reference architecture</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/samples.html">Sample applications</a></li>
+
+                    <li class="nav-header">SqlProgrammabilityProvider</li>
+                    <li><a href="/FSharp.Data.SqlClient/sqlprogrammabilityprovider.quickstart.html">Quick start tutorial</a></li>
+
+                    <li class="nav-header">SqlEnumProvider</li>
+                    <li><a href="/FSharp.Data.SqlClient/sqlenumprovider.quickstart.md">Quick start tutorial</a></li>
+
+                    <li class="nav-header">Tools</li>
+                    <li><a href="http://tpetricek.github.io/FSharp.Formatting/">F# Formatting</a></li>
+                    <li><a href="http://fsharp.github.io/FAKE/">FAKE</a></li>
+                    <li><a href="http://github.com/fsprojects/ProjectScaffold/">F# open-source project scaffolding</a></li>
+                    <li><a href="http://tomasp.net/blog/2013/great-open-source/index.html">Building great open-source libraries</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <a href="http://github.com/fsprojects/FSharp.Data.SqlClient">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub">
+    </a>
+</body>
+</html>
