@@ -2,10 +2,14 @@
 #r "../../bin/FSharp.Data.SqlClient.dll"
 
 (**
-Bridging the gap between F# types and T-SQL scripting
+Not your grandfather's ORM
 ===================
 
-SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.
+The library is a home for three type providers:
+
+- SqlCommandProvider - type-safe access to full set of T-SQL language
+- SqlProgrammabilityProvider - quick access to Sql Server functions and stored procedures in idiomatic F# way
+- SqlEnumProvider - generates .NET Enums based on static lookup data from any ADO.NET complaint source
 
 <div class="row">
   <div class="span1"></div>
@@ -18,17 +22,23 @@ SqlCommandProvider provides statically typed access to input parameters and resu
   <div class="span1"></div>
 </div>
 
-Sample code 
+SqlCommandProvider
 -------------------------------------
 
-The query below retrieves top 3 sales representatives from North American region who have sales YTD of more than one million. 
-
+All examples based on [AdventureWorks](http://msftdbprodsamples.codeplex.com/) sample database. 
 *)
 
 open FSharp.Data
 
 [<Literal>]
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString = 
+    @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+
+(**
+
+The query below retrieves top 3 sales representatives from North American region who have sales YTD of more than one million. 
+
+*)
 
 [<Literal>]
 let query = "
@@ -45,21 +55,54 @@ cmd.AsyncExecute(TopN = 3L, regionName = "United States", salesMoreThan = 100000
 |> Async.RunSynchronously
 
 //output
-seq
-    [("Pamela", "Ansman-Wolfe", 1352577.1325M);
-     ("David", "Campbell", 1573012.9383M);
-     ("Tete", "Mensa-Annan", 1576562.1966M)]
+//seq
+//    [("Pamela", "Ansman-Wolfe", 1352577.1325M);
+//     ("David", "Campbell", 1573012.9383M);
+//     ("Tete", "Mensa-Annan", 1576562.1966M)]
 
 (**
-Calling stored procedure:
+
+SqlProgrammabilityProvider
+-------------------------------------
 *)
 
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
-let db = AdventureWorks2012()
+type GetWhereUsedProductID = AdventureWorks2012.dbo.uspGetWhereUsedProductID
+let getWhereUsedProductID = new GetWhereUsedProductID()
 
-db.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(System.DateTime(2013,1,1), 1) 
-|> Async.RunSynchronously 
-|> Array.ofSeq
+getWhereUsedProductID.Execute( StartProductID = 1, CheckDate = System.DateTime(2013,1,1))
+
+//output
+//seq
+//  [{ ProductAssemblyID = Some 749; ComponentID = Some 807; ... };
+//   { ProductAssemblyID = Some 750; ComponentID = Some 807; ... };
+//   { ProductAssemblyID = Some 751; ComponentID = Some 807; ... };
+//   { ProductAssemblyID = Some 752; ComponentID = Some 807; ... };
+//   ...]
+
+(**
+
+SqlEnumProvider
+-------------------------------------
+Let's say we need to retrieve number of orders shipped in certain way since specific date.
+*)
+
+//by convention: first column is Name, second is Value
+type ShipMethod = SqlEnumProvider<"
+    SELECT Name, ShipMethodID FROM Purchasing.ShipMethod ORDER BY ShipMethodID", connectionString>
+
+//Combine with SqlCommandProvider
+type OrdersByShipTypeSince = SqlCommandProvider<"
+    SELECT COUNT(*) 
+    FROM Purchasing.PurchaseOrderHeader 
+    WHERE ShipDate > @shippedLaterThan AND ShipMethodID = @shipMethodId", connectionString, SingleRow = true>
+
+let ordersByShipTypeSince = new OrdersByShipTypeSince() 
+
+//overnight orders shipped since Jan 1, 2008 
+ordersByShipTypeSince.Execute( System.DateTime( 2008, 1, 1), ShipMethod.``OVERNIGHT J-FAST``) 
+//output
+//Some (Some 748)
 
 (**
 
@@ -69,7 +112,7 @@ System requirements
  * SQL Server 2012 and up or SQL Azure Database at compile-time 
  * .NET 4.0 and higher
 
-Features at glance
+SqlCommandProvider and SqlProgrammabilityProvider features at glance
 -------------------------------------
 
 * Static type with 2 methods per `SqlCommandProvider<...>` declaration:

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30110.0
+VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{7ECDF2A7-A71C-43B5-AFF2-64468098B7B6}"
 	ProjectSection(SolutionItems) = preProject
@@ -31,6 +31,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{4B60
 		docs\content\reference architecture.fsx = docs\content\reference architecture.fsx
 		docs\content\samples.fsx = docs\content\samples.fsx
 		docs\content\SqlClientComparison.md = docs\content\SqlClientComparison.md
+		docs\content\sqlenumprovider.quickstart.fsx = docs\content\sqlenumprovider.quickstart.fsx
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{573DBBFB-0F97-4327-8614-6A4151CD70BF}"

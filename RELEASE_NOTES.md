@@ -59,4 +59,7 @@
 #### 1.3.6-beta - October 2 2014
 	* SqlProgrammabilityProvider dev experience improved significantly 
 	* All entities: UDTT, SPs and Functions under a namespace they belong to 
+
+#### 1.3.7-beta - October 12 2014
+	* Hide obj[] as implementation for TVP row
 	
