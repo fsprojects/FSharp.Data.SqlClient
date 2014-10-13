@@ -48,22 +48,12 @@ At same time it's never represented in an application types.</p>
 
 <p>Order shippment types defined in Purchasing.ShipMethod table.</p>
 
-<pre lang = 'sql'>
-<code>
-SELECT Name, ShipMethodID FROM Purchasing.ShipMethod
-</code>
+<p>SELECT Name, ShipMethodID FROM Purchasing.ShipMethod</p>
 
-<p>It returns:
-<table class="table table-bordered table-striped">
-<thead><tr><td>Name</td><td>ShipMethodID</td></tr></thead>
-<tbody>
-  <tr><td class="title">CARGO TRANSPORT 5</td><td>5</td></tr>
-  <tr><td class="title">OVERNIGHT J-FAST</td><td>4</td></tr>
-  <tr><td class="title">OVERSEAS - DELUXE</td><td>3</td></tr>
-  <tr><td class="title">XRQ - TRUCK GROUND</td><td>1</td></tr>
-  <tr><td class="title">ZY - EXPRESS</td><td>2</td></tr>
-</tbody>
-</table></p>
+<p>*)</p>
+
+<p>(*
+It returns:</p>
 
 <p>A typical implementation for overnight orders shipped since Jan 1, 2008 is following:</p>
 
@@ -141,7 +131,7 @@ SELECT Name, ShipMethodID FROM Purchasing.ShipMethod
 </tr>
 </table>
 
-<p>But improvement is questionable because we traded one problem for another – keeping this enum type definition in sync with database changes.</p>
+<p>But improvement is questionable because we traded one problem for another � keeping this enum type definition in sync with database changes.</p>
 
 <h2>Solution - SqlEnumProvider</h2>
 
@@ -210,7 +200,7 @@ We get readability, up-to date lookup data verified by compiler and intellisense
 </tr>
 </table>
 
-<p>Again the idea is straightforward – anywhere in the code tag/label will be replace by value: <code>XRQ - TRUCK GROUND</code> with 1, <code>ZY - EXPRESS</code> with 1, etc.</p>
+<p>Again the idea is straightforward � anywhere in the code tag/label will be replace by value: <code>XRQ - TRUCK GROUND</code> with 1, <code>ZY - EXPRESS</code> with 1, etc.</p>
 
 <p>The <code>ShipMethod</code> type provides more idiomatic interface that standard BCL Enum:
   - <code>Items</code> is read-only field of <code>list&lt;string * 'T&gt;</code> where <code>'T</code> is type of value
@@ -382,7 +372,7 @@ We get readability, up-to date lookup data verified by compiler and intellisense
 
 <h5>Any ADO.NET supported database</h5>
 
-<p>SqlEnumProvider has a static parameter "Provider" which allows to pass ADO.NET provider <a href="http://msdn.microsoft.com/en-us/library/h508h681.aspx">invariant name</a>. This makes it usable with any ADO.NET supported database. “System.Data.SqlClient”  is default value for ADO.NET provider.</p>
+<p>SqlEnumProvider has a static parameter "Provider" which allows to pass ADO.NET provider <a href="http://msdn.microsoft.com/en-us/library/h508h681.aspx">invariant name</a>. This makes it usable with any ADO.NET supported database. �System.Data.SqlClient�  is default value for ADO.NET provider.</p>
 
 <p>Invariant names of available ADO.NET providers can be retrieved as follows:</p>
 
@@ -410,11 +400,7 @@ We get readability, up-to date lookup data verified by compiler and intellisense
 
 <h3>Educational</h3>
 
-<p>F# developers often ask about simple examples of “generated types” type providers. Here you go. I hope it will be useful.</p>
-
-<h2>Library license</h2>
-
-<p>The library is available under Apache 2.0. For more information see the <a href="https://github.com/dmitry-a-morozov/FSharp.Data.SqlEnumProvider/blob/master/LICENSE.md">License file</a> in the GitHub repository.</p>
+<p>F# developers often ask about simple examples of �generated types� type providers. Here you go. I hope it will be useful.</p>
 
 <div class="tip" id="fs1">Multiple items<br />type LiteralAttribute =<br />&#160;&#160;inherit Attribute<br />&#160;&#160;new : unit -&gt; LiteralAttribute<br /><br />Full name: Microsoft.FSharp.Core.LiteralAttribute<br /><br />--------------------<br />new : unit -&gt; LiteralAttribute</div>
 <div class="tip" id="fs2">val connStr : string<br /><br />Full name: Sqlenumprovider.quickstart.connStr</div>
