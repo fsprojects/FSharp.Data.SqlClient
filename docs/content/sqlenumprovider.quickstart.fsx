@@ -214,7 +214,8 @@ Miscellaneous
 ### Multi-platform. 
 
 ### Any ADO.NET supported database
-SqlEnumProvider has a static parameter "Provider" which allows to pass ADO.NET provider [invariant name](http://msdn.microsoft.com/en-us/library/h508h681.aspx). This makes it usable with any ADO.NET supported database. “System.Data.SqlClient”  is default value for ADO.NET provider.
+SqlEnumProvider has a static parameter "Provider" which allows to pass ADO.NET provider [invariant name](http://msdn.microsoft.com/en-us/library/h508h681.aspx). 
+This makes it usable with any ADO.NET supported database. "System.Data.SqlClient" is default value for ADO.NET provider.
 
 Invariant names of available ADO.NET providers can be retrieved as follows:
 *)
@@ -224,7 +225,8 @@ open System.Data.Common
 
 (**
 ### Generated types accesable from C#, Visual Basic and other .NET languages
-Show your fellow C#/VB developers magic of F# type provider accessible from their favorite language!!! Sample project is here. [Demo solution](https://github.com/dmitry-a-morozov/FSharp.Data.SqlEnumProvider/blob/master/demos/CSharp.Client/Program.cs) includes example.
+Show your fellow C#/VB developers magic of F# type provider accessible from their favorite language!!! Sample project is here. 
+[Demo solution](https://github.com/dmitry-a-morozov/FSharp.Data.SqlEnumProvider/blob/master/demos/CSharp.Client/Program.cs) includes example.
 
 ### Xamarin ???
 The type provider should work in XS when a project targets Mono runtime. Nothing technically stops to make it available for Xamarin supported mobile platforms (iOS, Android & Windows Phone) to access SQLite.
@@ -232,5 +234,5 @@ The type provider should work in XS when a project targets Mono runtime. Nothing
 ### Future extensions: [FlagsAttribute](http://msdn.microsoft.com/en-us/library/system.flagsattribute.aspx) Enums ?
 
 ### Educational
-F# developers often ask about simple examples of “generated types” type providers. Here you go. I hope it will be useful.
+F# developers often ask about simple examples of "generated types" type providers. Here you go. I hope it will be useful.
 *)

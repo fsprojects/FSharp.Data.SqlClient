@@ -62,4 +62,9 @@
 
 #### 1.3.7-beta - October 12 2014
 	* Hide obj[] as implementation for TVP row
+
+#### 1.3.7-beta - October 12 2014
+	* Hide obj[] as implementation for TVP row
 	
+#### 1.4 - October 13 2014
+	* Promoted from aplha to officail release 
