@@ -36,6 +36,14 @@
                 
 <h1>Not your grandfather's ORM</h1>
 
+<p>The library is a home for three type providers:</p>
+
+<ul>
+<li>SqlCommandProvider - type-safe access to full set of T-SQL language</li>
+<li>SqlProgrammabilityProvider - quick access to Sql Server functions and stored procedures in idiomatic F# way</li>
+<li>SqlEnumProvider - generates .NET Enums based on static lookup data from any ADO.NET complaint source</li>
+</ul>
+
 <div class="row">
   <div class="span1"></div>
   <div class="span6">
@@ -46,14 +54,6 @@
   </div>
   <div class="span1"></div>
 </div>
-
-<p>The library is a home for three type providers:</p>
-
-<ul>
-<li>SqlCommandProvider - type-safe access to full set of T-SQL language</li>
-<li>SqlProgrammabilityProvider - quick access to Sql Server functions and stored procedures in idiomatic F# way</li>
-<li>SqlEnumProvider - generates .NET Enums based on static lookup data from any ADO.NET complaint source</li>
-</ul>
 
 <h2>SqlCommandProvider</h2>
 
@@ -91,6 +91,12 @@
 <span class="l">11: </span>
 <span class="l">12: </span>
 <span class="l">13: </span>
+<span class="l">14: </span>
+<span class="l">15: </span>
+<span class="l">16: </span>
+<span class="l">17: </span>
+<span class="l">18: </span>
+<span class="l">19: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
@@ -106,49 +112,18 @@
 <span class="k">let</span> <span onmouseout="hideTip(event, 'fs8', 11)" onmouseover="showTip(event, 'fs8', 11)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs6', 12)" onmouseover="showTip(event, 'fs6', 12)" class="i">SalesPersonQuery</span>()
 
 <span onmouseout="hideTip(event, 'fs8', 13)" onmouseover="showTip(event, 'fs8', 13)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 14)" onmouseover="showTip(event, 'fs9', 14)" class="i">AsyncExecute</span>(<span class="i">TopN</span> <span class="o">=</span> <span class="n">3L</span>, <span class="i">regionName</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">United</span><span class="s"> </span><span class="s">States</span><span class="s">&quot;</span>, <span class="i">salesMoreThan</span> <span class="o">=</span> <span class="n">1000000M</span>) 
-<span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs10', 15)" onmouseover="showTip(event, 'fs10', 15)" class="i">Async</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs11', 16)" onmouseover="showTip(event, 'fs11', 16)" class="i">RunSynchronously</span></pre>
+<span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs10', 15)" onmouseover="showTip(event, 'fs10', 15)" class="i">Async</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs11', 16)" onmouseover="showTip(event, 'fs11', 16)" class="i">RunSynchronously</span>
+
+<span class="c">//output</span>
+<span class="c">//seq</span>
+<span class="c">//    [(&quot;Pamela&quot;, &quot;Ansman-Wolfe&quot;, 1352577.1325M);</span>
+<span class="c">//     (&quot;David&quot;, &quot;Campbell&quot;, 1573012.9383M);</span>
+<span class="c">//     (&quot;Tete&quot;, &quot;Mensa-Annan&quot;, 1576562.1966M)]</span></pre>
 </td>
 </tr>
 </table>
-
-<p>output
-seq
-    [("Pamela", "Ansman-Wolfe", 1352577.1325M);
-     ("David", "Campbell", 1573012.9383M);
-     ("Tete", "Mensa-Annan", 1576562.1966M)]</p>
 
 <h2>SqlProgrammabilityProvider</h2>
-
-<table class="pre"><tr><td class="lines"><pre class="fssnip">
-<span class="l">1: </span>
-<span class="l">2: </span>
-<span class="l">3: </span>
-<span class="l">4: </span>
-<span class="l">5: </span>
-</pre>
-</td>
-<td class="snippet"><pre class="fssnip">
-<span class="k">type</span> <span onmouseout="hideTip(event, 'fs12', 17)" onmouseover="showTip(event, 'fs12', 17)" class="i">AdventureWorks2012</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs13', 18)" onmouseover="showTip(event, 'fs13', 18)" class="i">SqlProgrammabilityProvider</span><span class="o">&lt;</span><span onmouseout="hideTip(event, 'fs4', 19)" onmouseover="showTip(event, 'fs4', 19)" class="i">connectionString</span><span class="o">&gt;</span>
-<span class="k">type</span> <span onmouseout="hideTip(event, 'fs14', 20)" onmouseover="showTip(event, 'fs14', 20)" class="i">GetWhereUsedProductID</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs12', 21)" onmouseover="showTip(event, 'fs12', 21)" class="i">AdventureWorks2012</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs15', 22)" onmouseover="showTip(event, 'fs15', 22)" class="i">dbo</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs16', 23)" onmouseover="showTip(event, 'fs16', 23)" class="i">uspGetWhereUsedProductID</span>
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs17', 24)" onmouseover="showTip(event, 'fs17', 24)" class="i">getWhereUsedProductID</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs14', 25)" onmouseover="showTip(event, 'fs14', 25)" class="i">GetWhereUsedProductID</span>()
-
-<span onmouseout="hideTip(event, 'fs17', 26)" onmouseover="showTip(event, 'fs17', 26)" class="i">getWhereUsedProductID</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs18', 27)" onmouseover="showTip(event, 'fs18', 27)" class="i">Execute</span>( <span class="i">StartProductID</span> <span class="o">=</span> <span class="n">1</span>, <span class="i">CheckDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs19', 28)" onmouseover="showTip(event, 'fs19', 28)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs20', 29)" onmouseover="showTip(event, 'fs20', 29)" class="i">DateTime</span>(<span class="n">2013</span>,<span class="n">1</span>,<span class="n">1</span>)) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs21', 30)" onmouseover="showTip(event, 'fs21', 30)" class="i">sprintf</span> <span class="s">&quot;</span><span class="s">%</span><span class="s">A</span><span class="s">&quot;</span></pre>
-</td>
-</tr>
-</table>
-
-<p>output
-"seq
-  [{ ProductAssemblyID = Some 749; ComponentID = Some 807; ComponentDesc = Some "Road-150 Red, 62"; TotalQuantity = Some 1.00M; StandardCost = Some 2171.2942M; ListPrice = Some 3578.2700M; BOMLevel = Some 1s; RecursionLevel = Some 1 };
-   { ProductAssemblyID = Some 750; ComponentID = Some 807; ComponentDesc = Some "Road-150 Red, 44"; TotalQuantity = Some 1.00M; StandardCost = Some 2171.2942M; ListPrice = Some 3578.2700M; BOMLevel = Some 1s; RecursionLevel = Some 1 };
-   { ProductAssemblyID = Some 751; ComponentID = Some 807; ComponentDesc = Some "Road-150 Red, 48"; TotalQuantity = Some 1.00M; StandardCost = Some 2171.2942M; ListPrice = Some 3578.2700M; BOMLevel = Some 1s; RecursionLevel = Some 1 };
-   { ProductAssemblyID = Some 752; ComponentID = Some 807; ComponentDesc = Some "Road-150 Red, 52"; TotalQuantity = Some 1.00M; StandardCost = Some 2171.2942M; ListPrice = Some 3578.2700M; BOMLevel = Some 1s; RecursionLevel = Some 1 };
-   ...]"</p>
-
-<h2>SqlEnumProvider</h2>
-
-<p>Let's say we need to retrieve number of orders shipped in certain way since specific date.
-A typical implementation for overnight orders shipped since Jan 1, 2008 is following:</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
@@ -162,20 +137,62 @@ A typical implementation for overnight orders shipped since Jan 1, 2008 is follo
 <span class="l"> 9: </span>
 <span class="l">10: </span>
 <span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs12', 17)" onmouseover="showTip(event, 'fs12', 17)" class="i">AdventureWorks2012</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs13', 18)" onmouseover="showTip(event, 'fs13', 18)" class="i">SqlProgrammabilityProvider</span><span class="o">&lt;</span><span onmouseout="hideTip(event, 'fs4', 19)" onmouseover="showTip(event, 'fs4', 19)" class="i">connectionString</span><span class="o">&gt;</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs14', 20)" onmouseover="showTip(event, 'fs14', 20)" class="i">GetWhereUsedProductID</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs12', 21)" onmouseover="showTip(event, 'fs12', 21)" class="i">AdventureWorks2012</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs15', 22)" onmouseover="showTip(event, 'fs15', 22)" class="i">dbo</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs16', 23)" onmouseover="showTip(event, 'fs16', 23)" class="i">uspGetWhereUsedProductID</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs17', 24)" onmouseover="showTip(event, 'fs17', 24)" class="i">getWhereUsedProductID</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs14', 25)" onmouseover="showTip(event, 'fs14', 25)" class="i">GetWhereUsedProductID</span>()
+
+<span onmouseout="hideTip(event, 'fs17', 26)" onmouseover="showTip(event, 'fs17', 26)" class="i">getWhereUsedProductID</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs18', 27)" onmouseover="showTip(event, 'fs18', 27)" class="i">Execute</span>( <span class="i">StartProductID</span> <span class="o">=</span> <span class="n">1</span>, <span class="i">CheckDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs19', 28)" onmouseover="showTip(event, 'fs19', 28)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs20', 29)" onmouseover="showTip(event, 'fs20', 29)" class="i">DateTime</span>(<span class="n">2013</span>,<span class="n">1</span>,<span class="n">1</span>))
+
+<span class="c">//output</span>
+<span class="c">//seq</span>
+<span class="c">//  [{ ProductAssemblyID = Some 749; ComponentID = Some 807; ComponentDesc = Some &quot;Road-150 Red, 62&quot;; TotalQuantity = Some 1.00M; StandardCost = Some 2171.2942M; ListPrice = Some 3578.2700M; BOMLevel = Some 1s; RecursionLevel = Some 1 };</span>
+<span class="c">//   { ProductAssemblyID = Some 750; ComponentID = Some 807; ComponentDesc = Some &quot;Road-150 Red, 44&quot;; TotalQuantity = Some 1.00M; StandardCost = Some 2171.2942M; ListPrice = Some 3578.2700M; BOMLevel = Some 1s; RecursionLevel = Some 1 };</span>
+<span class="c">//   { ProductAssemblyID = Some 751; ComponentID = Some 807; ComponentDesc = Some &quot;Road-150 Red, 48&quot;; TotalQuantity = Some 1.00M; StandardCost = Some 2171.2942M; ListPrice = Some 3578.2700M; BOMLevel = Some 1s; RecursionLevel = Some 1 };</span>
+<span class="c">//   { ProductAssemblyID = Some 752; ComponentID = Some 807; ComponentDesc = Some &quot;Road-150 Red, 52&quot;; TotalQuantity = Some 1.00M; StandardCost = Some 2171.2942M; ListPrice = Some 3578.2700M; BOMLevel = Some 1s; RecursionLevel = Some 1 };</span>
+<span class="c">//   ...]</span></pre>
+</td>
+</tr>
+</table>
+
+<h2>SqlEnumProvider</h2>
+
+<p>Let's say we need to retrieve number of orders shipped in certain way since specific date.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
 <span class="c">//by convention: first column is Name, second is Value</span>
-<span class="k">type</span> <span onmouseout="hideTip(event, 'fs22', 31)" onmouseover="showTip(event, 'fs22', 31)" class="i">ShipMethod</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs23', 32)" onmouseover="showTip(event, 'fs23', 32)" class="i">SqlEnumProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">Name</span><span class="s">,</span><span class="s"> </span><span class="s">ShipMethodID</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">Purchasing</span><span class="s">.</span><span class="s">ShipMethod</span><span class="s"> </span><span class="s">ORDER</span><span class="s"> </span><span class="s">BY</span><span class="s"> </span><span class="s">ShipMethodID</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs4', 33)" onmouseover="showTip(event, 'fs4', 33)" class="i">connectionString</span><span class="o">&gt;</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs21', 30)" onmouseover="showTip(event, 'fs21', 30)" class="i">ShipMethod</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs22', 31)" onmouseover="showTip(event, 'fs22', 31)" class="i">SqlEnumProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">Name</span><span class="s">,</span><span class="s"> </span><span class="s">ShipMethodID</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">Purchasing</span><span class="s">.</span><span class="s">ShipMethod</span><span class="s"> </span><span class="s">ORDER</span><span class="s"> </span><span class="s">BY</span><span class="s"> </span><span class="s">ShipMethodID</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs4', 32)" onmouseover="showTip(event, 'fs4', 32)" class="i">connectionString</span><span class="o">&gt;</span>
 
 <span class="c">//Now combining 2 F# type providers: SqlEnumProvider and SqlCommandProvider</span>
-<span class="k">type</span> <span onmouseout="hideTip(event, 'fs24', 34)" onmouseover="showTip(event, 'fs24', 34)" class="i">OrdersByShipTypeSince</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs7', 35)" onmouseover="showTip(event, 'fs7', 35)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs23', 33)" onmouseover="showTip(event, 'fs23', 33)" class="i">OrdersByShipTypeSince</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs7', 34)" onmouseover="showTip(event, 'fs7', 34)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
 <span class="s">    </span><span class="s">SELECT</span><span class="s"> </span><span class="s">COUNT</span><span class="s">(</span><span class="s">*</span><span class="s">)</span><span class="s"> </span>
 <span class="s">    </span><span class="s">FROM</span><span class="s"> </span><span class="s">Purchasing</span><span class="s">.</span><span class="s">PurchaseOrderHeader</span><span class="s"> </span>
-<span class="s">    </span><span class="s">WHERE</span><span class="s"> </span><span class="s">ShipDate</span><span class="s"> </span><span class="s">&gt;</span><span class="s"> </span><span class="s">@</span><span class="s">shippedLaterThan</span><span class="s"> </span><span class="s">AND</span><span class="s"> </span><span class="s">ShipMethodID</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">@</span><span class="s">shipMethodId</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs4', 36)" onmouseover="showTip(event, 'fs4', 36)" class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>
+<span class="s">    </span><span class="s">WHERE</span><span class="s"> </span><span class="s">ShipDate</span><span class="s"> </span><span class="s">&gt;</span><span class="s"> </span><span class="s">@</span><span class="s">shippedLaterThan</span><span class="s"> </span><span class="s">AND</span><span class="s"> </span><span class="s">ShipMethodID</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">@</span><span class="s">shipMethodId</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs4', 35)" onmouseover="showTip(event, 'fs4', 35)" class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>
 
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs25', 37)" onmouseover="showTip(event, 'fs25', 37)" class="i">cmd2</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs24', 38)" onmouseover="showTip(event, 'fs24', 38)" class="i">OrdersByShipTypeSince</span>() 
-<span onmouseout="hideTip(event, 'fs25', 39)" onmouseover="showTip(event, 'fs25', 39)" class="i">cmd2</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs26', 40)" onmouseover="showTip(event, 'fs26', 40)" class="i">Execute</span>( <span onmouseout="hideTip(event, 'fs19', 41)" onmouseover="showTip(event, 'fs19', 41)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs20', 42)" onmouseover="showTip(event, 'fs20', 42)" class="i">DateTime</span>( <span class="n">2008</span>, <span class="n">1</span>, <span class="n">1</span>), <span onmouseout="hideTip(event, 'fs22', 43)" onmouseover="showTip(event, 'fs22', 43)" class="i">ShipMethod</span><span class="o">.</span><span class="i">``OVERNIGHT J-FAST``</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs27', 44)" onmouseover="showTip(event, 'fs27', 44)" class="i">Option</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs28', 45)" onmouseover="showTip(event, 'fs28', 45)" class="i">get</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs27', 46)" onmouseover="showTip(event, 'fs27', 46)" class="i">Option</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs28', 47)" onmouseover="showTip(event, 'fs28', 47)" class="i">get</span>  </pre>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs24', 36)" onmouseover="showTip(event, 'fs24', 36)" class="i">cmd2</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs23', 37)" onmouseover="showTip(event, 'fs23', 37)" class="i">OrdersByShipTypeSince</span>() 
+
+<span class="c">//overnight orders shipped since Jan 1, 2008 </span>
+<span onmouseout="hideTip(event, 'fs24', 38)" onmouseover="showTip(event, 'fs24', 38)" class="i">cmd2</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs25', 39)" onmouseover="showTip(event, 'fs25', 39)" class="i">Execute</span>( <span onmouseout="hideTip(event, 'fs19', 40)" onmouseover="showTip(event, 'fs19', 40)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs20', 41)" onmouseover="showTip(event, 'fs20', 41)" class="i">DateTime</span>( <span class="n">2008</span>, <span class="n">1</span>, <span class="n">1</span>), <span onmouseout="hideTip(event, 'fs21', 42)" onmouseover="showTip(event, 'fs21', 42)" class="i">ShipMethod</span><span class="o">.</span><span class="i">``OVERNIGHT J-FAST``</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs26', 43)" onmouseover="showTip(event, 'fs26', 43)" class="i">Option</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs27', 44)" onmouseover="showTip(event, 'fs27', 44)" class="i">get</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs26', 45)" onmouseover="showTip(event, 'fs26', 45)" class="i">Option</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs27', 46)" onmouseover="showTip(event, 'fs27', 46)" class="i">get</span>  </pre>
 </td>
 </tr>
 </table>
@@ -254,14 +271,13 @@ which might affect design-time responsiveness at times.</p>
 <div class="tip" id="fs18">SqlProgrammabilityProvider&lt;...&gt;.dbo.uspGetWhereUsedProductID.Execute(StartProductID: int, CheckDate: System.DateTime) : System.Collections.Generic.IEnumerable&lt;SqlProgrammabilityProvider&lt;...&gt;.dbo.uspGetWhereUsedProductID.Record&gt;</div>
 <div class="tip" id="fs19">namespace System</div>
 <div class="tip" id="fs20">Multiple items<br />type DateTime =<br />&#160;&#160;struct<br />&#160;&#160;&#160;&#160;new : ticks:int64 -&gt; DateTime + 10 overloads<br />&#160;&#160;&#160;&#160;member Add : value:TimeSpan -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddDays : value:float -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddHours : value:float -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddMilliseconds : value:float -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddMinutes : value:float -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddMonths : months:int -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddSeconds : value:float -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddTicks : value:int64 -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddYears : value:int -&gt; DateTime<br />&#160;&#160;&#160;&#160;...<br />&#160;&#160;end<br /><br />Full name: System.DateTime<br /><br />--------------------<br />System.DateTime()<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />System.DateTime(ticks: int64) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />System.DateTime(ticks: int64, kind: System.DateTimeKind) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />System.DateTime(year: int, month: int, day: int) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />System.DateTime(year: int, month: int, day: int, calendar: System.Globalization.Calendar) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />System.DateTime(year: int, month: int, day: int, hour: int, minute: int, second: int) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />System.DateTime(year: int, month: int, day: int, hour: int, minute: int, second: int, kind: System.DateTimeKind) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />System.DateTime(year: int, month: int, day: int, hour: int, minute: int, second: int, calendar: System.Globalization.Calendar) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />System.DateTime(year: int, month: int, day: int, hour: int, minute: int, second: int, millisecond: int) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />System.DateTime(year: int, month: int, day: int, hour: int, minute: int, second: int, millisecond: int, kind: System.DateTimeKind) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em></div>
-<div class="tip" id="fs21">val sprintf : format:Printf.StringFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.ExtraTopLevelOperators.sprintf</div>
-<div class="tip" id="fs22">type ShipMethod =<br />&#160;&#160;static val ``CARGO TRANSPORT 5`` : int<br />&#160;&#160;static val Items : IEnumerable&lt;string * int&gt;<br />&#160;&#160;static val ``OVERNIGHT J-FAST`` : int<br />&#160;&#160;static val ``OVERSEAS - DELUXE`` : int<br />&#160;&#160;static member Parse : value: string * ignoreCase: bool -&gt; int + 1 overload<br />&#160;&#160;static member TryFindName : value: int -&gt; Option&lt;string&gt;<br />&#160;&#160;static member TryParse : value: string * ignoreCase: bool -&gt; Option&lt;int&gt; + 1 overload<br />&#160;&#160;static val ``XRQ - TRUCK GROUND`` : int<br />&#160;&#160;static val ``ZY - EXPRESS`` : int<br /><br />Full name: Index.ShipMethod</div>
-<div class="tip" id="fs23">type SqlEnumProvider<br /><br />Full name: FSharp.Data.SqlEnumProvider<br /><em><br /><br /><br />&lt;summary&gt;Enumeration based on SQL query.&lt;/summary&gt; <br />&lt;param name=&#39;Query&#39;&gt;SQL used to get the enumeration labels and values. A result set must have at least two columns. The first one is a label.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionString&#39;&gt;String used to open a data connection.&lt;/param&gt;<br />&lt;param name=&#39;Provider&#39;&gt;Invariant name of a ADO.NET provider. Default is &quot;System.Data.SqlClient&quot;.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;CLIEnum&#39;&gt;Generate standard CLI Enum. Default is false.&lt;/param&gt;<br /></em></div>
-<div class="tip" id="fs24">type OrdersByShipTypeSince = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Index.OrdersByShipTypeSince</div>
-<div class="tip" id="fs25">val cmd2 : OrdersByShipTypeSince<br /><br />Full name: Index.cmd2</div>
-<div class="tip" id="fs26">SqlCommandProvider&lt;...&gt;.Execute(shippedLaterThan: System.DateTime, shipMethodId: int) : Option&lt;Option&lt;int&gt;&gt;</div>
-<div class="tip" id="fs27">module Option<br /><br />from Microsoft.FSharp.Core</div>
-<div class="tip" id="fs28">val get : option:&#39;T option -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.Option.get</div>
+<div class="tip" id="fs21">type ShipMethod =<br />&#160;&#160;static val ``CARGO TRANSPORT 5`` : int<br />&#160;&#160;static val Items : IEnumerable&lt;string * int&gt;<br />&#160;&#160;static val ``OVERNIGHT J-FAST`` : int<br />&#160;&#160;static val ``OVERSEAS - DELUXE`` : int<br />&#160;&#160;static member Parse : value: string * ignoreCase: bool -&gt; int + 1 overload<br />&#160;&#160;static member TryFindName : value: int -&gt; Option&lt;string&gt;<br />&#160;&#160;static member TryParse : value: string * ignoreCase: bool -&gt; Option&lt;int&gt; + 1 overload<br />&#160;&#160;static val ``XRQ - TRUCK GROUND`` : int<br />&#160;&#160;static val ``ZY - EXPRESS`` : int<br /><br />Full name: Index.ShipMethod</div>
+<div class="tip" id="fs22">type SqlEnumProvider<br /><br />Full name: FSharp.Data.SqlEnumProvider<br /><em><br /><br /><br />&lt;summary&gt;Enumeration based on SQL query.&lt;/summary&gt; <br />&lt;param name=&#39;Query&#39;&gt;SQL used to get the enumeration labels and values. A result set must have at least two columns. The first one is a label.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionString&#39;&gt;String used to open a data connection.&lt;/param&gt;<br />&lt;param name=&#39;Provider&#39;&gt;Invariant name of a ADO.NET provider. Default is &quot;System.Data.SqlClient&quot;.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;CLIEnum&#39;&gt;Generate standard CLI Enum. Default is false.&lt;/param&gt;<br /></em></div>
+<div class="tip" id="fs23">type OrdersByShipTypeSince = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Index.OrdersByShipTypeSince</div>
+<div class="tip" id="fs24">val cmd2 : OrdersByShipTypeSince<br /><br />Full name: Index.cmd2</div>
+<div class="tip" id="fs25">SqlCommandProvider&lt;...&gt;.Execute(shippedLaterThan: System.DateTime, shipMethodId: int) : Option&lt;Option&lt;int&gt;&gt;</div>
+<div class="tip" id="fs26">module Option<br /><br />from Microsoft.FSharp.Core</div>
+<div class="tip" id="fs27">val get : option:&#39;T option -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.Option.get</div>
 
             </div>
 
