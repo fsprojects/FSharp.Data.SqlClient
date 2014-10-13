@@ -22,7 +22,7 @@ Order shippment types defined in Purchasing.ShipMethod table.
 
 The query returns:
 
-<table >
+<table class="table table-bordered table-striped">
 <thead><tr><td>Name</td><td>ShipMethodID</td></tr></thead>
 <tbody>
     <tr><td>CARGO TRANSPORT 5</td><td>5</td></tr>
@@ -72,9 +72,10 @@ cmd.Parameters.AddWithValue("@shipMethodId", ShippingMethod.``OVERNIGHT J-FAST``
 cmd.ExecuteScalar() |> unbox<int>
 
 (**
-But improvement is questionable because we traded one problem for another – keeping this enum type definition in sync with database changes.  
+But improvement is questionable because we traded one problem for another \– keeping this enum type definition in sync with database changes.  
 
-## Solution - SqlEnumProvider
+Solution - SqlEnumProvider
+-------------------------------------
 
 ### F# idiomatic enum-like type
 
@@ -96,7 +97,7 @@ type OrdersByShipTypeSince = SqlCommandProvider<"
     WHERE ShipDate > @shippedLaterThan AND ShipMethodID = @shipMethodId", connStr, SingleRow = true>
 
 let cmd2 = new OrdersByShipTypeSince() 
-cmd2.Execute( DateTime( 2008, 1, 1), ShipMethod.``OVERNIGHT J-FAST``) |> Option.get |> Option.get  
+cmd2.Execute( DateTime( 2008, 1, 1), ShipMethod.``OVERNIGHT J-FAST``) 
 
 (**
 This type has semantics similar to standard BCL Enum type and stays in sync with database SqlEnumProvider pointed to. 
@@ -112,7 +113,7 @@ The SQL statement used to query database has to return resultset of certain shap
     decimal, DateTime, DateTimeOffet or string
     - If value consists of more than one column it represented as Tuple. It makes it similar to Java enums 
 
-Again the idea is straightforward – anywhere in the code tag/label will be replace by value: ``XRQ - TRUCK GROUND`` with 1, ``ZY - EXPRESS`` with 1, etc.
+Again the idea is straightforward: anywhere in the code tag/label will be replace by value: ``XRQ - TRUCK GROUND`` with 1, ``ZY - EXPRESS`` with 1, etc.
 
 The `ShipMethod` type provides more idiomatic interface that standard BCL Enum:
   - `Items` is read-only field of `list<string * 'T>` where `'T` is type of value
@@ -145,8 +146,8 @@ ShipMethod.Parse("CARGO TRANSPORT 5")
 
 
 (**  
-F# tuple-valued enums
--------------------------------------
+### F# tuple-valued enums
+
 As mentioned above result set with more than 2 columns is mapped to enum with tuple as value. This makes it similar to [Java enums] (http://javarevisited.blogspot.com/2011/08/enum-in-java-example-tutorial.html).
 *)
 
@@ -174,10 +175,10 @@ then
 (**
 I have mixed feelings about applicability of multi-item value type. Please provide feedback/examples that prove it useful or otherwise._
 
-CLI native enums
--------------------------------------
+### CLI native enums
 
-SqlEnumProvider is unique because it supports two type generation strategies: F# idiomatic enum-behaving type and standard CLI enumerated types. Second can be useful where compiler allows only const declaration - attribute constructors for example. Set "CLIEnum" parameter to generate standard enum.
+SqlEnumProvider is unique because it supports two type generation strategies: F# idiomatic enum-behaving type and standard CLI enumerated types. 
+Second can be useful where compiler allows only const declaration - attribute constructors for example. Set "CLIEnum" parameter to generate standard enum.
 
 *)
 
@@ -207,9 +208,12 @@ type MyController() =
 (**
 It also makes this types **accessible from C#** or any other .NET language.
 
+Miscellaneous
+-------------------------------------
+
 ### Multi-platform. 
 
-##### Any ADO.NET supported database
+### Any ADO.NET supported database
 SqlEnumProvider has a static parameter "Provider" which allows to pass ADO.NET provider [invariant name](http://msdn.microsoft.com/en-us/library/h508h681.aspx). This makes it usable with any ADO.NET supported database. “System.Data.SqlClient”  is default value for ADO.NET provider.
 
 Invariant names of available ADO.NET providers can be retrieved as follows:
@@ -219,14 +223,14 @@ open System.Data.Common
 [ for r in DbProviderFactories.GetFactoryClasses().Rows -> r.["InvariantName"] ]
 
 (**
-##### Generated types accesable from C#, Visual Basic and other .NET languages
+### Generated types accesable from C#, Visual Basic and other .NET languages
 Show your fellow C#/VB developers magic of F# type provider accessible from their favorite language!!! Sample project is here. [Demo solution](https://github.com/dmitry-a-morozov/FSharp.Data.SqlEnumProvider/blob/master/demos/CSharp.Client/Program.cs) includes example.
 
-##### Xamarin ???
+### Xamarin ???
 The type provider should work in XS when a project targets Mono runtime. Nothing technically stops to make it available for Xamarin supported mobile platforms (iOS, Android & Windows Phone) to access SQLite.
 
-##### Future extensions: [FlagsAttribute](http://msdn.microsoft.com/en-us/library/system.flagsattribute.aspx) Enums ?
+### Future extensions: [FlagsAttribute](http://msdn.microsoft.com/en-us/library/system.flagsattribute.aspx) Enums ?
 
-###Educational
+### Educational
 F# developers often ask about simple examples of “generated types” type providers. Here you go. I hope it will be useful.
 *)
