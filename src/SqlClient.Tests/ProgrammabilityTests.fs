@@ -15,7 +15,7 @@ type GetContactInformation = AdventureWorks.dbo.ufnGetContactInformation
 let TableValuedFunction() =
     let cmd = new GetContactInformation()
     let person = cmd.Execute(PersonID = 1) |> Seq.exactlyOne
-    let expected = GetContactInformation.Record(personID = 1, firstName = Some "Ken", lastName = Some "Sánchez", jobTitle = Some "Chief Executive Officer", businessEntityType = Some "Employee")
+    let expected = GetContactInformation.Record(PersonID = 1, FirstName = Some "Ken", LastName = Some "Sánchez", JobTitle = Some "Chief Executive Officer", BusinessEntityType = Some "Employee")
     Assert.Equal(expected, person)
 
 type GetLeadingZeros = AdventureWorks.dbo.ufnLeadingZeros

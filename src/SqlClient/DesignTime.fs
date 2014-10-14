@@ -76,8 +76,7 @@ type DesignTime private() =
                     let property = ProvidedProperty(propertyName, propType)
                     property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
 
-                    let ctorPropertyName = (propertyName.[0] |> string).ToLower() + propertyName.Substring(1)    
-                    let ctorParameter = ProvidedParameter(ctorPropertyName, propType)  
+                    let ctorParameter = ProvidedParameter(propertyName, propType)  
 
                     yield property, ctorParameter
             ] |> List.unzip
