@@ -37,9 +37,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
                 ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Records) 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
+                ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
             instantiationFunction = (fun typeName args ->
-                let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2]
+                let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3]
                 cache.GetOrAdd(key, this.CreateRootType)
             ) 
         )
@@ -55,7 +56,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     
     interface IDisposable with member this.Dispose() = cache.Clear()
 
-    member internal this.CreateRootType( typeName, connectionStringOrName, resultType, configFile) =
+    member internal this.CreateRootType( typeName, connectionStringOrName, resultType, configFile, dataDirectory) =
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         
         let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
@@ -64,6 +65,13 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             if isByName 
             then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, config.ResolutionFolder, configFile)
             else connectionStringOrName
+
+        let dataDirectoryFullPath = 
+            if dataDirectory = "" then  config.ResolutionFolder
+            elif Path.IsPathRooted dataDirectory then dataDirectory
+            else Path.Combine (config.ResolutionFolder, dataDirectory)
+
+        AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectoryFullPath)
 
         let conn = new SqlConnection(designTimeConnectionString)
         use closeConn = conn.UseLocally()

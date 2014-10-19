@@ -45,9 +45,10 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
                 ProvidedStaticParameter("ResolutionFolder", typeof<string>, "") 
+                ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
             instantiationFunction = (fun typeName args ->
-                let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6]
+                let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6], unbox args.[7]
                 cache.GetOrAdd(key, this.CreateRootType)
             ) 
             
@@ -72,7 +73,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
            then try watcher.Dispose() with _ -> ()
            cache.Clear()
 
-    member internal this.CreateRootType((typeName, sqlStatementOrFile, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, resolutionFolder) as key) = 
+    member internal this.CreateRootType((typeName, sqlStatementOrFile, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, resolutionFolder, dataDirectory) as key) = 
 
         if singleRow && not (resultType = ResultType.Records || resultType = ResultType.Tuples)
         then 
@@ -103,6 +104,13 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             if isByName
             then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, config.ResolutionFolder, configFile)
             else connectionStringOrName
+
+        let dataDirectoryFullPath = 
+            if dataDirectory = "" then  config.ResolutionFolder
+            elif Path.IsPathRooted dataDirectory then dataDirectory
+            else Path.Combine (config.ResolutionFolder, dataDirectory)
+
+        AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectoryFullPath)
 
         let conn = new SqlConnection(designTimeConnectionString)
         use closeConn = conn.UseLocally()

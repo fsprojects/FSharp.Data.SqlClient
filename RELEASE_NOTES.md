@@ -68,3 +68,7 @@
 	
 #### 1.4 - October 13 2014
 	* Promoted from aplha to officail release 
+	
+#### 1.4.1 - October 18 2014
+	* Remove forced camel casing in gen record ctor
+	* DataDirectory parameter  
