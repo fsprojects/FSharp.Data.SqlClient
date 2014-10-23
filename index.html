@@ -41,7 +41,7 @@
 <ul>
 <li>SqlCommandProvider - type-safe access to full set of T-SQL language</li>
 <li>SqlProgrammabilityProvider - quick access to Sql Server functions and stored procedures in idiomatic F# way</li>
-<li>SqlEnumProvider - generates .NET Enums based on static lookup data from any ADO.NET complaint source</li>
+<li>SqlEnumProvider - generates enumeration types based on static lookup data from any ADO.NET complaint source</li>
 </ul>
 
 <div class="row">
@@ -163,7 +163,7 @@
 
 <h2>SqlEnumProvider</h2>
 
-<p>Let's say we need to retrieve number of orders shipped in certain way since specific date.</p>
+<p>Let's say we need to retrieve number of orders shipped by a certain shipping method since specific date.</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
@@ -208,8 +208,9 @@
 <h2>System requirements</h2>
 
 <ul>
-<li>SQL Server 2012 and up or SQL Azure Database at compile-time</li>
 <li>.NET 4.0 and higher</li>
+<li><em>SqlCommandProvider and SqlProgrammabilityProvider only</em> SQL Server 2012 and up or SQL Azure Database at compile-time</li>
+<li>SqlEnumProvider works with any ADO.NET complain data-source</li>
 </ul>
 
 <h2>SqlCommandProvider and SqlProgrammabilityProvider features at glance</h2>
@@ -222,42 +223,40 @@
 </ul></li>
 <li>Configuration
 <ul>
-<li>Command text (sql script) can be either inline or path to *.sql file</li>
-<li>Connection string is either inline or name from config file (app.config is default for config file)</li>
+<li>Command text (sql script) can be either literal or path to *.sql file</li>
+<li>Connection string is either literal or name from config file (app.config is default for config file)</li>
 <li>Connection string can be overridden at run-time via constructor optional parameter</li>
 <li>Constructor optionally accepts <code>SqlTransaction</code> and uses associated connection to execute command</li>
 <li>"ResolutionFolder" parameter - a folder to be used to resolve relative file paths at compile time. Applied to command text *.sql files only.</li>
 </ul></li>
 <li>Input:
 <ul>
-<li>Statically typed</li>
-<li>Unbound sql variables/input parameters mapped to mandatory arguments for <code>AsyncExecute/Execute</code></li>
+<li>Unbound sql variables/input parameters mapped to mandatory typed arguments for <code>AsyncExecute/Execute</code></li>
 <li>Set <code>AllParametersOptional</code> to true to make all parameters optional (nullable) (<code>SqlCommandProvider&lt;...&gt;</code> only)</li>
-<li>Stored Procedures and Table-valued User-defined Functions can be discovered and executed with <code>SqlProgrammabilityProvider&lt;...&gt;</code></li>
-<li><code>SqlProgrammabilityProvider&lt;...&gt;</code> infers default values for input parameters and exposes them in AsyncExecute</li>
+<li>Stored Procedures and User-Defined Functions can be easily discovered with <code>SqlProgrammabilityProvider&lt;...&gt;</code></li>
+<li><code>SqlProgrammabilityProvider&lt;...&gt;</code> infers default values for input parameters</li>
 </ul></li>
 <li>Output:
 <ul>
-<li>Inferred static type for output. Configurable choice of <code>seq&lt;Tuples&gt;</code>, <code>seq&lt;Records&gt;</code>, <code>DataTable</code>, or raw <code>SqlReader</code> for custom parsing. 
-For <code>seq&lt;Tuples&gt;</code> and <code>seq&lt;Records&gt;</code> each column mapped to corresponding item/property</li>
+<li>Inferred static type for output. Configurable choice of <code>seq&lt;Records&gt;</code>(default), <code>seq&lt;Tuples&gt;</code>,<code>DataTable</code>, or raw <code>SqlReader</code> for custom parsing. 
+For <code>seq&lt;Records&gt;</code> and <code>seq&lt;Tuples&gt;</code> each column mapped to corresponding property/item</li>
 <li>Nullable output columns translate to the F# Option type</li>
-<li>For Stored Procedures, output parameters exposed as custom .Net type with corresponding properties plus Return Value.</li>
+<li>Output parameters and return values for stored procedures are not supported. Open a GitHub project issue to request this support.</li>
 </ul></li>
 <li>Extra configuration options:
 <ul>
 <li><p><code>SingleRow</code> hint forces singleton output instead of sequence</p></li>
 </ul></li>
 <li><a href="http://blogs.msdn.com/b/adonet/archive/2013/12/09/microsoft-sqlserver-types-nuget-package-spatial-on-azure.aspx">Microsoft.SqlServer.Types (Spatial on Azure)</a> is supported.</li>
-<li>SqlCommandProvider is of "erased types" kind. It can be used only from F#.</li>
+<li>SqlCommandProvider and SqlProgrammabilityProvider are of "erased types" kind. It can be used only from F#.</li>
+<li>SqlEnumProvider is of "generated types" kind and can be used from any .NET language.</li>
 </ul>
 
 <h2>Limitations</h2>
 
-<p>In addition to system requirements listed above <code>SqlCommandProvider</code> constrained by same limitations as two system meta-stored procedures 
+<p>In addition to system requirements listed above <code>SqlCommandProvider and SqlProgrammabilityProvider</code> constrained by same limitations as two system meta-stored procedures 
 it uses in implementation: <a href="http://technet.microsoft.com/en-us/library/ff878260.aspx">sys.sp_describe_undeclared_parameters</a> 
-and <a href="http://technet.microsoft.com/en-us/library/ff878602.aspx">sys.sp_describe_first_result_set</a>. Look online for more details.
-Additionally, <code>SqlProgrammabilityProvider</code> employs <a href="http://technet.microsoft.com/en-us/library/ms162169.aspx">SMO</a> to identify default parameters of stored procedures
-which might affect design-time responsiveness at times.</p>
+and <a href="http://technet.microsoft.com/en-us/library/ff878602.aspx">sys.sp_describe_first_result_set</a>. Look online for more details.</p>
 
 <div class="tip" id="fs1">namespace FSharp</div>
 <div class="tip" id="fs2">namespace FSharp.Data</div>
