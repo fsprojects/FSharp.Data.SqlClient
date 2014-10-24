@@ -14,17 +14,21 @@
     <copyright>Copyright 2013</copyright>
     <tags>@tags@</tags>
     <frameworkAssemblies>
-      <frameworkAssembly assemblyName="System.Data" targetFramework=".NETFramework4.0" />
-      <frameworkAssembly assemblyName="System.Xml" targetFramework=".NETFramework4.0" />
+      <frameworkAssembly assemblyName="System.Data" />
+      <frameworkAssembly assemblyName="System.Xml" />
     </frameworkAssemblies>
     <dependencies>
-      <dependency id="Microsoft.SqlServer.Types"/>
+      <dependency id="Microsoft.SqlServer.Types" />
     </dependencies>
+    <references>
+      <reference file="FSharp.Data.SqlClient.dll" />
+    </references>
   </metadata>
   <files>
-    <file src="..\bin\FSharp.Data.SqlClient.dll" target="lib/net40\FSharp.Data.SqlClient.dll" />
-    <file src="..\bin\FSharp.Data.SqlClient.pdb" target="lib/net40\FSharp.Data.SqlClient.pdb" />
-    <file src="..\bin\FSharp.Data.SqlClient.xml" target="lib/net40\FSharp.Data.SqlClient.xml" />
-    <file src="..\bin\Microsoft.SqlServer.*.dll" target="lib/net40" />
+    <file src="..\bin\FSharp.Data.SqlClient.dll" target="lib\net40" />
+    <file src="..\bin\FSharp.Data.SqlClient.pdb" target="lib\net40" />
+    <file src="..\bin\FSharp.Data.SqlClient.xml" target="lib\net40" />
+    <file src="..\bin\Microsoft.SqlServer.TransactSql.ScriptDom.dll" target="lib\net40" />
+    <file src="..\bin\Microsoft.SqlServer.Types.dll" target="lib\net40" />
   </files>
 </package>
