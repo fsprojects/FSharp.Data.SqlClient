@@ -72,3 +72,6 @@
 #### 1.4.1 - October 18 2014
 	* Remove forced camel casing in gen record ctor
 	* DataDirectory parameter  
+
+#### 1.4.2 - October 24 2014
+	* Removed targetFramework=".NETFramework4.0" for system assemblies
