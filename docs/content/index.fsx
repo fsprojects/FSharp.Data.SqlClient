@@ -7,9 +7,9 @@ Not your grandfather's ORM
 
 The library is a home for three type providers:
 
-- SqlCommandProvider - type-safe access to full set of T-SQL language
-- SqlProgrammabilityProvider - quick access to Sql Server functions and stored procedures in idiomatic F# way
-- SqlEnumProvider - generates enumeration types based on static lookup data from any ADO.NET complaint source
+- __SqlCommandProvider__ - type-safe access to full set of T-SQL language
+- __SqlProgrammabilityProvider__ - quick access to Sql Server functions and stored procedures in idiomatic F# way
+- __SqlEnumProvider__ - generates enumeration types based on static lookup data from any ADO.NET complaint source
 
 <div class="row">
   <div class="span1"></div>
