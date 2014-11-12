@@ -103,8 +103,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             then 
                 let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj>, HideObjectMethods = true)
                     
-                let parameters = [ 
-                    for p in t.TableTypeColumns -> 
+                let parameters = [
+                    for p in t.TableTypeColumns.Value -> 
                         ProvidedParameter(p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
                 ] 
 

@@ -49,7 +49,7 @@ and TypeInfo = {
     IsFixedLength: bool option
     ClrTypeFullName: string
     UdttName: string 
-    TableTypeColumns: Column seq
+    TableTypeColumns: Lazy<Column[]>
 }   with
     member this.SqlDbType : SqlDbType = enum this.SqlDbTypeId
     member this.ClrType : Type = Type.GetType this.ClrTypeFullName
@@ -324,33 +324,33 @@ type SqlConnection with
                     //the next line fix the issue when ADO.NET SQL provider maps tinyint to byte despite of claiming to map it to SByte according to GetSchema("DataTypes")
                     let clrTypeFixed = if system_type_id = 48 (*tinyint*) then typeof<byte>.FullName else clrType
                     let columns = 
-                        if is_table_type
-                        then
-                            seq {
-                                use cmd = new SqlCommand("
-                                    SELECT c.name, c.column_id, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length
-                                    FROM sys.table_types AS tt
-                                    INNER JOIN sys.columns AS c ON tt.type_table_object_id = c.object_id
-                                    WHERE tt.user_type_id = @user_type_id
-                                    ORDER BY column_id")
-                                cmd.Parameters.AddWithValue("@user_type_id", user_type_id) |> ignore
-                                use closeConn = this.UseLocally()
-                                cmd.Connection <- this
-                                use reader = cmd.ExecuteReader()
-                                while reader.Read() do 
-                                    let user_type_id = reader |> SqlDataReader.getOption "user_type_id"
-                                    let stid = reader.["system_type_id"] |> unbox<byte> |> int
-                                    yield {
-                                        Column.Name = string reader.["name"]
-                                        Ordinal = unbox reader.["column_id"]
-                                        TypeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, stid, user_type_id)
-                                        IsNullable = unbox reader.["is_nullable"]
-                                        MaxLength = reader.["max_length"] |> unbox<int16> |> int
-                                    }
-                            } 
-                            |> Seq.cache
-                        else
-                            Seq.empty
+                        lazy 
+                            if is_table_type
+                            then
+                                [|
+                                    use cmd = new SqlCommand("
+                                        SELECT c.name, c.column_id, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length
+                                        FROM sys.table_types AS tt
+                                        INNER JOIN sys.columns AS c ON tt.type_table_object_id = c.object_id
+                                        WHERE tt.user_type_id = @user_type_id
+                                        ORDER BY column_id")
+                                    cmd.Parameters.AddWithValue("@user_type_id", user_type_id) |> ignore
+                                    use closeConn = this.UseLocally()
+                                    cmd.Connection <- this
+                                    use reader = cmd.ExecuteReader()
+                                    while reader.Read() do 
+                                        let user_type_id = reader |> SqlDataReader.getOption "user_type_id"
+                                        let stid = reader.["system_type_id"] |> unbox<byte> |> int
+                                        yield {
+                                            Column.Name = string reader.["name"]
+                                            Ordinal = unbox reader.["column_id"]
+                                            TypeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, stid, user_type_id)
+                                            IsNullable = unbox reader.["is_nullable"]
+                                            MaxLength = reader.["max_length"] |> unbox<int16> |> int
+                                        }
+                                |] 
+                            else
+                                Array.empty
 
                     select {
                         TypeName = properName
