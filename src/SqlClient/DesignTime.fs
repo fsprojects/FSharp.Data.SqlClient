@@ -254,7 +254,7 @@ type DesignTime private() =
                                 let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<obj>, HideObjectMethods = true)
                                 cmdProvidedType.AddMember rowType
                                 let parameters = [ 
-                                    for p in p.TypeInfo.TableTypeColumns.Value -> 
+                                    for p in p.TypeInfo.TableTypeColumns -> 
                                         ProvidedParameter( p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
                                 ] 
 

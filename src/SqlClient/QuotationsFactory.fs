@@ -34,7 +34,7 @@ type QuotationsFactory private() =
         let tvpColumnNames, tvpColumnTypes = 
             if not p.TypeInfo.TableType 
             then [], []
-            else [ for c in p.TypeInfo.TableTypeColumns.Value -> c.Name, c.TypeInfo.ClrType.FullName ] |> List.unzip
+            else [ for c in p.TypeInfo.TableTypeColumns -> c.Name, c.TypeInfo.ClrType.FullName ] |> List.unzip
 
         <@@ 
             let x = SqlParameter(name, enum dbType, Direction = %%Expr.Value p.Direction )
