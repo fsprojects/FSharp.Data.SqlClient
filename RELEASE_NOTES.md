@@ -78,3 +78,6 @@
 
 #### 1.4.3 - November 16 2014
 	* Switched to implementation of internal cache with expiration for provided types
+
+#### 1.4.4 - November 16 2014
+	* Replaced dependency on Microsoft.SqlServer.Types from ver 11.0.1 t0 11.0.0
