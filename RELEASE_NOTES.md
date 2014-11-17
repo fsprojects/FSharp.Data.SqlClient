@@ -75,3 +75,6 @@
 
 #### 1.4.2 - October 24 2014
 	* Removed targetFramework=".NETFramework4.0" for system assemblies
+
+#### 1.4.3 - November 16 2014
+	* Switched to implementation of internal cache with expiration for provided types

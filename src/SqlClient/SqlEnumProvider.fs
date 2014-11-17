@@ -6,7 +6,6 @@ open System.Data
 open System.Data.Common
 open System
 open System.IO
-open System.Collections.Concurrent
 open System.Configuration
 
 open Microsoft.FSharp.Core.CompilerServices
@@ -14,13 +13,6 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Reflection
 
 open ProviderImplementation.ProvidedTypes
-
-[<assembly:TypeProviderAssembly()>]
-[<assembly: AssemblyTitleAttribute("FSharp.Data.SqlEnumProvider")>]
-[<assembly: AssemblyProductAttribute("FSharp.Data.SqlEnumProvider")>]
-[<assembly: AssemblyVersionAttribute("0.8.0")>]
-[<assembly: AssemblyFileVersionAttribute("0.8.0")>]
-do()
 
 [<TypeProvider>]
 type public SqlEnumProvider(config : TypeProviderConfig) as this = 
@@ -31,7 +23,8 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlEnumProvider", Some typeof<obj>, HideObjectMethods = true, IsErased = false)
     let tempAssembly = ProvidedAssembly( Path.ChangeExtension(Path.GetTempFileName(), ".dll"))
     do tempAssembly.AddTypes [providerType]
-    let cache = ConcurrentDictionary<_, ProvidedTypeDefinition>()
+
+    let cache = new ProvidedTypesCache(this)
 
     do 
         providerType.DefineStaticParameters(
@@ -44,7 +37,7 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
             ],             
             instantiationFunction = (fun typeName args ->   
                 let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4]
-                cache.GetOrAdd( key, this.CreateRootType)
+                cache.GetOrAdd( key, lazy this.CreateRootType key)
             )        
         )
 

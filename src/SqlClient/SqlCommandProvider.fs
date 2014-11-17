@@ -5,7 +5,6 @@ open System.Data
 open System.IO
 open System.Data.SqlClient
 open System.Reflection
-open System.Collections.Concurrent
 open System.Collections.Generic
 open System.Runtime.CompilerServices
 open System.Configuration
@@ -33,7 +32,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, HideObjectMethods = true)
 
-    let cache = ConcurrentDictionary<_, ProvidedTypeDefinition>()
+    let cache = new ProvidedTypesCache(this)
 
     do 
         providerType.DefineStaticParameters(
@@ -49,7 +48,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             ],             
             instantiationFunction = (fun typeName args ->
                 let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6], unbox args.[7]
-                cache.GetOrAdd(key, this.CreateRootType)
+                cache.GetOrAdd(key, lazy this.CreateRootType key)
             ) 
             
         )
@@ -68,10 +67,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         this.AddNamespace(nameSpace, [ providerType ])
     
     interface IDisposable with 
-        member this.Dispose() = 
-           if watcher <> null
-           then try watcher.Dispose() with _ -> ()
-           cache.Clear()
+        member this.Dispose() =
+            try  
+                if watcher <> null
+                then watcher.Dispose()
+            with _ -> ()
 
     member internal this.CreateRootType((typeName, sqlStatementOrFile, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, resolutionFolder, dataDirectory) as key) = 
 
@@ -79,8 +79,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         then 
             invalidArg "singleRow" "singleRow can be set only for ResultType.Records or ResultType.Tuples."
         
-        let invalidator () =
-            cache.TryRemove(key) |> ignore 
+        let invalidator() =
+            cache.Remove(key) 
             this.Invalidate()
             
         let sqlStatement, watcher' = 

@@ -62,6 +62,7 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Runtime.Caching" />
     <Reference Include="System.Transactions" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -70,6 +71,7 @@
     <Compile Include="ProvidedTypes.fs" />
     <Compile Include="DebugProvidedTypes.fs" />
     <Compile Include="Configuration.fs" />
+    <Compile Include="ProvidedTypesCache.fs" />
     <Compile Include="DataTable.fs" />
     <Compile Include="DynamicRecord.fs" />
     <Compile Include="SqlClientExtensions.fs" />

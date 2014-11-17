@@ -7,7 +7,6 @@ open System.Data.SqlClient
 open System.Diagnostics
 open System.IO
 open System.Reflection
-open System.Collections.Concurrent
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
@@ -27,7 +26,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     let nameSpace = this.GetType().Namespace
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlProgrammabilityProvider", Some typeof<obj>, HideObjectMethods = true)
 
-    let cache = ConcurrentDictionary<_, ProvidedTypeDefinition>()
+    let cache = new ProvidedTypesCache(this)
 
     do 
         this.RegisterRuntimeAssemblyLocationAsProbingFolder( config) 
@@ -41,7 +40,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             ],             
             instantiationFunction = (fun typeName args ->
                 let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3]
-                cache.GetOrAdd(key, this.CreateRootType)
+                cache.GetOrAdd(key, lazy this.CreateRootType key)
             ) 
         )
 
@@ -54,8 +53,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         this.AddNamespace(nameSpace, [ providerType ])
     
-    interface IDisposable with member this.Dispose() = cache.Clear()
-
     member internal this.CreateRootType( typeName, connectionStringOrName, resultType, configFile, dataDirectory) =
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         
