@@ -1,5 +1,5 @@
 (*** hide ***)
-#r "../../bin/FShapr.Data.SqlClient.dll"
+#r "../../bin/FSharp.Data.SqlClient.dll"
 #r "../../bin/Microsoft.SqlServer.Types.dll"
 
 (**
@@ -10,7 +10,7 @@ Sometimes you don't want to have to be online just to compile your programs. Wit
 .MDF file as the compile time connection string, and then change your connection string at runtime when you deploy your application.
 *)
 
-open FShapr.Data
+open FSharp.Data
 
 [<Literal>]
 let connectionString=@"Data Source=(LocalDB)\v11.0;AttachDbFilename=C:\git\Project1\Database1.mdf;Integrated Security=True;Connect Timeout=10"
