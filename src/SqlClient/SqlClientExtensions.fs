@@ -34,6 +34,7 @@ type Column = {
     TypeInfo: TypeInfo
     IsNullable: bool
     MaxLength: int
+    IsIdentity: bool
 }   with
     member this.ClrTypeConsideringNullable = 
         if this.IsNullable 
@@ -243,9 +244,17 @@ type SqlConnection with
         )
         |> Seq.toList
 
+    member internal this.GetTables( schema) = [
+        assert (this.State = ConnectionState.Open)
+        let getTablesQuery = sprintf "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = '%s'" schema
+        use cmd = new SqlCommand(getTablesQuery, this)
+        use reader = cmd.ExecuteReader()
+        while reader.Read() do
+            yield reader.GetString(0)
+    ]
+
     member internal this.GetFullQualityColumnInfo commandText = [
         assert (this.State = ConnectionState.Open)
-        use __ = this.UseLocally()
         use cmd = new SqlCommand("sys.sp_describe_first_result_set", this, CommandType = CommandType.StoredProcedure)
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
         use reader = cmd.ExecuteReader()
@@ -259,6 +268,7 @@ type SqlConnection with
                 TypeInfo = findTypeInfoBySqlEngineTypeId (this.ConnectionString, system_type_id, user_type_id)
                 IsNullable = unbox reader.["is_nullable"]
                 MaxLength = reader.["max_length"] |> unbox<int16> |> int
+                IsIdentity = unbox reader.["is_identity_column"]
             }
     ] 
 
@@ -282,6 +292,7 @@ type SqlConnection with
                             findTypeInfoByProviderType(this.ConnectionString, unbox t, "").Value
                         IsNullable = unbox row.["AllowDBNull"]
                         MaxLength = unbox row.["ColumnSize"]
+                        IsIdentity = unbox row.["IsAutoIncrement"]
                     }
             ]
 
@@ -328,7 +339,7 @@ type SqlConnection with
                         then
                             seq {
                                 use cmd = new SqlCommand("
-                                    SELECT c.name, c.column_id, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length
+                                    SELECT c.name, c.column_id, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length, c.is_identity
                                     FROM sys.table_types AS tt
                                     INNER JOIN sys.columns AS c ON tt.type_table_object_id = c.object_id
                                     WHERE tt.user_type_id = @user_type_id
@@ -346,6 +357,7 @@ type SqlConnection with
                                         TypeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, stid, user_type_id)
                                         IsNullable = unbox reader.["is_nullable"]
                                         MaxLength = reader.["max_length"] |> unbox<int16> |> int
+                                        IsIdentity = unbox reader.["is_identity"]
                                     }
                             } 
                             |> Seq.cache

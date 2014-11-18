@@ -8,9 +8,10 @@ open System.Data.SqlClient
 let conn = new SqlConnection("""Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True""")
 conn.Open()
 
-//let cmd = new SqlCommand("sp_help", conn)
-//cmd.Parameters.AddWithValue("@objname", "[dbo].[ufnGetContactInformation]") |> ignore
-let cmd = new SqlCommand("dbo.Swap", conn, CommandType = CommandType.StoredProcedure)
+let cmd = new SqlCommand("select * from HumanResources.Department", conn)
+let reader = cmd.ExecuteReader()
+[ for c in reader.GetSchemaTable().Columns -> c.ColumnName, c.DataType.Name ]
+
 SqlCommandBuilder.DeriveParameters(cmd)
 cmd.Parameters.["@input"].Value <- 12
 cmd.Parameters.["@output"].Value <- DBNull.Value

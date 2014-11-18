@@ -16,6 +16,21 @@ let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;
 
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
 type dbo = AdventureWorks2012.dbo
+
+let func(r: #DataRow) = 
+    ()
+
+type Department = AdventureWorks2012.HumanResources.Tables.Department
+let department = new Department()
+let r = department.NewRow("test", "group", DateTime.Now)
+func r
+let r2 = (new AdventureWorks2012.HumanResources.Tables.JobCandidate()).NewRow(12, "", DateTime.Now)
+func r2
+department.Rows.Add r
+department.Rows.Count
+department.Rows.[1]
+//department.AddRow("test2", "group2", DateTime.Now)
+
 //Table-valued UDF selecting single row
 type GetContactInformation = dbo.ufnGetContactInformation
 let getContactInformation = new GetContactInformation()
@@ -37,14 +52,6 @@ type GetWhereUsedProductID = dbo.uspGetWhereUsedProductID
 let getWhereUsedProductID = new GetWhereUsedProductID()
 getWhereUsedProductID.AsyncExecute(1, DateTime(2013,1,1)) |> Async.RunSynchronously |> Array.ofSeq
 
-//Mix of input and output parameters in SP
-type Swap = dbo.Swap
-let swap = new dbo.Swap()
-swap.Execute(input=5) |> Async.RunSynchronously 
-a.output
-a.nullStringOutput
-a.ReturnValue
-a.nullOutput
 //
 //UDTT with nullable column
 type myType = dbo.MyTableType

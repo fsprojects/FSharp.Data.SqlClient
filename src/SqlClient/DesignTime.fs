@@ -96,9 +96,9 @@ type DesignTime private() =
         
         recordType    
 
-    static member internal GetDataRowType (outputColumns: Column list) = 
+    static member internal GetDataRowType (columns: Column list) = 
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
-        for col in outputColumns do
+        for col in columns do
             let name = col.Name
             if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
 

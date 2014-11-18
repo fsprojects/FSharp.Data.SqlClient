@@ -88,6 +88,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         yield! this.Routines(conn, schema, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
 
+                        yield this.Tables(conn, schema)
                     ]
                 schemaRoot            
             )
@@ -194,3 +195,63 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                 yield cmdProvidedType
         ]
+
+    member internal __.Tables(conn: SqlConnection, schema) = 
+        let tables = ProvidedTypeDefinition("Tables", Some typeof<obj>)
+        tables.AddMembersDelayed <| fun() ->
+            use __ = conn.UseLocally()
+            conn.GetTables(schema)
+            |> List.map (fun tableName -> 
+
+                let sql = sprintf "SELECT * FROM %s.%s" schema tableName
+                let columns = DesignTime.GetOutputColumns(conn, sql, [], isStoredProcedure = false)
+                let tvpColumnNames, tvpColumnTypes, identityColumns = [ for c in columns -> c.Name, c.TypeInfo.ClrType.FullName, c.IsIdentity ] |> List.unzip3
+
+                let dataRowType = DesignTime.GetDataRowType(columns)
+
+                let dataTableType = ProvidedTypeDefinition(tableName, baseType = Some( typedefof<_ DataTable>.MakeGenericType(dataRowType)))
+
+                let ctor = ProvidedConstructor []
+                ctor.InvokeCode <- fun args -> 
+                    <@@ 
+                        let table = new DataTable<DataRow>() 
+                        for name, typeName, isIdentity in List.zip3 tvpColumnNames tvpColumnTypes identityColumns do
+                            let c = new DataColumn(name, Type.GetType typeName, AutoIncrement = isIdentity)
+                            table.Columns.Add c
+                        table
+                    @@>
+                dataTableType.AddMember ctor
+                
+                do
+                    let parameters = [ 
+                        for name, typeName, isIdentity in List.zip3 tvpColumnNames tvpColumnTypes identityColumns do
+                            if not isIdentity 
+                            then yield ProvidedParameter(name, Type.GetType typeName)
+                    ]
+                    let newRowMethod = ProvidedMethod("NewRow", parameters, dataRowType)
+                    newRowMethod.InvokeCode <- fun args -> 
+                        <@@ 
+                            let table: DataTable<DataRow> = %%args.[0]
+                            let row = table.NewRow()
+                            let values: obj[] = %%Expr.NewArray(typeof<obj>, [for x in args.Tail -> Expr.Coerce(x, typeof<obj>)])
+                            let nonIdentityColumns = [| for c in table.Columns do if not c.AutoIncrement then yield c |]
+                            for i = 0 to nonIdentityColumns.Length - 1 do
+                                row.[nonIdentityColumns.[i]] <- values.[i]
+                            row
+                        @@>
+                    dataTableType.AddMember newRowMethod
+
+                    let addRowMethod = ProvidedMethod("AddRow", parameters, typeof<unit>)
+                    addRowMethod.InvokeCode <- fun args -> 
+                        <@@
+                            let table: DataTable<DataRow> = %%args.[0]
+                            let row: DataRow = %%Expr.Call(args.Head, newRowMethod, args.Tail)
+                            table.Rows.Add row
+                        @@>
+                    dataTableType.AddMember addRowMethod
+
+                dataTableType.AddMember dataRowType
+                dataTableType
+            )
+        tables
+        
