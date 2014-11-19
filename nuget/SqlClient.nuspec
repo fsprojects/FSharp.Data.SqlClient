@@ -14,8 +14,8 @@
     <copyright>Copyright 2013</copyright>
     <tags>@tags@</tags>
     <frameworkAssemblies>
-      <frameworkAssembly assemblyName="System.Data" />
-      <frameworkAssembly assemblyName="System.Xml" />
+      <frameworkAssembly assemblyName="System.Data" targetFramework="net40" />
+      <frameworkAssembly assemblyName="System.Xml" targetFramework="net40" />
     </frameworkAssemblies>
     <dependencies>
       <dependency id="Microsoft.SqlServer.Types" version="11.0.0"/>
