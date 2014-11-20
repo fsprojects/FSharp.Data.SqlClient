@@ -33,4 +33,6 @@ type DataTable<'T when 'T :> DataRow>() =
             member __.RemoveAt index = rows.RemoveAt(index)
     }
 
+    member __.NewRow(): 'T = downcast base.NewRow()
+
 

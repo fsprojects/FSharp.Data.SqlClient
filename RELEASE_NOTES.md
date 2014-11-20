@@ -81,3 +81,6 @@
 
 #### 1.4.4 - November 16 2014
 	* Replaced dependency on Microsoft.SqlServer.Types from ver 11.0.1 t0 11.0.0
+
+#### 1.4.5 - November 19 2014
+	* Issue #80 fixed 

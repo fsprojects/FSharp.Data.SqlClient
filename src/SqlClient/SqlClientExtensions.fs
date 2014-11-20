@@ -35,6 +35,7 @@ type Column = {
     IsNullable: bool
     MaxLength: int
     IsIdentity: bool
+    IsReadOnly: bool
 }   with
     member this.ClrTypeConsideringNullable = 
         if this.IsNullable 
@@ -269,6 +270,7 @@ type SqlConnection with
                 IsNullable = unbox reader.["is_nullable"]
                 MaxLength = reader.["max_length"] |> unbox<int16> |> int
                 IsIdentity = unbox reader.["is_identity_column"]
+                IsReadOnly = not(unbox reader.["is_updateable"])
             }
     ] 
 
@@ -293,6 +295,7 @@ type SqlConnection with
                         IsNullable = unbox row.["AllowDBNull"]
                         MaxLength = unbox row.["ColumnSize"]
                         IsIdentity = unbox row.["IsAutoIncrement"]
+                        IsReadOnly = unbox row.["IsReadOnly"]
                     }
             ]
 
@@ -339,7 +342,7 @@ type SqlConnection with
                         then
                             seq {
                                 use cmd = new SqlCommand("
-                                    SELECT c.name, c.column_id, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length, c.is_identity
+                                    SELECT c.name, c.column_id, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length, c.is_identity, c.is_computed
                                     FROM sys.table_types AS tt
                                     INNER JOIN sys.columns AS c ON tt.type_table_object_id = c.object_id
                                     WHERE tt.user_type_id = @user_type_id
@@ -358,6 +361,7 @@ type SqlConnection with
                                         IsNullable = unbox reader.["is_nullable"]
                                         MaxLength = reader.["max_length"] |> unbox<int16> |> int
                                         IsIdentity = unbox reader.["is_identity"]
+                                        IsReadOnly = unbox reader.["is_computed"]
                                     }
                             } 
                             |> Seq.cache

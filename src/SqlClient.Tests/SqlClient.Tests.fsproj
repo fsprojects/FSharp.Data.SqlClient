@@ -57,6 +57,7 @@
     <Compile Include="ConfigurationTest.fs" />
     <Compile Include="OptionalParamsTests.fs" />
     <Compile Include="TypeProviderTest.fs" />
+    <Compile Include="SpatialTypesTests.fs" />
     <Compile Include="TransactionTests.fs" />
     <Compile Include="ResultTypeTests.fs" />
     <Compile Include="TVPTests.fs" />
@@ -89,11 +90,7 @@
       <HintPath>..\..\packages\FsUnit.xUnit.1.2.1.2\Lib\Net40\FsUnit.Xunit.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Microsoft.SqlServer.Types, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91">
-      <HintPath>..\..\packages\Microsoft.SqlServer.Types.11.0.1\lib\net20\Microsoft.SqlServer.Types.dll</HintPath>
-      <Private>True</Private>
-      <SpecificVersion>True</SpecificVersion>
-    </Reference>
+    <Reference Include="Microsoft.SqlServer.Types, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91" />
     <Reference Include="mscorlib" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.6.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>

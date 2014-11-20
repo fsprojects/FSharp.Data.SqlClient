@@ -88,7 +88,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         yield! this.Routines(conn, schema, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
 
-                        yield this.Tables(conn, schema)
+                        //yield this.Tables(conn, schema)
                     ]
                 schemaRoot            
             )
@@ -205,7 +205,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                 let sql = sprintf "SELECT * FROM %s.%s" schema tableName
                 let columns = DesignTime.GetOutputColumns(conn, sql, [], isStoredProcedure = false)
-                let tvpColumnNames, tvpColumnTypes, identityColumns = [ for c in columns -> c.Name, c.TypeInfo.ClrType.FullName, c.IsIdentity ] |> List.unzip3
+                let tvpColumnNames, tvpColumnTypes, extraProps = [ for c in columns -> c.Name, c.TypeInfo.ClrType.AssemblyQualifiedName, (c.IsIdentity, c.IsReadOnly) ] |> List.unzip3
+                let identityCols, readOnlyCols = extraProps |> List.unzip
 
                 let dataRowType = DesignTime.GetDataRowType(columns)
 
@@ -215,8 +216,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 ctor.InvokeCode <- fun args -> 
                     <@@ 
                         let table = new DataTable<DataRow>() 
-                        for name, typeName, isIdentity in List.zip3 tvpColumnNames tvpColumnTypes identityColumns do
-                            let c = new DataColumn(name, Type.GetType typeName, AutoIncrement = isIdentity)
+                        for name, typeName, (isIdentity, isReadOnly) in (identityCols, readOnlyCols) ||> List.zip |> List.zip3 tvpColumnNames tvpColumnTypes  do
+                            let c = new DataColumn(name, Type.GetType typeName, AutoIncrement = isIdentity, ReadOnly = isReadOnly)
                             table.Columns.Add c
                         table
                     @@>
@@ -224,28 +225,30 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 
                 do
                     let parameters = [ 
-                        for name, typeName, isIdentity in List.zip3 tvpColumnNames tvpColumnTypes identityColumns do
-                            if not isIdentity 
+                        for name, typeName, (isIdentity, isReadOnly) in (identityCols, readOnlyCols) ||> List.zip |> List.zip3 tvpColumnNames tvpColumnTypes do
+                            if not(isIdentity || isReadOnly)
                             then yield ProvidedParameter(name, Type.GetType typeName)
                     ]
-                    let newRowMethod = ProvidedMethod("NewRow", parameters, dataRowType)
-                    newRowMethod.InvokeCode <- fun args -> 
+
+                    let invokeCode = fun (args: _ list)-> 
                         <@@ 
                             let table: DataTable<DataRow> = %%args.[0]
                             let row = table.NewRow()
                             let values: obj[] = %%Expr.NewArray(typeof<obj>, [for x in args.Tail -> Expr.Coerce(x, typeof<obj>)])
-                            let nonIdentityColumns = [| for c in table.Columns do if not c.AutoIncrement then yield c |]
-                            for i = 0 to nonIdentityColumns.Length - 1 do
-                                row.[nonIdentityColumns.[i]] <- values.[i]
+                            let updatableColumns = [| for c in table.Columns do if not (c.AutoIncrement || c.ReadOnly) then yield c |]
+                            for i = 0 to updatableColumns.Length - 1 do
+                                row.[updatableColumns.[i]] <- values.[i]
                             row
                         @@>
-                    dataTableType.AddMember newRowMethod
+
+                    dataTableType.AddMember <| ProvidedMethod("NewRow", parameters, dataRowType, InvokeCode = invokeCode)
 
                     let addRowMethod = ProvidedMethod("AddRow", parameters, typeof<unit>)
                     addRowMethod.InvokeCode <- fun args -> 
+                        let newRow = invokeCode args
                         <@@
                             let table: DataTable<DataRow> = %%args.[0]
-                            let row: DataRow = %%Expr.Call(args.Head, newRowMethod, args.Tail)
+                            let row: DataRow = %%newRow
                             table.Rows.Add row
                         @@>
                     dataTableType.AddMember addRowMethod

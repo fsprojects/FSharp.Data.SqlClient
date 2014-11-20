@@ -1,4 +1,4 @@
-
+    
 #r "../../bin/Fsharp.Data.SqlClient.dll"
 #r "../../bin/Microsoft.SqlServer.Types.dll"
 
@@ -17,19 +17,22 @@ let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
 type dbo = AdventureWorks2012.dbo
 
-let func(r: #DataRow) = 
-    ()
+let func(r: #DataTable) = ()
 
-type Department = AdventureWorks2012.HumanResources.Tables.Department
+type Department = AdventureWorks2012.HumanResources.Tables.Employee
 let department = new Department()
 let r = department.NewRow("test", "group", DateTime.Now)
-func r
-let r2 = (new AdventureWorks2012.HumanResources.Tables.JobCandidate()).NewRow(12, "", DateTime.Now)
-func r2
+func department
 department.Rows.Add r
 department.Rows.Count
+department.Rows.[0]
+department.AddRow("test2", "group2", DateTime.Now)
+department.Rows.Count
 department.Rows.[1]
-//department.AddRow("test2", "group2", DateTime.Now)
+
+let jobCandidate = new AdventureWorks2012.HumanResources.Tables.JobCandidate()
+let r2 = jobCandidate.NewRow(12, "", DateTime.Now)
+func jobCandidate
 
 //Table-valued UDF selecting single row
 type GetContactInformation = dbo.ufnGetContactInformation
@@ -68,7 +71,7 @@ myRes.myName
 type UpdateEmployeeLogin = AdventureWorks2012.HumanResources.uspUpdateEmployeeLogin
 let updateEmployeeLogin = new UpdateEmployeeLogin()
 
-let res = updateEmployeeLogin.AsyncExecute(
+let res = updateEmployeeLogin.AsyncExecute()
                 291, 
                 SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")),
                 "adventure-works\gat0", 

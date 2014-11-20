@@ -110,3 +110,4 @@ let ``ToTraceString for CRUD``() =
     
     (new DeleteBitCoin()).ToTraceString(bitCoinCode) 
     |> should equal "exec sp_executesql N'DELETE FROM Sales.Currency WHERE CurrencyCode = @Code',N'@Code NChar(3)',@Code='BTC'"
+
