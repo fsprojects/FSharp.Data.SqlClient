@@ -114,7 +114,7 @@ type DesignTime private() =
                 else
                     ProvidedProperty(name, propertyType, 
                         GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>),
-                        SetterCode = fun args -> <@@ (%%args.[0] : DataRow).[name] <- box %%args.[1] @@>
+                        SetterCode = fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
                     )
 
             rowType.AddMember property

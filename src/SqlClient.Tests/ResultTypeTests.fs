@@ -1,5 +1,7 @@
 ﻿module FSharp.Data.ResultTypeTests
 
+open System.Transactions
+open System.Data.SqlClient
 open FSharp.Data
 open Xunit
 open FsUnit.Xunit
@@ -41,25 +43,3 @@ let ResultTypeReader() =
         )
 
     Assert.Equal<Map<string, obj>[]>(expected, ReadToMaps(cmd.Execute()) |> Seq.toArray)
-
-
-type ProductQuery = SqlCommandProvider<"SELECT * FROM Production.Product", "name=AdventureWorks2012", ResultType = ResultType.DataTable>
-
-[<Fact>]
-let DataTableHasKeyInfo() = 
-    use cmd = new ProductQuery()
-    let table = cmd.Execute()
-    let productId = table.Columns.["ProductID"]
-    Assert.True(productId.Unique)
-    Assert.Equal<_ []>(table.PrimaryKey, [| productId |])
-    
-
-type ProductShortQuery = SqlCommandProvider<"SELECT Name, ProductNumber FROM Production.Product", "name=AdventureWorks2012", ResultType = ResultType.DataTable>
-
-[<Fact>]
-let DataTableRowCtor() = 
-    use cmd = new ProductShortQuery()
-    let table = cmd.Execute()
-    let newRow = table.NewRow()
-    ()
-

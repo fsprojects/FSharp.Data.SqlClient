@@ -70,8 +70,6 @@ type RuntimeSqlCommand (connection, sqlStatement, isStoredProcedure, parameters,
                 yield CommandBehavior.CloseConnection
 
             if rank = ResultRank.SingleRow then yield CommandBehavior.SingleRow 
-
-            if resultType = ResultType.DataTable then yield CommandBehavior.KeyInfo
         }
         |> Seq.reduce (|||) 
 

@@ -19,20 +19,20 @@ type dbo = AdventureWorks2012.dbo
 
 let func(r: #DataTable) = ()
 
-type Department = AdventureWorks2012.HumanResources.Tables.Employee
-let department = new Department()
-let r = department.NewRow("test", "group", DateTime.Now)
-func department
-department.Rows.Add r
-department.Rows.Count
-department.Rows.[0]
-department.AddRow("test2", "group2", DateTime.Now)
-department.Rows.Count
-department.Rows.[1]
-
-let jobCandidate = new AdventureWorks2012.HumanResources.Tables.JobCandidate()
-let r2 = jobCandidate.NewRow(12, "", DateTime.Now)
-func jobCandidate
+//type Department = AdventureWorks2012.HumanResources.Tables.Employee
+//let department = new Department()
+//let r = department.NewRow("test", "group", DateTime.Now)
+//func department
+//department.Rows.Add r
+//department.Rows.Count
+//department.Rows.[0]
+//department.AddRow("test2", "group2", DateTime.Now)
+//department.Rows.Count
+//department.Rows.[1]
+//
+//let jobCandidate = new AdventureWorks2012.HumanResources.Tables.JobCandidate()
+//let r2 = jobCandidate.NewRow(12, "", DateTime.Now)
+//func jobCandidate
 
 //Table-valued UDF selecting single row
 type GetContactInformation = dbo.ufnGetContactInformation

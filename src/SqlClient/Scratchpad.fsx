@@ -1,6 +1,6 @@
 
 #r "System.Transactions"
-#r "Microsoft.SqlServer.Types"
+//#r "Microsoft.SqlServer.Types"
 
 open System
 open System.IO
@@ -9,6 +9,13 @@ open System.Data.SqlClient
 
 let conn = new SqlConnection("""Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True""")
 conn.Open()
+
+let cmd = new SqlCommand("SELECT Name, ProductNumber FROM Production.Product", conn)
+let reader = cmd.ExecuteReader(CommandBehavior.KeyInfo)
+//let reader = cmd.ExecuteReader()
+let schema = reader.GetSchemaTable()
+//[for c in schema.Columns -> c.ColumnName ]
+[for r in schema.Rows -> r.["ColumnName"], r.["IsHidden"]]
 
 let ds = new DataSet()
 //let cmd = new SqlCommand("SELECT * FROM HumanResources.Employee", conn)
@@ -103,4 +110,3 @@ using(cmd.ExecuteReader()) (fun reader -> reader |> Seq.cast<IDataRecord> |> Seq
 //
 //
 
-System.Reflection.Assembly.Load ("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
