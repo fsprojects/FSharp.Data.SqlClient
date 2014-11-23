@@ -203,10 +203,13 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             conn.GetTables(schema)
             |> List.map (fun tableName -> 
 
-                let sql = sprintf "SELECT * FROM %s.%s" schema tableName
-                let columns = DesignTime.GetOutputColumns(conn, sql, [], isStoredProcedure = false)
-                let tvpColumnNames, tvpColumnTypes, extraProps = [ for c in columns -> c.Name, c.TypeInfo.ClrType.AssemblyQualifiedName, (c.IsIdentity, c.IsReadOnly) ] |> List.unzip3
-                let identityCols, readOnlyCols = extraProps |> List.unzip
+                let tableDirectSql = sprintf "SELECT * FROM %s.%s" schema tableName 
+                use adapter = new SqlDataAdapter(tableDirectSql, conn)
+                let dataTable = adapter.FillSchema(new DataTable(), SchemaType.Source)
+
+                let columns = DesignTime.GetOutputColumns(conn, tableDirectSql, [], isStoredProcedure = false)
+
+                let colNames, colTypes, readonlyCols = List.unzip3 [ for c in columns -> c.Name, c.TypeInfo.ClrType.AssemblyQualifiedName, c.ReadOnly ] 
 
                 let dataRowType = DesignTime.GetDataRowType(columns)
 
@@ -216,8 +219,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 ctor.InvokeCode <- fun args -> 
                     <@@ 
                         let table = new DataTable<DataRow>() 
-                        for name, typeName, (isIdentity, isReadOnly) in (identityCols, readOnlyCols) ||> List.zip |> List.zip3 tvpColumnNames tvpColumnTypes  do
-                            let c = new DataColumn(name, Type.GetType typeName, AutoIncrement = isIdentity, ReadOnly = isReadOnly)
+                        for name, typeName, isUpdateable in List.zip3 colNames colTypes readonlyCols  do
+                            let c = new DataColumn(name, Type.GetType typeName, ReadOnly = not isUpdateable)
                             table.Columns.Add c
                         table
                     @@>
@@ -225,8 +228,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 
                 do
                     let parameters = [ 
-                        for name, typeName, (isIdentity, isReadOnly) in (identityCols, readOnlyCols) ||> List.zip |> List.zip3 tvpColumnNames tvpColumnTypes do
-                            if not(isIdentity || isReadOnly)
+                        for name, typeName, readOnly in List.zip3 colNames colTypes readonlyCols do
+                            if not readOnly
                             then yield ProvidedParameter(name, Type.GetType typeName)
                     ]
 

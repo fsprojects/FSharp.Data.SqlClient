@@ -1,29 +1,25 @@
 
 #r "System.Transactions"
-//#r "Microsoft.SqlServer.Types"
 
 open System
 open System.IO
 open System.Data
 open System.Data.SqlClient
 
-let conn = new SqlConnection("""Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True""")
+let conn = new SqlConnection("""Data Source=.;Initial Catalog=ThermionDb;Integrated Security=True""")
 conn.Open()
 
-let cmd = new SqlCommand("SELECT Name, ProductNumber FROM Production.Product", conn)
-let reader = cmd.ExecuteReader(CommandBehavior.KeyInfo)
+let cmd = new SqlCommand("SELECT * FROM ImportBatch", conn)
+let reader = cmd.ExecuteReader()
 //let reader = cmd.ExecuteReader()
 let schema = reader.GetSchemaTable()
-//[for c in schema.Columns -> c.ColumnName ]
-[for r in schema.Rows -> r.["ColumnName"], r.["IsHidden"]]
+[for c in schema.Columns -> c.ColumnName ]
+[for r in schema.Rows -> [for c in schema.Columns do if not(r.IsNull(c)) then yield sprintf "%s - %A" c.ColumnName r.[c]] |> String.concat "\n" |> sprintf "%s\n\n" ]
 
-let ds = new DataSet()
-//let cmd = new SqlCommand("SELECT * FROM HumanResources.Employee", conn)
-//let cmd = new SqlCommand("SELECT * FROM HumanResources.Employee", conn)
-let adapter = new SqlDataAdapter("SELECT * FROM HumanResources.Employee; ", conn)
+let adapter = new SqlDataAdapter(cmd)
 let dataTable = new DataTable()
-//dataTable.
 let result = adapter.FillSchema(dataTable, SchemaType.Source)
+
 let schemaStorage = new StringWriter()
 dataTable.WriteXmlSchema(schemaStorage)
 let clone = new DataTable()
@@ -31,6 +27,7 @@ clone.Columns.Count
 clone.ReadXmlSchema(new StringReader(schemaStorage.ToString()))
 
 
+//#r "Microsoft.SqlServer.Types"
 //let result = cmd.ExecuteScalar()
 result.GetType().AssemblyQualifiedName
 result.GetType().Assembly.FullName

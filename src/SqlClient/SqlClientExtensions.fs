@@ -34,8 +34,7 @@ type Column = {
     TypeInfo: TypeInfo
     IsNullable: bool
     MaxLength: int
-    IsIdentity: bool
-    IsReadOnly: bool
+    ReadOnly: bool
 }   with
     member this.ClrTypeConsideringNullable = 
         if this.IsNullable 
@@ -269,8 +268,7 @@ type SqlConnection with
                 TypeInfo = findTypeInfoBySqlEngineTypeId (this.ConnectionString, system_type_id, user_type_id)
                 IsNullable = unbox reader.["is_nullable"]
                 MaxLength = reader.["max_length"] |> unbox<int16> |> int
-                IsIdentity = unbox reader.["is_identity_column"]
-                IsReadOnly = not(unbox reader.["is_updateable"])
+                ReadOnly = not(unbox reader.["is_updateable"])
             }
     ] 
 
@@ -294,8 +292,7 @@ type SqlConnection with
                             findTypeInfoByProviderType(this.ConnectionString, unbox t, "").Value
                         IsNullable = unbox row.["AllowDBNull"]
                         MaxLength = unbox row.["ColumnSize"]
-                        IsIdentity = unbox row.["IsAutoIncrement"]
-                        IsReadOnly = unbox row.["IsReadOnly"]
+                        ReadOnly = unbox row.["IsAutoIncrement"] || unbox row.["IsReadOnly"]
                     }
             ]
 
@@ -360,8 +357,7 @@ type SqlConnection with
                                         TypeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, stid, user_type_id)
                                         IsNullable = unbox reader.["is_nullable"]
                                         MaxLength = reader.["max_length"] |> unbox<int16> |> int
-                                        IsIdentity = unbox reader.["is_identity"]
-                                        IsReadOnly = unbox reader.["is_computed"]
+                                        ReadOnly = unbox reader.["is_identity"] || unbox reader.["is_computed"]
                                     }
                             } 
                             |> Seq.cache

@@ -98,26 +98,34 @@ type DesignTime private() =
 
     static member internal GetDataRowType (columns: Column list) = 
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
-        for col in columns do
-            let name = col.Name
-            if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
 
-            let propertyType = col.ClrTypeConsideringNullable
+        columns 
+        |> List.map ( fun c -> c.Name, c.Ordinal, c.TypeInfo.ClrType, c.IsNullable, c.ReadOnly)
+        |> List.map( fun (name, ordinal, colType, nullable, readOnly) ->
+            if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." ordinal
 
-            let property = 
-                if col.IsNullable 
-                then
-                    ProvidedProperty(name, propertyType,
-                        GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", col.TypeInfo.ClrType, name),
-                        SetterCode = QuotationsFactory.GetBody("SetNullableValueInDataRow", col.TypeInfo.ClrType, name)
+            if nullable
+            then
+                let property = 
+                    ProvidedProperty(name, 
+                        propertyType = typedefof<_ option>.MakeGenericType colType,
+                        GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", colType, name)
                     )
-                else
-                    ProvidedProperty(name, propertyType, 
-                        GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>),
-                        SetterCode = fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
+                if not readOnly
+                then property.SetterCode <- QuotationsFactory.GetBody("SetNullableValueInDataRow", colType, name)
+                property
+            else
+                let property = 
+                    ProvidedProperty(name, 
+                        propertyType = colType, 
+                        GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>)
                     )
+                if not readOnly
+                then property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
+                property
+        )
+        |> rowType.AddMembers
 
-            rowType.AddMember property
         rowType
 
     static member internal GetOutputTypes (outputColumns: Column list, resultType: ResultType, rank: ResultRank) =    
