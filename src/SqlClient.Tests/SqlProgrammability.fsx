@@ -19,16 +19,17 @@ type dbo = AdventureWorks2012.dbo
 
 let func(r: #DataTable) = ()
 
-type Department = AdventureWorks2012.HumanResources.Tables.Department
-let department = new Department()
-let r = department.NewRow("test", "group", DateTime.Now)
-func department
-department.Rows.Add r
-department.Rows.Count
-department.Rows.[0]
-department.AddRow("test2", "group2", DateTime.Now)
-department.Rows.Count
-department.Rows.[1]
+type ErrorLog = dbo.Tables.ErrorLog
+let t = new ErrorLog()
+let r = t.NewRow(DateTime.Now, "mitekm", 15, Some 42, ErrorMessage = "haha")
+//let r = t.NewRow(DateTime.Now, "mitekm", 15, ErrorMessage = "haha")
+func t
+t.Rows.Add r
+t.Rows.Count
+t.Rows.[0]
+t.AddRow("test2", "group2", DateTime.Now)
+t.Rows.Count
+t.Rows.[1]
 
 let jobCandidate = new AdventureWorks2012.HumanResources.Tables.JobCandidate()
 let r2 = jobCandidate.NewRow(12, "", DateTime.Now)

@@ -6,10 +6,10 @@ open System.IO
 open System.Data
 open System.Data.SqlClient
 
-let conn = new SqlConnection("""Data Source=.;Initial Catalog=ThermionDb;Integrated Security=True""")
+let conn = new SqlConnection(@"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
 conn.Open()
 
-let cmd = new SqlCommand("SELECT * FROM ImportBatch", conn)
+let cmd = new SqlCommand("SELECT * FROM ErrorLog", conn)
 let reader = cmd.ExecuteReader()
 //let reader = cmd.ExecuteReader()
 let schema = reader.GetSchemaTable()

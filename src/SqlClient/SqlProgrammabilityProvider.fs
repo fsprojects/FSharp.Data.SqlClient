@@ -248,21 +248,47 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     dataTableType.AddMember ctor
                 
                 do
-                    let parameterNames, parameters = 
+                    let parameters, updateableColumns = 
                         List.unzip [ 
                             for c in columns do 
                                 if not(c.AutoIncrement || c.ReadOnly)
-                                then yield Expr.Value(c.ColumnName), ProvidedParameter(c.ColumnName, c.DataType)
+                                then 
+                                    let parameter = 
+                                        if c.AllowDBNull 
+                                        then ProvidedParameter(c.ColumnName, parameterType = typedefof<_ option>.MakeGenericType c.DataType, optionalValue = null)
+                                        else ProvidedParameter(c.ColumnName, c.DataType)
+                                    yield parameter, c
                         ] 
-
+                        
                     let invokeCode = fun (args: _ list)-> 
+
+                        let argsValuesConverted = 
+                            (args.Tail, updateableColumns)
+                            ||> List.map2 (fun valueExpr c ->
+                                if c.AllowDBNull
+                                then 
+                                    typeof<QuotationsFactory>
+                                        .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
+                                        .MakeGenericMethod(c.DataType)
+                                        .Invoke(null, [| box valueExpr |])
+                                        |> unbox
+                                else
+                                    valueExpr
+                            )
+
                         <@@ 
                             let table: DataTable<DataRow> = %%args.[0]
                             let row = table.NewRow()
-                            let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for x in args.Tail -> Expr.Coerce(x, typeof<obj>) ])
-                            let namesOfUpdateableColumns: string[] = %%Expr.NewArray(typeof<string>, parameterNames)
+
+                            let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for x in argsValuesConverted -> Expr.Coerce(x, typeof<obj>) ])
+                            let namesOfUpdateableColumns: string[] = %%Expr.NewArray(typeof<string>, [ for c in updateableColumns -> Expr.Value(c.ColumnName) ])
+                            let optionalParams: bool[] = %%Expr.NewArray(typeof<bool>, [ for c in updateableColumns -> Expr.Value(c.AllowDBNull) ])
+
                             Debug.Assert(values.Length = namesOfUpdateableColumns.Length, "values.Length = namesOfUpdateableColumns.Length")
-                            (namesOfUpdateableColumns, values) ||> Array.iter2 (fun name value -> row.[name] <- value)
+                            Debug.Assert(values.Length = optionalParams.Length, "values.Length = optionalParams.Length")
+
+                            for name, value, optional in Array.zip3 namesOfUpdateableColumns values optionalParams do 
+                                row.[name] <- if value = null && optional then box DbNull else value
                             row
                         @@>
 
