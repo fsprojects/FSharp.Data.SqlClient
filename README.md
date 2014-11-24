@@ -14,3 +14,14 @@ Build Status
 -----------
 
 [![Build status (Windows Server 2012, AppVeyor)](https://ci.appveyor.com/api/projects/status/gxou8oe4lt5adxbq)](https://ci.appveyor.com/project/fsgit/fsharp-data-sqlclient)
+
+
+### Maintainer(s)
+
+- [@dsevastianov](https://github.com/dsevastianov)
+- [@dmitry-a-morozov](https://github.com/dmitry-a-morozov)
+- [@soloveichik](https://github.com/soloveichik)
+- [@orlandpm](https://github.com/orlandpm)
+
+The default maintainer account for projects under "fsprojects" is [@fsgit](https://github.com/fsgit) - F# Community Project Incubation Space (repo management)
+
