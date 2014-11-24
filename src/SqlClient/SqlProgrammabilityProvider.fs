@@ -88,7 +88,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         yield! this.Routines(conn, schema, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
 
-                        //yield this.Tables(conn, schema)
+                        yield this.Tables(conn, schema)
                     ]
                 schemaRoot            
             )
@@ -207,40 +207,62 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 use adapter = new SqlDataAdapter(tableDirectSql, conn)
                 let dataTable = adapter.FillSchema(new DataTable(), SchemaType.Source)
 
-                let columns = DesignTime.GetOutputColumns(conn, tableDirectSql, [], isStoredProcedure = false)
+                let serializedSchema = 
+                    use writer = new StringWriter()
+                    dataTable.WriteXmlSchema writer
+                    writer.ToString()
+                    
+                let columns = dataTable.Columns
 
-                let colNames, colTypes, readonlyCols = List.unzip3 [ for c in columns -> c.Name, c.TypeInfo.ClrType.AssemblyQualifiedName, c.ReadOnly ] 
+                //type data row
+                let dataRowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
+                do 
+                    for c in columns do
+                        let name = c.ColumnName
+                        if c.AllowDBNull
+                        then
+                            let propertType = typedefof<_ option>.MakeGenericType c.DataType
+                            let property = ProvidedProperty(c.ColumnName, propertType, GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", c.DataType, name))
+                            if not c.ReadOnly
+                            then property.SetterCode <- QuotationsFactory.GetBody("SetNullableValueInDataRow", c.DataType, name)
+                            dataRowType.AddMember property
+                        else
+                            let property = ProvidedProperty(name, c.DataType, GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>))
+                            if not c.ReadOnly
+                            then property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
+                            dataRowType.AddMember property
 
-                let dataRowType = DesignTime.GetDataRowType(columns)
-
+                //type data table
                 let dataTableType = ProvidedTypeDefinition(tableName, baseType = Some( typedefof<_ DataTable>.MakeGenericType(dataRowType)))
+                dataTableType.AddMember dataRowType
 
-                let ctor = ProvidedConstructor []
-                ctor.InvokeCode <- fun args -> 
-                    <@@ 
-                        let table = new DataTable<DataRow>() 
-                        for name, typeName, isUpdateable in List.zip3 colNames colTypes readonlyCols  do
-                            let c = new DataColumn(name, Type.GetType typeName, ReadOnly = not isUpdateable)
-                            table.Columns.Add c
-                        table
-                    @@>
-                dataTableType.AddMember ctor
+                do //ctor
+                    let ctor = ProvidedConstructor []
+                    ctor.InvokeCode <- fun args -> 
+                        <@@ 
+                            let table = new DataTable<DataRow>() 
+                            use reader = new StringReader( serializedSchema)
+                            table.ReadXmlSchema reader
+                            table
+                        @@>
+                    dataTableType.AddMember ctor
                 
                 do
-                    let parameters = [ 
-                        for name, typeName, readOnly in List.zip3 colNames colTypes readonlyCols do
-                            if not readOnly
-                            then yield ProvidedParameter(name, Type.GetType typeName)
-                    ]
+                    let parameterNames, parameters = 
+                        List.unzip [ 
+                            for c in columns do 
+                                if not(c.AutoIncrement || c.ReadOnly)
+                                then yield Expr.Value(c.ColumnName), ProvidedParameter(c.ColumnName, c.DataType)
+                        ] 
 
                     let invokeCode = fun (args: _ list)-> 
                         <@@ 
                             let table: DataTable<DataRow> = %%args.[0]
                             let row = table.NewRow()
-                            let values: obj[] = %%Expr.NewArray(typeof<obj>, [for x in args.Tail -> Expr.Coerce(x, typeof<obj>)])
-                            let updatableColumns = [| for c in table.Columns do if not (c.AutoIncrement || c.ReadOnly) then yield c |]
-                            for i = 0 to updatableColumns.Length - 1 do
-                                row.[updatableColumns.[i]] <- values.[i]
+                            let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for x in args.Tail -> Expr.Coerce(x, typeof<obj>) ])
+                            let namesOfUpdateableColumns: string[] = %%Expr.NewArray(typeof<string>, parameterNames)
+                            Debug.Assert(values.Length = namesOfUpdateableColumns.Length, "values.Length = namesOfUpdateableColumns.Length")
+                            (namesOfUpdateableColumns, values) ||> Array.iter2 (fun name value -> row.[name] <- value)
                             row
                         @@>
 
@@ -256,7 +278,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         @@>
                     dataTableType.AddMember addRowMethod
 
-                dataTableType.AddMember dataRowType
                 dataTableType
             )
         tables

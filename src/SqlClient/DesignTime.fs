@@ -99,28 +99,20 @@ type DesignTime private() =
     static member internal GetDataRowType (columns: Column list) = 
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
 
-        columns 
-        |> List.map ( fun c -> c.Name, c.Ordinal, c.TypeInfo.ClrType, c.IsNullable, c.ReadOnly)
-        |> List.map( fun (name, ordinal, colType, nullable, readOnly) ->
-            if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." ordinal
+        columns |> List.map( fun col ->
+            let name = col.Name
+            if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
 
-            if nullable
+            let propertyType = col.ClrTypeConsideringNullable
+            if col.IsNullable 
             then
-                let property = 
-                    ProvidedProperty(name, 
-                        propertyType = typedefof<_ option>.MakeGenericType colType,
-                        GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", colType, name)
-                    )
-                if not readOnly
-                then property.SetterCode <- QuotationsFactory.GetBody("SetNullableValueInDataRow", colType, name)
+                let property = ProvidedProperty(name, propertyType, GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", col.TypeInfo.ClrType, name))
+                if not col.ReadOnly
+                then property.SetterCode <- QuotationsFactory.GetBody("SetNullableValueInDataRow", col.TypeInfo.ClrType, name)
                 property
             else
-                let property = 
-                    ProvidedProperty(name, 
-                        propertyType = colType, 
-                        GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>)
-                    )
-                if not readOnly
+                let property = ProvidedProperty(name, propertyType, GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>))
+                if not col.ReadOnly
                 then property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
                 property
         )
