@@ -203,16 +203,40 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             conn.GetTables(schema)
             |> List.map (fun tableName -> 
 
-                let tableDirectSql = sprintf "SELECT * FROM %s.%s" schema tableName 
+                let twoPartTableName = sprintf "%s.%s" schema tableName 
+                let tableDirectSql = sprintf "SELECT * FROM " + twoPartTableName
                 use adapter = new SqlDataAdapter(tableDirectSql, conn)
-                let dataTable = adapter.FillSchema(new DataTable(), SchemaType.Source)
+                let dataTable = adapter.FillSchema(new DataTable(twoPartTableName), SchemaType.Source)
 
+                let columns = dataTable.Columns
+
+                do //read column defaults
+                    let query = 
+                        sprintf "
+                            SELECT columns.name, is_identity, OBJECT_DEFINITION(default_object_id)
+                            FROM sys.columns 
+	                            JOIN sys.tables ON columns .object_id = tables.object_id and tables.name = '%s'
+	                            JOIN sys.schemas ON tables.schema_id = schemas.schema_id and schemas.name = '%s'
+                            " tableName schema 
+                    let cmd = new SqlCommand(query, conn)
+                    use reader = cmd.ExecuteReader()
+                    while reader.Read() do 
+                        let c = columns.[reader.GetString(0)]
+
+                        //set auto-increment override
+                        if not( reader.IsDBNull(1)) && not c.AutoIncrement 
+                        then c.AutoIncrement <- reader.GetBoolean(1)
+
+                        //set nullability based on default constraint
+//                        if not( reader.IsDBNull(2)) && not c.AllowDBNull 
+//                        then 
+//                            c.AllowDBNull <- true
+//                            c.ExtendedProperties.["COLUMN_DEFAULT"] <- reader.[2]
+                        
                 let serializedSchema = 
                     use writer = new StringWriter()
                     dataTable.WriteXmlSchema writer
                     writer.ToString()
-                    
-                let columns = dataTable.Columns
 
                 //type data row
                 let dataRowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
@@ -254,7 +278,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 if not(c.AutoIncrement || c.ReadOnly)
                                 then 
                                     let parameter = 
-                                        if c.AllowDBNull 
+                                        if c.AllowDBNull
                                         then ProvidedParameter(c.ColumnName, parameterType = typedefof<_ option>.MakeGenericType c.DataType, optionalValue = null)
                                         else ProvidedParameter(c.ColumnName, c.DataType)
                                     yield parameter, c

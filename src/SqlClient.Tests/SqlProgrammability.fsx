@@ -21,19 +21,25 @@ let func(r: #DataTable) = ()
 
 type ErrorLog = dbo.Tables.ErrorLog
 let t = new ErrorLog()
-let r = t.NewRow(DateTime.Now, "mitekm", 15, Some 42, ErrorMessage = "haha")
-//let r = t.NewRow(DateTime.Now, "mitekm", 15, ErrorMessage = "haha")
-func t
+let r = t.NewRow(Some DateTime.Now, "mitekm", 15, Some 42, ErrorMessage = "haha")
+////let r = t.NewRow(DateTime.Now, "mitekm", 15, ErrorMessage = "haha")
+//func t
 t.Rows.Add r
 t.Rows.Count
 t.Rows.[0]
-t.AddRow("test2", "group2", DateTime.Now)
-t.Rows.Count
-t.Rows.[1]
+//t.AddRow("test2", "group2", DateTime.Now)
+//t.Rows.Count
+//t.Rows.[1]
 
-let jobCandidate = new AdventureWorks2012.HumanResources.Tables.JobCandidate()
-let r2 = jobCandidate.NewRow(12, "", DateTime.Now)
-func jobCandidate
+let shift = new AdventureWorks2012.HumanResources.Tables.Shift()
+shift.Rows.Count
+shift.Columns.["ModifiedDate"].DefaultValue.GetType().Name
+shift.Columns.["ModifiedDate"].AllowDBNull
+shift.Columns.["ShiftID"].AutoIncrement
+shift.AddRow("French coffee break", TimeSpan.FromHours(10.), TimeSpan.FromHours(12.))
+shift.Rows.Count
+shift.Rows.[0]
+func shift
 
 //Table-valued UDF selecting single row
 type GetContactInformation = dbo.ufnGetContactInformation

@@ -5,8 +5,8 @@ open System.Collections.Generic
 
 [<Sealed>]
 ///<summary>Generic implementation of <see cref='DataTable'/></summary>
-type DataTable<'T when 'T :> DataRow>() = 
-    inherit DataTable()
+type DataTable<'T when 'T :> DataRow>(?tableName) = 
+    inherit DataTable(defaultArg tableName null)
 
     let rows = base.Rows
 

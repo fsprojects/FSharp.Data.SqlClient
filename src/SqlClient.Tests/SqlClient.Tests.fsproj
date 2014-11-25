@@ -65,6 +65,7 @@
     <Compile Include="ProgrammabilityTests.fs" />
     <Compile Include="DynamicRecordTests.fs" />
     <Compile Include="SqlEnumTests.fs" />
+    <Compile Include="DataTablesTests.fs" />
     <None Include="Schema.fsx" />
     <None Include="app.config" />
     <None Include="SqlCommand.fsx" />
@@ -76,6 +77,10 @@
     <None Include="Ado.fsx" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="FSharp.Configuration">
+      <HintPath>..\..\packages\FSharp.Configuration.0.4.4\lib\net40\FSharp.Configuration.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Private>True</Private>
     </Reference>
@@ -98,6 +103,10 @@
     </Reference>
     <Reference Include="NHamcrest">
       <HintPath>..\..\packages\FsUnit.xUnit.1.2.1.2\Lib\Net40\NHamcrest.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SharpYaml">
+      <HintPath>..\..\packages\FSharp.Configuration.0.4.4\lib\net40\SharpYaml.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

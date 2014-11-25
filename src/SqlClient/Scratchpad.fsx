@@ -9,16 +9,19 @@ open System.Data.SqlClient
 let conn = new SqlConnection(@"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
 conn.Open()
 
-let cmd = new SqlCommand("SELECT * FROM ErrorLog", conn)
+let cmd = new SqlCommand("SELECT * FROM HumanResources.Shift", conn)
 let reader = cmd.ExecuteReader()
 //let reader = cmd.ExecuteReader()
 let schema = reader.GetSchemaTable()
 [for c in schema.Columns -> c.ColumnName ]
 [for r in schema.Rows -> [for c in schema.Columns do if not(r.IsNull(c)) then yield sprintf "%s - %A" c.ColumnName r.[c]] |> String.concat "\n" |> sprintf "%s\n\n" ]
 
+
 let adapter = new SqlDataAdapter(cmd)
 let dataTable = new DataTable()
 let result = adapter.FillSchema(dataTable, SchemaType.Source)
+
+result.Columns.[1]
 
 let schemaStorage = new StringWriter()
 dataTable.WriteXmlSchema(schemaStorage)
