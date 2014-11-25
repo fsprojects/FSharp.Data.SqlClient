@@ -18,8 +18,8 @@ Build Status
 
 ### Maintainer(s)
 
-- [@dsevastianov](https://github.com/dsevastianov)
 - [@dmitry-a-morozov](https://github.com/dmitry-a-morozov)
+- [@dsevastianov](https://github.com/dsevastianov)
 - [@soloveichik](https://github.com/soloveichik)
 - [@orlandpm](https://github.com/orlandpm)
 
