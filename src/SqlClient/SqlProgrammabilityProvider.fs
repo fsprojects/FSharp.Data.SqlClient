@@ -84,7 +84,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 schemaRoot.AddMembersDelayed <| fun() -> 
                     [
                         let udtts = this.UDTTs (conn.ConnectionString, schema)
-                        yield! udtts
+                        let udttsRoot = ProvidedTypeDefinition("User-Defined Table Types", Some typeof<obj>)
+                        udttsRoot.AddMembers udtts
+                        yield udttsRoot
 
                         yield! this.Routines(conn, schema, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
 
@@ -96,6 +98,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         databaseRootType           
 
      member internal __.UDTTs( connStr, schema) = [
+        let mappings = dataTypeMappings.[connStr] |> Array.map (fun x -> sprintf "%s.%s" x.Schema x.TypeName)
         for t in dataTypeMappings.[connStr] do
             if t.TableType && t.Schema = schema
             then 

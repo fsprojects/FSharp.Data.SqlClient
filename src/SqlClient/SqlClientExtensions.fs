@@ -69,7 +69,8 @@ let internal dataTypeMappings = Dictionary<string, TypeInfo[]>()
 let internal findBySqlEngineTypeIdAndUdtt(connStr, id, udttName) = 
     assert (dataTypeMappings.ContainsKey connStr)
     let database = dataTypeMappings.[connStr] 
-    database |> Array.tryFind(fun x -> 
+    database 
+    |> Array.tryFind(fun x -> 
         let isItTable = x.TableType
         x.SqlEngineTypeId = id && (not x.TableType || x.UdttName = udttName)
     )
@@ -77,12 +78,14 @@ let internal findBySqlEngineTypeIdAndUdtt(connStr, id, udttName) =
 let internal findTypeInfoBySqlEngineTypeId (connStr, system_type_id, user_type_id : int option) = 
     assert (dataTypeMappings.ContainsKey connStr)
 
-    match dataTypeMappings.[connStr] |> Array.filter(fun x -> x.SqlEngineTypeId = system_type_id ) with
-    | [| x |] -> x
-    | xs -> 
-        match xs |> Array.filter(fun x -> user_type_id.IsNone || x.UserTypeId = user_type_id.Value) with
-        | [| x |] -> x
-        | _-> failwithf "error resolving systemid %A and userid %A" system_type_id user_type_id
+    dataTypeMappings.[connStr] 
+    |> Array.filter(fun x -> 
+        let result = 
+            x.SqlEngineTypeId = system_type_id &&
+            (user_type_id.IsSome && x.UserTypeId = user_type_id.Value || user_type_id.IsNone && x.UserTypeId = system_type_id)
+        result
+    ) 
+    |> Seq.exactlyOne
 
 let internal findTypeInfoByProviderType( connStr, sqlDbType, udttName)  = 
     assert (dataTypeMappings.ContainsKey connStr)
@@ -126,7 +129,7 @@ type Routine =
     
     member this.CommantText(parameters: Parameter list) = 
         match this with 
-        | StoredProcedure(schema, name) -> sprintf "%s" this.TwoPartName
+        | StoredProcedure(schema, name) -> this.TwoPartName
         | TableValuedFunction(schema, name) -> 
             parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT * FROM %s(%s)" this.TwoPartName
         | ScalarValuedFunction(schema, name) ->     
@@ -262,7 +265,7 @@ type SqlConnection with
         while reader.Read() do
             let user_type_id = reader |> SqlDataReader.getOption<int> "user_type_id"
             let system_type_id = reader.["system_type_id"] |> unbox<int>
-            yield { 
+            let x = { 
                 Column.Name = string reader.["name"]
                 Ordinal = unbox reader.["column_ordinal"]
                 TypeInfo = findTypeInfoBySqlEngineTypeId (this.ConnectionString, system_type_id, user_type_id)
@@ -270,6 +273,7 @@ type SqlConnection with
                 MaxLength = reader.["max_length"] |> unbox<int16> |> int
                 ReadOnly = not(unbox reader.["is_updateable"])
             }
+            yield x 
     ] 
 
     member internal this.FallbackToSETFMONLY(commandText, commandType, parameters: Parameter list) = 
@@ -300,22 +304,26 @@ type SqlConnection with
         if not <| dataTypeMappings.ContainsKey this.ConnectionString
         then
             assert (this.State = ConnectionState.Open)
-            let providerTypes = [| 
-                for row in this.GetSchema("DataTypes").Rows do
-                    let fullTypeName = string row.["TypeName"]
-                    let typeName, clrType = 
-                        match fullTypeName.Split(',') |> List.ofArray with
-                        | [name] -> name, string row.["DataType"]
-                        | name::_ -> name, fullTypeName
-                        | [] -> failwith "Unaccessible"
+            let providerTypes = 
+                dict [| 
+                    for row in this.GetSchema("DataTypes").Rows do
+                        let fullTypeName = string row.["TypeName"]
+                        let typeName, clrType = 
+                            match fullTypeName.Split(',') |> List.ofArray with
+                            | [name] -> name, string row.["DataType"]
+                            | name::_ -> name, fullTypeName
+                            | [] -> failwith "Unaccessible"
 
-                    let isFixedLength = 
-                        if row.IsNull("IsFixedLength") 
-                        then None 
-                        else row.["IsFixedLength"] |> unbox |> Some
+                        let isFixedLength = 
+                            if row.IsNull("IsFixedLength") 
+                            then None 
+                            else row.["IsFixedLength"] |> unbox |> Some
 
-                    yield typeName,  unbox<int> row.["ProviderDbType"], clrType, isFixedLength
-            |]
+                        let providedType = unbox row.["ProviderDbType"]
+                        if providedType <> int SqlDbType.Structured
+                        then 
+                            yield typeName, (providedType, clrType, isFixedLength)
+                |]
 
             let sqlEngineTypes = [|
                 use cmd = new SqlCommand("
@@ -328,12 +336,22 @@ type SqlConnection with
                     yield reader.GetString(0), reader.GetString(1), reader.GetByte(2) |> int, reader.GetInt32(3), reader.GetBoolean(4), reader.GetString(5)
             |]
 
-            let typeInfos = 
-                query {
-                    for properName, name, system_type_id, user_type_id, is_table_type, schema_name in sqlEngineTypes do
-                    join (typename, providerdbtype, clrType, isFixedLength) in providerTypes on (name = typename)
-                    //the next line fix the issue when ADO.NET SQL provider maps tinyint to byte despite of claiming to map it to SByte according to GetSchema("DataTypes")
+            let typeInfos = [|
+                for fullNameIfUDT, name, system_type_id, user_type_id, is_table_type, schema_name in sqlEngineTypes do
+                    let providerdbtype, clrType, isFixedLength = 
+                        match providerTypes.TryGetValue(name) with
+                        | true, value -> value
+                        | false, _ when name = "sysname" -> 
+                            providerTypes.["nvarchar"]
+                        | false, _ when system_type_id <> user_type_id && not is_table_type ->
+                            let system_type_name = sqlEngineTypes |> Array.pick (fun (typename, _, system_type_id', _, _, _) -> if system_type_id = system_type_id' then Some typename else None)
+                            providerTypes.[system_type_name]
+                        | false, _ when is_table_type -> 
+                            int SqlDbType.Structured, "", None
+                        | _ -> failwith ("Unexpected type: " + name)
+
                     let clrTypeFixed = if system_type_id = 48 (*tinyint*) then typeof<byte>.FullName else clrType
+
                     let columns = 
                         if is_table_type
                         then
@@ -364,8 +382,8 @@ type SqlConnection with
                         else
                             Seq.empty
 
-                    select {
-                        TypeName = properName
+                    yield {
+                        TypeName = fullNameIfUDT
                         Schema = schema_name
                         SqlEngineTypeId = system_type_id
                         UserTypeId = user_type_id
@@ -375,9 +393,9 @@ type SqlConnection with
                         UdttName = if is_table_type then name else ""
                         TableTypeColumns = columns
                     }
-                }
+            |]
 
-            dataTypeMappings.Add( this.ConnectionString, Array.ofSeq typeInfos)
+            dataTypeMappings.Add( this.ConnectionString, typeInfos)
 
     member this.ClearDataTypesMap() = 
         dataTypeMappings.Clear()

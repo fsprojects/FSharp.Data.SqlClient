@@ -15,7 +15,15 @@ let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWo
 let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
 
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
-type dbo = AdventureWorks2012.dbo
+type dbo = AdventureWorks2012.dbo.
+type HumanResources = AdventureWorks2012.HumanResources
+type Person = AdventureWorks2012.Person
+type Production = AdventureWorks2012.Production
+type Purchasing = AdventureWorks2012.Purchasing
+type Sales = AdventureWorks2012.Sales
+
+let tt = new HumanResources.Tables.JobCandidate()
+let r = tt.NewRow()
 
 let func(r: #DataTable) = ()
 

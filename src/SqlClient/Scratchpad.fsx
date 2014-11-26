@@ -9,12 +9,18 @@ open System.Data.SqlClient
 let conn = new SqlConnection(@"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
 conn.Open()
 
-let cmd = new SqlCommand("SELECT * FROM HumanResources.Shift", conn)
-let reader = cmd.ExecuteReader()
+//let cmd = new SqlCommand("SELECT * FROM HumanResources.Shift", conn)
 //let reader = cmd.ExecuteReader()
-let schema = reader.GetSchemaTable()
+//let reader = cmd.ExecuteReader()
+let schema = conn.GetSchema("DataTypes")
 [for c in schema.Columns -> c.ColumnName ]
 [for r in schema.Rows -> [for c in schema.Columns do if not(r.IsNull(c)) then yield sprintf "%s - %A" c.ColumnName r.[c]] |> String.concat "\n" |> sprintf "%s\n\n" ]
+[for r in schema.Rows -> r.["TypeName"], r.["ProviderDbType"], r.["DataType"].GetType().Name]
+
+let metaSchema = conn.GetSchema("MetaDataCollections")
+[for c in metaSchema.Columns -> c.ColumnName ]
+[for r in metaSchema.Rows -> [for c in metaSchema.Columns do if not(r.IsNull(c)) then yield sprintf "%s - %A" c.ColumnName r.[c]] |> String.concat "\n" |> sprintf "%s\n\n" ]
+
 
 
 let adapter = new SqlDataAdapter(cmd)
@@ -109,4 +115,14 @@ using(cmd.ExecuteReader()) (fun reader -> reader |> Seq.cast<IDataRecord> |> Seq
 //        
 //
 //
+
+open System.Linq
+
+let xs = [ 1, "l_1"; 2, "left_2" ]
+let ys = [ 2, "r_2.1"; 2, "r_2.2"; 3, "r_3"]
+query {
+    for (y1, y2) in ys do 
+    leftOuterJoin (x1, x2) in xs on (y1 = x1) into zs
+    select (y1, zs.DefaultIfEmpty((42, "hehe")).ToArray())
+} |> Seq.toArray
 

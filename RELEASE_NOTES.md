@@ -87,3 +87,6 @@
 
 #### 1.4.6-beta - November 24 2014
 	* Issue #73 SqlBulkCopy support
+
+#### 1.4.7-beta - November 25 2014
+	* Issue #86 fixed
