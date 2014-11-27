@@ -206,7 +206,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             conn.GetTables(schema)
             |> List.map (fun tableName -> 
 
-                let twoPartTableName = sprintf "%s.%s" schema tableName 
+                let twoPartTableName = sprintf "[%s].[%s]" schema tableName 
                 let tableDirectSql = sprintf "SELECT * FROM " + twoPartTableName
                 use adapter = new SqlDataAdapter(tableDirectSql, conn)
                 let dataTable = adapter.FillSchema(new DataTable(twoPartTableName), SchemaType.Source)

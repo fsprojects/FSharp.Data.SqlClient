@@ -131,3 +131,19 @@ cmdInsert.Execute(user, 121, 16, 3, "insert test", int __LINE__, "failed insert"
 type GetEmployeeByLevel = SqlCommandProvider<"SELECT * FROM HumanResources.Employee WHERE OrganizationLevel = @OrganizationLevel", connectionString>
 let getEmployeeByLevel = new GetEmployeeByLevel()
 getEmployeeByLevel.Execute(2s)
+
+
+type MyCommand1 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow",  @"Data Source=(LocalDb)\v11.0;Integrated Security=True">
+type MyRecord1 = MyCommand1.Record
+let r1 = MyCommand1.Record(DateTime.Now, DateTime.UtcNow)
+
+type MyCommand2 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow",  @"Data Source=(LocalDb)\v11.0;Integrated Security=True">
+let r2 = MyCommand2.Record(DateTime.Now, DateTime.UtcNow)
+
+type MyRecord = { Now: DateTime; UtcNow: DateTime }
+
+let inline toMyRecord (x: 'Recrod) = 
+    {
+        Now = (^Record : (member get_Now : unit -> DateTime) x)
+        UtcNow = (^Record : (member get_UtcNow : unit -> DateTime) x)
+    }
