@@ -58,3 +58,6 @@ begin
     create table #result (id  uniqueidentifier not null)
     select * from #result
 end
+
+
+CREATE TYPE [dbo].[u_int64] FROM NUMERIC (20) NOT NULL;

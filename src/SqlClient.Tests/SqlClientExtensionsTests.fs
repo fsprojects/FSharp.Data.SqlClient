@@ -36,13 +36,13 @@ type ExtensionsTest() =
 //        |> Seq.map (sprintf "%A")
 //        |> Seq.iter Debug.WriteLine
 
-    member  __. GetFullQualityColumnInfo() =
+    member  __.GetFullQualityColumnInfo() =
         conn.GetFullQualityColumnInfo("dbo.uspGetWhereUsedProductID") 
         |> Seq.map (sprintf "%A")
         |> Seq.iter Debug.WriteLine
 
     [<Fact>]
-    member  __. GetAllSPs() =
+    member  __.GetAllSPs() =
         conn.GetRoutines("dbo")
         |> Seq.map (sprintf "%A")
         |> Seq.iter Debug.WriteLine
@@ -54,4 +54,18 @@ type ExtensionsTest() =
 //        |> Seq.map (sprintf "%A")
 //        |> Seq.iter Debug.WriteLine
 
-    
+    [<Fact>]
+    member  __.``UDT Lookup``() = 
+        let system_type_id = 231
+        let user_type_id = 257
+        let t = Extensions.findTypeInfoBySqlEngineTypeId(conn.ConnectionString, system_type_id, Some user_type_id)
+        Assert.Equal(typeof<string>, t.ClrType)
+        Assert.Equal<string>("dbo", t.Schema)
+        Assert.Equal(SqlDbType.NVarChar, t.SqlDbType)
+        Assert.Equal(system_type_id, t.SqlEngineTypeId)
+        Assert.Equal(user_type_id, t.UserTypeId)
+        Assert.Empty(t.UdttName)
+        
+
+
+

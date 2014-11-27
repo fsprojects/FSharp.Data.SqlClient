@@ -327,28 +327,38 @@ type SqlConnection with
 
             let sqlEngineTypes = [|
                 use cmd = new SqlCommand("
-                    SELECT t.name, ISNULL(assembly_class, t.name), t.system_type_id, t.user_type_id, t.is_table_type, s.name as schema_name
+                    SELECT t.name, ISNULL(assembly_class, t.name) as full_name, t.system_type_id, t.user_type_id, t.is_table_type, s.name as schema_name, t.is_user_defined
                     FROM sys.types AS t
 	                    JOIN sys.schemas AS s ON t.schema_id = s.schema_id
-	                    LEFT JOIN sys.assembly_types ON t.user_type_id = sys.assembly_types.user_type_id ", this) 
+	                    LEFT JOIN sys.assembly_types ON t.user_type_id = sys.assembly_types.user_type_id
+                    ", this) 
                 use reader = cmd.ExecuteReader()
                 while reader.Read() do
-                    yield reader.GetString(0), reader.GetString(1), reader.GetByte(2) |> int, reader.GetInt32(3), reader.GetBoolean(4), reader.GetString(5)
+                    yield 
+                        string reader.["name"], 
+                        string reader.["full_name"], 
+                        unbox<byte> reader.["system_type_id"] |> int, 
+                        unbox<int> reader.["user_type_id"], 
+                        unbox reader.["is_table_type"], 
+                        string reader.["schema_name"], 
+                        unbox reader.["is_user_defined"]
             |]
 
             let typeInfos = [|
-                for fullNameIfUDT, name, system_type_id, user_type_id, is_table_type, schema_name in sqlEngineTypes do
+                for name, full_name, system_type_id, user_type_id, is_table_type, schema_name, is_user_defined in sqlEngineTypes do
                     let providerdbtype, clrType, isFixedLength = 
-                        match providerTypes.TryGetValue(name) with
+                        match providerTypes.TryGetValue(full_name) with
                         | true, value -> value
-                        | false, _ when name = "sysname" -> 
+                        | false, _ when full_name = "sysname" -> 
                             providerTypes.["nvarchar"]
-                        | false, _ when system_type_id <> user_type_id && not is_table_type ->
-                            let system_type_name = sqlEngineTypes |> Array.pick (fun (typename, _, system_type_id', _, _, _) -> if system_type_id = system_type_id' then Some typename else None)
+                        | false, _ when is_user_defined && not is_table_type ->
+                            let system_type_name = 
+                                sqlEngineTypes 
+                                |> Array.pick (fun (typename', _, system_type_id', _, _, _, is_user_defined') -> if system_type_id = system_type_id' && not is_user_defined' then Some typename' else None)
                             providerTypes.[system_type_name]
                         | false, _ when is_table_type -> 
                             int SqlDbType.Structured, "", None
-                        | _ -> failwith ("Unexpected type: " + name)
+                        | _ -> failwith ("Unexpected type: " + full_name)
 
                     let clrTypeFixed = if system_type_id = 48 (*tinyint*) then typeof<byte>.FullName else clrType
 
@@ -383,14 +393,14 @@ type SqlConnection with
                             Seq.empty
 
                     yield {
-                        TypeName = fullNameIfUDT
+                        TypeName = name
                         Schema = schema_name
                         SqlEngineTypeId = system_type_id
                         UserTypeId = user_type_id
                         SqlDbTypeId = providerdbtype
                         IsFixedLength = isFixedLength
                         ClrTypeFullName = clrTypeFixed
-                        UdttName = if is_table_type then name else ""
+                        UdttName = if is_table_type then full_name else ""
                         TableTypeColumns = columns
                     }
             |]
