@@ -97,3 +97,5 @@
 #### 1.4.8-beta2 - November 27 2014
 	* Issue #91 fixed
 
+#### 1.4.9-beta - November 28 2014
+	* Issue #92 work around

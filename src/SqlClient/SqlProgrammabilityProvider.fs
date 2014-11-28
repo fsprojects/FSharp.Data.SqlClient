@@ -231,9 +231,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         then c.AutoIncrement <- reader.GetBoolean(1)
 
                         //set nullability based on default constraint
-//                        if not( reader.IsDBNull(2)) && not c.AllowDBNull 
-//                        then 
-//                            c.AllowDBNull <- true
+                        if not( reader.IsDBNull(2)) && not c.AllowDBNull 
+                        then 
+                            c.AllowDBNull <- true
 //                            c.ExtendedProperties.["COLUMN_DEFAULT"] <- reader.[2]
                         
                 let serializedSchema = 
@@ -330,6 +330,12 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             table.Rows.Add row
                         @@>
                     dataTableType.AddMember addRowMethod
+
+                do //columns accessors
+                    for c in columns do
+                        let name = c.ColumnName
+                        dataTableType.AddMember <| 
+                            ProvidedProperty(name + "Column", typeof<DataColumn>, [], GetterCode = fun args -> <@@ (%%Expr.Coerce(args.[0], typeof<DataTable>): DataTable).Columns.[name]  @@>)
 
                 dataTableType
             )
