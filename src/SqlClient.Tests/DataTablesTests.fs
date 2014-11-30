@@ -82,6 +82,27 @@ let DEFAULTConstraint() =
 
     Assert.Equal(int64 t.Rows.Count, !rowsCopied)
 
+[<Fact>]
+let DEFAULTConstraintInsertViaSqlDataAdapter() = 
+    let t = new ShiftTable()
+    use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
+    conn.Open()
+    use tran = conn.BeginTransaction()
+    
+    //ModifiedDate is not provided
+    t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12.)
+    t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16.)
+
+    //removing ModifiedDate column is not required as oppose to bulk insert 
+    //t.Columns.Remove(t.ModifiedDateColumn)
+    let selectCommand = new SqlCommand("SELECT * FROM " + t.TableName, conn, tran)
+    use adapter = new SqlDataAdapter(selectCommand)
+    adapter.InsertCommand <- 
+        let builder = new SqlCommandBuilder(adapter)
+        builder.GetInsertCommand()
+
+    let rowsInserted =  adapter.Update(t)
+    Assert.Equal(t.Rows.Count, rowsInserted)
 
 
 
