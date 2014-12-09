@@ -99,3 +99,6 @@
 
 #### 1.4.9-beta - November 28 2014
 	* Issue #92 work around
+
+#### 1.5 - December 8, 2014
+	* Issue #85 fixed 

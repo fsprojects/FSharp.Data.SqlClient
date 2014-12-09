@@ -7,6 +7,7 @@ open System.Data.SqlClient
 open System.Diagnostics
 open System.IO
 open System.Reflection
+open System.Runtime.Caching
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
@@ -26,7 +27,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     let nameSpace = this.GetType().Namespace
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlProgrammabilityProvider", Some typeof<obj>, HideObjectMethods = true)
 
-    let cache = new ProvidedTypesCache(this)
+    let cache = new MemoryCache(name = this.GetType().Name)
+
+    do 
+        this.Disposing.Add(fun _ -> cache.Dispose())
 
     do 
         this.RegisterRuntimeAssemblyLocationAsProbingFolder( config) 
@@ -39,8 +43,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
             instantiationFunction = (fun typeName args ->
-                let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3]
-                cache.GetOrAdd(key, lazy this.CreateRootType key)
+                cache.GetOrAdd(typeName, lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3]))
             ) 
         )
 
@@ -49,6 +52,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 <param name='ConnectionStringOrName'>String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&lt;connection string name&gt;”.</param>
 <param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
+<param name='DataDirectory'>The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.</param>
 """
 
         this.AddNamespace(nameSpace, [ providerType ])
@@ -76,6 +80,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         conn.LoadDataTypesMap()
 
         let databaseRootType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
+        databaseRootType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
 
         databaseRootType.AddMembersDelayed <| fun () ->
             conn.GetUserSchemas() 

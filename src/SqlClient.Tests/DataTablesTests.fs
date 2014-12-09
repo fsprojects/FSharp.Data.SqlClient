@@ -1,4 +1,4 @@
-﻿module FSharp.Data.DataTablesTests
+﻿namespace FSharp.Data
 
 open System
 open System.Configuration
@@ -16,93 +16,101 @@ type AdventureWorks = SqlProgrammabilityProvider<"name=AdventureWorks2012">
 //Tables types structured as: [TypeAlias].[Namespace].Tables.[TableName]
 type ShiftTable = AdventureWorks.HumanResources.Tables.Shift
 
-[<Fact>]
-let NewRowAndBulkCopy() = 
-    let t = new ShiftTable()
-    use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
-    conn.Open()
-    use tran = conn.BeginTransaction()
+type ResetIndentity = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", "name=AdventureWorks2012">
+
+type DataTablesTests() = 
+
+    do
+        use cmd = new ResetIndentity()
+        cmd.Execute() |> ignore
+
+    [<Fact>]
+    member __.NewRowAndBulkCopy() = 
+        let t = new ShiftTable()
+        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
+        conn.Open()
+        use tran = conn.BeginTransaction()
     
-    let rows: DataRow[] = 
-        [|
-            //erased method to provide static typing
-            t.NewRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some DateTime.Now.Date)
-            t.NewRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some DateTime.Now.Date)
-        |]
-    let bulkCopy = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, tran)
-    let rowsCopied = ref 0L
-    bulkCopy.NotifyAfter <- rows.Length
-    bulkCopy.SqlRowsCopied.Add(fun args -> rowsCopied := args.RowsCopied)
-    //table name is there
-    bulkCopy.DestinationTableName <- t.TableName
-    bulkCopy.WriteToServer(rows)
+        let rows: DataRow[] = 
+            [|
+                //erased method to provide static typing
+                t.NewRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some DateTime.Now.Date)
+                t.NewRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some DateTime.Now.Date)
+            |]
+        let bulkCopy = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, tran)
+        let rowsCopied = ref 0L
+        bulkCopy.NotifyAfter <- rows.Length
+        bulkCopy.SqlRowsCopied.Add(fun args -> rowsCopied := args.RowsCopied)
+        //table name is there
+        bulkCopy.DestinationTableName <- t.TableName
+        bulkCopy.WriteToServer(rows)
 
-    Assert.Equal(int64 rows.Length, !rowsCopied)
+        Assert.Equal(int64 rows.Length, !rowsCopied)
 
-[<Fact>]
-let AddRowAndBulkCopy() = 
-    let t = new ShiftTable()
-    use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
-    conn.Open()
-    use tran = conn.BeginTransaction()
+    [<Fact>]
+    member __.AddRowAndBulkCopy() = 
+        let t = new ShiftTable()
+        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
+        conn.Open()
+        use tran = conn.BeginTransaction()
     
-    //erased method to provide static typing
-    t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some DateTime.Now.Date)
-    t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some DateTime.Now.Date)
+        //erased method to provide static typing
+        t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some DateTime.Now.Date)
+        t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some DateTime.Now.Date)
 
-    let bulkCopy = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, tran)
-    let rowsCopied = ref 0L
-    bulkCopy.NotifyAfter <- t.Rows.Count
-    bulkCopy.SqlRowsCopied.Add(fun args -> rowsCopied := args.RowsCopied)
-    bulkCopy.DestinationTableName <- t.TableName
-    bulkCopy.WriteToServer(t)
+        let bulkCopy = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, tran)
+        let rowsCopied = ref 0L
+        bulkCopy.NotifyAfter <- t.Rows.Count
+        bulkCopy.SqlRowsCopied.Add(fun args -> rowsCopied := args.RowsCopied)
+        bulkCopy.DestinationTableName <- t.TableName
+        bulkCopy.WriteToServer(t)
 
-    Assert.Equal(int64 t.Rows.Count, !rowsCopied)
+        Assert.Equal(int64 t.Rows.Count, !rowsCopied)
 
-[<Fact>]
-let DEFAULTConstraint() = 
-    let t = new ShiftTable()
-    use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
-    conn.Open()
-    use tran = conn.BeginTransaction()
+    [<Fact>]
+    member __.DEFAULTConstraint() = 
+        let t = new ShiftTable()
+        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
+        conn.Open()
+        use tran = conn.BeginTransaction()
     
-    //ModifiedDate is not provided
-    t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12.)
-    t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16.)
+        //ModifiedDate is not provided
+        t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12.)
+        t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16.)
 
-    //remove ModifiedDate column therefore bulk insert won't send explicit NULLs to server
-    t.Columns.Remove(t.ModifiedDateColumn)
+        //remove ModifiedDate column therefore bulk insert won't send explicit NULLs to server
+        t.Columns.Remove(t.ModifiedDateColumn)
 
-    let bulkCopy = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, tran)
-    let rowsCopied = ref 0L
-    bulkCopy.NotifyAfter <- t.Rows.Count
-    bulkCopy.SqlRowsCopied.Add(fun args -> rowsCopied := args.RowsCopied)
-    bulkCopy.DestinationTableName <- t.TableName
-    bulkCopy.WriteToServer(t)
+        let bulkCopy = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, tran)
+        let rowsCopied = ref 0L
+        bulkCopy.NotifyAfter <- t.Rows.Count
+        bulkCopy.SqlRowsCopied.Add(fun args -> rowsCopied := args.RowsCopied)
+        bulkCopy.DestinationTableName <- t.TableName
+        bulkCopy.WriteToServer(t)
 
-    Assert.Equal(int64 t.Rows.Count, !rowsCopied)
+        Assert.Equal(int64 t.Rows.Count, !rowsCopied)
 
-[<Fact>]
-let DEFAULTConstraintInsertViaSqlDataAdapter() = 
-    let t = new ShiftTable()
-    use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
-    conn.Open()
-    use tran = conn.BeginTransaction()
+    [<Fact>]
+    member __.DEFAULTConstraintInsertViaSqlDataAdapter() = 
+        let t = new ShiftTable()
+        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
+        conn.Open()
+        use tran = conn.BeginTransaction()
     
-    //ModifiedDate is not provided
-    t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12.)
-    t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16.)
+        //ModifiedDate is not provided
+        t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12.)
+        t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16.)
 
-    //removing ModifiedDate column is not required as oppose to bulk insert 
-    //t.Columns.Remove(t.ModifiedDateColumn)
-    let selectCommand = new SqlCommand("SELECT * FROM " + t.TableName, conn, tran)
-    use adapter = new SqlDataAdapter(selectCommand)
-    adapter.InsertCommand <- 
-        let builder = new SqlCommandBuilder(adapter)
-        builder.GetInsertCommand()
+        //removing ModifiedDate column is not required as oppose to bulk insert 
+        //t.Columns.Remove(t.ModifiedDateColumn)
+        let selectCommand = new SqlCommand("SELECT * FROM " + t.TableName, conn, tran)
+        use adapter = new SqlDataAdapter(selectCommand)
+        adapter.InsertCommand <- 
+            let builder = new SqlCommandBuilder(adapter)
+            builder.GetInsertCommand()
 
-    let rowsInserted =  adapter.Update(t)
-    Assert.Equal(t.Rows.Count, rowsInserted)
+        let rowsInserted =  adapter.Update(t)
+        Assert.Equal(t.Rows.Count, rowsInserted)
 
 
 

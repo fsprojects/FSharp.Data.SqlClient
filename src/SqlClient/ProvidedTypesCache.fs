@@ -1,24 +1,17 @@
-﻿namespace ProviderImplementation.ProvidedTypes
+﻿[<AutoOpen>]
+module ProviderImplementation.ProvidedTypes.MemoryCache
 
 open System
 open System.Runtime.Caching
 
-type ProvidedTypesCache(tp: TypeProviderForNamespaces) = 
-    
-    static let defaultExpiration = TimeSpan.FromSeconds 10.
-    
-    let cache = new MemoryCache(tp.GetType().Name)
-    
-    do 
-        tp.Disposing.Add(fun _ -> cache.Dispose())
-
-    member __.GetOrAdd(key: obj, item: Lazy<ProvidedTypeDefinition>) = 
-        match cache.AddOrGetExisting(string key, item, CacheItemPolicy(SlidingExpiration = defaultExpiration)) with
-        | :? Lazy<ProvidedTypeDefinition> as item -> item.Value
+type MemoryCache with 
+    member this.GetOrAdd(key, value: Lazy<_>, ?expiration) = 
+        let policy = CacheItemPolicy()
+        policy.SlidingExpiration <- defaultArg expiration <| TimeSpan.FromSeconds 15.
+        match this.AddOrGetExisting(key, value, policy) with
+        | :? Lazy<ProvidedTypeDefinition> as item -> 
+            assert item.IsValueCreated 
+            item.Value
         | x -> 
             assert(x = null)
-            item.Value
-
-    member __.Remove(key: obj) = cache.Remove(string key) |> ignore
-
-    interface IDisposable with member __.Dispose() = cache.Dispose()
+            value.Value

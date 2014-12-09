@@ -7,6 +7,7 @@ open System.Data.Common
 open System
 open System.IO
 open System.Configuration
+open System.Runtime.Caching
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
@@ -24,7 +25,10 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
     let tempAssembly = ProvidedAssembly( Path.ChangeExtension(Path.GetTempFileName(), ".dll"))
     do tempAssembly.AddTypes [providerType]
 
-    let cache = new ProvidedTypesCache(this)
+    let cache = new MemoryCache(name = this.GetType().Name)
+
+    do 
+        this.Disposing.Add(fun _ -> cache.Dispose())
 
     do 
         providerType.DefineStaticParameters(
@@ -36,8 +40,7 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("CLIEnum", typeof<bool>, false) 
             ],             
             instantiationFunction = (fun typeName args ->   
-                let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4]
-                cache.GetOrAdd( key, lazy this.CreateRootType key)
+                cache.GetOrAdd(typeName, lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4]))
             )        
         )
 

@@ -8,6 +8,7 @@ open System.Reflection
 open System.Collections.Generic
 open System.Runtime.CompilerServices
 open System.Configuration
+open System.Runtime.Caching
 
 open Microsoft.SqlServer.Server
 
@@ -32,7 +33,17 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, HideObjectMethods = true)
 
-    let cache = new ProvidedTypesCache(this)
+    let cache = new MemoryCache(name = this.GetType().Name)
+
+    do 
+        let subscription = ref(Unchecked.defaultof<IDisposable>)
+        subscription := this.Disposing.Subscribe(fun _ -> 
+            try  
+                if watcher <> null then watcher.Dispose()
+                cache.Dispose()
+                subscription.Value.Dispose() 
+            with _ -> ()
+        )
 
     do 
         providerType.DefineStaticParameters(
@@ -47,8 +58,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
             instantiationFunction = (fun typeName args ->
-                let key = typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6], unbox args.[7]
-                cache.GetOrAdd(key, lazy this.CreateRootType key)
+                let value = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6], unbox args.[7])
+                cache.GetOrAdd(typeName, value)
             ) 
             
         )
@@ -62,25 +73,19 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
 <param name='AllParametersOptional'>If set all parameters become optional. NULL input values must be handled inside T-SQL.</param>
 <param name='ResolutionFolder'>A folder to be used to resolve relative file paths to *.sql script files at compile time. The default value is the folder that contains the project or script.</param>
+<param name='DataDirectory'>The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.</param>
 """
 
         this.AddNamespace(nameSpace, [ providerType ])
-    
-    interface IDisposable with 
-        member this.Dispose() =
-            try  
-                if watcher <> null
-                then watcher.Dispose()
-            with _ -> ()
 
-    member internal this.CreateRootType((typeName, sqlStatementOrFile, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, resolutionFolder, dataDirectory) as key) = 
+    member internal this.CreateRootType(typeName, sqlStatementOrFile, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, resolutionFolder, dataDirectory) = 
 
         if singleRow && not (resultType = ResultType.Records || resultType = ResultType.Tuples)
         then 
             invalidArg "singleRow" "singleRow can be set only for ResultType.Records or ResultType.Tuples."
         
         let invalidator() =
-            cache.Remove(key) 
+            cache.Remove(typeName) |> ignore
             this.Invalidate()
             
         let sqlStatement, watcher' = 
