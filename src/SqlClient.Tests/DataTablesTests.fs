@@ -93,6 +93,7 @@ type DataTablesTests() =
     [<Fact>]
     member __.DEFAULTConstraintInsertViaSqlDataAdapter() = 
         let t = new ShiftTable()
+        Assert.True t.ModifiedDateColumn.AllowDBNull
         use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
         conn.Open()
         use tran = conn.BeginTransaction()

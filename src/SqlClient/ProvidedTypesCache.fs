@@ -10,7 +10,6 @@ type MemoryCache with
         policy.SlidingExpiration <- defaultArg expiration <| TimeSpan.FromSeconds 15.
         match this.AddOrGetExisting(key, value, policy) with
         | :? Lazy<ProvidedTypeDefinition> as item -> 
-            assert item.IsValueCreated 
             item.Value
         | x -> 
             assert(x = null)

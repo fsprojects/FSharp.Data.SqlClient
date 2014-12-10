@@ -231,20 +231,27 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     while reader.Read() do 
                         let c = columns.[reader.GetString(0)]
 
+                        let values = Array.zeroCreate reader.FieldCount
+                        reader.GetValues(values) |> ignore
                         //set auto-increment override
                         if not( reader.IsDBNull(1)) && not c.AutoIncrement 
                         then c.AutoIncrement <- reader.GetBoolean(1)
 
                         //set nullability based on default constraint
-                        if not( reader.IsDBNull(2)) && not c.AllowDBNull 
+                        if not(c.AllowDBNull || reader.IsDBNull(2))
                         then 
                             c.AllowDBNull <- true
-//                            c.ExtendedProperties.["COLUMN_DEFAULT"] <- reader.[2]
+                            c.ExtendedProperties.["COLUMN_DEFAULT"] <- reader.[2]
                         
                 let serializedSchema = 
                     use writer = new StringWriter()
                     dataTable.WriteXmlSchema writer
                     writer.ToString()
+#if DEBUG
+                let table = new DataTable<DataRow>() 
+                use reader = new StringReader( serializedSchema)
+                table.ReadXmlSchema reader
+#endif
 
                 //type data row
                 let dataRowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
@@ -275,6 +282,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             let table = new DataTable<DataRow>() 
                             use reader = new StringReader( serializedSchema)
                             table.ReadXmlSchema reader
+                            for c in table.Columns do
+                                if not c.AllowDBNull 
+                                then c.AllowDBNull <- c.ExtendedProperties.ContainsKey "COLUMN_DEFAULT"
                             table
                         @@>
                     dataTableType.AddMember ctor

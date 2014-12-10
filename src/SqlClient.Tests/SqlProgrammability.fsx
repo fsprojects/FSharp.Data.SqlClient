@@ -124,3 +124,9 @@ let res = updateEmployeeLogin.AsyncExecute()
 //DbElephant.getAssetTypeId.AsyncExecute("Tank", 1) |> Async.RunSynchronously
 
 //let x = new Run
+
+type Thermion = SqlProgrammabilityProvider<"Data Source=.;Database=ThermionDB;Integrated Security=True;">
+let t = new Thermion.Thermion.Tables.TimeSeries()
+t.AddRow(assetGuid = Guid.NewGuid(), TachyusType = "some", DisplayName = "some", Units = "bbl", Description = "", importBatch = 42)
+t.tsGuidColumn
+[ for x in t.Columns -> x.ColumnName, x.AllowDBNull ]
