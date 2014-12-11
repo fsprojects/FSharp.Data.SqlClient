@@ -105,3 +105,6 @@
 
 #### 1.5.1 - December 9, 2014
 	* DataTable.AddRow/NewRow with default values for column fo type Guid 
+
+#### 1.5.2 - December 9, 2014
+	* Issue #97

@@ -7,7 +7,7 @@ open Xunit
 type Get42FromMasterDb = SqlCommandProvider<"SELECT 42", @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True">
 
 // If compile fails here, check prereqs.sql
-type TableValuedTuple = SqlCommandProvider<"exec myProc @x", "name=AdventureWorks2012", SingleRow = true, ResultType = ResultType.Tuples>
+type TableValuedTuple = SqlCommandProvider<"exec Person.myProc @x", "name=AdventureWorks2012", SingleRow = true, ResultType = ResultType.Tuples>
 type MyTableType = TableValuedTuple.MyTableType
 
 [<Fact>]
@@ -64,7 +64,7 @@ let tvpSqlParamCleanUp() =
     let result = cmd.Execute(x = p) |> List.ofSeq
     Assert.Equal<int list>([1;2], result)    
 
-type TableValuedSprocTuple  = SqlCommandProvider<"exec myProc @x", ConnectionStringOrName = "name=AdventureWorks2012", SingleRow = true, ResultType = ResultType.Tuples>
+type TableValuedSprocTuple  = SqlCommandProvider<"exec Person.myProc @x", ConnectionStringOrName = "name=AdventureWorks2012", SingleRow = true, ResultType = ResultType.Tuples>
 
 [<Fact>]
 let SprocTupleValue() = 
@@ -76,7 +76,7 @@ let SprocTupleValue() =
     let actual = cmd.Execute(p).Value
     Assert.Equal((1, Some "monkey"), actual)    
 
-type TableValuedTupleWithOptionalParams = SqlCommandProvider<"exec myProc @x", "name=AdventureWorks2012", AllParametersOptional = true>
+type TableValuedTupleWithOptionalParams = SqlCommandProvider<"exec Person.myProc @x", "name=AdventureWorks2012", AllParametersOptional = true>
 [<Fact>]
 let TableValuedTupleWithOptionalParams() = 
     let cmd = new TableValuedTupleWithOptionalParams()

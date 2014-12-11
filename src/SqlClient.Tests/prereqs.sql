@@ -23,10 +23,10 @@ begin
 end
 go
 
-CREATE TYPE MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
+CREATE TYPE Person.MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
 GO
 
-CREATE PROCEDURE MyProc @p1 MyTableType readonly AS
+CREATE PROCEDURE Person.MyProc @p1 MyTableType readonly AS
 BEGIN
    SELECT * from @p1 p
 END

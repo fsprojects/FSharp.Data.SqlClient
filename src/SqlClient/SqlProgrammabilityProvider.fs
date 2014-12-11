@@ -247,11 +247,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     use writer = new StringWriter()
                     dataTable.WriteXmlSchema writer
                     writer.ToString()
-#if DEBUG
-                let table = new DataTable<DataRow>() 
-                use reader = new StringReader( serializedSchema)
-                table.ReadXmlSchema reader
-#endif
 
                 //type data row
                 let dataRowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)

@@ -40,7 +40,8 @@ type QuotationsFactory private() =
             let x = SqlParameter(name, enum dbType, Direction = %%Expr.Value p.Direction )
             if x.SqlDbType = SqlDbType.Structured
             then 
-                let typeName : string = %%Expr.Value p.TypeInfo.UdttName
+                let typeName: string =  sprintf "%s.%s" (%%Expr.Value p.TypeInfo.Schema) (%%Expr.Value p.TypeInfo.UdttName)
+                //done via reflection because not implemented on Mono
                 x.GetType().GetProperty("TypeName").SetValue(x, typeName, null)
 
             if %%Expr.Value p.TypeInfo.SqlEngineTypeId = 240 
