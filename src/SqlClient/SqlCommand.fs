@@ -104,6 +104,10 @@ type RuntimeSqlCommand (connection, sqlStatement, isStoredProcedure, parameters,
                 executeHandle >> box, asyncExecuteHandle >> box
         | unexpected -> failwithf "Unexpected ResultType value: %O" unexpected
 
+    member this.CommandTimeout 
+        with get() = cmd.CommandTimeout
+        and set value = cmd.CommandTimeout <- value
+
     member this.AsSqlCommand() = 
         let clone = new SqlCommand(cmd.CommandText, new SqlConnection(cmd.Connection.ConnectionString), CommandType = cmd.CommandType)
         clone.Parameters.AddRange <| [| for p in cmd.Parameters -> SqlParameter(p.ParameterName, p.SqlDbType) |]
