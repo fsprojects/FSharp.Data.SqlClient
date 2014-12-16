@@ -111,11 +111,11 @@ let ``ToTraceString for CRUD``() =
     (new DeleteBitCoin()).ToTraceString(bitCoinCode) 
     |> should equal "exec sp_executesql N'DELETE FROM Sales.Currency WHERE CurrencyCode = @Code',N'@Code NChar(3)',@Code='BTC'"
 
-type LongRunning = SqlCommandProvider<"WAITFOR DELAY '00:00:35'", connectionString>
-[<Fact(Skip = "Don't execute for usual runs. Too slow.")>]
+type LongRunning = SqlCommandProvider<"WAITFOR DELAY '00:00:35'; SELECT 42", connectionString, SingleRow = true>
+[<Fact(
+    //Skip = "Don't execute for usual runs. Too slow."
+    )>]
 let CommandTimeout() =
-    use cmd = new LongRunning()
-    let defaultTimeout = (new SqlCommand()).CommandTimeout
-    Assert.Equal(defaultTimeout, cmd.CommandTimeout)
-    cmd.CommandTimeout <- 60
-    cmd.Execute()     
+    use cmd = new LongRunning(commandTimeout = 60)
+    Assert.Equal(60, cmd.CommandTimeout)
+    Assert.Equal(Some 42, cmd.Execute())     

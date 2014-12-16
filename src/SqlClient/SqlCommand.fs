@@ -43,10 +43,13 @@ type Connection =
     | NameInConfig of string
     | Transaction of SqlTransaction
 
-type RuntimeSqlCommand (connection, sqlStatement, isStoredProcedure, parameters, resultType, rank, rowMapping: RowMapping, itemTypeName: string) = 
+type RuntimeSqlCommand (connection, commandTimeout, sqlStatement, isStoredProcedure, parameters, resultType, rank, rowMapping: RowMapping, itemTypeName) = 
 
-    let cmd = new SqlCommand(sqlStatement, CommandType = if isStoredProcedure then CommandType.StoredProcedure else CommandType.Text)
+    let cmd = new SqlCommand(sqlStatement)
     do 
+        cmd.CommandType <- if isStoredProcedure then CommandType.StoredProcedure else CommandType.Text
+        cmd.CommandTimeout <- commandTimeout
+    do
         match connection with
         | Literal value -> 
             cmd.Connection <- new SqlConnection(value)
@@ -56,7 +59,6 @@ type RuntimeSqlCommand (connection, sqlStatement, isStoredProcedure, parameters,
         | Transaction t ->
              cmd.Connection <- t.Connection
              cmd.Transaction <- t
-
     do
         cmd.Parameters.AddRange( parameters)
 
@@ -104,9 +106,7 @@ type RuntimeSqlCommand (connection, sqlStatement, isStoredProcedure, parameters,
                 executeHandle >> box, asyncExecuteHandle >> box
         | unexpected -> failwithf "Unexpected ResultType value: %O" unexpected
 
-    member this.CommandTimeout 
-        with get() = cmd.CommandTimeout
-        and set value = cmd.CommandTimeout <- value
+    member this.CommandTimeout = cmd.CommandTimeout
 
     member this.AsSqlCommand() = 
         let clone = new SqlCommand(cmd.CommandText, new SqlConnection(cmd.Connection.ConnectionString), CommandType = cmd.CommandType)

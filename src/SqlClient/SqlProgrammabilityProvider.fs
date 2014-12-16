@@ -156,7 +156,12 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         //ctors
                         let sqlParameters = Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
             
-                        let ctor1 = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
+                        let ctor1 = 
+                            ProvidedConstructor [ 
+                                ProvidedParameter("connectionString", typeof<string>, optionalValue = "") 
+                                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
+                            ]
+
                         let ctorArgsExceptConnection = [
                             Expr.Value commandText                      //sqlStatement
                             Expr.Value(routine.IsStoredProc)  //isStoredProcedure
@@ -179,13 +184,17 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                         elif isByName then Connection.NameInConfig connectionStringName
                                         else Connection.Literal connectionStringOrName
                                     @@>
-                                Expr.NewObject(ctorImpl, connArg :: ctorArgsExceptConnection)
+                                Expr.NewObject(ctorImpl, connArg :: args.[1] :: ctorArgsExceptConnection)
 
                         yield (ctor1 :> MemberInfo)
                            
-                        let ctor2 = ProvidedConstructor( [ ProvidedParameter("transaction", typeof<SqlTransaction>) ])
+                        let ctor2 = 
+                            ProvidedConstructor [ 
+                                ProvidedParameter("transaction", typeof<SqlTransaction>) 
+                                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
+                            ]
                         ctor2.InvokeCode <- 
-                            fun args -> Expr.NewObject(ctorImpl, <@@ Connection.Transaction %%args.[0] @@> :: ctorArgsExceptConnection)
+                            fun args -> Expr.NewObject(ctorImpl, <@@ Connection.Transaction %%args.[0] @@> :: args.[1] :: ctorArgsExceptConnection)
 
                         yield upcast ctor2
 

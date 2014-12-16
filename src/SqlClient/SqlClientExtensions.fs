@@ -17,6 +17,8 @@ type SqlCommand with
     member this.AsyncExecuteNonQuery() =
         Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) 
 
+let defaultCommandTimeout = (new SqlCommand()).CommandTimeout
+
 module SqlDataReader = 
 
     let internal map mapping (reader: SqlDataReader) = 

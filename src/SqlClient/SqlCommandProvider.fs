@@ -143,7 +143,12 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         do  //ctors
             let sqlParameters = Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
             
-            let ctor1 = ProvidedConstructor( [ ProvidedParameter("connectionString", typeof<string>, optionalValue = "") ])
+            let ctor1 = 
+                ProvidedConstructor [ 
+                    ProvidedParameter("connectionString", typeof<string>, optionalValue = "") 
+                    ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
+                ]
+
             let isStoredProcedure = false
             let ctorArgsExceptConnection = [
                 Expr.Value sqlStatement; 
@@ -163,14 +168,18 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                             elif isByName then Connection.NameInConfig connectionStringName
                             else Connection.Literal connectionStringOrName
                         @@>
-                    Expr.NewObject(ctorImpl, connArg :: ctorArgsExceptConnection)
+                    Expr.NewObject(ctorImpl, connArg :: args.[1] :: ctorArgsExceptConnection)
            
             cmdProvidedType.AddMember ctor1
 
-            let ctor2 = ProvidedConstructor( [ ProvidedParameter("transaction", typeof<SqlTransaction>) ])
+            let ctor2 = 
+                ProvidedConstructor [ 
+                    ProvidedParameter("transaction", typeof<SqlTransaction>) 
+                    ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
+                ]
 
             ctor2.InvokeCode <- 
-                fun args -> Expr.NewObject(ctorImpl, <@@ Connection.Transaction %%args.[0] @@> :: ctorArgsExceptConnection)
+                fun args -> Expr.NewObject(ctorImpl, <@@ Connection.Transaction %%args.[0] @@> :: args.[1] :: ctorArgsExceptConnection)
 
             cmdProvidedType.AddMember ctor2
 
