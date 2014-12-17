@@ -125,7 +125,20 @@ let res = updateEmployeeLogin.AsyncExecute()
 
 //let x = new Run
 
-type Db = SqlProgrammabilityProvider<"Data Source=.;Database=ThermionDB;Integrated Security=True;">
+type Db = SqlProgrammabilityProvider<"Data Source=.;Database=Thermion;Integrated Security=True;">
+type Asset = Db.Thermion.Tables.Asset
+let table  = new Asset()
+table.AddRow(Guid.NewGuid(), "w-1", "well", "well", "hathaway", 1)
+table.AddRow(Guid.NewGuid(), "w-2", "well", "well", "hathaway", 1)
+//table.AddRow(Some( Guid.NewGuid()), "w-2", "well", "well", "hathaway", 1)
+
+type Prediction = Db.Thermion.Tables.Prediction
+let prediction  = new Prediction()
+prediction.AddRow(Guid.NewGuid(),  41., 42., 43., DateTime.Now, "Luke's")
+prediction.AddRow(Guid.NewGuid(),  31., 32., 33., DateTime.Now, "Amit's", Some(DateTime.Parse("2013-01-01")))
+prediction.Rows.[0]
+prediction.Rows.[1]
+
 type BulkInsertToMeasureTable = Db.Thermion.bulkInsertToMeasureTable
 type MeasureTableType = Db.Thermion.``User-Defined Table Types``.MeasureTableType
 let cmd = new BulkInsertToMeasureTable()

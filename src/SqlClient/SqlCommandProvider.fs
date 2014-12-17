@@ -36,14 +36,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     let cache = new MemoryCache(name = this.GetType().Name)
 
     do 
-        let subscription = ref(Unchecked.defaultof<IDisposable>)
-        subscription := this.Disposing.Subscribe(fun _ -> 
+        this.Disposing.Add <| fun _ ->
             try  
                 if watcher <> null then watcher.Dispose()
                 cache.Dispose()
-                subscription.Value.Dispose() 
             with _ -> ()
-        )
 
     do 
         providerType.DefineStaticParameters(

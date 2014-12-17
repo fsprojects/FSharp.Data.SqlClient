@@ -30,7 +30,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     let cache = new MemoryCache(name = this.GetType().Name)
 
     do 
-        this.Disposing.Add(fun _ -> cache.Dispose())
+        this.Disposing.Add <| fun _ -> cache.Dispose()
 
     do 
         this.RegisterRuntimeAssemblyLocationAsProbingFolder( config) 
@@ -228,14 +228,16 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 let columns = dataTable.Columns
 
                 do //read column defaults
-                    let query = 
-                        sprintf "
-                            SELECT columns.name, is_identity, OBJECT_DEFINITION(default_object_id)
+                    let query = "
+                            SELECT columns.name, is_identity, OBJECT_DEFINITION(default_object_id), XProp.Value
                             FROM sys.columns 
-	                            JOIN sys.tables ON columns .object_id = tables.object_id and tables.name = '%s'
-	                            JOIN sys.schemas ON tables.schema_id = schemas.schema_id and schemas.name = '%s'
-                            " tableName schema 
+	                            JOIN sys.tables ON columns .object_id = tables.object_id and tables.name = @tableName
+	                            JOIN sys.schemas ON tables.schema_id = schemas.schema_id and schemas.name = @schema
+                                OUTER APPLY fn_listextendedproperty ('MS_Description', 'schema', @schema, 'table', @tableName, 'column', columns.name) AS XProp
+                            " 
                     let cmd = new SqlCommand(query, conn)
+                    cmd.Parameters.AddWithValue("@tableName", tableName) |> ignore
+                    cmd.Parameters.AddWithValue("@schema", schema) |> ignore
                     use reader = cmd.ExecuteReader()
                     while reader.Read() do 
                         let c = columns.[reader.GetString(0)]
@@ -246,11 +248,15 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         if not( reader.IsDBNull(1)) && not c.AutoIncrement 
                         then c.AutoIncrement <- reader.GetBoolean(1)
 
-                        //set nullability based on default constraint
-                        if not(c.AllowDBNull || reader.IsDBNull(2))
+                        //allow nullability for non-unique columns with defaults
+                        if not(c.AllowDBNull || c.Unique || reader.IsDBNull(2))
                         then 
                             c.AllowDBNull <- true
                             c.ExtendedProperties.["COLUMN_DEFAULT"] <- reader.[2]
+
+                        if not (reader.IsDBNull(3))
+                        then 
+                            c.ExtendedProperties.["MS_Description"] <- reader.[3]
                         
                 let serializedSchema = 
                     use writer = new StringWriter()
@@ -262,22 +268,34 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 do 
                     for c in columns do
                         let name = c.ColumnName
-                        if c.AllowDBNull
-                        then
-                            let propertType = typedefof<_ option>.MakeGenericType c.DataType
-                            let property = ProvidedProperty(c.ColumnName, propertType, GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", c.DataType, name))
-                            if not c.ReadOnly
-                            then property.SetterCode <- QuotationsFactory.GetBody("SetNullableValueInDataRow", c.DataType, name)
-                            dataRowType.AddMember property
-                        else
-                            let property = ProvidedProperty(name, c.DataType, GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>))
-                            if not c.ReadOnly
-                            then property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
-                            dataRowType.AddMember property
+                        let property = 
+                            if c.AllowDBNull
+                            then
+                                let propertType = typedefof<_ option>.MakeGenericType c.DataType
+                                let property = ProvidedProperty(c.ColumnName, propertType, GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", c.DataType, name))
+                                if not c.ReadOnly
+                                then property.SetterCode <- QuotationsFactory.GetBody("SetNullableValueInDataRow", c.DataType, name)
+                                property
+                            else
+                                let property = ProvidedProperty(name, c.DataType, GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>))
+                                if not c.ReadOnly
+                                then property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
+                                property
+
+                        if c.ExtendedProperties.ContainsKey "MS_Description" 
+                        then property.AddXmlDoc(string c.ExtendedProperties.["MS_Description"])
+
+                        dataRowType.AddMember property
 
                 //type data table
                 let dataTableType = ProvidedTypeDefinition(tableName, baseType = Some( typedefof<_ DataTable>.MakeGenericType(dataRowType)))
                 dataTableType.AddMember dataRowType
+
+                dataTableType.AddXmlDocDelayed <| fun() ->
+                    use __ = conn.UseLocally()
+                    let query = sprintf "SELECT value FROM fn_listextendedproperty ('MS_Description', 'schema', '%s', 'table', '%s', default, default)" schema tableName
+                    let cmd = new SqlCommand(query, conn) 
+                    cmd.ExecuteScalar() |> string
 
                 do //ctor
                     let ctor = ProvidedConstructor []
@@ -294,8 +312,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     dataTableType.AddMember ctor
                 
                 do
-                    let parameters, updateableColumns = 
-                        List.unzip [ 
+                    let parameters, updateableColumns= 
+                        [ 
                             for c in columns do 
                                 if not(c.AutoIncrement || c.ReadOnly)
                                 then 
@@ -303,8 +321,20 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                         if c.AllowDBNull
                                         then ProvidedParameter(c.ColumnName, parameterType = typedefof<_ option>.MakeGenericType c.DataType, optionalValue = null)
                                         else ProvidedParameter(c.ColumnName, c.DataType)
+
                                     yield parameter, c
                         ] 
+                        |> List.sortBy (fun (_, c) -> c.AllowDBNull) //move non-nullable params in front
+                        |> List.unzip
+
+
+                    let methodXmlDoc = 
+                        String.concat "\n" [
+                            for c in updateableColumns do
+                                if c.ExtendedProperties.ContainsKey "MS_Description" 
+                                then 
+                                    yield sprintf "<param name='%s'>%O</param>" c.ColumnName c.ExtendedProperties.["MS_Description"]
+                        ]
                         
                     let invokeCode = fun (args: _ list)-> 
 
@@ -338,9 +368,12 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             row
                         @@>
 
-                    dataTableType.AddMember <| ProvidedMethod("NewRow", parameters, dataRowType, InvokeCode = invokeCode)
+                    let newRowMethod = ProvidedMethod("NewRow", parameters, dataRowType, InvokeCode = invokeCode)
+                    newRowMethod.AddXmlDoc methodXmlDoc
+                    dataTableType.AddMember newRowMethod
 
                     let addRowMethod = ProvidedMethod("AddRow", parameters, typeof<unit>)
+                    addRowMethod.AddXmlDoc methodXmlDoc
                     addRowMethod.InvokeCode <- fun args -> 
                         let newRow = invokeCode args
                         <@@

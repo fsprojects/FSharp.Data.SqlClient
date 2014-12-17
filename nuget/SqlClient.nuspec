@@ -18,7 +18,7 @@
       <frameworkAssembly assemblyName="System.Xml" />
     </frameworkAssemblies>
     <dependencies>
-      <dependency id="Microsoft.SqlServer.Types" version="[11.0.0]"/>
+      <dependency id="Microsoft.SqlServer.Types" version="11.0.0"/>
     </dependencies>
     <references>
       <reference file="FSharp.Data.SqlClient.dll" />

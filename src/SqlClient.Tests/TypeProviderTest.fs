@@ -113,7 +113,7 @@ let ``ToTraceString for CRUD``() =
 
 type LongRunning = SqlCommandProvider<"WAITFOR DELAY '00:00:35'; SELECT 42", connectionString, SingleRow = true>
 [<Fact(
-    //Skip = "Don't execute for usual runs. Too slow."
+    Skip = "Don't execute for usual runs. Too slow."
     )>]
 let CommandTimeout() =
     use cmd = new LongRunning(commandTimeout = 60)

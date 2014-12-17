@@ -7,7 +7,7 @@ open System.Data
 open System.Data.SqlClient
 open System.Data.SqlTypes
 
-let conn = new SqlConnection(@"Data Source=.;Initial Catalog=ThermionDB;Integrated Security=True")
+let conn = new SqlConnection(@"Data Source=.;Initial Catalog=Thermion;Integrated Security=True")
 conn.Open()
 
 //let reader = cmd.ExecuteReader()
@@ -24,9 +24,10 @@ conn.Open()
 
 let cmd = new SqlCommand("SELECT * FROM Thermion.TimeSeries", conn)
 let adapter = new SqlDataAdapter(cmd)
-let dataTable = adapter.FillSchema(new DataTable(), SchemaType.Source)
-dataTable.Columns.["tsGuid"].AllowDBNull <- true
+//let dataTable = adapter.FillSchema(new DataTable(), SchemaType.Source)
+//dataTable.Columns.["tsGuid"].AllowDBNull <- true
 //dataTable.Columns.["createdTmsp"].ExtendedProperties.["Default"] <- "hehe"
+let dataTable = new DataTable("MyTimeSeries")
 let serializedSchema = 
     use writer = new StringWriter()
     dataTable.WriteXmlSchema writer
