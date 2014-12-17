@@ -295,7 +295,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     use __ = conn.UseLocally()
                     let query = sprintf "SELECT value FROM fn_listextendedproperty ('MS_Description', 'schema', '%s', 'table', '%s', default, default)" schema tableName
                     let cmd = new SqlCommand(query, conn) 
-                    cmd.ExecuteScalar() |> string
+                    cmd.ExecuteScalar() |> string |> sprintf "<summary>%s</summary>"
 
                 do //ctor
                     let ctor = ProvidedConstructor []

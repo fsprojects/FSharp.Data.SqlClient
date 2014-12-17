@@ -117,3 +117,6 @@
 	* Issue #99
 	* Optional in methods AddRow/NewRow pushed to the right
 	* CommandTimeoput moved to commands ctor
+
+#### 1.5.5 - December 17, 2014
+	* Issue #101
