@@ -8,6 +8,10 @@ DROP PROCEDURE [Get]
 DROP PROCEDURE [Swap]
 DROP TYPE MyTableType
 DROP TYPE SingleElementType
+IF OBJECT_ID('Person.Address_GetAddressBySpatialLocation') IS NOT NULL
+BEGIN
+	DROP PROCEDURE Person.Address_GetAddressBySpatialLocation;
+END
 GO
 
 create procedure [dbo].[Swap]
@@ -61,3 +65,16 @@ end
 
 
 CREATE TYPE [dbo].[u_int64] FROM NUMERIC (20) NOT NULL;
+
+GO
+CREATE PROCEDURE Person.Address_GetAddressBySpatialLocation
+	@SpatialLocation GEOGRAPHY
+AS
+SELECT
+	AddressLine1,
+	City,
+	SpatialLocation
+FROM Person.[Address]
+WHERE
+	SpatialLocation.STDistance(@SpatialLocation) = 0;
+GO
