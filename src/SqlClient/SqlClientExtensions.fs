@@ -74,7 +74,7 @@ let internal findBySqlEngineTypeIdAndUdtt(connStr, id, udttName) =
     database 
     |> Array.tryFind(fun x -> 
         let isItTable = x.TableType
-        x.SqlEngineTypeId = id && (not x.TableType || x.UdttName = udttName)
+        x.SqlEngineTypeId = id && ((not x.TableType && id <> 240 (* spatial types *) ) || x.UdttName = udttName)
     )
     
 let internal findTypeInfoBySqlEngineTypeId (connStr, system_type_id, user_type_id : int option) = 
@@ -184,7 +184,7 @@ type SqlConnection with
             SELECT 
 	            ps.PARAMETER_NAME AS name
 	            ,CAST(ts.system_type_id AS INT) AS suggested_system_type_id
-	            ,ps.USER_DEFINED_TYPE_NAME AS suggested_user_type_name
+	            ,CASE WHEN ts.system_type_id = 240 THEN ps.DATA_TYPE ELSE ps.USER_DEFINED_TYPE_NAME END AS suggested_user_type_name
 	            ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_output
 	            ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'IN' THEN 1 WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_input 
             FROM INFORMATION_SCHEMA.PARAMETERS AS ps
@@ -402,7 +402,7 @@ type SqlConnection with
                         SqlDbTypeId = providerdbtype
                         IsFixedLength = isFixedLength
                         ClrTypeFullName = clrTypeFixed
-                        UdttName = if is_table_type then full_name else ""
+                        UdttName = if is_table_type then full_name elif system_type_id = 240 (* spatial types *) then name else ""
                         TableTypeColumns = columns
                     }
             |]
