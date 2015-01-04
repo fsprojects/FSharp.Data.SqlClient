@@ -106,11 +106,9 @@ type DataTablesTests() =
         //t.Columns.Remove(t.ModifiedDateColumn)
         let selectCommand = new SqlCommand("SELECT * FROM " + t.TableName, conn, tran)
         use adapter = new SqlDataAdapter(selectCommand)
-        adapter.InsertCommand <- 
-            let builder = new SqlCommandBuilder(adapter)
-            builder.GetInsertCommand()
+        use builder = new SqlCommandBuilder(adapter)
 
-        let rowsInserted =  adapter.Update(t)
+        let rowsInserted = adapter.Update(t)
         Assert.Equal(t.Rows.Count, rowsInserted)
 
 

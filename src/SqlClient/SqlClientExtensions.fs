@@ -37,6 +37,7 @@ type Column = {
     IsNullable: bool
     MaxLength: int
     ReadOnly: bool
+    Identity: bool
 }   with
     member this.ClrTypeConsideringNullable = 
         if this.IsNullable 
@@ -274,6 +275,7 @@ type SqlConnection with
                 IsNullable = unbox reader.["is_nullable"]
                 MaxLength = reader.["max_length"] |> unbox<int16> |> int
                 ReadOnly = not(unbox reader.["is_updateable"])
+                Identity = unbox reader.["is_identity_column"]
             }
             yield x 
     ] 
@@ -299,6 +301,7 @@ type SqlConnection with
                         IsNullable = unbox row.["AllowDBNull"]
                         MaxLength = unbox row.["ColumnSize"]
                         ReadOnly = unbox row.["IsAutoIncrement"] || unbox row.["IsReadOnly"]
+                        Identity = unbox row.["IsAutoIncrement"]
                     }
             ]
 
@@ -388,6 +391,7 @@ type SqlConnection with
                                         IsNullable = unbox reader.["is_nullable"]
                                         MaxLength = reader.["max_length"] |> unbox<int16> |> int
                                         ReadOnly = unbox reader.["is_identity"] || unbox reader.["is_computed"]
+                                        Identity = unbox reader.["is_identity"] 
                                     }
                             } 
                             |> Seq.cache
