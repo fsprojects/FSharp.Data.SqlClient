@@ -27,4 +27,12 @@ let ScalarValuedFunction() =
     Assert.Equal(Some(sprintf "%08i" x), cmd.Execute(x))
     //async execution
     Assert.Equal(Some(sprintf "%08i" x), cmd.AsyncExecute(x) |> Async.RunSynchronously)
+
+type Address_GetAddressBySpatialLocation = AdventureWorks.Person.Address_GetAddressBySpatialLocation
+open Microsoft.SqlServer.Types
+
+[<Fact>]
+let ``GEOMETRY and GEOGRAPHY sp params``() =
+    use cmd = new Address_GetAddressBySpatialLocation()
+    cmd.AsyncExecute(SqlGeography.Null) |> ignore
     

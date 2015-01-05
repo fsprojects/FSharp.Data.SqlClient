@@ -22,6 +22,8 @@ type Production = AdventureWorks2012.Production
 type Purchasing = AdventureWorks2012.Purchasing
 type Sales = AdventureWorks2012.Sales
 
+//(new Person.Address_GetAddressBySpatialLocation()).Execute()
+
 let tt = new HumanResources.Tables.JobCandidate()
 let r = tt.NewRow()
 
