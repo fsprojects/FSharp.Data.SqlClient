@@ -69,15 +69,6 @@ type Parameter = {
 
 let internal dataTypeMappings = Dictionary<string, TypeInfo[]>()
 
-let internal findBySqlEngineTypeIdAndUdtt(connStr, id, udttName) = 
-    assert (dataTypeMappings.ContainsKey connStr)
-    let database = dataTypeMappings.[connStr] 
-    database 
-    |> Array.tryFind(fun x -> 
-        let isItTable = x.TableType
-        x.SqlEngineTypeId = id && ((not x.TableType && id <> 240 (* spatial types *) ) || x.UdttName = udttName)
-    )
-    
 let internal findTypeInfoBySqlEngineTypeId (connStr, system_type_id, user_type_id : int option) = 
     assert (dataTypeMappings.ContainsKey connStr)
 
@@ -90,9 +81,9 @@ let internal findTypeInfoBySqlEngineTypeId (connStr, system_type_id, user_type_i
     ) 
     |> Seq.exactlyOne
 
-let internal findTypeInfoByProviderType( connStr, sqlDbType, udttName)  = 
+let internal findTypeInfoByProviderType( connStr, sqlDbType)  = 
     assert (dataTypeMappings.ContainsKey connStr)
-    dataTypeMappings.[connStr] |> Array.tryFind (fun x -> x.SqlDbType = sqlDbType && x.UdttName = udttName)
+    dataTypeMappings.[connStr] |> Array.find (fun x -> x.SqlDbType = sqlDbType)
 
 let rec parseDefaultValue (definition: string) (expr: ScalarExpression) = 
     match expr with
@@ -185,7 +176,7 @@ type SqlConnection with
             SELECT 
 	            ps.PARAMETER_NAME AS name
 	            ,CAST(ts.system_type_id AS INT) AS suggested_system_type_id
-	            ,CASE WHEN ts.system_type_id = 240 THEN ps.DATA_TYPE ELSE ps.USER_DEFINED_TYPE_NAME END AS suggested_user_type_name
+	            ,ts.user_type_id AS suggested_user_type_id
 	            ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_output
 	            ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'IN' THEN 1 WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_input 
             FROM INFORMATION_SCHEMA.PARAMETERS AS ps
@@ -230,14 +221,9 @@ type SqlConnection with
                     ParameterDirection.Input 
 
             let system_type_id: int = unbox record.["suggested_system_type_id"]
-            let user_type_name: string = string record.["suggested_user_type_name"]
+            let user_type_id = record |> SqlDataReader.getOption "suggested_user_type_id"
 
-            let typeInfo = 
-                match findBySqlEngineTypeIdAndUdtt(this.ConnectionString, system_type_id, user_type_name) with
-                | Some x -> x
-                | None -> 
-                    let x' = findBySqlEngineTypeIdAndUdtt(this.ConnectionString, system_type_id, user_type_name) 
-                    failwithf "Cannot map parameter of sql engine type %i and user type %s to CLR/SqlDbType type. Parameter name: %s" system_type_id user_type_name name
+            let typeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, system_type_id, user_type_id)
 
             let keys = paramDefaults.Result.Keys
 
@@ -297,7 +283,7 @@ type SqlConnection with
                         Ordinal = unbox row.["ColumnOrdinal"]
                         TypeInfo =
                             let t = Enum.Parse(typeof<SqlDbType>, string row.["ProviderType"]) |> unbox
-                            findTypeInfoByProviderType(this.ConnectionString, unbox t, "").Value
+                            findTypeInfoByProviderType(this.ConnectionString, t)
                         IsNullable = unbox row.["AllowDBNull"]
                         MaxLength = unbox row.["ColumnSize"]
                         ReadOnly = unbox row.["IsAutoIncrement"] || unbox row.["IsReadOnly"]
@@ -406,7 +392,7 @@ type SqlConnection with
                         SqlDbTypeId = providerdbtype
                         IsFixedLength = isFixedLength
                         ClrTypeFullName = clrTypeFixed
-                        UdttName = if is_table_type then full_name elif system_type_id = 240 (* spatial types *) then name else ""
+                        UdttName = if is_table_type then full_name else ""
                         TableTypeColumns = columns
                     }
             |]

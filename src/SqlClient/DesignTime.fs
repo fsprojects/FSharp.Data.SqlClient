@@ -208,7 +208,7 @@ type DesignTime private() =
             let paramName = string reader.["name"]
             let sqlEngineTypeId = unbox<int> reader.["suggested_system_type_id"]
 
-            let udttName = Convert.ToString(value = reader.["suggested_user_type_name"])
+            let userTypeId = reader |> SqlDataReader.getOption<int> "suggested_user_type_id"
             let direction = 
                 if unbox reader.["suggested_is_output"]
                 then 
@@ -217,10 +217,7 @@ type DesignTime private() =
                     assert(unbox reader.["suggested_is_input"])
                     ParameterDirection.Input 
                     
-            let typeInfo = 
-                match findBySqlEngineTypeIdAndUdtt(connection.ConnectionString, sqlEngineTypeId, udttName) with
-                | Some x -> x
-                | None -> failwithf "Cannot map unbound variable of sql engine type %i and UDT %s to CLR/SqlDbType type. Parameter name: %s" sqlEngineTypeId udttName paramName
+            let typeInfo = findTypeInfoBySqlEngineTypeId(connection.ConnectionString, sqlEngineTypeId, userTypeId)
 
             yield { 
                 Name = paramName
