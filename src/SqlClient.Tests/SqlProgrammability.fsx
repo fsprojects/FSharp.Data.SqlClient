@@ -31,7 +31,7 @@ let func(r: #DataTable) = ()
 
 type ErrorLog = dbo.Tables.ErrorLog
 let t = new ErrorLog()
-let r = t.NewRow(Some DateTime.Now, "mitekm", 15, Some 42, ErrorMessage = "haha")
+let r = t.NewRow("mitekm", 15, ErrorMessage = "haha", ErrorTime = Some DateTime.Now, ErrorSeverity = Some 42)
 ////let r = t.NewRow(DateTime.Now, "mitekm", 15, ErrorMessage = "haha")
 //func t
 t.Rows.Add r

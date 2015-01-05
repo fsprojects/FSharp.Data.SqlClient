@@ -111,6 +111,13 @@ let ``ToTraceString for CRUD``() =
     (new DeleteBitCoin()).ToTraceString(bitCoinCode) 
     |> should equal "exec sp_executesql N'DELETE FROM Sales.Currency WHERE CurrencyCode = @Code',N'@Code NChar(3)',@Code='BTC'"
 
+type GetObjectId = SqlCommandProvider<"SELECT OBJECT_ID('Sales.Currency')", connectionString>
+[<Fact>]
+let ``ToTraceString double-quotes``() =    
+    use cmd = new GetObjectId()
+    let trace = cmd.ToTraceString()
+    Assert.Equal<string>("exec sp_executesql N'SELECT OBJECT_ID(''Sales.Currency'')'", trace)
+
 type LongRunning = SqlCommandProvider<"WAITFOR DELAY '00:00:35'; SELECT 42", connectionString, SingleRow = true>
 [<Fact(
     Skip = "Don't execute for usual runs. Too slow."

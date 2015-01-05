@@ -127,16 +127,22 @@ type RuntimeSqlCommand (connection, commandTimeout, sqlStatement, isStoredProced
                 else
                     sprintf "%s %A" p.ParameterName p.SqlDbType 
             seq {
-              yield sprintf "exec sp_executesql N'%s'" clone.CommandText
+                
+                yield sprintf "exec sp_executesql N'%s'" (clone.CommandText.Replace("'", "''"))
               
-              yield clone.Parameters
-                    |> Seq.cast<SqlParameter> 
-                    |> Seq.map parameterDefinition
-                    |> String.concat ","
-                    |> sprintf "N'%s'" 
-              yield parameters
-                    |> Seq.map(fun (name,value) -> sprintf "%s='%O'" name value) 
-                    |> String.concat ","
+                if clone.Parameters.Count > 0
+                then 
+                    yield clone.Parameters
+                        |> Seq.cast<SqlParameter> 
+                        |> Seq.map parameterDefinition
+                        |> String.concat ","
+                        |> sprintf "N'%s'" 
+
+                if parameters.Length > 0 
+                then 
+                    yield parameters
+                        |> Seq.map(fun (name,value) -> sprintf "%s='%O'" name value) 
+                        |> String.concat ","
             } |> String.concat "," //Using string.concat to handle annoying case with no parameters
 
         member this.Raw = cmd
