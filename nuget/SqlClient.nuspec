@@ -7,11 +7,12 @@
     <owners>@authors@</owners>
     <licenseUrl>http://github.com/fsprojects/FSharp.Data.SqlClient/blob/master/LICENSE.md</licenseUrl>
     <projectUrl>http://fsprojects.github.io/FSharp.Data.SqlClient/</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/fsprojects/FSharp.Data.SqlClient/master/docs/files/img/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>@description@</description>
     <summary>@summary@</summary>
     <releaseNotes>@releaseNotes@</releaseNotes>
-    <copyright>Copyright 2013</copyright>
+    <copyright>Copyright 2015</copyright>
     <tags>@tags@</tags>
     <frameworkAssemblies>
       <frameworkAssembly assemblyName="System.Data" />
