@@ -17,6 +17,7 @@ type AdventureWorks = SqlProgrammabilityProvider<"name=AdventureWorks2012">
 type ShiftTable = AdventureWorks.HumanResources.Tables.Shift
 
 type ResetIndentity = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", "name=AdventureWorks2012">
+type GetRowCount = SqlCommandProvider<"SELECT COUNT(*) FROM HumanResources.Shift", "name=AdventureWorks2012", SingleRow = true>
 
 type DataTablesTests() = 
 
@@ -58,14 +59,14 @@ type DataTablesTests() =
         t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some DateTime.Now.Date)
         t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some DateTime.Now.Date)
 
-        let bulkCopy = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, tran)
-        let rowsCopied = ref 0L
-        bulkCopy.NotifyAfter <- t.Rows.Count
-        bulkCopy.SqlRowsCopied.Add(fun args -> rowsCopied := args.RowsCopied)
-        bulkCopy.DestinationTableName <- t.TableName
-        bulkCopy.WriteToServer(t)
+        use getRowsCount = new GetRowCount(tran)
+        let rowsBefore = getRowsCount.Execute().Value.Value
+        
+        //shortcut, convenience method
+        t.BulkCopy(conn, SqlBulkCopyOptions.Default, tran)
 
-        Assert.Equal(int64 t.Rows.Count, !rowsCopied)
+        let rowsAdded = getRowsCount.Execute().Value.Value - rowsBefore
+        Assert.Equal(t.Rows.Count, rowsAdded)
 
     [<Fact>]
     member __.DEFAULTConstraint() = 
@@ -103,12 +104,7 @@ type DataTablesTests() =
         t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16.)
 
         //removing ModifiedDate column is not required as oppose to bulk insert 
-        //t.Columns.Remove(t.ModifiedDateColumn)
-        let selectCommand = new SqlCommand("SELECT * FROM " + t.TableName, conn, tran)
-        use adapter = new SqlDataAdapter(selectCommand)
-        use builder = new SqlCommandBuilder(adapter)
-
-        let rowsInserted = adapter.Update(t)
+        let rowsInserted = t.Update(conn, tran)
         Assert.Equal(t.Rows.Count, rowsInserted)
 
 

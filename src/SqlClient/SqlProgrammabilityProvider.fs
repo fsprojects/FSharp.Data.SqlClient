@@ -95,7 +95,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         yield! this.Routines(conn, schema, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
 
-                        yield this.Tables(conn, schema)
+                        yield this.Tables(conn, schema, isByName, connectionStringName, connectionStringOrName)
                     ]
                 schemaRoot            
             )
@@ -213,7 +213,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 yield cmdProvidedType
         ]
 
-    member internal __.Tables(conn: SqlConnection, schema) = 
+    member internal __.Tables(conn: SqlConnection, schema, isByName, connectionStringName, connectionString) = 
         let tables = ProvidedTypeDefinition("Tables", Some typeof<obj>)
         tables.AddMembersDelayed <| fun() ->
             use __ = conn.UseLocally()
@@ -368,20 +368,73 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             row
                         @@>
 
-                    let newRowMethod = ProvidedMethod("NewRow", parameters, dataRowType, InvokeCode = invokeCode)
-                    newRowMethod.AddXmlDoc methodXmlDoc
-                    dataTableType.AddMember newRowMethod
+                    do 
+                        let newRowMethod = ProvidedMethod("NewRow", parameters, dataRowType, InvokeCode = invokeCode)
+                        newRowMethod.AddXmlDoc methodXmlDoc
+                        dataTableType.AddMember newRowMethod
 
-                    let addRowMethod = ProvidedMethod("AddRow", parameters, typeof<unit>)
-                    addRowMethod.AddXmlDoc methodXmlDoc
-                    addRowMethod.InvokeCode <- fun args -> 
-                        let newRow = invokeCode args
-                        <@@
-                            let table: DataTable<DataRow> = %%args.[0]
-                            let row: DataRow = %%newRow
-                            table.Rows.Add row
-                        @@>
-                    dataTableType.AddMember addRowMethod
+                        let addRowMethod = ProvidedMethod("AddRow", parameters, typeof<unit>)
+                        addRowMethod.AddXmlDoc methodXmlDoc
+                        addRowMethod.InvokeCode <- fun args -> 
+                            let newRow = invokeCode args
+                            <@@
+                                let table: DataTable<DataRow> = %%args.[0]
+                                let row: DataRow = %%newRow
+                                table.Rows.Add row
+                            @@>
+                        dataTableType.AddMember addRowMethod
+
+                    do
+                        let updateMethod = 
+                            let connection = ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
+                            let transaction = ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null)
+                            ProvidedMethod("Update", [ connection; transaction ], typeof<int>) 
+                        updateMethod.InvokeCode <- fun args ->
+                            <@@
+                                let table: DataTable = %%Expr.Coerce(args.[0], typeof<DataTable>) 
+                                let select = new SqlCommand(tableDirectSql)
+                                select.Connection <- 
+                                    match %%args.[1] with 
+                                    | null -> 
+                                        let connStr = 
+                                            if isByName 
+                                            then Configuration.GetConnectionStringAtRunTime connectionStringName
+                                            else connectionString
+                                        new SqlConnection(connStr) 
+                                    | conn -> conn
+
+                                select.Transaction <- %%args.[2]
+                                use adapter = new SqlDataAdapter(select)
+                                use builder = new SqlCommandBuilder(adapter)
+                                adapter.Update table
+                            @@>
+                        dataTableType.AddMember updateMethod
+
+                    do
+                        let bulkCopyMethod = 
+                            let connection = ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
+                            let copyOptions = ProvidedParameter("copyOptions", typeof<SqlBulkCopyOptions>, optionalValue = SqlBulkCopyOptions.Default)
+                            let transaction = ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null)
+                            ProvidedMethod("BulkCopy", [ connection; copyOptions; transaction ], typeof<unit>) 
+                        bulkCopyMethod.InvokeCode <- fun args ->
+                            <@@
+                                let connection = 
+                                    match %%args.[1] with 
+                                    | null -> 
+                                        let connStr = 
+                                            if isByName 
+                                            then Configuration.GetConnectionStringAtRunTime connectionStringName
+                                            else connectionString
+                                        new SqlConnection(connStr) 
+                                    | conn -> conn
+
+                                use bulkCopy = new SqlBulkCopy(connection, copyOptions = %%args.[2], externalTransaction = %%args.[3])
+                                bulkCopy.DestinationTableName <- twoPartTableName
+                                let table: DataTable = %%Expr.Coerce(args.[0], typeof<DataTable>) 
+                                bulkCopy.WriteToServer(table)
+                            @@>
+                        dataTableType.AddMember bulkCopyMethod
+                        
 
                 do //columns accessors
                     for c in columns do

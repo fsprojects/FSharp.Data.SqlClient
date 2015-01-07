@@ -22,7 +22,7 @@ let files includes =
 let project = "FSharp.Data.SqlClient"
 let authors = ["Dmitry Morozov, Dmitry Sevastianov"]
 let summary = "SqlClient F# type providers"
-let description = "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code."
+let description = "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.\nSqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code."
 let tags = "F# fsharp data typeprovider sql"
       
 let gitHome = "https://github.com/fsprojects"

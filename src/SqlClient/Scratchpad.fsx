@@ -7,8 +7,27 @@ open System.Data
 open System.Data.SqlClient
 open System.Data.SqlTypes
 
-let conn = new SqlConnection(@"Data Source=.;Initial Catalog=Thermion;Integrated Security=True")
+let conn = new SqlConnection(@"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=False")
 conn.Open()
+
+let cmd = new SqlCommand("select * from HumanResources.Shift", conn)
+let table = 
+    let t = new DataTable("HumanResources.Shift")
+    use reader = cmd.ExecuteReader()
+    t.Load reader
+    t
+
+table.Rows.Count
+
+let adapter = new SqlDataAdapter(cmd)
+adapter.SelectCommand
+adapter.InsertCommand
+adapter.UpdateCommand
+adapter.DeleteCommand
+
+let builder = new SqlCommandBuilder()
+
+
 
 //let reader = cmd.ExecuteReader()
 //let reader = cmd.ExecuteReader()
@@ -67,4 +86,8 @@ let clone = new DataTable()
 clone.Columns.Count
 clone.ReadXmlSchema(new StringReader(schemaStorage.ToString()))
 
-
+//#load "ProvidedTypes.fsi"
+//#load "ProvidedTypes.fs"
+//
+//open ProviderImplementation.ProvidedTypes
+//ProvidedMeasureBuilder.Default.SI "Meter"
