@@ -403,6 +403,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                         new SqlConnection(connStr) 
                                     | conn -> conn
 
+                                use __ = select.Connection.UseLocally()
                                 select.Transaction <- %%args.[2]
                                 use adapter = new SqlDataAdapter(select)
                                 use builder = new SqlCommandBuilder(adapter)
@@ -427,7 +428,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                             else connectionString
                                         new SqlConnection(connStr) 
                                     | conn -> conn
-
+                                use __ = connection.UseLocally()
                                 use bulkCopy = new SqlBulkCopy(connection, copyOptions = %%args.[2], externalTransaction = %%args.[3])
                                 bulkCopy.DestinationTableName <- twoPartTableName
                                 let table: DataTable = %%Expr.Coerce(args.[0], typeof<DataTable>) 

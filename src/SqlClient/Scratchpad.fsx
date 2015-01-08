@@ -67,8 +67,8 @@ row.["createdTmsp"] <- DateTime.Now.AddDays(10.)
 //dataTable.LoadDataRow([| null; box "my_desc3" |], LoadOption.Upsert)
 
 let adapter2 = new SqlDataAdapter("SELECT importBatch, description FROM ImportBatch", conn)
-let builder = new SqlCommandBuilder(adapter2)
-adapter.InsertCommand <- builder.GetInsertCommand()
+let builder2 = new SqlCommandBuilder(adapter2)
+adapter2.InsertCommand <- builder.GetInsertCommand()
 dataTable.Rows.Add row
 adapter.Update dataTable
 

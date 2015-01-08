@@ -123,3 +123,9 @@
 
 #### 1.5.6 - January 4, 2015
 	* Issue #102
+
+#### 1.5.7 - January 7, 2015
+	* Update and BulkCopy convenience methods on typed data table
+
+#### 1.5.8-beta1 - January 8, 2015
+	* Fix default connection management for Update and BulkCopy

@@ -18,6 +18,7 @@ type ShiftTable = AdventureWorks.HumanResources.Tables.Shift
 
 type ResetIndentity = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", "name=AdventureWorks2012">
 type GetRowCount = SqlCommandProvider<"SELECT COUNT(*) FROM HumanResources.Shift", "name=AdventureWorks2012", SingleRow = true>
+type GetShiftTableData = SqlCommandProvider<"SELECT * FROM HumanResources.Shift", "name=AdventureWorks2012", ResultType.DataReader>
 
 type DataTablesTests() = 
 
@@ -48,8 +49,38 @@ type DataTablesTests() =
 
         Assert.Equal(int64 rows.Length, !rowsCopied)
 
-    [<Fact>]
+    [<Fact
+        //(Skip="")
+    >]
     member __.AddRowAndBulkCopy() = 
+        let t = new ShiftTable()
+    
+        //erased method to provide static typing
+        t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some DateTime.Now.Date)
+        t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some DateTime.Now.Date)
+
+        use getRowsCount = new GetRowCount()
+        let rowsBefore = getRowsCount.Execute().Value.Value
+        
+        //shortcut, convenience method
+        t.BulkCopy()
+
+        let rowsAdded = getRowsCount.Execute().Value.Value - rowsBefore
+        Assert.Equal(t.Rows.Count, rowsAdded)
+
+        //compenstating tran
+        let t2 = new ShiftTable()
+        use getShiftTableData = new GetShiftTableData()
+        getShiftTableData.Execute() |> t2.Load
+        for r in t2.Rows do
+            if r.Name = "French coffee break" || r.Name = "Spanish siesta"
+            then 
+                r.Delete()
+        let rowsAffected = t2.Update()
+        assert (rowsAffected = 2)
+
+    [<Fact>]
+    member __.AddRowAndBulkCopyWithConnOverride() = 
         let t = new ShiftTable()
         use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
         conn.Open()
