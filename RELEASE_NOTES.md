@@ -129,3 +129,7 @@
 
 #### 1.5.8-beta1 - January 8, 2015
 	* Fix default connection management for Update and BulkCopy
+
+#### 1.5.8 - January 13, 2015
+	* Fix issue #96 on Sql Azure
+

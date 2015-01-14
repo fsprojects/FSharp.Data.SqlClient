@@ -217,6 +217,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         let tables = ProvidedTypeDefinition("Tables", Some typeof<obj>)
         tables.AddMembersDelayed <| fun() ->
             use __ = conn.UseLocally()
+            let isSqlAzure = conn.IsSqlAzure
             conn.GetTables(schema)
             |> List.map (fun tableName -> 
 
@@ -228,13 +229,20 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 let columns = dataTable.Columns
 
                 do //read column defaults
-                    let query = "
+                    let descriptionSelector = 
+                        if isSqlAzure 
+                        then "(SELECT NULL AS Value)"
+                        else "fn_listextendedproperty ('MS_Description', 'schema', @schema, 'table', @tableName, 'column', columns.name)"
+
+                    let query = 
+                        sprintf "
                             SELECT columns.name, is_identity, OBJECT_DEFINITION(default_object_id), XProp.Value
                             FROM sys.columns 
 	                            JOIN sys.tables ON columns .object_id = tables.object_id and tables.name = @tableName
 	                            JOIN sys.schemas ON tables.schema_id = schemas.schema_id and schemas.name = @schema
-                                OUTER APPLY fn_listextendedproperty ('MS_Description', 'schema', @schema, 'table', @tableName, 'column', columns.name) AS XProp
-                            " 
+                                OUTER APPLY %s AS XProp
+                            "  descriptionSelector
+
                     let cmd = new SqlCommand(query, conn)
                     cmd.Parameters.AddWithValue("@tableName", tableName) |> ignore
                     cmd.Parameters.AddWithValue("@schema", schema) |> ignore
@@ -291,11 +299,13 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 let dataTableType = ProvidedTypeDefinition(tableName, baseType = Some( typedefof<_ DataTable>.MakeGenericType(dataRowType)))
                 dataTableType.AddMember dataRowType
 
-                dataTableType.AddXmlDocDelayed <| fun() ->
-                    use __ = conn.UseLocally()
-                    let query = sprintf "SELECT value FROM fn_listextendedproperty ('MS_Description', 'schema', '%s', 'table', '%s', default, default)" schema tableName
-                    let cmd = new SqlCommand(query, conn) 
-                    cmd.ExecuteScalar() |> sprintf "<summary>%O</summary>"
+                if not isSqlAzure
+                then 
+                    dataTableType.AddXmlDocDelayed <| fun() ->
+                        use __ = conn.UseLocally()
+                        let query = sprintf "SELECT value FROM fn_listextendedproperty ('MS_Description', 'schema', '%s', 'table', '%s', default, default)" schema tableName
+                        let cmd = new SqlCommand(query, conn) 
+                        cmd.ExecuteScalar() |> sprintf "<summary>%O</summary>"
 
                 do //ctor
                     let ctor = ProvidedConstructor []

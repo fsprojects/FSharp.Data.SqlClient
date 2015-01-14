@@ -145,6 +145,11 @@ type SqlConnection with
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
 
+    member this.IsSqlAzure = 
+        assert (this.State = ConnectionState.Open)
+        use cmd = new SqlCommand("SELECT SERVERPROPERTY('edition')", this)
+        cmd.ExecuteScalar().Equals("SQL Azure")
+
     member internal this.GetUserSchemas() = 
         use __ = this.UseLocally()
         use cmd = new SqlCommand("SELECT name FROM SYS.SCHEMAS WHERE principal_id = 1", this)
