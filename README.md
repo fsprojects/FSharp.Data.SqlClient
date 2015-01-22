@@ -1,4 +1,7 @@
-SqlClient providers
+[![Issue Stats](http://issuestats.com/github/fsprojects/FSharp.Data.SqlClient/badge/issue)](http://issuestats.com/github/fsprojects/FSharp.Data.SqlClient)
+[![Issue Stats](http://issuestats.com/github/fsprojects/FSharp.Data.SqlClient/badge/pr)](http://issuestats.com/github/fsprojects/FSharp.Data.SqlClient)
+
+SqlClient providers [![NuGet Status](http://img.shields.io/nuget/v/FSharp.Data.SqlClient.svg?style=flat)](https://www.nuget.org/packages/FSharp.Data.SqlClient/)
 ==============================
 
 SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.
