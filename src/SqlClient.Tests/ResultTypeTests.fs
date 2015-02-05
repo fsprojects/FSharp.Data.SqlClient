@@ -1,13 +1,10 @@
 ﻿module FSharp.Data.ResultTypeTests
 
-open System.Transactions
-open System.Data.SqlClient
 open FSharp.Data
 open Xunit
-open FsUnit.Xunit
 
 [<Literal>]
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString = ConnectionStrings.AdventureWorks
 
 [<Literal>]
 let command = "SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003), ('foo bar',NULL))  AS T(lang, DOB)"

@@ -54,6 +54,7 @@
   <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <ItemGroup>
+    <Compile Include="ConnectionStrings.fs" />
     <Compile Include="ConfigurationTest.fs" />
     <Compile Include="OptionalParamsTests.fs" />
     <Compile Include="TypeProviderTest.fs" />

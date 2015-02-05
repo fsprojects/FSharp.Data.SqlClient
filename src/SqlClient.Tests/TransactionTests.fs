@@ -10,7 +10,7 @@ open Xunit
 open FSharp.Data.TypeProviderTest
 
 [<Literal>]
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString = ConnectionStrings.AdventureWorks
 
 [<Fact>]
 let ``Closing connection on complete``() =

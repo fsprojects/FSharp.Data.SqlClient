@@ -7,7 +7,7 @@ open Xunit
 open FsUnit.Xunit
 
 [<Literal>]
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString = ConnectionStrings.AdventureWorks
 
 type GetOddNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (24)) as T(value)", connectionString>
 

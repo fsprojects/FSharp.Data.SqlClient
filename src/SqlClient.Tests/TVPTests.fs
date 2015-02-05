@@ -1,13 +1,12 @@
 ﻿module FSharp.Data.TVPTests
 
 open FSharp.Data
-open System.Data
 open Xunit
 
-type Get42FromMasterDb = SqlCommandProvider<"SELECT 42", @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True">
+type Get42FromMasterDb = SqlCommandProvider<"SELECT 42", ConnectionStrings.MasterDb>
 
 // If compile fails here, check prereqs.sql
-type TableValuedTuple = SqlCommandProvider<"exec Person.myProc @x", "name=AdventureWorks2012", SingleRow = true, ResultType = ResultType.Tuples>
+type TableValuedTuple = SqlCommandProvider<"exec Person.myProc @x", ConnectionStrings.AdventureWorks, SingleRow = true, ResultType = ResultType.Tuples>
 type MyTableType = TableValuedTuple.MyTableType
 
 [<Fact>]
@@ -41,7 +40,7 @@ let NullableColumn() =
     Assert.Equal(Some(1, None), cmd.Execute p)    
 
 
-type TableValuedSingle = SqlCommandProvider<"exec SingleElementProc @x", ConnectionStringOrName = "name=AdventureWorks2012">
+type TableValuedSingle = SqlCommandProvider<"exec SingleElementProc @x", ConnectionStringOrName = ConnectionStrings.AdventureWorks>
 
 [<Fact>]
 let SingleColumn() = 
@@ -64,7 +63,7 @@ let tvpSqlParamCleanUp() =
     let result = cmd.Execute(x = p) |> List.ofSeq
     Assert.Equal<int list>([1;2], result)    
 
-type TableValuedSprocTuple  = SqlCommandProvider<"exec Person.myProc @x", ConnectionStringOrName = "name=AdventureWorks2012", SingleRow = true, ResultType = ResultType.Tuples>
+type TableValuedSprocTuple  = SqlCommandProvider<"exec Person.myProc @x", ConnectionStringOrName = ConnectionStrings.AdventureWorks, SingleRow = true, ResultType = ResultType.Tuples>
 
 [<Fact>]
 let SprocTupleValue() = 
@@ -76,7 +75,7 @@ let SprocTupleValue() =
     let actual = cmd.Execute(p).Value
     Assert.Equal((1, Some "monkey"), actual)    
 
-type TableValuedTupleWithOptionalParams = SqlCommandProvider<"exec Person.myProc @x", "name=AdventureWorks2012", AllParametersOptional = true>
+type TableValuedTupleWithOptionalParams = SqlCommandProvider<"exec Person.myProc @x", ConnectionStrings.AdventureWorks, AllParametersOptional = true>
 [<Fact>]
 let TableValuedTupleWithOptionalParams() = 
     let cmd = new TableValuedTupleWithOptionalParams()

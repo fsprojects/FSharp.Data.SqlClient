@@ -1,9 +1,10 @@
-﻿open System
+﻿#load "ConnectionStrings.fs"
+open System
 open System.Data
 open System.Data.SqlClient
 
 let getComponents (productId ,checkDate) = 
-    use connection = new SqlConnection(@"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
+    use connection = new SqlConnection(ConnectionStrings.AdventureWorks)
 
     let sqlCommand = new SqlCommand("dbo.uspGetWhereUsedProductID", connection)
     sqlCommand.CommandType <- CommandType.StoredProcedure
