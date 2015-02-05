@@ -10,7 +10,7 @@ open Xunit
 open FSharp.Data.TypeProviderTest
 
 [<Literal>]
-let connectionString = ConnectionStrings.AdventureWorks
+let connection = ConnectionStrings.AdventureWorksLiteral
 
 [<Fact>]
 let ``Closing connection on complete``() =
@@ -45,7 +45,7 @@ let implicitAsyncNETBefore451() =
     (new DeleteBitCoin()).Execute(bitCoinCode) |> ignore
     begin
         use tran = new TransactionScope() 
-        use conn = new SqlConnection(connectionString)
+        use conn = new SqlConnection(connection)
         conn.Open()
         conn.EnlistTransaction(Transaction.Current)
         let localTran = conn.BeginTransaction()
@@ -58,7 +58,7 @@ let implicitAsyncNETBefore451() =
 [<Fact>]
 let local() =
     (new DeleteBitCoin()).Execute(bitCoinCode) |> ignore
-    use conn = new SqlConnection(connectionString)
+    use conn = new SqlConnection(connection)
     conn.Open()
     let tran = conn.BeginTransaction()
     Assert.Equal(1, (new InsertBitCoin(tran)).Execute(bitCoinCode, bitCoinName))
@@ -67,11 +67,11 @@ let local() =
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
 
 
-type RaiseError = SqlCommandProvider<"SELECT 42; THROW 51000, 'Error raised.', 1 ", connectionString>
+type RaiseError = SqlCommandProvider<"SELECT 42; THROW 51000, 'Error raised.', 1 ", connection>
 
 [<Fact>]
 let notCloseExternalConnInCaseOfError() =
-    use conn = new SqlConnection(connectionString)
+    use conn = new SqlConnection(connection)
     conn.Open()
     let tran = conn.BeginTransaction()
     use cmd = new RaiseError()

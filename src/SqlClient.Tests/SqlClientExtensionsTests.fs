@@ -11,9 +11,7 @@ open FSharp.Data.SqlClient
 
 type ExtensionsTest() = 
     
-    //[<Literal>]
-    //let connectionString = ConnectionStrings.AdventureWorksAzure
-    let conn = new SqlConnection(ConnectionStrings.AdventureWorks)
+    let conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
     do
         conn.Open()
         conn.LoadDataTypesMap()

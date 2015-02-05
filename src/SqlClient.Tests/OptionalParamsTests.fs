@@ -4,10 +4,10 @@ open Xunit
 open FsUnit.Xunit
 
 [<Literal>]
-let connectionString = ConnectionStrings.AdventureWorks
+let connection = ConnectionStrings.AdventureWorksNamed
 
 type QueryWithNullableParam = 
-    SqlCommandProvider<"SELECT CAST(@x AS INT) + ISNULL(CAST(@y AS INT), 1)", connectionString, SingleRow = true, AllParametersOptional = true>
+    SqlCommandProvider<"SELECT CAST(@x AS INT) + ISNULL(CAST(@y AS INT), 1)", connection, SingleRow = true, AllParametersOptional = true>
 
 [<Fact>]
 let BothOptinalParamsSupplied() = 
@@ -19,8 +19,8 @@ let SkipYParam() =
     use cmd = new QueryWithNullableParam()
     Assert.Equal( Some( Some 12), cmd.Execute(x = Some 11))    
 
-type NullableStringInput = SqlCommandProvider<"select ISNULL(CAST(@P1 AS VARCHAR), '')", connectionString, SingleRow = true, AllParametersOptional = true>
-type NullableStringInputStrict = SqlCommandProvider<"select ISNULL(CAST(@P1 AS VARCHAR), '')", connectionString, SingleRow = true>
+type NullableStringInput = SqlCommandProvider<"select ISNULL(CAST(@P1 AS VARCHAR), '')", connection, SingleRow = true, AllParametersOptional = true>
+type NullableStringInputStrict = SqlCommandProvider<"select ISNULL(CAST(@P1 AS VARCHAR), '')", connection, SingleRow = true>
 
 [<Fact>]
 let NullableStringInputParameter() = 

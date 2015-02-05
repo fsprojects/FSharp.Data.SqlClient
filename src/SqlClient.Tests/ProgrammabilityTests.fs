@@ -4,10 +4,10 @@ open Xunit
 open FsUnit.Xunit
 
 [<Literal>] 
-//let connectionString = ConnectionStrings.AdventureWorksAzure
-let connectionString = ConnectionStrings.AdventureWorks
+//let connection = ConnectionStrings.AdventureWorksAzure
+let connection = ConnectionStrings.AdventureWorksNamed
 
-type AdventureWorks = SqlProgrammabilityProvider<connectionString>
+type AdventureWorks = SqlProgrammabilityProvider<connection>
 
 type GetContactInformation = AdventureWorks.dbo.ufnGetContactInformation
 

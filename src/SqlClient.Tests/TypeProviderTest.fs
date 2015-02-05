@@ -7,9 +7,9 @@ open Xunit
 open FsUnit.Xunit
 
 [<Literal>]
-let connectionString = ConnectionStrings.AdventureWorks
+let connection = ConnectionStrings.AdventureWorksNamed
 
-type GetOddNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (24)) as T(value)", connectionString>
+type GetOddNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (24)) as T(value)", connection>
 
 [<Fact>]
 let asyncSinlgeColumn() = 
@@ -24,14 +24,14 @@ let ConnectionClose() =
     Assert.Equal<int[]>([| 2; 4; 8;  24 |], cmd.Execute() |> Seq.toArray)    
     Assert.Equal(ConnectionState.Closed, underlyingConnection.State)
 
-type QueryWithTinyInt = SqlCommandProvider<"SELECT CAST(10 AS TINYINT) AS Value", connectionString, SingleRow = true>
+type QueryWithTinyInt = SqlCommandProvider<"SELECT CAST(10 AS TINYINT) AS Value", connection, SingleRow = true>
 
 [<Fact>]
 let TinyIntConversion() = 
     use cmd = new QueryWithTinyInt()
     Assert.Equal(Some 10uy, cmd.Execute().Value)    
 
-type ConvertToBool = SqlCommandProvider<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'", connectionString, SingleRow=true>
+type ConvertToBool = SqlCommandProvider<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'", connection, SingleRow=true>
 
 [<Fact>]
 let SqlCommandClone() = 
@@ -48,7 +48,7 @@ let SqlCommandClone() =
     cmdClone.CommandText <- "SELECT 0"
     Assert.Equal(Some "TRUE", cmd.Execute(Bit = 1))    
 
-type ConditionalQuery = SqlCommandProvider<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", connectionString, SingleRow=true, ResultType = ResultType.Tuples>
+type ConditionalQuery = SqlCommandProvider<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", connection, SingleRow=true, ResultType = ResultType.Tuples>
 
 [<Fact>]
 let ConditionalQuery() = 
@@ -60,7 +60,7 @@ type ColumnsShouldNotBeNull2 =
     SqlCommandProvider<"SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_NAME = 'DatabaseLog' and numeric_precision is null
-            ORDER BY ORDINAL_POSITION", connectionString, SingleRow = true, ResultType = ResultType.Tuples>
+            ORDER BY ORDINAL_POSITION", connection, SingleRow = true, ResultType = ResultType.Tuples>
 
 [<Fact>]
 let columnsShouldNotBeNull2() = 
@@ -73,16 +73,16 @@ let bitCoinCode = "BTC"
 [<Literal>]
 let bitCoinName = "Bitcoin"
 
-type DeleteBitCoin = SqlCommandProvider<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code", connectionString>
-type InsertBitCoin = SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", connectionString>
-type GetBitCoin = SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", connectionString>
+type DeleteBitCoin = SqlCommandProvider<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code", connection>
+type InsertBitCoin = SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", connection>
+type GetBitCoin = SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", connection>
 
 [<Fact>]
 let asyncCustomRecord() =
     (new GetBitCoin()).AsyncExecute("USD") |> Async.RunSynchronously |> Seq.length |> should equal 1
 
-type NoneSingleton = SqlCommandProvider<"select 1 where 1 = 0", connectionString, SingleRow = true>
-type SomeSingleton = SqlCommandProvider<"select 1", connectionString, SingleRow = true>
+type NoneSingleton = SqlCommandProvider<"select 1 where 1 = 0", connection, SingleRow = true>
+type SomeSingleton = SqlCommandProvider<"select 1", connection, SingleRow = true>
 
 [<Fact>]
 let singleRowOption() =
@@ -90,7 +90,7 @@ let singleRowOption() =
     (new SomeSingleton()).AsyncExecute() |> Async.RunSynchronously |> should equal (Some 1)
 
 
-type Echo = SqlCommandProvider<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", connectionString, ResultType.Tuples>
+type Echo = SqlCommandProvider<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", connection, ResultType.Tuples>
 
 [<Fact>]
 let ToTraceString() =
@@ -111,14 +111,14 @@ let ``ToTraceString for CRUD``() =
     (new DeleteBitCoin()).ToTraceString(bitCoinCode) 
     |> should equal "exec sp_executesql N'DELETE FROM Sales.Currency WHERE CurrencyCode = @Code',N'@Code NChar(3)',@Code='BTC'"
 
-type GetObjectId = SqlCommandProvider<"SELECT OBJECT_ID('Sales.Currency')", connectionString>
+type GetObjectId = SqlCommandProvider<"SELECT OBJECT_ID('Sales.Currency')", connection>
 [<Fact>]
 let ``ToTraceString double-quotes``() =    
     use cmd = new GetObjectId()
     let trace = cmd.ToTraceString()
     Assert.Equal<string>("exec sp_executesql N'SELECT OBJECT_ID(''Sales.Currency'')'", trace)
 
-type LongRunning = SqlCommandProvider<"WAITFOR DELAY '00:00:35'; SELECT 42", connectionString, SingleRow = true>
+type LongRunning = SqlCommandProvider<"WAITFOR DELAY '00:00:35'; SELECT 42", connection, SingleRow = true>
 [<Fact(
     Skip = "Don't execute for usual runs. Too slow."
     )>]

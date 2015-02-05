@@ -4,7 +4,7 @@ open FSharp.Data
 open Xunit
 
 [<Literal>]
-let connectionString = ConnectionStrings.AdventureWorks
+let connectionString = ConnectionStrings.AdventureWorksNamed
 
 [<Literal>]
 let command = "SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003), ('foo bar',NULL))  AS T(lang, DOB)"
