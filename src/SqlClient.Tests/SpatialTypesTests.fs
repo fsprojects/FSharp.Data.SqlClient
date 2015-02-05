@@ -5,7 +5,7 @@ open Microsoft.SqlServer.Types
 open System.Data.SqlTypes
 
 [<Literal>]
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString = ConnectionStrings.AdventureWorks
 
 type GetEmployeeByLevel = SqlCommandProvider<"SELECT OrganizationNode FROM HumanResources.Employee WHERE OrganizationNode = @OrganizationNode", connectionString, SingleRow = true>
 [<Fact>]

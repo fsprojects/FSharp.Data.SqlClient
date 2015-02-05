@@ -4,8 +4,8 @@ open Xunit
 open FsUnit.Xunit
 
 [<Literal>] 
-//let connectionString = @"Server=tcp:mhknbn2kdz.database.windows.net,1433;Database=AdventureWorks2012;User ID=sqlfamily;Password= sqlf@m1ly;Trusted_Connection=False;Encrypt=True;Connection Timeout=30"
-let connectionString = @"name = AdventureWorks2012"
+//let connectionString = ConnectionStrings.AdventureWorksAzure
+let connectionString = ConnectionStrings.AdventureWorks
 
 type AdventureWorks = SqlProgrammabilityProvider<connectionString>
 

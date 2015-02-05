@@ -1,10 +1,9 @@
 ﻿module Test.Schema
 
-open System.Data
 open System.Data.SqlClient
-
+#load "ConnectionStrings.fs"
 [<Literal>]
-let connectionString = @"Server=tcp:mhknbn2kdz.database.windows.net,1433;Database=AdventureWorks2012;User ID=sqlfamily;Password= sqlf@m1ly;Trusted_Connection=False;Encrypt=True;Connection Timeout=30"
+let connectionString = ConnectionStrings.AdventureWorksAzure
 
 let conn = new SqlConnection(connectionString)
 do conn.Open()
@@ -34,4 +33,3 @@ let DataTypes() =
                     yield string row.["TypeName"],  unbox<int> row.["ProviderDbType"], string row.["DataType"]
     }
     |> Seq.iter (printfn "%A")
-

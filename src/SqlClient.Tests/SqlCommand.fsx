@@ -2,13 +2,12 @@
     Use cases
 *)
 #r "../../bin/FSharp.Data.SqlClient.dll"
-
+#load "ConnectionStrings.fs"
 open System
-open System.Data
 open FSharp.Data
 
 [<Literal>] 
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True;MultipleActiveResultSets=True"
+let connectionString = ConnectionStrings.AdventureWorks
 
 [<Literal>]
 let queryProductsSql = "
@@ -19,7 +18,7 @@ WHERE SellStartDate > @SellStartDate
 
 //Custom record types and connection string override
 type QueryProducts = SqlCommandProvider<queryProductsSql, connectionString>
-let cmd1 = new QueryProducts(connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True")
+let cmd1 = new QueryProducts(connectionString = ConnectionStrings.AdventureWorks)
 let result1 : Async<QueryProducts.Record seq> = cmd1.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
 let records = cmd1.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> List.ofSeq
@@ -133,11 +132,11 @@ let getEmployeeByLevel = new GetEmployeeByLevel()
 getEmployeeByLevel.Execute(2s)
 
 
-type MyCommand1 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow",  @"Data Source=(LocalDb)\v11.0;Integrated Security=True">
+type MyCommand1 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow",  ConnectionStrings.LocalDbDefault>
 type MyRecord1 = MyCommand1.Record
 let r1 = MyCommand1.Record(DateTime.Now, DateTime.UtcNow)
 
-type MyCommand2 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow",  @"Data Source=(LocalDb)\v11.0;Integrated Security=True">
+type MyCommand2 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow",  ConnectionStrings.LocalDbDefault>
 let r2 = MyCommand2.Record(DateTime.Now, DateTime.UtcNow)
 
 type MyRecord = { Now: DateTime; UtcNow: DateTime }

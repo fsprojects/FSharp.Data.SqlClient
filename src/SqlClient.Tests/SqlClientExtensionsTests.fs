@@ -11,10 +11,9 @@ open FSharp.Data.SqlClient
 
 type ExtensionsTest() = 
     
-    [<Literal>]
-    let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
-    //let connectionString = @"Server=tcp:mhknbn2kdz.database.windows.net,1433;Database=AdventureWorks2012;User ID=sqlfamily;Password= sqlf@m1ly;Trusted_Connection=False;Encrypt=True;Connection Timeout=30"
-    let conn = new SqlConnection(connectionString)
+    //[<Literal>]
+    //let connectionString = ConnectionStrings.AdventureWorksAzure
+    let conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     do
         conn.Open()
         conn.LoadDataTypesMap()
@@ -65,7 +64,3 @@ type ExtensionsTest() =
         Assert.Equal(system_type_id, t.SqlEngineTypeId)
         Assert.Equal(user_type_id, t.UserTypeId)
         Assert.Empty(t.UdttName)
-        
-
-
-

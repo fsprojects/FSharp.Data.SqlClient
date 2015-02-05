@@ -1,18 +1,18 @@
     
 #r "../../bin/Fsharp.Data.SqlClient.dll"
 #r "../../bin/Microsoft.SqlServer.Types.dll"
-
+#load "ConnectionStrings.fs"
 open System
 open System.Data
 open FSharp.Data
-open Microsoft.SqlServer.Types
+
 
 [<Literal>] 
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
-//let connectionString = @"Server=tcp:mhknbn2kdz.database.windows.net,1433;Database=AdventureWorks2012;User ID=sqlfamily;Password= sqlf@m1ly;Trusted_Connection=False;Encrypt=True;Connection Timeout=30"
+let connectionString = ConnectionStrings.AdventureWorks
+//let connectionString = ConnectionStrings.AdventureWorksAzure
 
 [<Literal>] 
-let prodConnectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
+let prodConnectionString = ConnectionStrings.MasterDb
 
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
 type dbo = AdventureWorks2012.dbo
@@ -127,7 +127,7 @@ let res = updateEmployeeLogin.AsyncExecute()
 
 //let x = new Run
 
-type Db = SqlProgrammabilityProvider<"Server=tcp:j02n9a9uk7.database.windows.net,1433;Database=Thermion;User ID=SQLAdmin;Password=f2rACP?ed_:*Hj2A;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;Max Pool Size=1000;">
+type Db = SqlProgrammabilityProvider<ConnectionStrings.ThermionAzure>
 type Asset = Db.Thermion.Tables.Asset
 let table  = new Asset()
 table.AddRow(Guid.NewGuid(), "w-1", "well", "well", "hathaway", 1)
