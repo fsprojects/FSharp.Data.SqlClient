@@ -1,7 +1,7 @@
 ﻿module ConnectionStrings
 
     [<Literal>]
-    let AdventureWorksLiteral = @"Data Source=(LocalDb)\v11.0;AttachDbFileName=C:\dbdata\sql2012\data\AdventureWorks2012_Data.mdf;Integrated Security=True"
+    let AdventureWorksLiteral = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
     [<Literal>]
     let AdventureWorksLiteralMultipleActiveResults = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True;MultipleActiveResultSets=True"
     [<Literal>]
