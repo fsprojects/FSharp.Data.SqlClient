@@ -1,7 +1,6 @@
-﻿module Test.Schema
-
+﻿#load "ConnectionStrings.fs"
 open System.Data.SqlClient
-#load "ConnectionStrings.fs"
+
 [<Literal>]
 let connectionString = ConnectionStrings.AdventureWorksAzure
 

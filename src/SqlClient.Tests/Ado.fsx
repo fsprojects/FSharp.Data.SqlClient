@@ -4,7 +4,7 @@ open System.Data
 open System.Data.SqlClient
 
 let getComponents (productId ,checkDate) = 
-    use connection = new SqlConnection(ConnectionStrings.AdventureWorks)
+    use connection = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
 
     let sqlCommand = new SqlCommand("dbo.uspGetWhereUsedProductID", connection)
     sqlCommand.CommandType <- CommandType.StoredProcedure

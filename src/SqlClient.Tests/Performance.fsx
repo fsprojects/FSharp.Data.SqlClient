@@ -1,8 +1,10 @@
-﻿open System
+﻿#load "ConnectionStrings.fs"
+
+open System
 open System.Data
 open System.Data.SqlClient
 
-let conn = new SqlConnection("Data Source=.;Initial Catalog=tempdb;Integrated Security=True") 
+let conn = new SqlConnection(ConnectionStrings.TempDb) 
 conn.Open()
 
 let command = new SqlCommand("select * from Posts where Id = @id", conn)
