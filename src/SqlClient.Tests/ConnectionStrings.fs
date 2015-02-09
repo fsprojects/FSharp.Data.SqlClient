@@ -13,7 +13,5 @@
     [<Literal>]
     let LocalDbDefault = @"Data Source=(LocalDb)\v11.0;Integrated Security=True"
     [<Literal>]
-    let ThermionAzure = "Server=tcp:j02n9a9uk7.database.windows.net,1433;Database=Thermion;User ID=SQLAdmin;Password=f2rACP?ed_:*Hj2A;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;Max Pool Size=1000;"
-    [<Literal>]
     let TempDb = "Data Source=.;Initial Catalog=tempdb;Integrated Security=True;"
 
