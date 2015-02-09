@@ -1,4 +1,3 @@
-    
 #r "../../bin/Fsharp.Data.SqlClient.dll"
 #r "../../bin/Microsoft.SqlServer.Types.dll"
 #load "ConnectionStrings.fs"
@@ -8,7 +7,7 @@ open FSharp.Data
 
 
 [<Literal>] 
-let connectionString = ConnectionStrings.AdventureWorks
+let connectionString = ConnectionStrings.AdventureWorksLiteral
 //let connectionString = ConnectionStrings.AdventureWorksAzure
 
 [<Literal>] 
@@ -31,10 +30,10 @@ let func(r: #DataTable) = ()
 
 type ErrorLog = dbo.Tables.ErrorLog
 let t = new ErrorLog()
-let r = t.NewRow("mitekm", 15, ErrorMessage = "haha", ErrorTime = Some DateTime.Now, ErrorSeverity = Some 42)
+let row = t.NewRow("mitekm", 15, ErrorMessage = "haha", ErrorTime = Some DateTime.Now, ErrorSeverity = Some 42)
 ////let r = t.NewRow(DateTime.Now, "mitekm", 15, ErrorMessage = "haha")
 //func t
-t.Rows.Add r
+t.Rows.Add row
 t.Rows.Count
 t.Rows.[0]
 //t.AddRow("test2", "group2", DateTime.Now)
@@ -54,7 +53,7 @@ func shift
 //Table-valued UDF selecting single row
 type GetContactInformation = dbo.ufnGetContactInformation
 let getContactInformation = new GetContactInformation()
-getContactInformation.Execute() |> printfn "%A"
+getContactInformation.Execute(1) |> printfn "%A"
 let f = getContactInformation.Execute( 1) |> Seq.exactlyOne
 f.BusinessEntityType
 f.FirstName
@@ -65,7 +64,7 @@ f.PersonID
 //Scalar-Value
 type LeadingZeros = dbo.ufnLeadingZeros
 let leadingZeros = new LeadingZeros()
-leadingZeros.Execute( 12) 
+leadingZeros.Execute(12) 
 
 //Stored Procedure returning list of records similar to SqlCommandProvider
 type GetWhereUsedProductID = dbo.uspGetWhereUsedProductID
@@ -74,10 +73,10 @@ getWhereUsedProductID.AsyncExecute(1, DateTime(2013,1,1)) |> Async.RunSynchronou
 
 //
 //UDTT with nullable column
-type myType = dbo.MyTableType
+type myType = Person.``User-Defined Table Types``.MyTableType
 let m = [ myType(myId = 2); myType(myId = 1) ]
 
-type MyProc = dbo.MyProc
+type MyProc = Person.MyProc
 let myArray = (new MyProc()).AsyncExecute(m) |> Async.RunSynchronously |> Array.ofSeq
 
 let myRes = myArray.[0]
@@ -88,9 +87,9 @@ myRes.myName
 type UpdateEmployeeLogin = AdventureWorks2012.HumanResources.uspUpdateEmployeeLogin
 let updateEmployeeLogin = new UpdateEmployeeLogin()
 
-let res = updateEmployeeLogin.AsyncExecute()
+let res = updateEmployeeLogin.AsyncExecute(
                 291, 
-                SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")),
+                Microsoft.SqlServer.Types.SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")),
                 "adventure-works\gat0", 
                 "gatekeeper", 
                 DateTime(2013,1,1), 

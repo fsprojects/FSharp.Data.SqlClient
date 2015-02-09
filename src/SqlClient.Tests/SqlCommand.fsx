@@ -7,7 +7,7 @@ open System
 open FSharp.Data
 
 [<Literal>] 
-let connectionString = ConnectionStrings.AdventureWorks
+let connectionString = ConnectionStrings.AdventureWorksLiteralMultipleActiveResults
 
 [<Literal>]
 let queryProductsSql = "
@@ -18,7 +18,7 @@ WHERE SellStartDate > @SellStartDate
 
 //Custom record types and connection string override
 type QueryProducts = SqlCommandProvider<queryProductsSql, connectionString>
-let cmd1 = new QueryProducts(connectionString = ConnectionStrings.AdventureWorks)
+let cmd1 = new QueryProducts(connectionString = ConnectionStrings.AdventureWorksLiteral)
 let result1 : Async<QueryProducts.Record seq> = cmd1.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
 let records = cmd1.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") |> List.ofSeq
