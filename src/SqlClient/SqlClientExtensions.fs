@@ -27,6 +27,11 @@ module SqlDataReader =
     let internal getOption<'a> (key: string) (reader: SqlDataReader) =
         let v = reader.[key] 
         if Convert.IsDBNull v then None else Some(unbox<'a> v)
+
+    let internal getValueOrDefault<'a> (key: string) defaultValue (reader: SqlDataReader) =
+        let v = reader.[key] 
+        if Convert.IsDBNull v then defaultValue else unbox<'a> v
+
         
 let DbNull = box DBNull.Value
 
@@ -259,14 +264,15 @@ type SqlConnection with
         while reader.Read() do
             let user_type_id = reader |> SqlDataReader.getOption<int> "user_type_id"
             let system_type_id = reader.["system_type_id"] |> unbox<int>
+
             let x = { 
                 Column.Name = string reader.["name"]
                 Ordinal = unbox reader.["column_ordinal"]
                 TypeInfo = findTypeInfoBySqlEngineTypeId (this.ConnectionString, system_type_id, user_type_id)
                 IsNullable = unbox reader.["is_nullable"]
                 MaxLength = reader.["max_length"] |> unbox<int16> |> int
-                ReadOnly = not(unbox reader.["is_updateable"])
-                Identity = unbox reader.["is_identity_column"]
+                ReadOnly = not( SqlDataReader.getValueOrDefault "is_updateable" true reader)
+                Identity = SqlDataReader.getValueOrDefault "is_identity_column" false reader 
             }
             yield x 
     ] 

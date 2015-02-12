@@ -27,3 +27,5 @@ let RuntimeConfig () =
     |> should equal ConfigurationManager.ConnectionStrings.[name].ConnectionString
 
 type Get42RelativePath = SqlCommandProvider<"sampleCommand.sql", "name=AdventureWorks2012", ResolutionFolder="MySqlFolder">
+
+type Get42 = SqlCommandProvider<"SELECT 42", "name=AdventureWorks2012", ConfigFile = "appWithInclude.config">

@@ -133,3 +133,5 @@
 #### 1.5.8 - January 13, 2015
 	* Fix issue #96 on Sql Azure
 
+#### 1.5.9 - February 11, 2015
+	* Dynamic sql example. Issue #108

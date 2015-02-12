@@ -126,3 +126,28 @@ let CommandTimeout() =
     use cmd = new LongRunning(commandTimeout = 60)
     Assert.Equal(60, cmd.CommandTimeout)
     Assert.Equal(Some 42, cmd.Execute())     
+
+type DynamicCommand = SqlCommandProvider<"
+	    DECLARE @stmt AS NVARCHAR(MAX) = @tsql
+	    DECLARE @params AS NVARCHAR(MAX) = N'@p1 nvarchar(100)'
+	    DECLARE @p1 AS NVARCHAR(100) = @firstName
+	    EXECUTE sp_executesql @stmt, @params, @p1
+	    WITH RESULT SETS
+	    (
+		    (
+			    Name NVARCHAR(100)
+			    ,UUID UNIQUEIDENTIFIER 
+		    )
+	    )
+    ", connection>
+
+[<Fact>]
+let DynamicSql() =    
+    let cmd = new DynamicCommand()
+    //provide dynamic sql query with param
+    cmd.Execute("SELECT CONCAT(FirstName, LastName) AS Name, rowguid AS UUID FROM Person.Person WHERE FirstName = @p1", "Alex") |> Seq.toArray |> Array.length |> should equal 51
+    //extend where condition by filetering out additional rows
+    cmd.Execute("SELECT CONCAT(FirstName, LastName) AS Name, rowguid AS UUID FROM Person.Person WHERE FirstName = @p1 AND EmailPromotion = 2", "Alex") |> Seq.toArray |> Array.length |> should equal 9
+    //accessing completely diff table
+    cmd.Execute("SELECT Name, rowguid AS UUID FROM Production.Product WHERE Name = @p1", "Chainring Nut") |> Seq.toArray |> Array.length |> should equal 1
+
