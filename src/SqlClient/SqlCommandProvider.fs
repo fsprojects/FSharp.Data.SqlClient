@@ -51,11 +51,10 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false)   
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
-                ProvidedStaticParameter("ResolutionFolder", typeof<string>, "") 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
             instantiationFunction = (fun typeName args ->
-                let value = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6], unbox args.[7])
+                let value = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6])
                 cache.GetOrAdd(typeName, value)
             ) 
             
@@ -69,13 +68,12 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 <param name='SingleRow'>If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
 <param name='AllParametersOptional'>If set all parameters become optional. NULL input values must be handled inside T-SQL.</param>
-<param name='ResolutionFolder'>A folder to be used to resolve relative file paths to *.sql script files at compile time. The default value is the folder that contains the project or script.</param>
 <param name='DataDirectory'>The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.</param>
 """
 
         this.AddNamespace(nameSpace, [ providerType ])
 
-    member internal this.CreateRootType(typeName, sqlStatementOrFile, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, resolutionFolder, dataDirectory) = 
+    member internal this.CreateRootType(typeName, sqlStatementOrFile, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, dataDirectory) = 
 
         if singleRow && not (resultType = ResultType.Records || resultType = ResultType.Tuples)
         then 
@@ -86,14 +84,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             this.Invalidate()
             
         let sqlStatement, watcher' = 
-            let sqlScriptResolutionFolder = 
-                if resolutionFolder = "" 
-                then config.ResolutionFolder 
-                elif Path.IsPathRooted (resolutionFolder)
-                then resolutionFolder
-                else Path.Combine (config.ResolutionFolder, resolutionFolder)
-
-            Configuration.ParseTextAtDesignTime(sqlStatementOrFile, sqlScriptResolutionFolder, invalidator)
+            Configuration.ParseTextAtDesignTime(sqlStatementOrFile, config.ResolutionFolder, invalidator)
 
         watcher' |> Option.iter (fun x -> watcher <- x)
 
