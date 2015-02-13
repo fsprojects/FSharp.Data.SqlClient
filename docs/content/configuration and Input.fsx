@@ -18,7 +18,6 @@ SqlCommandProvider parameters
   <tr><td class="title">SingleRow</td><td>false</td><td>true/false</td></tr>
   <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>Valid file name</td></tr>
   <tr><td class="title">AllParametersOptional</td><td>false</td><td>true/false</td></tr>
-  <tr><td class="title">ResolutionFolder</td><td>The folder that contains the project or script.</td><td>Valid file system path. Absolute or relative.</td></tr>
 </tbody>
 </table>
 
@@ -31,7 +30,6 @@ SqlProgrammabilityProvider parameters
   <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr>
   <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable, or DataReader</td></tr>
   <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>valid file name</td></tr>
-  <tr><td class="title">ResolutionFolder</td><td>The folder that contains the project or script.</td><td>Valid file system path. Absolute or relative.</td></tr>
 </tbody>
 </table>
 
@@ -81,7 +79,7 @@ type FibonacciQuery = SqlCommandProvider<fibonacci, connectionString>
 (**
 ### External *.sql file
 
-An ability to use external \*.sql file instead of inline strings can improve developement expirience.
+An ability to use external \*.sql file instead of inline strings can improve developement experience.
 Visual Studio has rich tooling support for *.sql files. (via SQL Server Data Tools) 
 
 <img src="img/sql_file_As_CommandText_1.png"/>
