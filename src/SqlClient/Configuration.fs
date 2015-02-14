@@ -26,7 +26,7 @@ type Configuration() =
         if isInvalidPathChars.Overlaps( commandTextOrPath)         
         then commandTextOrPath, None
         else
-            let path = Path.Combine(resolutionFolder, commandTextOrPath)
+            let path = Path.GetFullPath(Path.Combine(resolutionFolder, commandTextOrPath))
             if File.Exists(path) |> not 
             then commandTextOrPath, None
             else
