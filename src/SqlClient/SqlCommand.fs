@@ -41,14 +41,31 @@ type ResultRank =
 type Connection =
     | Literal of string
     | NameInConfig of string
-    | Transaction of SqlTransaction
+    | CreateCommandFunctor of (unit -> SqlCommand)
+    | Transaction of SqlTransaction    
 
 type RuntimeSqlCommand (connection, commandTimeout, sqlStatement, isStoredProcedure, parameters, resultType, rank, rowMapping: RowMapping, itemTypeName) = 
 
-    let cmd = new SqlCommand(sqlStatement)
+    // use CreateCommandFunctor's functor to create the instance, otherwise simply new a SqlCommand
+    let cmd = 
+        match connection with
+        | CreateCommandFunctor f -> f()
+        | _ -> new SqlCommand()
+
     do 
+        cmd.CommandText <- sqlStatement
         cmd.CommandType <- if isStoredProcedure then CommandType.StoredProcedure else CommandType.Text
-        cmd.CommandTimeout <- commandTimeout
+
+        // we don't want the CommandTimeout to be overwritten when using CreateCommandFunctor
+        let (|SetTimeout|DontSetTimeout|) connection =
+          match connection with
+          | Literal _ | NameInConfig _ | Transaction _ -> SetTimeout
+          | CreateCommandFunctor _ -> DontSetTimeout
+        
+        match connection with
+        | SetTimeout -> cmd.CommandTimeout <- commandTimeout
+        | DontSetTimeout -> ()
+        
     do
         match connection with
         | Literal value -> 
@@ -59,6 +76,7 @@ type RuntimeSqlCommand (connection, commandTimeout, sqlStatement, isStoredProced
         | Transaction t ->
              cmd.Connection <- t.Connection
              cmd.Transaction <- t
+        | CreateCommandFunctor _ -> ()
     do
         cmd.Parameters.AddRange( parameters)
 
@@ -151,7 +169,7 @@ type RuntimeSqlCommand (connection, commandTimeout, sqlStatement, isStoredProced
         member this.Dispose() =
             cmd.Dispose()
 
-//Execute/AsyncExecute versions
+    //Execute/AsyncExecute versions
     static member internal SetParameters(cmd: SqlCommand, parameters: (string * obj)[]) = 
         for name, value in parameters do
             
@@ -248,6 +266,3 @@ type RuntimeSqlCommand (connection, commandTimeout, sqlStatement, isStoredProced
             use openedConnection = cmd.Connection.UseLocally()
             return! cmd.AsyncExecuteNonQuery() 
         }
-
-
-
