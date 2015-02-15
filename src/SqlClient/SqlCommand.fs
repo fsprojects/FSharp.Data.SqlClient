@@ -127,7 +127,13 @@ type RuntimeSqlCommand (connection, commandTimeout, sqlStatement, isStoredProced
     member this.CommandTimeout = cmd.CommandTimeout
 
     member this.AsSqlCommand() = 
-        let clone = new SqlCommand(cmd.CommandText, new SqlConnection(cmd.Connection.ConnectionString), CommandType = cmd.CommandType)
+        let clone = 
+          new SqlCommand(
+            cmd.CommandText, 
+            new SqlConnection(cmd.Connection.ConnectionString), 
+            CommandType = cmd.CommandType,
+            CommandTimeout = cmd.CommandTimeout
+          )
         clone.Parameters.AddRange <| [| for p in cmd.Parameters -> SqlParameter(p.ParameterName, p.SqlDbType) |]
         clone
 
