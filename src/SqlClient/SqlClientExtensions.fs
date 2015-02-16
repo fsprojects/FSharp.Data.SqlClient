@@ -327,6 +327,7 @@ type SqlConnection with
                             yield typeName, (providedType, clrType, isFixedLength)
                 |]
 
+            let runningOnMono = try System.Type.GetType("Mono.Runtime") <> null with e -> false 
             let sqlEngineTypes = [|
                 use cmd = new SqlCommand("
                     SELECT t.name, ISNULL(assembly_class, t.name) as full_name, t.system_type_id, t.user_type_id, t.is_table_type, s.name as schema_name, t.is_user_defined
@@ -336,10 +337,13 @@ type SqlConnection with
                     ", this) 
                 use reader = cmd.ExecuteReader()
                 while reader.Read() do
-                    yield 
+                    // #105 - disable assembly types when running on mono, because GetSchema() doesn't return these types on mono. 
+                    let systemTypeId = unbox<byte> reader.["system_type_id"] 
+                    if not runningOnMono || systemTypeId <> 240uy then
+                      yield 
                         string reader.["name"], 
                         string reader.["full_name"], 
-                        unbox<byte> reader.["system_type_id"] |> int, 
+                        int systemTypeId, 
                         unbox<int> reader.["user_type_id"], 
                         unbox reader.["is_table_type"], 
                         string reader.["schema_name"], 
