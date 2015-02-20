@@ -135,3 +135,8 @@
 
 #### 1.5.9 - February 11, 2015
 	* Dynamic sql example. Issue #108
+
+#### 1.5.10 - February 16, 2015
+	* Issue #110 FileSystemWatcher not working properly 
+	* Issue #105 Error using library in Mono 
+	* All top level provided types tagged with design time connection string info

@@ -42,6 +42,7 @@ type Connection =
     | Literal of string
     | NameInConfig of string
     | Transaction of SqlTransaction
+    | Instance of SqlConnection
 
 type RuntimeSqlCommand (connection, commandTimeout, sqlStatement, isStoredProcedure, parameters, resultType, rank, rowMapping: RowMapping, itemTypeName) = 
 
@@ -59,6 +60,8 @@ type RuntimeSqlCommand (connection, commandTimeout, sqlStatement, isStoredProced
         | Transaction t ->
              cmd.Connection <- t.Connection
              cmd.Transaction <- t
+        | Instance conn -> 
+            cmd.Connection <- conn
     do
         cmd.Parameters.AddRange( parameters)
 
@@ -151,7 +154,6 @@ type RuntimeSqlCommand (connection, commandTimeout, sqlStatement, isStoredProced
         member this.Dispose() =
             cmd.Dispose()
 
-//Execute/AsyncExecute versions
     static member internal SetParameters(cmd: SqlCommand, parameters: (string * obj)[]) = 
         for name, value in parameters do
             
@@ -176,6 +178,8 @@ type RuntimeSqlCommand (connection, commandTimeout, sqlStatement, isStoredProced
                 | SqlDbType.NVarChar -> p.Size <- 4000
                 | SqlDbType.VarChar -> p.Size <- 8000
                 | _ -> ()
+
+//Execute/AsyncExecute versions
 
     static member internal ExecuteReader(cmd, getReaderBehavior, parameters) = 
         RuntimeSqlCommand.SetParameters(cmd, parameters)

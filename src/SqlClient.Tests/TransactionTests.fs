@@ -30,6 +30,19 @@ let implicit() =
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
 
 [<Fact>]
+let implicitWithConnInstance() =
+    (new DeleteBitCoin()).Execute(bitCoinCode) |> ignore
+    begin
+        use tran = new TransactionScope() 
+        use conn = new SqlConnection(connection)
+        conn.Open()
+        Assert.Equal(1, (new InsertBitCoin(conn)).Execute(bitCoinCode, bitCoinName))
+        Assert.Equal(1, (new GetBitCoin(conn)).Execute(bitCoinCode) |> Seq.length)
+        Assert.Equal( Guid.Empty, Transaction.Current.TransactionInformation.DistributedIdentifier)
+    end
+    Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
+
+[<Fact>]
 let implicitAsync() =
     (new DeleteBitCoin()).Execute(bitCoinCode) |> ignore
     begin
@@ -74,10 +87,21 @@ let notCloseExternalConnInCaseOfError() =
     use conn = new SqlConnection(connection)
     conn.Open()
     let tran = conn.BeginTransaction()
-    use cmd = new RaiseError()
+    use cmd = new RaiseError(tran)
     try
         cmd.Execute() |> Seq.toArray |> ignore
     with _ ->
         Assert.True(conn.State = ConnectionState.Open)
 
+[<Fact>]
+let notCloseExternalConnInCaseOfError2() =
+    use conn = new SqlConnection(connection)
+    conn.Open()
+    use cmd = new RaiseError(conn)
+    try
+        cmd.Execute() |> Seq.toArray |> ignore
+    with _ ->
+        Assert.True(conn.State = ConnectionState.Open)
+
+    
     

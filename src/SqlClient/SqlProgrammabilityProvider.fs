@@ -80,7 +80,11 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         conn.LoadDataTypesMap()
 
         let databaseRootType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
-        databaseRootType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
+
+//        databaseRootType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
+
+        let tagProvidedType(t: ProvidedTypeDefinition) =
+            t.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
 
         databaseRootType.AddMembersDelayed <| fun () ->
             conn.GetUserSchemas() 
@@ -89,13 +93,16 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 schemaRoot.AddMembersDelayed <| fun() -> 
                     [
                         let udtts = this.UDTTs (conn.ConnectionString, schema)
+                        udtts |> List.iter tagProvidedType
                         let udttsRoot = ProvidedTypeDefinition("User-Defined Table Types", Some typeof<obj>)
                         udttsRoot.AddMembers udtts
                         yield udttsRoot
 
-                        yield! this.Routines(conn, schema, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
+                        let routines = this.Routines(conn, schema, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
+                        routines |> List.iter tagProvidedType
+                        yield! routines
 
-                        yield this.Tables(conn, schema, isByName, connectionStringName, connectionStringOrName)
+                        yield this.Tables(conn, schema, isByName, connectionStringName, connectionStringOrName, tagProvidedType)
                     ]
                 schemaRoot            
             )
@@ -198,6 +205,17 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         yield upcast ctor2
 
+                        let ctor3 = 
+                            ProvidedConstructor [ 
+                                ProvidedParameter("connection", typeof<SqlConnection>) 
+                                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
+                            ]
+
+                        ctor3.InvokeCode <- 
+                            fun args -> Expr.NewObject(ctorImpl, <@@ Connection.Instance %%args.[0] @@> :: args.[1] :: ctorArgsExceptConnection)
+
+                        yield upcast ctor3
+
                         let allParametersOptional = false
                         let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, allParametersOptional, udtts)
 
@@ -213,8 +231,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 yield cmdProvidedType
         ]
 
-    member internal __.Tables(conn: SqlConnection, schema, isByName, connectionStringName, connectionString) = 
+    member internal __.Tables(conn: SqlConnection, schema, isByName, connectionStringName, connectionString, tagProvidedType) = 
         let tables = ProvidedTypeDefinition("Tables", Some typeof<obj>)
+        //tagProvidedType tables
         tables.AddMembersDelayed <| fun() ->
             use __ = conn.UseLocally()
             let isSqlAzure = conn.IsSqlAzure
@@ -297,6 +316,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                 //type data table
                 let dataTableType = ProvidedTypeDefinition(tableName, baseType = Some( typedefof<_ DataTable>.MakeGenericType(dataRowType)))
+                tagProvidedType dataTableType
                 dataTableType.AddMember dataRowType
 
                 if not isSqlAzure

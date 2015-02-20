@@ -9,20 +9,31 @@ open FsUnit.Xunit
 [<Literal>]
 let connection = ConnectionStrings.AdventureWorksNamed
 
-type GetOddNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (24)) as T(value)", connection>
+type GetEvenNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (24)) as T(value)", connection>
 
 [<Fact>]
 let asyncSinlgeColumn() = 
-    Assert.Equal<int[]>([| 2; 4; 8;  24 |], (new GetOddNumbers()).AsyncExecute() |> Async.RunSynchronously |> Seq.toArray)    
+    Assert.Equal<int[]>([| 2; 4; 8; 24 |], (new GetEvenNumbers()).AsyncExecute() |> Async.RunSynchronously |> Seq.toArray)    
 
 [<Fact>]
 let ConnectionClose() = 
-    use cmd = new GetOddNumbers()
+    use cmd = new GetEvenNumbers()
     let untypedCmd : ISqlCommand = upcast cmd
     let underlyingConnection = untypedCmd.Raw.Connection
     Assert.Equal(ConnectionState.Closed, underlyingConnection.State)
     Assert.Equal<int[]>([| 2; 4; 8;  24 |], cmd.Execute() |> Seq.toArray)    
     Assert.Equal(ConnectionState.Closed, underlyingConnection.State)
+
+[<Fact>]
+let ExternalInstanceConnection() = 
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
+    use cmd = new GetEvenNumbers()
+    let untypedCmd : ISqlCommand = upcast cmd
+    let underlyingConnection = untypedCmd.Raw.Connection
+    Assert.Equal(ConnectionState.Closed, underlyingConnection.State)
+    Assert.Equal<int[]>([| 2; 4; 8;  24 |], cmd.Execute() |> Seq.toArray)    
+    Assert.Equal(ConnectionState.Closed, underlyingConnection.State)
+
 
 type QueryWithTinyInt = SqlCommandProvider<"SELECT CAST(10 AS TINYINT) AS Value", connection, SingleRow = true>
 

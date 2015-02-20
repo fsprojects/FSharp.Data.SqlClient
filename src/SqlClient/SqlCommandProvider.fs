@@ -180,6 +180,17 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
             cmdProvidedType.AddMember ctor2
 
+            let ctor3 = 
+                ProvidedConstructor [ 
+                    ProvidedParameter("connection", typeof<SqlConnection>) 
+                    ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
+                ]
+
+            ctor3.InvokeCode <- 
+                fun args -> Expr.NewObject(ctorImpl, <@@ Connection.Instance %%args.[0] @@> :: args.[1] :: ctorArgsExceptConnection)
+
+            cmdProvidedType.AddMember ctor3
+
         do  //AsyncExecute, Execute, and ToTraceString
 
             let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, allParametersOptional, udtts = [])

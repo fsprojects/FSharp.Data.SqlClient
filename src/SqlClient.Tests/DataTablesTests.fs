@@ -11,7 +11,7 @@ open FsUnit.Xunit
 
 type Settings = FSharp.Configuration.AppSettings<"app.config">
 
-type AdventureWorks = SqlProgrammabilityProvider<"name=AdventureWorks2012">
+type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksNamed>
 
 //Tables types structured as: [TypeAlias].[Namespace].Tables.[TableName]
 type ShiftTable = AdventureWorks.HumanResources.Tables.Shift
@@ -19,6 +19,7 @@ type ShiftTable = AdventureWorks.HumanResources.Tables.Shift
 type ResetIndentity = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", "name=AdventureWorks2012">
 type GetRowCount = SqlCommandProvider<"SELECT COUNT(*) FROM HumanResources.Shift", "name=AdventureWorks2012", SingleRow = true>
 type GetShiftTableData = SqlCommandProvider<"SELECT * FROM HumanResources.Shift", "name=AdventureWorks2012", ResultType.DataReader>
+type GetShift = SqlCommandProvider<"SELECT * FROM HumanResources.Shift", "name=AdventureWorks2012">
 
 type DataTablesTests() = 
 
@@ -137,6 +138,33 @@ type DataTablesTests() =
         //removing ModifiedDate column is not required as oppose to bulk insert 
         let rowsInserted = t.Update(conn, tran)
         Assert.Equal(t.Rows.Count, rowsInserted)
+
+    [<Fact>]
+    member __.UpdatesPlusAmbientTransaction() = 
+        
+        use tran = new TransactionScope()
+            
+        let t = new ShiftTable()
+        use getShiftTableData = new GetShiftTableData()
+        getShiftTableData.Execute() |> t.Load
+
+        let eveningShift = t.Rows |> Seq.find (fun row -> row.Name = "Evening")
+        let finishBy10 = TimeSpan(22, 0, 0)
+        Assert.NotEqual(finishBy10, eveningShift.EndTime)
+        eveningShift.EndTime <- finishBy10
+    
+        let rowsUpdated = t.Update()
+        Assert.Equal(1, rowsUpdated)
+
+        use getShift = new GetShift()
+        let eveningShiftIinDb = getShift.Execute() |> Seq.find (fun x -> x.Name = "Evening")
+        Assert.Equal(finishBy10, eveningShiftIinDb.EndTime)
+
+    [<Fact>]
+    member __.TableTypeTag() = 
+        Assert.Equal<string>(ConnectionStrings.AdventureWorksNamed, GetShiftTableData.ConnectionStringOrName)
+        
+
 
 
 
