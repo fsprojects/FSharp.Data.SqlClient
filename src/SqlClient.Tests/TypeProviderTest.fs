@@ -75,8 +75,7 @@ type ColumnsShouldNotBeNull2 =
 
 [<Fact>]
 let columnsShouldNotBeNull2() = 
-    let cmd = new ColumnsShouldNotBeNull2()
-    let _,_,_,_,precision = cmd.Execute() |> Option.get
+    let _,_,_,_,precision = ColumnsShouldNotBeNull2.Create().Execute() |> Option.get
     Assert.Equal(None, precision)    
 
 [<Literal>]

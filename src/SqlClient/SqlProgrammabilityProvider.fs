@@ -201,8 +201,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
                             ]
                         ctor2.InvokeCode <- 
-                            fun args -> Expr.NewObject(ctorImpl, <@@ Connection.Transaction %%args.[0] @@> :: args.[1] :: ctorArgsExceptConnection)
-
+                            fun args -> Expr.NewObject(ctorImpl, <@@ let tran: SqlTransaction = %%args.[0] in Connection.Transaction(tran.Connection, tran) @@> :: args.[1] :: ctorArgsExceptConnection)
+                            
                         yield upcast ctor2
 
                         let ctor3 = 

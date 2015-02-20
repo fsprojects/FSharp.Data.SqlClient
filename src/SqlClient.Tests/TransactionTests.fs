@@ -23,11 +23,11 @@ let implicit() =
     (new DeleteBitCoin()).Execute(bitCoinCode) |> ignore
     begin
         use tran = new TransactionScope() 
-        Assert.Equal(1, (new InsertBitCoin()).Execute(bitCoinCode, bitCoinName))
-        Assert.Equal(1, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
+        Assert.Equal(1, InsertBitCoin.Create().Execute(bitCoinCode, bitCoinName))
+        Assert.Equal(1, GetBitCoin.Create().Execute(bitCoinCode) |> Seq.length)
         Assert.Equal( Guid.Empty, Transaction.Current.TransactionInformation.DistributedIdentifier)
     end
-    Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
+    Assert.Equal(0, GetBitCoin.Create().Execute(bitCoinCode) |> Seq.length)
 
 [<Fact>]
 let implicitWithConnInstance() =
@@ -36,8 +36,8 @@ let implicitWithConnInstance() =
         use tran = new TransactionScope() 
         use conn = new SqlConnection(connection)
         conn.Open()
-        Assert.Equal(1, (new InsertBitCoin(conn)).Execute(bitCoinCode, bitCoinName))
-        Assert.Equal(1, (new GetBitCoin(conn)).Execute(bitCoinCode) |> Seq.length)
+        Assert.Equal(1, InsertBitCoin.Create(conn).Execute(bitCoinCode, bitCoinName))
+        Assert.Equal(1, GetBitCoin.Create(conn).Execute(bitCoinCode) |> Seq.length)
         Assert.Equal( Guid.Empty, Transaction.Current.TransactionInformation.DistributedIdentifier)
     end
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)

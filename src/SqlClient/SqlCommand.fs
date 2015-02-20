@@ -41,7 +41,7 @@ type ResultRank =
 type Connection =
     | Literal of string
     | NameInConfig of string
-    | Transaction of SqlTransaction
+    | Transaction of SqlConnection * SqlTransaction
     | Instance of SqlConnection
 
 type RuntimeSqlCommand (connection, commandTimeout, sqlStatement, isStoredProcedure, parameters, resultType, rank, rowMapping: RowMapping, itemTypeName) = 
@@ -57,9 +57,9 @@ type RuntimeSqlCommand (connection, commandTimeout, sqlStatement, isStoredProced
         | NameInConfig name ->
             let connStr = Configuration.GetConnectionStringAtRunTime name
             cmd.Connection <- new SqlConnection(connStr)
-        | Transaction t ->
-             cmd.Connection <- t.Connection
-             cmd.Transaction <- t
+        | Transaction(conn, tran) ->
+             cmd.Connection <- conn
+             cmd.Transaction <- tran
         | Instance conn -> 
             cmd.Connection <- conn
     do
