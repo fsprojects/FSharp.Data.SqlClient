@@ -91,7 +91,7 @@ type DataTablesTests() =
         t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some DateTime.Now.Date)
         t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some DateTime.Now.Date)
 
-        use getRowsCount = new GetRowCount(tran)
+        use getRowsCount = new GetRowCount(conn, tran)
         let rowsBefore = getRowsCount.Execute().Value.Value
         
         //shortcut, convenience method

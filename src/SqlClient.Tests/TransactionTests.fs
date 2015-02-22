@@ -62,8 +62,8 @@ let implicitAsyncNETBefore451() =
         conn.Open()
         conn.EnlistTransaction(Transaction.Current)
         let localTran = conn.BeginTransaction()
-        Assert.Equal(1, (new InsertBitCoin(localTran)).AsyncExecute(bitCoinCode, bitCoinName) |> Async.RunSynchronously)
-        Assert.Equal(1, (new GetBitCoin(localTran)).AsyncExecute(bitCoinCode) |> Async.RunSynchronously |> Seq.length)
+        Assert.Equal(1, (new InsertBitCoin(conn, localTran)).AsyncExecute(bitCoinCode, bitCoinName) |> Async.RunSynchronously)
+        Assert.Equal(1, (new GetBitCoin(conn, localTran)).AsyncExecute(bitCoinCode) |> Async.RunSynchronously |> Seq.length)
         Assert.Equal( Guid.Empty, Transaction.Current.TransactionInformation.DistributedIdentifier)
     end
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
@@ -74,8 +74,8 @@ let local() =
     use conn = new SqlConnection(connection)
     conn.Open()
     let tran = conn.BeginTransaction()
-    Assert.Equal(1, (new InsertBitCoin(tran)).Execute(bitCoinCode, bitCoinName))
-    Assert.Equal(1, (new GetBitCoin(tran)).Execute(bitCoinCode) |> Seq.length)
+    Assert.Equal(1, (new InsertBitCoin(conn, tran)).Execute(bitCoinCode, bitCoinName))
+    Assert.Equal(1, (new GetBitCoin(conn, tran)).Execute(bitCoinCode) |> Seq.length)
     tran.Rollback()
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
 
@@ -87,7 +87,7 @@ let notCloseExternalConnInCaseOfError() =
     use conn = new SqlConnection(connection)
     conn.Open()
     let tran = conn.BeginTransaction()
-    use cmd = new RaiseError(tran)
+    use cmd = new RaiseError(conn, tran)
     try
         cmd.Execute() |> Seq.toArray |> ignore
     with _ ->
