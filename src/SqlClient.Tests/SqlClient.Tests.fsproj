@@ -58,6 +58,8 @@
     <Compile Include="ConfigurationTest.fs" />
     <Compile Include="OptionalParamsTests.fs" />
     <Compile Include="TypeProviderTest.fs" />
+    <Compile Include="CreateCommandFunctorTests.fs" />
+    <Compile Include="CommandTimeoutSetup.fs" />
     <Compile Include="SpatialTypesTests.fs" />
     <Compile Include="TransactionTests.fs" />
     <Compile Include="ResultTypeTests.fs" />
@@ -68,8 +70,6 @@
     <Compile Include="SqlEnumTests.fs" />
     <Compile Include="DataTablesTests.fs" />
     <None Include="Schema.fsx" />
-    <Content Include="connectionStrings.config" />
-    <Content Include="appWithInclude.config" />
     <None Include="SqlCommand.fsx" />
     <None Include="SqlProgrammability.fsx" />
     <None Include="sampleCommand.sql" />
@@ -77,6 +77,8 @@
     <None Include="packages.config" />
     <None Include="Performance.fsx" />
     <None Include="Ado.fsx" />
+    <Content Include="appWithInclude.config" />
+    <Content Include="connectionStrings.config" />
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>

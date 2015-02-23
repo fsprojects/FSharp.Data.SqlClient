@@ -1,16 +1,11 @@
 ﻿namespace FSharp.Data
 
 open System
-open System.Data
 open System.IO
 open System.Data.SqlClient
 open System.Reflection
-open System.Collections.Generic
 open System.Runtime.CompilerServices
-open System.Configuration
 open System.Runtime.Caching
-
-open Microsoft.SqlServer.Server
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
@@ -18,6 +13,7 @@ open Microsoft.FSharp.Quotations
 open FSharp.Data.SqlClient
 
 open ProviderImplementation.ProvidedTypes
+open ProviderImplementation.ProvidedTypesHelper
 
 [<assembly:TypeProviderAssembly()>]
 [<assembly:InternalsVisibleTo("SqlClient.Tests")>]
@@ -58,7 +54,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 let value = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6], unbox args.[7])
                 cache.GetOrAdd(typeName, value)
             ) 
-            
         )
 
         providerType.AddXmlDoc """
@@ -72,7 +67,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 <param name='ResolutionFolder'>A folder to be used to resolve relative file paths to *.sql script files at compile time. The default value is the folder that contains the project or script.</param>
 <param name='DataDirectory'>The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.</param>
 """
-
         this.AddNamespace(nameSpace, [ providerType ])
 
     member internal this.CreateRootType(typeName, sqlStatementOrFile, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, resolutionFolder, dataDirectory) = 
@@ -140,46 +134,49 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         do  //ctors
             let sqlParameters = Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
             
-            let ctor1 = 
-                ProvidedConstructor [ 
-                    ProvidedParameter("connectionString", typeof<string>, optionalValue = "") 
-                    ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
-                ]
-
             let isStoredProcedure = false
-            let ctorArgsExceptConnection = [
-                Expr.Value sqlStatement; 
-                Expr.Value isStoredProcedure 
-                sqlParameters; 
-                Expr.Value resultType; 
-                Expr.Value rank
-                output.RowMapping; 
-                Expr.Value output.ErasedToRowType.AssemblyQualifiedName
-            ]
+            
             let ctorImpl = typeof<RuntimeSqlCommand>.GetConstructors() |> Seq.exactlyOne
-            ctor1.InvokeCode <- 
-                fun args -> 
-                    let connArg =
-                        <@@ 
-                            if not( String.IsNullOrEmpty(%%args.[0])) then Connection.Literal %%args.[0] 
-                            elif isByName then Connection.NameInConfig connectionStringName
-                            else Connection.Literal connectionStringOrName
-                        @@>
-                    Expr.NewObject(ctorImpl, connArg :: args.[1] :: ctorArgsExceptConnection)
-           
-            cmdProvidedType.AddMember ctor1
+            
+            [|
+                let ctorArgsExceptConnection = [ 
+                    Expr.Value sqlStatement
+                    Expr.Value isStoredProcedure
+                    sqlParameters
+                    Expr.Value resultType
+                    Expr.Value rank
+                    output.RowMapping
+                    Expr.Value output.ErasedToRowType.AssemblyQualifiedName
+                    ]
+                let timeOutParam = makeParamWithDefault "commandTimeout" typeof<int> defaultCommandTimeout
+                yield makeCtor [ 
+                      makeParamWithDefault "connectionString" typeof<string> ""
+                      timeOutParam
+                  ]
+                  (fun args -> 
+                      let connArg =
+                          <@@ 
+                              if not(String.IsNullOrEmpty(%%args.[0])) then Connection.Literal %%args.[0] 
+                              elif isByName then Connection.NameInConfig connectionStringName
+                              else Connection.Literal connectionStringOrName
+                          @@>
+                      Expr.NewObject(ctorImpl, connArg :: args.[1] :: ctorArgsExceptConnection)
+                  )
+                
+                yield makeCtor [ 
+                        makeParam "transaction" typeof<SqlTransaction>
+                        timeOutParam
+                    ]
+                    (fun args -> Expr.NewObject(ctorImpl, <@@ Connection.Transaction %%args.[0] @@> :: args.[1] :: ctorArgsExceptConnection))
 
-            let ctor2 = 
-                ProvidedConstructor [ 
-                    ProvidedParameter("transaction", typeof<SqlTransaction>) 
-                    ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
-                ]
-
-            ctor2.InvokeCode <- 
-                fun args -> Expr.NewObject(ctorImpl, <@@ Connection.Transaction %%args.[0] @@> :: args.[1] :: ctorArgsExceptConnection)
-
-            cmdProvidedType.AddMember ctor2
-
+                yield makeCtor
+                    [
+                        makeParam "createCommandFunctor" typeof<unit -> SqlCommand>
+                    ]
+                    (fun args -> Expr.NewObject(ctorImpl, <@@ Connection.CreateCommandFunctor %%args.[0] @@> :: Expr.Value 0 :: ctorArgsExceptConnection))
+            |]
+            |> Array.iter cmdProvidedType.AddMember
+            
         do  //AsyncExecute, Execute, and ToTraceString
 
             let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, allParametersOptional, udtts = [])
