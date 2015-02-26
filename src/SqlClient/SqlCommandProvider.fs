@@ -129,7 +129,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         let rank = if singleRow then ResultRank.SingleRow else ResultRank.Sequence
         let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank)
         
-        let cmdProvidedType = ProvidedTypeDefinition(assembly, nameSpace, typeName, Some typeof<RuntimeSqlCommand>, HideObjectMethods = true)
+        let cmdProvidedType = ProvidedTypeDefinition(assembly, nameSpace, typeName, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
 
         do  
             cmdProvidedType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
@@ -151,7 +151,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 Expr.Value output.ErasedToRowType.AssemblyQualifiedName
             ]
 
-            let ctorImpl = typeof<RuntimeSqlCommand>.GetConstructors() |> Seq.exactlyOne
+            let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructors() |> Seq.exactlyOne
 
             do //default ctor and create factory 
                 let ctor1Params = 

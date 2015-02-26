@@ -140,3 +140,11 @@
 	* Issue #110 FileSystemWatcher not working properly 
 	* Issue #105 Error using library in Mono 
 	* All top level provided types tagged with design time connection string info
+
+#### 1.5.11 - February 26, 2015
+	* static factories on provided command types with intellisense
+	* BREAKING CHANGE: ctor with transaction also requires connection
+	* Ability to pass connection object to ctor/factory
+	* Warning on using infrastructure types 
+	* Issue #114 fixed
+

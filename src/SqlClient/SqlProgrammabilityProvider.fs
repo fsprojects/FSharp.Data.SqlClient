@@ -134,7 +134,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             let routines = conn.GetRoutines( schema) 
             for routine in routines do
              
-                let cmdProvidedType = ProvidedTypeDefinition(routine.Name, Some typeof<RuntimeSqlCommand>, HideObjectMethods = true)
+                let cmdProvidedType = ProvidedTypeDefinition(routine.Name, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
                 cmdProvidedType.AddXmlDoc <| 
                     match routine with 
                     | StoredProcedure _ -> "Stored Procedure"
@@ -182,7 +182,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             output.RowMapping                           //rowMapping
                             Expr.Value output.ErasedToRowType.AssemblyQualifiedName
                         ]
-                        let ctorImpl = typeof<RuntimeSqlCommand>.GetConstructors() |> Seq.exactlyOne
+                        let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructors() |> Seq.exactlyOne
                         ctor1.InvokeCode <- 
                             fun args -> 
                                 let connArg =
