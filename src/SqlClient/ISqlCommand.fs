@@ -49,22 +49,26 @@ type Connection =
 type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, isStoredProcedure, parameters, resultType, rank, rowMapping: RowMapping, itemTypeName) = 
 
     let cmd = new SqlCommand(sqlStatement)
-    do 
-        cmd.CommandType <- if isStoredProcedure then CommandType.StoredProcedure else CommandType.Text
-        cmd.CommandTimeout <- commandTimeout
-    do
+
+    let privateConnection = 
         match connection with
         | Literal value -> 
             cmd.Connection <- new SqlConnection(value)
+            true
         | NameInConfig name ->
             let connStr = Configuration.GetConnectionStringAtRunTime name
             cmd.Connection <- new SqlConnection(connStr)
+            true
         | Transaction(conn, tran) ->
              cmd.Connection <- conn
              cmd.Transaction <- tran
+             false
         | Instance conn -> 
             cmd.Connection <- conn
-
+            false
+    do 
+        cmd.CommandType <- if isStoredProcedure then CommandType.StoredProcedure else CommandType.Text
+        cmd.CommandTimeout <- commandTimeout
     do
         cmd.Parameters.AddRange( parameters)
 
@@ -72,7 +76,7 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
         seq {
             yield CommandBehavior.SingleResult
 
-            if cmd.Connection.State <> ConnectionState.Open 
+            if cmd.Connection.State <> ConnectionState.Open && privateConnection
             then
                 cmd.Connection.Open() 
                 yield CommandBehavior.CloseConnection
@@ -90,7 +94,7 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
         | ResultType.Records | ResultType.Tuples ->
             match box rowMapping, itemTypeName with
             | null, itemTypeName when itemTypeName = typeof<unit>.AssemblyQualifiedName ->
-                ``ISqlCommand Implementation``.ExecuteNonQuery >> box, ``ISqlCommand Implementation``.AsyncExecuteNonQuery >> box
+                ``ISqlCommand Implementation``.ExecuteNonQuery privateConnection >> box, ``ISqlCommand Implementation``.AsyncExecuteNonQuery privateConnection >> box
             | rowMapping, itemTypeName ->
                 assert (rowMapping <> null && itemTypeName <> null)
                 let itemType = Type.GetType itemTypeName
@@ -250,15 +254,16 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
             assert (rank = ResultRank.Sequence)
             box xs 
 
-    static member internal ExecuteNonQuery(cmd, _, parameters) = 
+    //static member internal ExecuteNonQuery privateConnection = fun(cmd, _, parameters) ->
+    static member internal ExecuteNonQuery privateConnection (cmd, _, parameters) = 
         ``ISqlCommand Implementation``.SetParameters(cmd, parameters)  
-        use openedConnection = cmd.Connection.UseLocally()
+        use openedConnection = cmd.Connection.UseLocally(privateConnection )
         cmd.ExecuteNonQuery() 
 
-    static member internal AsyncExecuteNonQuery(cmd, _, parameters) = 
+    static member internal AsyncExecuteNonQuery privateConnection (cmd, _, parameters) = 
         ``ISqlCommand Implementation``.SetParameters(cmd, parameters)  
         async {         
-            use openedConnection = cmd.Connection.UseLocally()
+            use openedConnection = cmd.Connection.UseLocally(privateConnection )
             return! cmd.AsyncExecuteNonQuery() 
         }
 

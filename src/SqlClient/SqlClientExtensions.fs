@@ -138,8 +138,10 @@ type SqlConnection with
 
  //address an issue when regular Dispose on SqlConnection needed for async computation 
  //wipes out all properties like ConnectionString in addition to closing connection to db
-    member this.UseLocally() =
-        if this.State = ConnectionState.Closed then 
+    member this.UseLocally(?privateConnection) =
+        if this.State = ConnectionState.Closed 
+            && defaultArg privateConnection true
+        then 
             this.Open()
             { new IDisposable with member __.Dispose() = this.Close() }
         else { new IDisposable with member __.Dispose() = () }

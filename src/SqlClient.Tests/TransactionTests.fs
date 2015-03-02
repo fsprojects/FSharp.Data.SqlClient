@@ -79,7 +79,6 @@ let local() =
     tran.Rollback()
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
 
-
 type RaiseError = SqlCommandProvider<"SELECT 42; THROW 51000, 'Error raised.', 1 ", connection>
 
 [<Fact>]
@@ -103,5 +102,22 @@ let notCloseExternalConnInCaseOfError2() =
     with _ ->
         Assert.True(conn.State = ConnectionState.Open)
 
+type Get42 = SqlCommandProvider<"SELECT 42", connection>
+
+[<Fact>]
+let donNotOpenConnectionOnObject() =
+    use conn = new SqlConnection(connection)
+    Assert.Throws<InvalidOperationException>(fun() -> Get42.Create(conn).Execute() |> ignore)    
+
+type NonQuery = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", "name=AdventureWorks2012">
+
+[<Fact>]
+let donNotOpenConnectionOnObjectForNonQuery() =
+    use conn = new SqlConnection(connection)
+    Assert.Throws<InvalidOperationException>(fun() -> NonQuery.Create(conn).Execute()|> ignore)    
     
+[<Fact>]
+let donNotOpenConnectionOnObjectForAsyncNonQuery() =
+    use conn = new SqlConnection(connection)
+    Assert.Throws<InvalidOperationException>(fun() -> NonQuery.Create(conn).AsyncExecute() |> Async.RunSynchronously |> ignore)    
     
