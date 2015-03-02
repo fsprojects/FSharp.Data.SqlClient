@@ -296,7 +296,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     for c in columns do
                         let name = c.ColumnName
                         let property = 
-                            if c.AllowDBNull
+                            if c.AllowDBNull && not( c.ExtendedProperties.ContainsKey("COLUMN_DEFAULT")) //non-nullable columns with default still don't option<_> type
                             then
                                 let propertType = typedefof<_ option>.MakeGenericType c.DataType
                                 let property = ProvidedProperty(c.ColumnName, propertType, GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", c.DataType, name))

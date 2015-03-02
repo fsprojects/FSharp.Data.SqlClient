@@ -14,6 +14,7 @@ type ISqlCommand =
     abstract ToTraceString: parameters: (string * obj)[] -> string
     abstract Raw: SqlCommand with get
 
+[<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type RowMapping = obj[] -> obj
 
 module Seq = 
@@ -33,12 +34,14 @@ module Seq =
                 yield values |> rowMapping |> unbox<'TItem>
         }
 
+[<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 [<RequireQualifiedAccess>]
 type ResultRank = 
     | Sequence = 0
     | SingleRow = 1
     | ScalarValue = 2
 
+[<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type Connection =
     | Literal of string
     | NameInConfig of string

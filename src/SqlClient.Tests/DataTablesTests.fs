@@ -57,8 +57,12 @@ type DataTablesTests() =
         let t = new ShiftTable()
     
         //erased method to provide static typing
-        t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some DateTime.Now.Date)
-        t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some DateTime.Now.Date)
+        let now = DateTime.Now.Date
+        t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some now)
+        t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some now)
+
+        //check type. Should DateTime not option<DateTime>
+        Assert.Equal<DateTime>(now, t.Rows.[0].ModifiedDate)
 
         use getRowsCount = new GetRowCount()
         let rowsBefore = getRowsCount.Execute().Value.Value
