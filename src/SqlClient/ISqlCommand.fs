@@ -45,8 +45,7 @@ type ResultRank =
 type Connection =
     | Literal of string
     | NameInConfig of string
-    | Transaction of SqlConnection * SqlTransaction
-    | Instance of SqlConnection
+    | ``Connection and-or Transaction`` of SqlConnection * SqlTransaction
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, isStoredProcedure, parameters, resultType, rank, rowMapping: RowMapping, itemTypeName) = 
@@ -62,13 +61,11 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
             let connStr = Configuration.GetConnectionStringAtRunTime name
             cmd.Connection <- new SqlConnection(connStr)
             true
-        | Transaction(conn, tran) ->
+        | ``Connection and-or Transaction``(conn, tran) ->
              cmd.Connection <- conn
              cmd.Transaction <- tran
              false
-        | Instance conn -> 
-            cmd.Connection <- conn
-            false
+
     do 
         cmd.CommandType <- if isStoredProcedure then CommandType.StoredProcedure else CommandType.Text
         cmd.CommandTimeout <- commandTimeout
