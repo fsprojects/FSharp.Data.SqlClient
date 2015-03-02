@@ -231,7 +231,9 @@ module DB =
     let inline createCommand() : 'a = 
         let connStr = "..." //somehow get connection string at run-time
         //invoke ctor
-        (^a : (new : string -> ^a) connStr) 
+        (^a : (new : string * int -> ^a) (connStr, 30)) 
+        //or
+        //(^a : (static member Create: string * int -> ^a) (connStr, 30)) 
 
 let dbCmd1: DB.MyCmd1 = DB.createCommand()
 let dbCmd2: DB.MyCmd2 = DB.createCommand()

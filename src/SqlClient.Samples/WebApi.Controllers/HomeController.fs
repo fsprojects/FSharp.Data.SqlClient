@@ -16,7 +16,7 @@ module SqlCommand =
         | DataAccess.AdventureWorks2012 -> 
             //get connection string at run-time
             let adventureWorks = WebConfigurationManager.ConnectionStrings.["AdventureWorks2012"].ConnectionString
-            //create command instance with connection string override
+            //create command instance with connection string and command timeout override 
             (^a : (new : string * int -> ^a) (adventureWorks, 30)) 
 
         | _ -> failwithf "Unrecognized command type %s" typeof<'a>.FullName   

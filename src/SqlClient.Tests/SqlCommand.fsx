@@ -146,3 +146,27 @@ let inline toMyRecord (x: 'Recrod) =
         Now = (^Record : (member get_Now : unit -> DateTime) x)
         UtcNow = (^Record : (member get_UtcNow : unit -> DateTime) x)
     }
+
+
+[<Literal>]
+let getDatesQuery = "SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow"
+[<Literal>]
+let localhost = "Data Source=.;Integrated Security=True;"
+type GetDates = SqlCommandProvider<getDatesQuery,  localhost>
+
+open System.Data.SqlClient
+type SqlDataReader with
+    member this.ToRecords<'T>() = 
+        seq {
+            while this.Read() do
+                let data = dict [ for i = 0 to this.VisibleFieldCount - 1 do yield this.GetName(i), this.GetValue(i)]
+                yield FSharp.Data.SqlClient.DynamicRecord(data) |> box |> unbox<'T>
+        }
+    
+let xs = 
+    use conn = new SqlConnection(localhost)
+    conn.Open()
+    let cmd = new System.Data.SqlClient.SqlCommand(getDatesQuery, conn)
+    cmd.ExecuteReader().ToRecords<GetDates.Record>() 
+    |> Seq.toArray
+

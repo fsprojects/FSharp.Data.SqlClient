@@ -56,9 +56,13 @@ for productName, sellStartDate, size in tuples do
 type QueryProductDataTable = 
     SqlCommandProvider<productsSql, connectionString, ResultType = ResultType.DataTable>
 
-(new QueryProductDataTable()).Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") 
-|> Seq.iter (fun row -> 
-    printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size)
+QueryProductDataTable
+    .Create()
+    .Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") 
+    .Rows
+    |> Seq.iter (fun row -> 
+        printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size
+    )
 
 (**
  * Single row hint. Must be provided explicitly. Cannot be inferred
@@ -89,7 +93,9 @@ let queryPersonInfoSingletoneQuery =
 type QueryPersonInfoSingletoneTuples = 
     SqlCommandProvider<queryPersonInfoSingletoneQuery, connectionString, SingleRow=true, ResultType = ResultType.Tuples>
 
-(new QueryPersonInfoSingletoneTuples()).Execute(PersonId = 2).Value
+QueryPersonInfoSingletoneTuples
+    .Create()
+    .Execute(PersonId = 2).Value
     |> (function
         | id, Some first, Some last -> printfn "Person id: %i, name: %s %s" person.PersonID first last 
         | id, _, _ -> printfn "What's your name %i?" person.PersonID
@@ -109,7 +115,7 @@ type QueryPersonInfoSingletoneDataTable =
 
 let table = (new QueryPersonInfoSingletoneDataTable()).AsyncExecute(PersonId = 2) |> Async.RunSynchronously 
 
-for row in table do
+for row in table.Rows do
     printfn "Person info:Id - %i,FirstName - %O,LastName - %O" row.PersonID row.FirstName row.LastName 
 
 (**
@@ -120,11 +126,11 @@ for row in table do
 
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
 
-let db = AdventureWorks2012()
-
-let f = db.Functions.``dbo.ufnGetContactInformation``.AsyncExecute(1) 
-        |> Async.RunSynchronously 
-        |> Seq.exactlyOne
+type GetContactInformation = AdventureWorks2012.dbo.ufnGetContactInformation
+let f = 
+    (new GetContactInformation()).AsyncExecute(1) 
+    |> Async.RunSynchronously 
+    |> Seq.exactlyOne
 printfn "Person info:Id - %i,FirstName - %O,LastName - %O" f.PersonID f.FirstName f.LastName 
 
 (**
@@ -141,8 +147,10 @@ type QueryPersonInfoSingleValue =
         SingleRow=true>
 
 let personId = 2
-(new QueryPersonInfoSingleValue()).Execute(personId)
-|> Option.iter (fun name -> printf "Person with id %i has name %s" personId name.Value)
+QueryPersonInfoSingleValue
+    .Create()
+    .Execute(personId)
+    |> Option.iter (fun name -> printf "Person with id %i has name %s" personId name.Value)
 
 (**
 
@@ -196,10 +204,17 @@ open System.Data
 open Microsoft.SqlServer.Types
 
 let hierarchyId = SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/"))
-let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
-            .AsyncExecute(291, true, DateTime(2013,1,1), "gatekeeper", "adventure-works\gat0", hierarchyId)
-            |> Async.RunSynchronously 
-res.ReturnValue
+type UpdateEmployeeLogin = AdventureWorks2012.HumanResources.uspUpdateEmployeeLogin
+let res = 
+    (new UpdateEmployeeLogin()).AsyncExecute(
+        BusinessEntityID = 291, 
+        CurrentFlag = true, 
+        HireDate = DateTime(2013,1,1), 
+        JobTitle = "gatekeeper", 
+        LoginID = "adventure-works\gat0", 
+        OrganizationNode = hierarchyId)
+    |> Async.RunSynchronously 
+res
 
 (**
 ### Result sequence is un-buffered by default 
