@@ -24,13 +24,16 @@ type Configuration() =
     static let invalidFileChars = HashSet(Path.GetInvalidFileNameChars())
 
     static member GetValidFileName (file:string, resolutionFolder:string) = 
-        if (file.Contains "\n") || (resolutionFolder.Contains "\n") then None else
-        let f = Path.Combine(resolutionFolder, file)
-        if invalidPathChars.Overlaps (Path.GetDirectoryName f) ||
-           invalidFileChars.Overlaps (Path.GetFileName f) then None 
-        else 
-           // Canonicalizing the path may throw on bad input, the check above does not cover every error.
-           try Some (Path.GetFullPath f) with | _ -> None
+        try 
+            if (file.Contains "\n") || (resolutionFolder.Contains "\n") then None else
+            let f = Path.Combine(resolutionFolder, file)
+            if invalidPathChars.Overlaps (Path.GetDirectoryName f) ||
+               invalidFileChars.Overlaps (Path.GetFileName f) then None 
+            else 
+               // Canonicalizing the path may throw on bad input, the check above does not cover every error.
+               Some (Path.GetFullPath f) 
+        with _ -> 
+            None
 
     static member ParseTextAtDesignTime(commandTextOrPath : string, resolutionFolder, invalidateCallback) =
         match Configuration.GetValidFileName (commandTextOrPath, resolutionFolder) with

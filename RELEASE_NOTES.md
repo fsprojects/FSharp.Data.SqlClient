@@ -151,3 +151,6 @@
 #### 1.5.12 - March 1, 2015
 	* Non-nullable columns with default value should not have getter/setter of type option<_> on typed DataRow
 	* When SqlConnection instance passed to command ctor it's suppose to be in open state
+
+#### 1.6 - March 3, 2015
+	* Issue #121 fixed

@@ -35,6 +35,13 @@ let CheckValidFileName() =
     Configuration.GetValidFileName("../mysqlfiles/test.sql", "c:\\otherfolder") |> should equal expected
     Configuration.GetValidFileName("a/b/c/../../../test.sql", "c:\\mysqlfiles") |> should equal expected
 
-type Get42RelativePath = SqlCommandProvider<"sampleCommand.sql", "name=AdventureWorks2012", ResolutionFolder="MySqlFolder">
+type Get42RelativePath = SqlCommandProvider<"sampleCommand.sql", ConnectionStrings.AdventureWorksNamed, ResolutionFolder="MySqlFolder">
 
-type Get42 = SqlCommandProvider<"SELECT 42", "name=AdventureWorks2012", ConfigFile = "appWithInclude.config">
+type Get42 = SqlCommandProvider<"SELECT 42", ConnectionStrings.AdventureWorksNamed, ConfigFile = "appWithInclude.config">
+
+//[<Literal>]
+//let longQueryText = "INSERT INTO [HumanResources].[Employee] ([BusinessEntityID], [NationalIDNumber], [LoginID], [OrganizationNode], [JobTitle], [BirthDate], [MaritalStatus], [Gender], [HireDate], [SalariedFlag], [VacationHours], [SickLeaveHours], [CurrentFlag], [rowguid], [ModifiedDate]) VALUES (1, N'295847284', N'adventure-works\ken0', N'/', N'Chief Executive Officer', N'1963-03-02', N'S', N'M', N'2003-02-15', 1, 99, 69, 1, N'f01251e5-96a3-448d-981e-0f99d789110d', N'2008-07-31 00:00:00')" 
+
+[<Literal>]
+let longQueryText = "INSERT INTO Production.BillOfMaterials (BillOfMaterialsID, ProductAssemblyID, ComponentID, StartDate, EndDate, UnitMeasureCode, BOMLevel, PerAssemblyQty, ModifiedDate) VALUES (1692, 776, 907, N'2004-07-20 00:00:00', NULL, N'EA ', 1, CAST(1.00 AS Decimal(8, 2)), N'2004-07-06 00:00:00')"
+type LongQuery = SqlCommandProvider<longQueryText, ConnectionStrings.AdventureWorksNamed>
