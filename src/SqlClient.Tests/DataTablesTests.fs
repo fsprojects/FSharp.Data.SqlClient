@@ -15,11 +15,14 @@ type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWork
 
 //Tables types structured as: [TypeAlias].[Namespace].Tables.[TableName]
 type ShiftTable = AdventureWorks.HumanResources.Tables.Shift
+type ProductCostHistory = AdventureWorks.Production.Tables.ProductCostHistory
 
-type ResetIndentity = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", "name=AdventureWorks2012">
-type GetRowCount = SqlCommandProvider<"SELECT COUNT(*) FROM HumanResources.Shift", "name=AdventureWorks2012", SingleRow = true>
-type GetShiftTableData = SqlCommandProvider<"SELECT * FROM HumanResources.Shift", "name=AdventureWorks2012", ResultType.DataReader>
-type GetShift = SqlCommandProvider<"SELECT * FROM HumanResources.Shift", "name=AdventureWorks2012">
+type ResetIndentity = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", ConnectionStrings.AdventureWorksNamed>
+type GetRowCount = SqlCommandProvider<"SELECT COUNT(*) FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, SingleRow = true>
+type GetShiftTableData = SqlCommandProvider<"SELECT * FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, ResultType.DataReader>
+type GetShift = SqlCommandProvider<"SELECT * FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed>
+type GetProductCostHistoryItem = 
+    SqlCommandProvider<"SELECT * FROM Production.ProductCostHistory WHERE EndDate IS NOT NULL", ConnectionStrings.AdventureWorksNamed, ResultType.DataReader>
 
 type DataTablesTests() = 
 
@@ -167,7 +170,24 @@ type DataTablesTests() =
     [<Fact>]
     member __.TableTypeTag() = 
         Assert.Equal<string>(ConnectionStrings.AdventureWorksNamed, GetShiftTableData.ConnectionStringOrName)
+
+    [<Fact>]
+    member __.NullableDateTimeColumn() = 
+
+        let table = new ProductCostHistory()
+        GetProductCostHistoryItem.Create().Execute() |> table.Load
         
+        Assert.NotEmpty(table.Rows)
+
+        let row = table.Rows.[0]
+
+        Assert.True(row.EndDate.IsSome)
+        //dymanic accessor
+        Assert.NotEqual(box DBNull.Value, row.["EndDate"])
+
+        row.EndDate <- None
+
+        Assert.True(row.EndDate.IsNone)
 
 
 

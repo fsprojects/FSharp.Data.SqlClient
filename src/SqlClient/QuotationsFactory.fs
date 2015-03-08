@@ -108,7 +108,7 @@ type QuotationsFactory private() =
 
     static member internal SetNullableValueInDataRow<'T>(exprArgs : Expr list, name : string) =
         <@
-            (%%exprArgs.[0] : DataRow).[name] <- match (%%exprArgs.[1] : option<'T>) with None -> null | Some value -> box value
+            (%%exprArgs.[0] : DataRow).[name] <- match (%%exprArgs.[1] : option<'T>) with None -> DbNull | Some value -> box value
         @> 
 
     static member GetMapperWithNullsToOptions(nullsToOptions, mapper: obj[] -> obj) = 
