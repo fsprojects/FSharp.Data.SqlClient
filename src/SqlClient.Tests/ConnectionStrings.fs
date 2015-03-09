@@ -5,7 +5,10 @@ type Settings = FSharp.Configuration.AppSettings<"app.config">
 module ConnectionStrings = 
 
     [<Literal>]
-    let AdventureWorksLiteral = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+    let server = @"."
+
+    [<Literal>]
+    let AdventureWorksLiteral = @"Data Source=" + server + ";Initial Catalog=AdventureWorks2014;Integrated Security=True"
     [<Literal>]
     let AdventureWorksLiteralMultipleActiveResults = AdventureWorksLiteral + ";MultipleActiveResultSets=True"
     [<Literal>]
@@ -15,5 +18,5 @@ module ConnectionStrings =
     [<Literal>]
     let MasterDb = @"name=MasterDb"
     [<Literal>]
-    let LocalHost = @"Data Source=.;Integrated Security=True"
+    let LocalHost = @"Data Source=" + server + ";Integrated Security=True"
 
