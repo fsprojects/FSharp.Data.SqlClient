@@ -1,6 +1,6 @@
 ﻿namespace FSharp.Data
 
-type EnumMapping = SqlEnumProvider<"SELECT * FROM (VALUES(('One'), 1), ('Two', 2)) AS T(Tag, Value)", ConnectionStrings.LocalDbDefault, CLIEnum = true>
+type EnumMapping = SqlEnumProvider<"SELECT * FROM (VALUES(('One'), 1), ('Two', 2)) AS T(Tag, Value)", ConnectionStrings.LocalHost, CLIEnum = true>
 
 module EnumTests = 
 
@@ -8,7 +8,7 @@ module EnumTests =
     open Xunit
     
     [<Literal>]
-    let connectionString = ConnectionStrings.LocalDbDefault
+    let connectionString = ConnectionStrings.LocalHost
 
     type TinyIntMapping = SqlEnumProvider<"SELECT * FROM (VALUES(('One'), CAST(1 AS tinyint)), ('Two', CAST(2 AS tinyint))) AS T(Tag, Value)", connectionString>
 

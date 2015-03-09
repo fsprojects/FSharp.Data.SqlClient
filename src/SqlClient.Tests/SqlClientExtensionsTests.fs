@@ -7,7 +7,7 @@ open Xunit
 open FsUnit.Xunit
 open System.Diagnostics
 
-open FSharp.Data.SqlClient
+open FSharp.Data
 
 type ExtensionsTest() = 
     

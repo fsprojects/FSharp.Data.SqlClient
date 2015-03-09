@@ -14,17 +14,16 @@ let ``Wrong config file name`` () =
 [<Fact>]
 let ``From config file`` () = 
     Configuration.ReadConnectionStringFromConfigFileByName(
-        name = "AdventureWorks2012", 
+        name = "AdventureWorks", 
         resolutionFolder = __SOURCE_DIRECTORY__,
         fileName = "app.config"
     ) 
-    |> should equal ConfigurationManager.ConnectionStrings.["AdventureWorks2012"].ConnectionString
+    |> should equal Settings.ConnectionStrings.AdventureWorks
 
 [<Fact>]
 let RuntimeConfig () = 
-    let name = "AdventureWorks2012"
-    Configuration.GetConnectionStringAtRunTime name
-    |> should equal ConfigurationManager.ConnectionStrings.[name].ConnectionString
+    Configuration.GetConnectionStringAtRunTime "AdventureWorks"
+    |> should equal Settings.ConnectionStrings.AdventureWorks
 
 [<Fact>]
 let CheckValidFileName() = 

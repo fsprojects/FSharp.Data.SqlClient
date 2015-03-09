@@ -9,8 +9,6 @@ open FSharp.Data
 open Xunit
 open FsUnit.Xunit
 
-type Settings = FSharp.Configuration.AppSettings<"app.config">
-
 type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksNamed>
 
 //Tables types structured as: [TypeAlias].[Namespace].Tables.[TableName]
@@ -33,7 +31,7 @@ type DataTablesTests() =
     [<Fact>]
     member __.NewRowAndBulkCopy() = 
         let t = new ShiftTable()
-        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
+        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks)
         conn.Open()
         use tran = conn.BeginTransaction()
     
@@ -90,7 +88,7 @@ type DataTablesTests() =
     [<Fact>]
     member __.AddRowAndBulkCopyWithConnOverride() = 
         let t = new ShiftTable()
-        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
+        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks)
         conn.Open()
         use tran = conn.BeginTransaction()
     
@@ -110,7 +108,7 @@ type DataTablesTests() =
     [<Fact>]
     member __.DEFAULTConstraint() = 
         let t = new ShiftTable()
-        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
+        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks)
         conn.Open()
         use tran = conn.BeginTransaction()
     
@@ -134,7 +132,7 @@ type DataTablesTests() =
     member __.DEFAULTConstraintInsertViaSqlDataAdapter() = 
         let t = new ShiftTable()
         Assert.True t.ModifiedDateColumn.AllowDBNull
-        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks2012)
+        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks)
         conn.Open()
         use tran = conn.BeginTransaction()
     

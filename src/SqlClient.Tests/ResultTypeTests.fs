@@ -9,7 +9,7 @@ let connectionString = ConnectionStrings.AdventureWorksNamed
 [<Literal>]
 let command = "SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003), ('foo bar',NULL))  AS T(lang, DOB)"
 
-type ResultTypeReader = SqlCommandProvider<command, "name=AdventureWorks2012", ResultType = ResultType.DataReader>
+type ResultTypeReader = SqlCommandProvider<command, ConnectionStrings.AdventureWorksNamed, ResultType = ResultType.DataReader>
 
 let ReadToMaps(reader : System.Data.SqlClient.SqlDataReader) = 
     seq {

@@ -109,7 +109,7 @@ let donNotOpenConnectionOnObject() =
     use conn = new SqlConnection(connection)
     Assert.Throws<InvalidOperationException>(fun() -> Get42.Create(conn).Execute() |> ignore)    
 
-type NonQuery = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", "name=AdventureWorks2012">
+type NonQuery = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", ConnectionStrings.AdventureWorksNamed>
 
 [<Fact>]
 let donNotOpenConnectionOnObjectForNonQuery() =

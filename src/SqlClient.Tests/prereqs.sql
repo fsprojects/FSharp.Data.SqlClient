@@ -1,12 +1,12 @@
-﻿USE AdventureWorks2012
+﻿USE AdventureWorks2014
 -- The following Sql must be run against AdventureWorks2012 for the tests to compile.
 
-DROP PROCEDURE MyProc
+DROP PROCEDURE Person.MyProc
+DROP TYPE Person.MyTableType
 DROP PROCEDURE SingleElementProc
 DROP PROCEDURE [Init]
 DROP PROCEDURE [Get]
 DROP PROCEDURE [Swap]
-DROP TYPE MyTableType
 DROP TYPE SingleElementType
 IF OBJECT_ID('Person.Address_GetAddressBySpatialLocation') IS NOT NULL
 BEGIN

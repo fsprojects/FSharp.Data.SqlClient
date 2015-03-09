@@ -7,7 +7,7 @@ open System
 open FSharp.Data
 
 [<Literal>] 
-let connectionString = ConnectionStrings.AdventureWorksLiteralMultipleActiveResults
+let connectionString = ConnectionStrings.AdventureWorksLiteral
 
 [<Literal>]
 let queryProductsSql = "
@@ -132,11 +132,11 @@ let getEmployeeByLevel = new GetEmployeeByLevel()
 getEmployeeByLevel.Execute(2s)
 
 
-type MyCommand1 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow",  ConnectionStrings.LocalDbDefault>
+type MyCommand1 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow",  ConnectionStrings.LocalHost>
 type MyRecord1 = MyCommand1.Record
 let r1 = MyCommand1.Record(DateTime.Now, DateTime.UtcNow)
 
-type MyCommand2 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow",  ConnectionStrings.LocalDbDefault>
+type MyCommand2 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow",  ConnectionStrings.LocalHost>
 let r2 = MyCommand2.Record(DateTime.Now, DateTime.UtcNow)
 
 type MyRecord = { Now: DateTime; UtcNow: DateTime }

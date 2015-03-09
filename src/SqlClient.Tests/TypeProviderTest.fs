@@ -161,3 +161,10 @@ let DynamicSql() =
     //accessing completely diff table
     cmd.Execute("SELECT Name, rowguid AS UUID FROM Production.Product WHERE Name = @p1", "Chainring Nut") |> Seq.toArray |> Array.length |> should equal 1
 
+type DeleteStatement = SqlCommandProvider<"DELETE FROM dbo.ErrorLog", connection>
+
+[<Fact>]
+let DeleteStatement() =    
+    use tran = new Transactions.TransactionScope()
+    use c = new DeleteStatement(ConnectionStrings.AdventureWorksLiteral)
+    c.Execute() |> ignore
