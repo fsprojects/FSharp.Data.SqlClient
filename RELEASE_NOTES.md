@@ -157,3 +157,6 @@
 
 #### 1.6.1 - March 7, 2015
 	* Issue #122 fixed
+
+#### 1.6.2 - March 9, 2015
+	* Issue #119 fixed
