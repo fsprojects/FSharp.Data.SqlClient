@@ -162,7 +162,7 @@ type DesignTime private() =
                         | [ x ] -> x.ClrTypeConsideringNullable
                         | xs -> FSharpType.MakeTupleType [| for x in xs -> x.ClrTypeConsideringNullable|]
 
-                    let tupleTypeName = tupleType.AssemblyQualifiedName
+                    let tupleTypeName = tupleType.PartialAssemblyQualifiedName
                     None, tupleType, <@@ FSharpValue.PreComputeTupleConstructor (Type.GetType (tupleTypeName))  @@>
             
             let nullsToOptions = QuotationsFactory.MapArrayNullableItems(outputColumns, "MapArrayObjItemToOption") 

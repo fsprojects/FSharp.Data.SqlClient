@@ -8,7 +8,12 @@ open System.Collections.Generic
 open System.IO
 open System.Threading.Tasks
 open System.Data.SqlClient
-open Microsoft.SqlServer.TransactSql.ScriptDom
+open System.Reflection
+//open Microsoft.SqlServer.TransactSql.ScriptDom
+
+type Type with
+    member this.PartialAssemblyQualifiedName = 
+        Assembly.CreateQualifiedName(this.Assembly.GetName().Name, this.FullName)
 
 type SqlCommand with
     member this.AsyncExecuteReader behavior =
@@ -90,23 +95,23 @@ let internal findTypeInfoByProviderType( connStr, sqlDbType)  =
     assert (dataTypeMappings.ContainsKey connStr)
     dataTypeMappings.[connStr] |> Array.find (fun x -> x.SqlDbType = sqlDbType)
 
-let rec parseDefaultValue (definition: string) (expr: ScalarExpression) = 
+let rec parseDefaultValue (definition: string) (expr: Microsoft.SqlServer.TransactSql.ScriptDom.ScalarExpression) = 
     match expr with
-    | :? Literal as x ->
+    | :? Microsoft.SqlServer.TransactSql.ScriptDom.Literal as x ->
         match x.LiteralType with
-        | LiteralType.Default | LiteralType.Null -> Some null
-        | LiteralType.Integer -> x.Value |> int |> box |> Some
-        | LiteralType.Money | LiteralType.Numeric -> x.Value |> decimal |> box |> Some
-        | LiteralType.Real -> x.Value |> float |> box |> Some 
+        | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Default | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Null -> Some null
+        | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Integer -> x.Value |> int |> box |> Some
+        | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Money | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Numeric -> x.Value |> decimal |> box |> Some
+        | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Real -> x.Value |> float |> box |> Some 
         | _ -> None
-    | :? UnaryExpression as x when x.UnaryExpressionType <> UnaryExpressionType.BitwiseNot ->
+    | :? Microsoft.SqlServer.TransactSql.ScriptDom.UnaryExpression as x when x.UnaryExpressionType <> Microsoft.SqlServer.TransactSql.ScriptDom.UnaryExpressionType.BitwiseNot ->
         let fragment = definition.Substring( x.StartOffset, x.FragmentLength)
         match x.Expression with
-        | :? Literal as x ->
+        | :? Microsoft.SqlServer.TransactSql.ScriptDom.Literal as x ->
             match x.LiteralType with
-            | LiteralType.Integer -> fragment |> int |> box |> Some
-            | LiteralType.Money | LiteralType.Numeric -> fragment |> decimal |> box |> Some
-            | LiteralType.Real -> fragment |> float |> box |> Some 
+            | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Integer -> fragment |> int |> box |> Some
+            | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Money | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Numeric -> fragment |> decimal |> box |> Some
+            | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Real -> fragment |> float |> box |> Some 
             | _ -> None
         | _  -> None 
     | _ -> None 
@@ -203,7 +208,7 @@ type SqlConnection with
 
         let paramDefaults = Task.Factory.StartNew( fun() ->
 
-            let parser = TSql110Parser( true)
+            let parser = Microsoft.SqlServer.TransactSql.ScriptDom.TSql110Parser( true)
             let tsqlReader = new StringReader(spDefinition)
             let errors = ref Unchecked.defaultof<_>
             let fragment = parser.Parse(tsqlReader, errors)
@@ -211,8 +216,8 @@ type SqlConnection with
             let result = Dictionary()
 
             fragment.Accept {
-                new TSqlFragmentVisitor() with
-                    member __.Visit(node : ProcedureParameter) = 
+                new Microsoft.SqlServer.TransactSql.ScriptDom.TSqlFragmentVisitor() with
+                    member __.Visit(node : Microsoft.SqlServer.TransactSql.ScriptDom.ProcedureParameter) = 
                         base.Visit node
                         result.[node.VariableName.Value] <- parseDefaultValue spDefinition node.Value
             }

@@ -33,7 +33,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         this.Disposing.Add <| fun _ -> cache.Dispose()
 
     do 
-        this.RegisterRuntimeAssemblyLocationAsProbingFolder( config) 
+        //this.RegisterRuntimeAssemblyLocationAsProbingFolder( config) 
 
         providerType.DefineStaticParameters(
             parameters = [ 
@@ -57,6 +57,11 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         this.AddNamespace(nameSpace, [ providerType ])
     
+    override this.ResolveAssembly args = 
+        match config.ReferencedAssemblies |> Array.tryFind (fun x -> AssemblyName.ReferenceMatchesDefinition(AssemblyName.GetAssemblyName x, AssemblyName args.Name)) with
+        | Some x -> Assembly.LoadFrom x
+        | None -> base.ResolveAssembly args
+
     member internal this.CreateRootType( typeName, connectionStringOrName, resultType, configFile, dataDirectory) =
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         
@@ -180,7 +185,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                     ResultRank.ScalarValue 
                                 | _ -> ResultRank.Sequence)               //rank
                             output.RowMapping                           //rowMapping
-                            Expr.Value output.ErasedToRowType.AssemblyQualifiedName
+                            Expr.Value output.ErasedToRowType.PartialAssemblyQualifiedName
                         ]
                         let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructors() |> Seq.exactlyOne
                         ctor1.InvokeCode <- 

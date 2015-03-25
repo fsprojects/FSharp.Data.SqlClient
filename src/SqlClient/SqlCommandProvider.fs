@@ -148,7 +148,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 Expr.Value resultType; 
                 Expr.Value rank
                 output.RowMapping; 
-                Expr.Value output.ErasedToRowType.AssemblyQualifiedName
+                Expr.Value output.ErasedToRowType.PartialAssemblyQualifiedName
             ]
 
             let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructors() |> Seq.exactlyOne
