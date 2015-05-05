@@ -9,7 +9,6 @@ open System.IO
 open System.Threading.Tasks
 open System.Data.SqlClient
 open System.Reflection
-//open Microsoft.SqlServer.TransactSql.ScriptDom
 
 type Type with
     member this.PartialAssemblyQualifiedName = 

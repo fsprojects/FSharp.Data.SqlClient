@@ -14,23 +14,22 @@ type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWork
 type ShiftTable = AdventureWorks.HumanResources.Tables.Shift
 type ProductCostHistory = AdventureWorks.Production.Tables.ProductCostHistory
 
-type ResetIndentity = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", ConnectionStrings.AdventureWorksNamed>
 type GetRowCount = SqlCommandProvider<"SELECT COUNT(*) FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, SingleRow = true>
 type GetShiftTableData = SqlCommandProvider<"SELECT * FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, ResultType.DataReader>
-type GetShift = SqlCommandProvider<"SELECT * FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed>
-type GetProductCostHistoryItem = 
-    SqlCommandProvider<"SELECT * FROM Production.ProductCostHistory WHERE EndDate IS NOT NULL", ConnectionStrings.AdventureWorksNamed, ResultType.DataReader>
 
 type DataTablesTests() = 
 
     do
-        use cmd = new ResetIndentity()
+        use cmd = new SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", ConnectionStrings.AdventureWorksNamed>()
         cmd.Execute() |> ignore
+
+    let adventureWorks = FSharp.Configuration.AppSettings<"app.config">.ConnectionStrings.AdventureWorks
+    
 
     [<Fact>]
     member __.NewRowAndBulkCopy() = 
         let t = new ShiftTable()
-        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks)
+        use conn = new SqlConnection(connectionString = adventureWorks)
         conn.Open()
         use tran = conn.BeginTransaction()
     
@@ -87,7 +86,7 @@ type DataTablesTests() =
     [<Fact>]
     member __.AddRowAndBulkCopyWithConnOverride() = 
         let t = new ShiftTable()
-        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks)
+        use conn = new SqlConnection(connectionString = adventureWorks)
         conn.Open()
         use tran = conn.BeginTransaction()
     
@@ -107,7 +106,7 @@ type DataTablesTests() =
     [<Fact>]
     member __.DEFAULTConstraint() = 
         let t = new ShiftTable()
-        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks)
+        use conn = new SqlConnection(connectionString = adventureWorks)
         conn.Open()
         use tran = conn.BeginTransaction()
     
@@ -131,7 +130,7 @@ type DataTablesTests() =
     member __.DEFAULTConstraintInsertViaSqlDataAdapter() = 
         let t = new ShiftTable()
         Assert.True t.ModifiedDateColumn.AllowDBNull
-        use conn = new SqlConnection(connectionString = Settings.ConnectionStrings.AdventureWorks)
+        use conn = new SqlConnection(connectionString = adventureWorks)
         conn.Open()
         use tran = conn.BeginTransaction()
     
@@ -160,7 +159,7 @@ type DataTablesTests() =
         let rowsUpdated = t.Update()
         Assert.Equal(1, rowsUpdated)
 
-        use getShift = new GetShift()
+        use getShift = new SqlCommandProvider<"SELECT * FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed>()
         let eveningShiftIinDb = getShift.Execute() |> Seq.find (fun x -> x.Name = "Evening")
         Assert.Equal(finishBy10, eveningShiftIinDb.EndTime)
 
@@ -172,7 +171,8 @@ type DataTablesTests() =
     member __.NullableDateTimeColumn() = 
 
         let table = new ProductCostHistory()
-        GetProductCostHistoryItem.Create().Execute() |> table.Load
+        use cmd = new SqlCommandProvider<"SELECT * FROM Production.ProductCostHistory WHERE EndDate IS NOT NULL", ConnectionStrings.AdventureWorksNamed, ResultType.DataReader>()
+        cmd.Execute() |> table.Load
         
         Assert.NotEmpty(table.Rows)
 
