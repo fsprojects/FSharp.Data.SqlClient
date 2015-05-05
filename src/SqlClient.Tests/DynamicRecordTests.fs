@@ -5,7 +5,6 @@ open System.Dynamic
 open System.Collections.Generic
 
 open Xunit
-open FsUnit.Xunit
 open Newtonsoft.Json
 open FSharp.Data.SqlClient
 
@@ -13,39 +12,60 @@ let recordWithNulls = DynamicRecord(dict ["DBNull", box DBNull.Value; "null", nu
 
 [<Fact>]
 let ``ToString : Nulls to Nones``() =
-    recordWithNulls.ToString() |> should equal @"{ DBNull = None; null = None; foo = ""bar"" }"
+    Assert.Equal<string>(
+        expected = @"{ DBNull = None; null = None; foo = ""bar"" }",
+        actual = recordWithNulls.ToString()
+    )
 
 type Binder(name) = 
     inherit GetMemberBinder(name, false) 
     override this.FallbackGetMember(_,_) = null
 
 [<Fact>] 
-let ``TryGetMember succeeds``() = recordWithNulls.TryGetMember(Binder("DBNull")) |> should equal (true, box DBNull.Value)
+let ``TryGetMember succeeds``() = 
+    Assert.Equal(
+        expected = (true, box DBNull.Value),
+        actual = recordWithNulls.TryGetMember(Binder("DBNull"))
+    )
 
 [<Fact>] 
-let ``TryGetMember fails``() = recordWithNulls.TryGetMember(Binder("foobar")) |> should equal (false, null)
+let ``TryGetMember fails``() = 
+    Assert.Equal(
+        expected = recordWithNulls.TryGetMember(Binder("foobar")),
+        actual = (false, null)
+    )
 
 [<Fact>] 
-let ``Not equal of different type``() = recordWithNulls.Equals(new obj()) |> should be False
+let ``Not equal of different type``() = 
+    Assert.False( recordWithNulls.Equals( obj()))
 
 [<Fact>] 
-let ``Not equal of different size``() = recordWithNulls = DynamicRecord(dict []) |> should be False
+let ``Not equal of different size``() = 
+    let condition = recordWithNulls = DynamicRecord(dict [])
+    Assert.False condition
 
 [<Fact>] 
-let ``Not equal with different keys``() = recordWithNulls = DynamicRecord(dict ["DBNull", box DBNull.Value; "bar", null]) |> should be False
+let ``Not equal with different keys``() = 
+    let condition = recordWithNulls = DynamicRecord(dict ["DBNull", box DBNull.Value; "bar", null])
+    Assert.False condition
 
 [<Fact>] 
-let ``Not equal with different values``() = recordWithNulls = DynamicRecord(dict ["DBNull", box DBNull.Value; "foo", box "foo"]) |> should be False
+let ``Not equal with different values``() = 
+    let condition = recordWithNulls = DynamicRecord(dict ["DBNull", box DBNull.Value; "foo", box "foo"])
+    Assert.False condition
 
 [<Fact>] 
-let Equal() = recordWithNulls = DynamicRecord(Dictionary<_,_>(recordWithNulls.Data)) |> should be True
+let Equal() = 
+    let condition = recordWithNulls = DynamicRecord(Dictionary<_,_>(recordWithNulls.Data))
+    Assert.True condition
 
 [<Fact>] 
 let ``GetHashCode is same when equal``() = 
     let clone = DynamicRecord( Dictionary<_,_>( recordWithNulls.Data))
     if recordWithNulls = clone //did if to make assertion more granular
     then 
-        recordWithNulls.GetHashCode() = clone.GetHashCode() |> should be True
+        let condition = recordWithNulls.GetHashCode() = clone.GetHashCode() 
+        Assert.True condition
 
 let dt = DateTime(2012,1,1)
 let offset = DateTimeOffset(dt,TimeSpan.FromHours(2.))
@@ -56,13 +76,22 @@ let recordWithNullsString = """{"DBNull":null,"null":null,"foo":"bar"}"""
 
 [<Fact>] 
 let ``JSON serialize``() = 
-    JsonConvert.SerializeObject(recordWithNulls) |> should equal recordWithNullsString
-    JsonConvert.SerializeObject(dateRecord) |> should equal dateRecordString
+    Assert.Equal<string>(
+        expected = recordWithNullsString,
+        actual = JsonConvert.SerializeObject recordWithNulls
+    )
+
+    Assert.Equal<string>(
+        expected = dateRecordString,
+        actual = JsonConvert.SerializeObject( dateRecord)
+    )
 
 [<Fact>] 
 let ToString() = 
-    let expected = sprintf "{ Date = %A; Offset = %A }" data.["Date"] data.["Offset"]
-    Assert.Equal<string>(expected, dateRecord.ToString())
+    Assert.Equal<string>(
+        expected = sprintf "{ Date = %A; Offset = %A }" data.["Date"] data.["Offset"],
+        actual = dateRecord.ToString()
+    )
 
 
 

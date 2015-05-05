@@ -4,7 +4,6 @@ open System
 open System.Data
 open System.Data.SqlClient
 open Xunit
-open FsUnit.Xunit
 open System.Diagnostics
 
 open FSharp.Data

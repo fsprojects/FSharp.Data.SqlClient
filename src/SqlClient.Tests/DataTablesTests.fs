@@ -7,7 +7,6 @@ open System.Data.SqlClient
 open System.Data
 open FSharp.Data
 open Xunit
-open FsUnit.Xunit
 
 type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksNamed>
 

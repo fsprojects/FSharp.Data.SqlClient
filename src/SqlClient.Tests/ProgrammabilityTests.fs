@@ -2,7 +2,6 @@
 
 open System.Data.SqlClient
 open Xunit
-open FsUnit.Xunit
 
 [<Literal>] 
 let connection = ConnectionStrings.AdventureWorksNamed

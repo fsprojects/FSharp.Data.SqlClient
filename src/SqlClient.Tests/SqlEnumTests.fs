@@ -21,8 +21,8 @@ module EnumTests =
         Assert.Equal(TinyIntMapping.One, TinyIntMapping.Parse("one", ignoreCase = true))
         Assert.Equal(TinyIntMapping.One, TinyIntMapping.Parse("One", ignoreCase = false))
         Assert.Equal(TinyIntMapping.One, TinyIntMapping.Parse("One"))
-        Assert.Throws<ArgumentException>(Assert.ThrowsDelegateWithReturn(fun() -> box (TinyIntMapping.Parse("blah-blah")))) |> ignore
-        Assert.Throws<ArgumentException>(Assert.ThrowsDelegateWithReturn(fun() -> box (TinyIntMapping.Parse("one")))) |> ignore
+        Assert.Throws<ArgumentException>(fun() -> box (TinyIntMapping.Parse("blah-blah"))) |> ignore
+        Assert.Throws<ArgumentException>(fun() -> box (TinyIntMapping.Parse("one"))) |> ignore
 
     [<Fact>]
     let Enums() = 
