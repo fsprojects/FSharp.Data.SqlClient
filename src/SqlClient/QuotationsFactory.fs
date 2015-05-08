@@ -8,7 +8,6 @@ open System.Collections
 open System.Diagnostics
 
 open Microsoft.FSharp.Quotations
-open Microsoft.FSharp.Reflection
 
 open FSharp.Data
 

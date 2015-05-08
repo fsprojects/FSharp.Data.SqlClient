@@ -357,6 +357,9 @@ type ProvidedTypeDefinition =
     /// Suppress System.Object entries in intellisense menus in instances of this provided type 
     member HideObjectMethods  : bool with set
 
+    /// Disallows the use of the null literal. 
+    member NonNullable : bool with set
+
     /// Get or set a flag indicating if the ProvidedTypeDefinition is erased
     member IsErased : bool  with get,set
 
@@ -377,6 +380,9 @@ type ProvidedTypeDefinition =
     /// case of generics all the generic type arguments are also recursively
     /// replaced with the erased-to types
     static member EraseType : t:Type -> Type
+
+    /// FSharp.Data addition: this is used to log the creation of root Provided Types to be able to debug caching/invalidation
+    static member Logger : (string -> unit) option ref
 
 /// A provided generated assembly
 type ProvidedAssembly =

@@ -11,7 +11,6 @@ open System.Runtime.Caching
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
-open Microsoft.FSharp.Reflection 
 
 open Microsoft.SqlServer.Server
 
@@ -147,6 +146,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     | ScalarValuedFunction _ -> "Scalar-Valued Function"
                 
                 cmdProvidedType.AddMembersDelayed <| fun() ->
+                //cmdProvidedType.AddMembers
                     [
                         use __ = conn.UseLocally()
                         let parameters = conn.GetParameters( routine)
@@ -408,7 +408,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         newRowMethod.AddXmlDoc methodXmlDoc
                         dataTableType.AddMember newRowMethod
 
-                        let addRowMethod = ProvidedMethod("AddRow", parameters, typeof<unit>)
+                        let addRowMethod = ProvidedMethod("AddRow", parameters, typeof<Void>)
                         addRowMethod.AddXmlDoc methodXmlDoc
                         addRowMethod.InvokeCode <- fun args -> 
                             let newRow = invokeCode args
@@ -451,7 +451,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             let connection = ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
                             let copyOptions = ProvidedParameter("copyOptions", typeof<SqlBulkCopyOptions>, optionalValue = SqlBulkCopyOptions.Default)
                             let transaction = ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null)
-                            ProvidedMethod("BulkCopy", [ connection; copyOptions; transaction ], typeof<unit>) 
+                            ProvidedMethod("BulkCopy", [ connection; copyOptions; transaction ], typeof<Void>) 
                         bulkCopyMethod.InvokeCode <- fun args ->
                             <@@
                                 let connection = 

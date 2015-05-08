@@ -1,4 +1,5 @@
 #nowarn "40"
+#nowarn "52"
 // Based on code for the F# 3.0 Developer Preview release of September 2011,
 // Copyright (c) Microsoft Corporation 2005-2012.
 // This sample code is provided "as is" without warranty of any kind. 
@@ -87,6 +88,16 @@ module internal Misc =
             member __.ConstructorArguments = upcast [| |]
             member __.NamedArguments = upcast [| |] }
 
+    let mkAllowNullLiteralCustomAttributeData value =
+#if FX_NO_CUSTOMATTRIBUTEDATA
+        { new IProvidedCustomAttributeData with 
+#else
+        { new CustomAttributeData() with 
+#endif 
+            member __.Constructor = typeof<AllowNullLiteralAttribute>.GetConstructors().[0]
+            member __.ConstructorArguments = upcast [| CustomAttributeTypedArgument(typeof<bool>, value) |]
+            member __.NamedArguments = upcast [| |] }
+
     /// This makes an xml doc attribute w.r.t. an amortized computation of an xml doc string.
     /// It is important that the text of the xml doc only get forced when poking on the ConstructorArguments
     /// for the CustomAttributeData object.
@@ -128,6 +139,7 @@ module internal Misc =
     type CustomAttributesImpl() =
         let customAttributes = ResizeArray<CustomAttributeData>()
         let mutable hideObjectMethods = false
+        let mutable nonNullable = false
         let mutable obsoleteMessage = None
         let mutable xmlDocDelayed = None
         let mutable xmlDocAlwaysRecomputed = None
@@ -143,6 +155,7 @@ module internal Misc =
         let customAttributesOnce = 
             lazy 
                [| if hideObjectMethods then yield mkEditorHideMethodsCustomAttributeData() 
+                  if nonNullable then yield mkAllowNullLiteralCustomAttributeData false
                   match xmlDocDelayed with None -> () | Some _ -> customAttributes.Add(mkXmlDocCustomAttributeDataLazy xmlDocDelayedText) 
                   match obsoleteMessage with None -> () | Some s -> customAttributes.Add(mkObsoleteAttributeCustomAttributeData s) 
                   if hasParamArray then yield mkParamArrayCustomAttributeData()
@@ -155,6 +168,7 @@ module internal Misc =
         member __.AddXmlDocDelayed(xmlDoc : unit -> string) = xmlDocDelayed <- Some xmlDoc
         member this.AddXmlDoc(text:string) =  this.AddXmlDocDelayed (fun () -> text)
         member __.HideObjectMethods with set v = hideObjectMethods <- v
+        member __.NonNullable with set v = nonNullable <- v
         member __.AddCustomAttribute(attribute) = customAttributes.Add(attribute)
         member __.GetCustomAttributesData() = 
             [| yield! customAttributesOnce.Force()
@@ -227,6 +241,84 @@ module internal Misc =
                 // the binding must have leaves that are themselves variables (due to the limited support for byrefs in expressions)
                 // therefore, we can perform inlining to translate this to a form that can be compiled
                 inlineByref v vexpr bexpr
+
+            // Eliminate recursive let bindings (which are unsupported by the type provider API) to regular let bindings
+            | Quotations.Patterns.LetRecursive(bindings, expr) ->
+                // This uses a "lets and sets" approach, converting something like
+                //    let rec even = function
+                //    | 0 -> true
+                //    | n -> odd (n-1)
+                //    and odd = function
+                //    | 0 -> false
+                //    | n -> even (n-1)
+                //    X
+                // to something like
+                //    let even = ref Unchecked.defaultof<_>
+                //    let odd  = ref Unchecked.defaultof<_>
+                //    even := function
+                //            | 0 -> true
+                //            | n -> !odd (n-1)
+                //    odd  := function
+                //            | 0 -> false
+                //            | n -> !even (n-1)
+                //    X'
+                // where X' is X but with occurrences of even/odd substituted by !even and !odd (since now even and odd are references)
+                // Translation relies on typedefof<_ ref> - does this affect ability to target different runtime and design time environments?
+                let vars = List.map fst bindings
+                let vars' = vars |> List.map (fun v -> Quotations.Var(v.Name, typedefof<_ ref>.MakeGenericType(v.Type)))
+                
+                // init t generates the equivalent of <@ ref Unchecked.defaultof<t> @>
+                let init (t:Type) =
+                    let (Quotations.Patterns.Call(None, r, [_])) = <@ ref 1 @>
+                    let (Quotations.Patterns.Call(None, d, [])) = <@ Unchecked.defaultof<_> @>
+                    Quotations.Expr.Call(r.GetGenericMethodDefinition().MakeGenericMethod(t), [Quotations.Expr.Call(d.GetGenericMethodDefinition().MakeGenericMethod(t),[])])
+
+                // deref v generates the equivalent of <@ !v @>
+                // (so v's type must be ref<something>)
+                let deref (v:Quotations.Var) = 
+                    let (Quotations.Patterns.Call(None, m, [_])) = <@ !(ref 1) @>
+                    let tyArgs = v.Type.GetGenericArguments()
+                    Quotations.Expr.Call(m.GetGenericMethodDefinition().MakeGenericMethod(tyArgs), [Quotations.Expr.Var v])
+
+                // substitution mapping a variable v to the expression <@ !v' @> using the corresponding new variable v' of ref type
+                let subst =
+                    let map =
+                        vars'
+                        |> List.map deref
+                        |> List.zip vars
+                        |> Map.ofList
+                    fun v -> Map.tryFind v map
+
+                let expr' = expr.Substitute(subst)
+
+                // maps variables to new variables
+                let varDict = List.zip vars vars' |> dict
+
+                // given an old variable v and an expression e, returns a quotation like <@ v' := e @> using the corresponding new variable v' of ref type
+                let setRef (v:Quotations.Var) e = 
+                    let (Quotations.Patterns.Call(None, m, [_;_])) = <@ (ref 1) := 2 @>
+                    Quotations.Expr.Call(m.GetGenericMethodDefinition().MakeGenericMethod(v.Type), [Quotations.Expr.Var varDict.[v]; e])
+
+                // Something like 
+                //  <@
+                //      v1 := e1'
+                //      v2 := e2'
+                //      ...
+                //      expr'
+                //  @>
+                // Note that we must substitute our new variable dereferences into the bound expressions
+                let body = 
+                    bindings
+                    |> List.fold (fun b (v,e) -> Quotations.Expr.Sequential(setRef v (e.Substitute subst), b)) expr'
+                
+                // Something like
+                //   let v1 = ref Unchecked.defaultof<t1>
+                //   let v2 = ref Unchecked.defaultof<t2>
+                //   ...
+                //   body
+                vars
+                |> List.fold (fun b v -> Quotations.Expr.Let(varDict.[v], init v.Type, b)) body                
+                |> trans 
 
             // Handle the generic cases
             | Quotations.ExprShape.ShapeLambda(v,body) -> 
@@ -510,7 +602,6 @@ type ProvidedConstructor(parameters : ProvidedParameter list) =
     member this.AddXmlDoc xmlDoc                            = customAttributesImpl.AddXmlDoc xmlDoc
     member this.AddObsoleteAttribute (msg,?isError)         = customAttributesImpl.AddObsolete (msg,defaultArg isError false)
     member this.AddDefinitionLocation(line,column,filePath) = customAttributesImpl.AddDefinitionLocation(line, column, filePath)
-    member this.HideObjectMethods with set v                = customAttributesImpl.HideObjectMethods <- v
     member __.GetCustomAttributesDataImpl() = customAttributesImpl.GetCustomAttributesData()
 #if FX_NO_CUSTOMATTRIBUTEDATA
 #else
@@ -871,7 +962,8 @@ type ProvidedSymbolType(kind: SymbolKind, args: Type list) =
 
 
     static member convType (parameters: Type list) (ty:Type) = 
-        if ty.IsGenericType then 
+        if ty = null then null
+        elif ty.IsGenericType then
             let args = Array.map (ProvidedSymbolType.convType parameters) (ty.GetGenericArguments())
             ProvidedSymbolType(Generic (ty.GetGenericTypeDefinition()), Array.toList args)  :> Type
         elif ty.HasElementType then 
@@ -930,7 +1022,7 @@ type ProvidedSymbolType(kind: SymbolKind, args: Type list) =
         | SymbolKind.Array _,[arg] -> arg.Name + "[*]" 
         | SymbolKind.Pointer,[arg] -> arg.Name + "*" 
         | SymbolKind.ByRef,[arg] -> arg.Name + "&"
-        | SymbolKind.Generic gty, args -> gty.FullName + args.ToString()
+        | SymbolKind.Generic gty, args -> gty.Name + (sprintf "%A" args)
         | SymbolKind.FSharpTypeAbbreviation (_,_,path),_ -> path.[path.Length-1]
         | _ -> failwith "unreachable"
 
@@ -940,7 +1032,9 @@ type ProvidedSymbolType(kind: SymbolKind, args: Type list) =
         | SymbolKind.Array _ -> typeof<System.Array>
         | SymbolKind.Pointer -> typeof<System.ValueType>
         | SymbolKind.ByRef -> typeof<System.ValueType>
-        | SymbolKind.Generic gty  -> ProvidedSymbolType.convType args gty.BaseType
+        | SymbolKind.Generic gty  ->
+            if gty.BaseType = null then null else
+            ProvidedSymbolType.convType args gty.BaseType
         | SymbolKind.FSharpTypeAbbreviation _ -> typeof<obj>
 
     override this.GetArrayRank() = (match kind with SymbolKind.Array n -> n | SymbolKind.SDArray -> 1 | _ -> invalidOp "non-array type")
@@ -1138,6 +1232,11 @@ module GlobalProvidedAssemblyElementsTable =
 
 type ProvidedTypeDefinition(container:TypeContainer,className : string, baseType  : Type option) as this =
     inherit Type()
+
+    do match container, !ProvidedTypeDefinition.Logger with
+       | TypeContainer.Namespace _, Some logger -> logger (sprintf "Creating ProvidedTypeDefinition %s [%d]" className (System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode this))
+       | _ -> ()
+
     // state
     let mutable attributes   = 
         TypeAttributes.Public ||| 
@@ -1240,6 +1339,7 @@ type ProvidedTypeDefinition(container:TypeContainer,className : string, baseType
     member this.AddObsoleteAttribute (msg,?isError)         = customAttributesImpl.AddObsolete (msg,defaultArg isError false)
     member this.AddDefinitionLocation(line,column,filePath) = customAttributesImpl.AddDefinitionLocation(line, column, filePath)
     member this.HideObjectMethods with set v                = customAttributesImpl.HideObjectMethods <- v
+    member this.NonNullable with set v                      = customAttributesImpl.NonNullable <- v
     member __.GetCustomAttributesDataImpl() = customAttributesImpl.GetCustomAttributesData()
     member this.AddCustomAttribute attribute                = customAttributesImpl.AddCustomAttribute attribute
 #if FX_NO_CUSTOMATTRIBUTEDATA
@@ -1426,6 +1526,9 @@ type ProvidedTypeDefinition(container:TypeContainer,className : string, baseType
             | SymbolKind.SDArray, [typ] -> 
                 let (t:Type) = ProvidedTypeDefinition.EraseType typ
                 t.MakeArrayType()
+            | SymbolKind.Generic genericTypeDefinition, _ when not genericTypeDefinition.IsGenericTypeDefinition -> 
+                // Unit of measure parameters can match here, but not really generic types.
+                genericTypeDefinition.UnderlyingSystemType
             | SymbolKind.Generic genericTypeDefinition, typeArgs ->
                 let genericArguments =
                   typeArgs
@@ -1440,6 +1543,8 @@ type ProvidedTypeDefinition(container:TypeContainer,className : string, baseType
               |> Array.map ProvidedTypeDefinition.EraseType
             genericTypeDefinition.MakeGenericType(genericArguments)
         | t -> t
+
+    static member Logger : (string -> unit) option ref = ref None
 
     // The binding attributes are always set to DeclaredOnly ||| Static ||| Instance ||| Public when GetMembers is called directly by the F# compiler
     // However, it's possible for the framework to generate other sets of flags in some corner cases (e.g. via use of `enum` with a provided type as the target)

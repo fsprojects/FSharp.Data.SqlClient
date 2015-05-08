@@ -94,48 +94,56 @@ let internal findTypeInfoByProviderType( connStr, sqlDbType)  =
     assert (dataTypeMappings.ContainsKey connStr)
     dataTypeMappings.[connStr] |> Array.find (fun x -> x.SqlDbType = sqlDbType)
 
+type LiteralType = Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType
+type UnaryExpression = Microsoft.SqlServer.TransactSql.ScriptDom.UnaryExpression
+
 let rec parseDefaultValue (definition: string) (expr: Microsoft.SqlServer.TransactSql.ScriptDom.ScalarExpression) = 
     match expr with
     | :? Microsoft.SqlServer.TransactSql.ScriptDom.Literal as x ->
         match x.LiteralType with
-        | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Default | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Null -> Some null
-        | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Integer -> x.Value |> int |> box |> Some
-        | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Money | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Numeric -> x.Value |> decimal |> box |> Some
-        | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Real -> x.Value |> float |> box |> Some 
+        | LiteralType.Default | LiteralType.Null -> Some null
+        | LiteralType.Integer -> x.Value |> int |> box |> Some
+        | LiteralType.Money | LiteralType.Numeric -> x.Value |> decimal |> box |> Some
+        | LiteralType.Real -> x.Value |> float |> box |> Some 
+        | LiteralType.String -> x.Value |> string |> box |> Some 
         | _ -> None
-    | :? Microsoft.SqlServer.TransactSql.ScriptDom.UnaryExpression as x when x.UnaryExpressionType <> Microsoft.SqlServer.TransactSql.ScriptDom.UnaryExpressionType.BitwiseNot ->
+    | :? UnaryExpression as x when x.UnaryExpressionType <> Microsoft.SqlServer.TransactSql.ScriptDom.UnaryExpressionType.BitwiseNot ->
         let fragment = definition.Substring( x.StartOffset, x.FragmentLength)
         match x.Expression with
         | :? Microsoft.SqlServer.TransactSql.ScriptDom.Literal as x ->
             match x.LiteralType with
-            | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Integer -> fragment |> int |> box |> Some
-            | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Money | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Numeric -> fragment |> decimal |> box |> Some
-            | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Real -> fragment |> float |> box |> Some 
+            | LiteralType.Integer -> fragment |> int |> box |> Some
+            | LiteralType.Money | LiteralType.Numeric -> fragment |> decimal |> box |> Some
+            | LiteralType.Real -> fragment |> float |> box |> Some 
             | _ -> None
         | _  -> None 
     | _ -> None 
 
 type Routine = 
-    | StoredProcedure of schema: string * name: string
-    | TableValuedFunction of schema: string * name: string 
-    | ScalarValuedFunction of schema: string * name: string
+    | StoredProcedure of schema: string * name: string * definition: string
+    | TableValuedFunction of schema: string * name: string * definition: string
+    | ScalarValuedFunction of schema: string * name: string * definition: string
 
     member this.Name = 
         match this with
-        | StoredProcedure(_, name) | TableValuedFunction(_, name) | ScalarValuedFunction(_, name) -> name
+        | StoredProcedure(_, name, _) | TableValuedFunction(_, name, _) | ScalarValuedFunction(_, name, _) -> name
+
+    member this.Definition = 
+        match this with
+        | StoredProcedure(_, _, definition) | TableValuedFunction(_, _, definition) | ScalarValuedFunction(_, _, definition) -> definition
 
     member this.TwoPartName = 
         match this with
-        | StoredProcedure(schema, name) | TableValuedFunction(schema, name) | ScalarValuedFunction(schema, name) -> sprintf "%s.%s" schema name
+        | StoredProcedure(schema, name, _) | TableValuedFunction(schema, name, _) | ScalarValuedFunction(schema, name, _) -> sprintf "%s.%s" schema name
 
     member this.IsStoredProc = match this with StoredProcedure _ -> true | _ -> false
     
     member this.CommantText(parameters: Parameter list) = 
         match this with 
-        | StoredProcedure(schema, name) -> this.TwoPartName
-        | TableValuedFunction(schema, name) -> 
+        | StoredProcedure(schema, name, _) -> this.TwoPartName
+        | TableValuedFunction(schema, name, _) -> 
             parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT * FROM %s(%s)" this.TwoPartName
-        | ScalarValuedFunction(schema, name) ->     
+        | ScalarValuedFunction(schema, name, _) ->     
             parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT %s(%s)" this.TwoPartName
 
 type SqlConnection with
@@ -169,46 +177,31 @@ type SqlConnection with
 
     member internal this.GetRoutines( schema) = 
         assert (this.State = ConnectionState.Open)
-        let getRoutinesQuery = sprintf "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_SCHEMA = '%s'" schema
+        let getRoutinesQuery = sprintf "
+            SELECT SPECIFIC_SCHEMA, SPECIFIC_NAME, DATA_TYPE, ISNULL(OBJECT_DEFINITION(OBJECT_ID(SPECIFIC_SCHEMA + '.' + SPECIFIC_NAME)), '') AS Definition  
+            FROM INFORMATION_SCHEMA.ROUTINES 
+            WHERE ROUTINE_SCHEMA = '%s'" schema
         use cmd = new SqlCommand(getRoutinesQuery, this)
         use reader = cmd.ExecuteReader()
         reader 
         |> SqlDataReader.map (fun x -> 
-            let schema, name = unbox x.["ROUTINE_SCHEMA"], unbox x.["ROUTINE_NAME"]
+            let schema, name = unbox x.["SPECIFIC_SCHEMA"], unbox x.["SPECIFIC_NAME"]
             let dataType = x.["DATA_TYPE"]
+            let definition = unbox x.["Definition"]
             match x.["DATA_TYPE"] with
-            | :? string as x when x = "TABLE" -> TableValuedFunction(schema, name)
-            | :? DBNull -> StoredProcedure(schema, name)
-            | _ -> ScalarValuedFunction(schema, name)
+            | :? string as x when x = "TABLE" -> TableValuedFunction(schema, name, definition)
+            | :? DBNull -> StoredProcedure(schema, name, definition)
+            | _ -> ScalarValuedFunction(schema, name, definition)
         ) 
         |> Seq.toArray
             
     member internal this.GetParameters( routine: Routine) =      
         assert (this.State = ConnectionState.Open)
-        let bodyAndParamsInfoQuery = sprintf "
-            -- get body 
-            EXEC sp_helptext '%s'; 
-            -- get params info
-            SELECT 
-	            ps.PARAMETER_NAME AS name
-	            ,CAST(ts.system_type_id AS INT) AS suggested_system_type_id
-	            ,ts.user_type_id AS suggested_user_type_id
-	            ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_output
-	            ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'IN' THEN 1 WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_input 
-            FROM INFORMATION_SCHEMA.PARAMETERS AS ps
-	            JOIN sys.types AS ts ON (ps.PARAMETER_NAME <> '' AND ps.DATA_TYPE = ts.name OR (ps.DATA_TYPE = 'table type' AND ps.USER_DEFINED_TYPE_NAME = ts.name))
-            WHERE SPECIFIC_CATALOG = db_name() AND CONCAT(SPECIFIC_SCHEMA,'.',SPECIFIC_NAME) = '%s'
-            ORDER BY ORDINAL_POSITION" routine.TwoPartName routine.TwoPartName
-
-        use getBodyAndParamsInfo = new SqlCommand( bodyAndParamsInfoQuery, this)
-        use reader = getBodyAndParamsInfo.ExecuteReader()
-        let spDefinition = 
-            reader |> SqlDataReader.map (fun x -> x.GetString (0)) |> String.concat ""
 
         let paramDefaults = Task.Factory.StartNew( fun() ->
 
-            let parser = Microsoft.SqlServer.TransactSql.ScriptDom.TSql110Parser( true)
-            let tsqlReader = new StringReader(spDefinition)
+            let parser = Microsoft.SqlServer.TransactSql.ScriptDom.TSql120Parser( true)
+            let tsqlReader = new StringReader(routine.Definition)
             let errors = ref Unchecked.defaultof<_>
             let fragment = parser.Parse(tsqlReader, errors)
 
@@ -218,14 +211,26 @@ type SqlConnection with
                 new Microsoft.SqlServer.TransactSql.ScriptDom.TSqlFragmentVisitor() with
                     member __.Visit(node : Microsoft.SqlServer.TransactSql.ScriptDom.ProcedureParameter) = 
                         base.Visit node
-                        result.[node.VariableName.Value] <- parseDefaultValue spDefinition node.Value
+                        result.[node.VariableName.Value] <- parseDefaultValue routine.Definition node.Value
             }
 
             result
         )
 
-        let paramsDataAvailable = reader.NextResult()
-        assert paramsDataAvailable
+        let query = sprintf "
+            SELECT 
+	            ps.PARAMETER_NAME AS name
+	            ,CAST(ts.system_type_id AS INT) AS suggested_system_type_id
+	            ,ts.user_type_id AS suggested_user_type_id
+	            ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_output
+	            ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'IN' THEN 1 WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_input 
+            FROM INFORMATION_SCHEMA.PARAMETERS AS ps
+	            JOIN sys.types AS ts ON (ps.PARAMETER_NAME <> '' AND ps.DATA_TYPE = ts.name OR (ps.DATA_TYPE = 'table type' AND ps.USER_DEFINED_TYPE_NAME = ts.name))
+            WHERE SPECIFIC_CATALOG = db_name() AND CONCAT(SPECIFIC_SCHEMA,'.',SPECIFIC_NAME) = '%s'
+            ORDER BY ORDINAL_POSITION" routine.TwoPartName
+
+        use cmd = new SqlCommand( query, this)
+        use reader = cmd.ExecuteReader()
         reader |> SqlDataReader.map (fun record -> 
             let name = string record.["name"]
             let direction = 
@@ -241,13 +246,11 @@ type SqlConnection with
 
             let typeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, system_type_id, user_type_id)
 
-            let keys = paramDefaults.Result.Keys
-
             { 
                 Name = name 
                 TypeInfo = typeInfo
                 Direction = direction 
-                DefaultValue = paramDefaults.Result.[name] 
+                DefaultValue = match paramDefaults.Result.TryGetValue(name) with | true, value -> value | false, _ -> None
             }
         )
         |> Seq.toList

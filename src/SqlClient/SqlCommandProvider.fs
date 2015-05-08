@@ -213,6 +213,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             addRedirectToISqlCommandMethod asyncReturnType "AsyncExecute" 
 
             addRedirectToISqlCommandMethod typeof<string> "ToTraceString" 
-                
+
         cmdProvidedType
 

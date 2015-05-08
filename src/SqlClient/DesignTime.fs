@@ -5,7 +5,7 @@ open System.Reflection
 open System.Data
 open System.Data.SqlClient
 open Microsoft.FSharp.Quotations
-open Microsoft.FSharp.Reflection
+//open Microsoft.FSharp.Reflection
 open ProviderImplementation.ProvidedTypes
 open FSharp.Data
 
@@ -21,7 +21,7 @@ type internal ResultTypes = {
         ProvidedType = provided
         ErasedToType = defaultArg erasedTo provided
         ProvidedRowType = None
-        ErasedToRowType = typeof<unit>
+        ErasedToRowType = typeof<Void>
         RowMapping = Expr.Value Unchecked.defaultof<RowMapping> 
     }
 
@@ -135,7 +135,7 @@ type DesignTime private() =
                 ProvidedType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ dataRowType ])
                 ErasedToType = typeof<DataTable<DataRow>>
                 ProvidedRowType = Some dataRowType
-                ErasedToRowType = typeof<unit>
+                ErasedToRowType = typeof<Void>
                 RowMapping = Expr.Value Unchecked.defaultof<RowMapping> 
             }
 
@@ -160,10 +160,11 @@ type DesignTime private() =
                     let tupleType = 
                         match outputColumns with
                         | [ x ] -> x.ClrTypeConsideringNullable
-                        | xs -> FSharpType.MakeTupleType [| for x in xs -> x.ClrTypeConsideringNullable|]
+                        | xs -> Microsoft.FSharp.Reflection.FSharpType.MakeTupleType [| for x in xs -> x.ClrTypeConsideringNullable|]
 
                     let tupleTypeName = tupleType.PartialAssemblyQualifiedName
-                    None, tupleType, <@@ FSharpValue.PreComputeTupleConstructor (Type.GetType (tupleTypeName))  @@>
+                    //None, tupleType, <@@ FSharpValue.PreComputeTupleConstructor (Type.GetType (tupleTypeName))  @@>
+                    None, tupleType, <@@ fun values -> Type.GetType(tupleTypeName).GetConstructors().[0].Invoke(values) @@>
             
             let nullsToOptions = QuotationsFactory.MapArrayNullableItems(outputColumns, "MapArrayObjItemToOption") 
             let combineWithNullsToOptions = typeof<QuotationsFactory>.GetMethod("GetMapperWithNullsToOptions") 

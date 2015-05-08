@@ -93,7 +93,7 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
             ``ISqlCommand Implementation``.ExecuteDataTable >> box, ``ISqlCommand Implementation``.AsyncExecuteDataTable >> box
         | ResultType.Records | ResultType.Tuples ->
             match box rowMapping, itemTypeName with
-            | null, itemTypeName when Type.GetType(itemTypeName) = typeof<unit> ->
+            | null, itemTypeName when Type.GetType(itemTypeName) = typeof<Void> ->
                 ``ISqlCommand Implementation``.ExecuteNonQuery privateConnection >> box, ``ISqlCommand Implementation``.AsyncExecuteNonQuery privateConnection >> box
             | rowMapping, itemTypeName ->
                 assert (rowMapping <> null && itemTypeName <> null)

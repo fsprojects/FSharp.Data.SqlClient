@@ -91,3 +91,64 @@ clone.ReadXmlSchema(new StringReader(schemaStorage.ToString()))
 //
 //open ProviderImplementation.ProvidedTypes
 //ProvidedMeasureBuilder.Default.SI "Meter"
+
+
+#r @"..\..\lib\Microsoft.SqlServer.TransactSql.ScriptDom.dll"
+
+let rec parseDefaultValue (definition: string) (expr: Microsoft.SqlServer.TransactSql.ScriptDom.ScalarExpression) = 
+    match expr with
+    | :? Microsoft.SqlServer.TransactSql.ScriptDom.Literal as x ->
+        match x.LiteralType with
+        | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Default | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Null -> Some null
+        | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Integer -> x.Value |> int |> box |> Some
+        | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Money | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Numeric -> x.Value |> decimal |> box |> Some
+        | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Real -> x.Value |> float |> box |> Some 
+        | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.String -> x.Value |> string |> box |> Some 
+        | _ -> None
+    | :? Microsoft.SqlServer.TransactSql.ScriptDom.UnaryExpression as x when x.UnaryExpressionType <> Microsoft.SqlServer.TransactSql.ScriptDom.UnaryExpressionType.BitwiseNot ->
+        let fragment = definition.Substring( x.StartOffset, x.FragmentLength)
+        match x.Expression with
+        | :? Microsoft.SqlServer.TransactSql.ScriptDom.Literal as x ->
+            match x.LiteralType with
+            | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Integer -> fragment |> int |> box |> Some
+            | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Money | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Numeric -> fragment |> decimal |> box |> Some
+            | Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType.Real -> fragment |> float |> box |> Some 
+            | _ -> None
+        | _  -> None 
+    | _ -> None 
+
+//let body = "CREATE FUNCTION [dbo].[ufnGetAccountingStartDate]()  RETURNS [datetime]   AS   BEGIN      RETURN CONVERT(datetime, '20030701', 112);  END;"
+
+let getBody name = 
+    use cmd = new SqlCommand()
+    //cmd.CommandText <- "exec sp_helptext 'dbo.Echo'"
+    cmd.CommandText <- sprintf "SELECT OBJECT_DEFINITION(OBJECT_ID('%s'))" name
+    cmd.Connection <- new SqlConnection( "Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True")
+    cmd.Connection.Open()
+    use reader = cmd.ExecuteReader()
+    String.concat "" [
+        while reader.Read() do
+            yield reader.GetString 0
+    ]
+
+open System.Collections.Generic
+
+let f name = 
+    let parser = Microsoft.SqlServer.TransactSql.ScriptDom.TSql120Parser( true)
+    let body = getBody name
+    let tsqlReader = new System.IO.StringReader(body)
+    //let errors = ref Unchecked.defaultof<_>
+    let mutable errors: IList<_> = null
+    let fragment = parser.Parse(tsqlReader, &errors)
+    printfn "Errors: %A" (List.ofSeq errors)
+    let result = Dictionary()
+
+    fragment.Accept {
+        new Microsoft.SqlServer.TransactSql.ScriptDom.TSqlFragmentVisitor() with
+            member __.Visit(node : Microsoft.SqlServer.TransactSql.ScriptDom.ProcedureParameter) = 
+                printfn "Processing parameter: %s. Value: %O" node.VariableName.Value node.Value
+                base.Visit node
+                result.[node.VariableName.Value] <- parseDefaultValue body node.Value
+    }
+
+    result
