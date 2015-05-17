@@ -48,7 +48,7 @@ let routineCommandTypeTag() =
     Assert.Equal<string>(ConnectionStrings.AdventureWorksNamed, GetContactInformation.ConnectionStringOrName)
 
 [<Fact>]
-let localTransaction() = 
+let localTransactionCtor() = 
     use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
     conn.Open()
     use tran = conn.BeginTransaction()
@@ -93,3 +93,48 @@ let localTransaction() =
 
     Assert.Equal<string>(newJobTitle, updatedJobTitle)
         
+[<Fact>]
+let localTransactionCreateAndSingleton() = 
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
+    conn.Open()
+    use tran = conn.BeginTransaction()
+    let jamesKramerId = 42
+
+    let businessEntityID, jobTitle, hireDate = 
+        use cmd = SqlCommandProvider<"
+            SELECT 
+	            BusinessEntityID
+	            ,JobTitle
+	            ,HireDate
+            FROM 
+                HumanResources.Employee 
+            WHERE 
+                BusinessEntityID = @id
+            ", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples, SingleRow = true>.Create(conn, tran)
+        jamesKramerId |> cmd.Execute |> Option.get
+
+    Assert.Equal<string>("Production Technician - WC60", jobTitle)
+    
+    let newJobTitle = "Uber " + jobTitle
+    do
+        //let get
+        use updatedJobTitle = AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo.Create(conn, tran)
+        let recordsAffrected = 
+            updatedJobTitle.Execute(
+                businessEntityID, 
+                newJobTitle, 
+                hireDate, 
+                RateChangeDate = DateTime.Now, 
+                Rate = 12M, 
+                PayFrequency = 1uy, 
+                CurrentFlag = true 
+            )
+        System.Diagnostics.Debug.WriteLine(recordsAffrected)
+        //Assert.Equal(1, recordsAffrected)
+    
+    let updatedJobTitle = 
+        use cmd = AdventureWorks.dbo.ufnGetContactInformation.Create(conn, tran)
+        let result = cmd.Execute(PersonID = jamesKramerId) |> Seq.exactlyOne
+        result.JobTitle.Value
+
+    Assert.Equal<string>(newJobTitle, updatedJobTitle)

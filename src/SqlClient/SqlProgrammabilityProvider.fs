@@ -168,12 +168,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         //ctors
                         let sqlParameters = Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
             
-                        let ctor1 = 
-                            ProvidedConstructor [ 
-                                ProvidedParameter("connectionString", typeof<string>, optionalValue = "") 
-                                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
-                            ]
-
                         let ctorArgsExceptConnection = [
                             Expr.Value commandText                      //sqlStatement
                             Expr.Value(routine.IsStoredProc)  //isStoredProcedure
@@ -181,35 +175,47 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             Expr.Value resultType                       //resultType
                             Expr.Value (
                                 match routine with 
-                                | ScalarValuedFunction _ ->  
-                                    ResultRank.ScalarValue 
+                                | ScalarValuedFunction _ -> ResultRank.ScalarValue 
                                 | _ -> ResultRank.Sequence)               //rank
                             output.RowMapping                           //rowMapping
                             Expr.Value output.ErasedToRowType.PartialAssemblyQualifiedName
                         ]
-                        let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructors() |> Seq.exactlyOne
-                        ctor1.InvokeCode <- 
-                            fun args -> 
-                                let connArg =
-                                    <@@ 
-                                        if not( String.IsNullOrEmpty(%%args.[0])) then Connection.Literal %%args.[0] 
-                                        elif isByName then Connection.NameInConfig connectionStringName
-                                        else Connection.Literal connectionStringOrName
-                                    @@>
-                                Expr.NewObject(ctorImpl, connArg :: args.[1] :: ctorArgsExceptConnection)
 
-                        yield (ctor1 :> MemberInfo)
+                        let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructors() |> Seq.exactlyOne
+                        
+                        //default ctor and create factory 
+                        let ctor1Params = 
+                            [ 
+                                ProvidedParameter("connectionString", typeof<string>, optionalValue = "") 
+                                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
+                            ]
+
+                        let ctor1Body(args: _ list) = 
+                            let connArg =
+                                <@@ 
+                                    if not( String.IsNullOrEmpty(%%args.[0])) then Connection.Literal %%args.[0] 
+                                    elif isByName then Connection.NameInConfig connectionStringName
+                                    else Connection.Literal connectionStringOrName
+                                @@>
+                            Expr.NewObject(ctorImpl, connArg :: args.[1] :: ctorArgsExceptConnection)
+
+                        yield ProvidedConstructor(ctor1Params, InvokeCode = ctor1Body) :> MemberInfo
+                        yield upcast ProvidedMethod("Create", ctor1Params, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = ctor1Body) 
                            
-                        let ctor2 = 
-                            ProvidedConstructor [ 
+                        //ctor and create factory with explicit connection/transaction support
+                        let ctor2Params = 
+                            [ 
                                 ProvidedParameter("connection", typeof<SqlConnection>)
                                 ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
                                 ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
                             ]
-                        ctor2.InvokeCode <- 
-                            fun args -> Expr.NewObject(ctorImpl, <@@ Connection.``Connection and-or Transaction``(%%args.[0], %%args.[1]) @@> :: args.[2] :: ctorArgsExceptConnection)
-                            
-                        yield upcast ctor2
+
+                        let ctor2Body (args: _ list) = 
+                            Expr.NewObject(ctorImpl, <@@ Connection.``Connection and-or Transaction``(%%args.[0], %%args.[1]) @@> :: args.[2] :: ctorArgsExceptConnection)
+                    
+                        yield upcast ProvidedConstructor(ctor2Params, InvokeCode = ctor2Body)
+                        yield upcast ProvidedMethod("Create", ctor2Params, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = ctor2Body)
+
 
                         let allParametersOptional = false
                         let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, allParametersOptional, udtts)
