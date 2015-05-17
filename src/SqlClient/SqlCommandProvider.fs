@@ -183,16 +183,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 let ctor2Body (args: _ list) = 
                     Expr.NewObject(ctorImpl, <@@ Connection.``Connection and-or Transaction``(%%args.[0], %%args.[1]) @@> :: args.[2] :: ctorArgsExceptConnection)
                     
-
-                let ctor2 = 
-                    ProvidedConstructor [ 
-                        ProvidedParameter("transaction", typeof<SqlTransaction>) 
-                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
-                    ]
-
-                ctor2.InvokeCode <- 
-                    fun args -> Expr.NewObject(ctorImpl, <@@ let tran: SqlTransaction = %%args.[0] in Connection.``Connection and-or Transaction``(tran.Connection, tran) @@> :: args.[1] :: ctorArgsExceptConnection)
-
                 cmdProvidedType.AddMember <| ProvidedConstructor(ctor2Params, InvokeCode = ctor2Body)
                 cmdProvidedType.AddMember <| ProvidedMethod("Create", ctor2Params, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = ctor2Body)
 

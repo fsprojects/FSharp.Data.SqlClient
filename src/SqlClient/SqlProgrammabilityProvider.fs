@@ -202,24 +202,14 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                            
                         let ctor2 = 
                             ProvidedConstructor [ 
-                                ProvidedParameter("transaction", typeof<SqlTransaction>) 
+                                ProvidedParameter("connection", typeof<SqlConnection>)
+                                ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
                                 ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
                             ]
                         ctor2.InvokeCode <- 
-                            fun args -> Expr.NewObject(ctorImpl, <@@ let tran: SqlTransaction = %%args.[0] in Connection.``Connection and-or Transaction``(tran.Connection, tran) @@> :: args.[1] :: ctorArgsExceptConnection)
+                            fun args -> Expr.NewObject(ctorImpl, <@@ Connection.``Connection and-or Transaction``(%%args.[0], %%args.[1]) @@> :: args.[2] :: ctorArgsExceptConnection)
                             
                         yield upcast ctor2
-
-                        let ctor3 = 
-                            ProvidedConstructor [ 
-                                ProvidedParameter("connection", typeof<SqlConnection>) 
-                                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
-                            ]
-
-                        ctor3.InvokeCode <- 
-                            fun args -> Expr.NewObject(ctorImpl, <@@ Connection.``Connection and-or Transaction``(%%args.[0], null) @@> :: args.[1] :: ctorArgsExceptConnection)
-
-                        yield upcast ctor3
 
                         let allParametersOptional = false
                         let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, allParametersOptional, udtts)
