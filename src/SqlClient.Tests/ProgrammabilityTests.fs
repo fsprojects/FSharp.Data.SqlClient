@@ -134,7 +134,7 @@ let localTransactionCreateAndSingleton() =
     
     let updatedJobTitle = 
         use cmd = AdventureWorks.dbo.ufnGetContactInformation.Create(conn, tran)
-        let result = cmd.Execute(PersonID = jamesKramerId) |> Seq.exactlyOne
-        result.JobTitle.Value
+        let result = cmd.ExecuteSingle(PersonID = jamesKramerId) 
+        result.Value.JobTitle.Value
 
     Assert.Equal<string>(newJobTitle, updatedJobTitle)

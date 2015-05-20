@@ -140,10 +140,10 @@ type Routine =
     
     member this.CommantText(parameters: Parameter list) = 
         match this with 
-        | StoredProcedure(schema, name, _) -> this.TwoPartName
-        | TableValuedFunction(schema, name, _) -> 
+        | StoredProcedure _-> this.TwoPartName
+        | TableValuedFunction _ -> 
             parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT * FROM %s(%s)" this.TwoPartName
-        | ScalarValuedFunction(schema, name, _) ->     
+        | ScalarValuedFunction _ ->     
             parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT %s(%s)" this.TwoPartName
 
 type SqlConnection with
@@ -186,7 +186,6 @@ type SqlConnection with
         reader 
         |> SqlDataReader.map (fun x -> 
             let schema, name = unbox x.["SPECIFIC_SCHEMA"], unbox x.["SPECIFIC_NAME"]
-            let dataType = x.["DATA_TYPE"]
             let definition = unbox x.["Definition"]
             match x.["DATA_TYPE"] with
             | :? string as x when x = "TABLE" -> TableValuedFunction(schema, name, definition)
@@ -388,7 +387,7 @@ type SqlConnection with
                                     WHERE tt.user_type_id = @user_type_id
                                     ORDER BY column_id")
                                 cmd.Parameters.AddWithValue("@user_type_id", user_type_id) |> ignore
-                                use closeConn = this.UseLocally()
+                                use _ = this.UseLocally()
                                 cmd.Connection <- this
                                 use reader = cmd.ExecuteReader()
                                 while reader.Read() do 

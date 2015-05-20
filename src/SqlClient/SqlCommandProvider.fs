@@ -190,9 +190,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
             let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, allParametersOptional, udtts = [])
 
-            let interfaceType = typedefof<ISqlCommand>
-            let name = "Execute" + if outputColumns.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
-            
             let addRedirectToISqlCommandMethod outputType name = 
                 DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType.BaseType, outputType, name) 
                 |> cmdProvidedType.AddMember
