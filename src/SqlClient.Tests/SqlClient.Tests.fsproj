@@ -62,7 +62,6 @@
     <Compile Include="ConfigurationTest.fs" />
     <Compile Include="OptionalParamsTests.fs" />
     <Compile Include="TypeProviderTest.fs" />
-    <Compile Include="CommandTimeoutSetup.fs" />
     <Compile Include="SpatialTypesTests.fs" />
     <Compile Include="TransactionTests.fs" />
     <Compile Include="ResultTypeTests.fs" />

@@ -134,17 +134,6 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
 
     member this.CommandTimeout = cmd.CommandTimeout
 
-    member this.AsSqlCommand() = 
-        let clone = 
-          new SqlCommand(
-            cmd.CommandText, 
-            new SqlConnection(cmd.Connection.ConnectionString), 
-            CommandType = cmd.CommandType,
-            CommandTimeout = cmd.CommandTimeout
-          )
-        clone.Parameters.AddRange <| [| for p in cmd.Parameters -> SqlParameter(p.ParameterName, p.SqlDbType) |]
-        clone
-
     interface ISqlCommand with
 
         member this.Execute parameters = execute(cmd, getReaderBehavior, parameters)
@@ -153,8 +142,7 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
         member this.AsyncExecuteSingle parameters = asyncExecuteSingle(cmd, getReaderBehavior, parameters)
 
         member this.ToTraceString parameters =  
-            let clone = this.AsSqlCommand()
-            ``ISqlCommand Implementation``.SetParameters(clone, parameters)  
+            ``ISqlCommand Implementation``.SetParameters(cmd, parameters)
             let parameterDefinition (p : SqlParameter) =
                 if p.Size <> 0 then
                     sprintf "%s %A(%d)" p.ParameterName p.SqlDbType p.Size
@@ -162,11 +150,11 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
                     sprintf "%s %A" p.ParameterName p.SqlDbType 
             seq {
                 
-                yield sprintf "exec sp_executesql N'%s'" (clone.CommandText.Replace("'", "''"))
+                yield sprintf "exec sp_executesql N'%s'" (cmd.CommandText.Replace("'", "''"))
               
-                if clone.Parameters.Count > 0
+                if cmd.Parameters.Count > 0
                 then 
-                    yield clone.Parameters
+                    yield cmd.Parameters
                         |> Seq.cast<SqlParameter> 
                         |> Seq.map parameterDefinition
                         |> String.concat ","

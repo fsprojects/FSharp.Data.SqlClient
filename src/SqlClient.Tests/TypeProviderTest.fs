@@ -42,21 +42,6 @@ let TinyIntConversion() =
     Assert.Equal(Some 10uy, cmd.Execute().Value)    
 
 [<Fact>]
-let SqlCommandClone() = 
-    use cmd = new SqlCommandProvider<"IF @Bit = 1 SELECT 'TRUE' ELSE SELECT 'FALSE'", connection, SingleRow=true>()
-    Assert.Equal(Some "TRUE", cmd.Execute(Bit = 1))    
-    let cmdClone = cmd.AsSqlCommand()
-    cmdClone.Connection.Open()
-    Assert.Throws<SqlClient.SqlException>(cmdClone.ExecuteScalar) |> ignore
-    cmdClone.Parameters.["@Bit"].Value <- 1
-    Assert.Equal(box "TRUE", cmdClone.ExecuteScalar())    
-    Assert.Equal(cmdClone.ExecuteScalar(), cmd.Execute(Bit = 1).Value)    
-    Assert.Equal(Some "FALSE", cmd.Execute(Bit = 0))    
-    Assert.Equal(box "TRUE", cmdClone.ExecuteScalar())    
-    cmdClone.CommandText <- "SELECT 0"
-    Assert.Equal(Some "TRUE", cmd.Execute(Bit = 1))    
-
-[<Fact>]
 let ConditionalQuery() = 
     use cmd = new SqlCommandProvider<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", connection, SingleRow=true, ResultType = ResultType.Tuples>()
     Assert.Equal(Some(1, "monkey"), cmd.Execute(flag = 0))    
@@ -184,3 +169,12 @@ let DeleteStatement() =
         DELETE FROM @myTable
         ", connection>(ConnectionStrings.AdventureWorksLiteral)
     Assert.Equal(2, cmd.Execute())
+
+[<Fact>]
+let ``Setting the command timeout isn't overridden when giving connection context``() =
+    let customTimeout = (Random()).Next(512, 1024)
+    let getDate = new SqlCommandProvider<"select getdate()", ConnectionStrings.AdventureWorksLiteral>(commandTimeout = customTimeout)
+    Assert.Equal(customTimeout, getDate.CommandTimeout)
+    let sqlCommand = (getDate :> ISqlCommand).Raw
+    Assert.Equal(customTimeout, sqlCommand.CommandTimeout)
+
