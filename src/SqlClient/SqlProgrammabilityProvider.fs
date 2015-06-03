@@ -8,6 +8,7 @@ open System.Diagnostics
 open System.IO
 open System.Reflection
 open System.Runtime.Caching
+open System.Data.SqlTypes
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
@@ -251,54 +252,103 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             |> List.map (fun tableName -> 
 
                 let twoPartTableName = sprintf "[%s].[%s]" schema tableName 
-                let tableDirectSql = sprintf "SELECT * FROM " + twoPartTableName
-                use adapter = new SqlDataAdapter(tableDirectSql, conn)
-                let dataTable = adapter.FillSchema(new DataTable(twoPartTableName), SchemaType.Source)
+//                let tableDirectSql = sprintf "SELECT * FROM " + twoPartTableName
+//                use adapter = new SqlDataAdapter(tableDirectSql, conn)
+//                let dataTable = adapter.FillSchema(new DataTable(twoPartTableName), SchemaType.Source)
 
+                let dataTable = new DataTable(twoPartTableName)
                 let columns = dataTable.Columns
 
-                do //read column defaults
-                    let descriptionSelector = 
-                        if isSqlAzure 
-                        then "(SELECT NULL AS Value)"
-                        else "fn_listextendedproperty ('MS_Description', 'schema', @schema, 'table', @tableName, 'column', columns.name)"
+                let descriptionSelector = 
+                    if isSqlAzure 
+                    then "(SELECT NULL AS Value)"
+                    else "fn_listextendedproperty ('MS_Description', 'schema', @schema, 'table', @tableName, 'column', columns.name)"
 
-                    let query = 
-                        sprintf "
-                            SELECT columns.name, is_identity, OBJECT_DEFINITION(default_object_id), XProp.Value
-                            FROM sys.columns 
-	                            JOIN sys.tables ON columns .object_id = tables.object_id and tables.name = @tableName
-	                            JOIN sys.schemas ON tables.schema_id = schemas.schema_id and schemas.name = @schema
-                                OUTER APPLY %s AS XProp
-                            "  descriptionSelector
+                let query = 
+                    sprintf "
+                        SELECT 
+	                        columns.name
+	                        ,columns.system_type_id
+	                        ,columns.user_type_id
+	                        ,columns.max_length
+	                        ,columns.is_nullable
+	                        ,is_identity AS is_identity_column
+	                        ,is_updateable = CONVERT(BIT, CASE WHEN is_identity = 0 AND is_computed = 0 THEN 1 ELSE 0 END) 
+	                        ,is_part_of_unique_key = CONVERT(BIT, CASE WHEN index_columns.object_id IS NULL THEN 0 ELSE 1 END)
+	                        ,default_constraint = ISNULL(OBJECT_DEFINITION(default_object_id), '')
+	                        ,description = ISNULL(XProp.Value, '')
+                        FROM 
+	                        sys.schemas 
+	                        JOIN sys.tables ON 
+		                        tables.schema_id = schemas.schema_id 
+		                        AND schemas.name = @schema 
+		                        AND tables.name = @tableName
+	                        JOIN sys.columns ON columns.object_id = tables.object_id
+	                        LEFT JOIN sys.indexes ON 
+		                        tables.object_id = indexes.object_id 
+		                        AND indexes.is_primary_key = 1
+	                        LEFT JOIN sys.index_columns ON 
+		                        index_columns.object_id = tables.object_id 
+		                        AND index_columns.index_id = indexes.index_id 
+		                        AND columns.column_id = index_columns.column_id
+                            OUTER APPLY %s AS XProp
+                        ORDER BY 
+                            columns.column_id
+                        "  descriptionSelector
 
-                    let cmd = new SqlCommand(query, conn)
-                    cmd.Parameters.AddWithValue("@tableName", tableName) |> ignore
-                    cmd.Parameters.AddWithValue("@schema", schema) |> ignore
-                    use reader = cmd.ExecuteReader()
-                    while reader.Read() do 
-                        let c = columns.[reader.GetString(0)]
+                let cmd = new SqlCommand(query, conn)
+                cmd.Parameters.AddWithValue("@tableName", tableName) |> ignore
+                cmd.Parameters.AddWithValue("@schema", schema) |> ignore
+                use cursor = cmd.ExecuteReader()
 
-                        let values = Array.zeroCreate reader.FieldCount
-                        reader.GetValues(values) |> ignore
-                        //set auto-increment override
-                        if not( reader.IsDBNull(1)) && not c.AutoIncrement 
-                        then c.AutoIncrement <- reader.GetBoolean(1)
-
-                        //allow nullability for non-unique columns with defaults
-                        if not(c.AllowDBNull || c.Unique || reader.IsDBNull(2))
-                        then 
-                            c.AllowDBNull <- true
-                            c.ExtendedProperties.["COLUMN_DEFAULT"] <- reader.[2]
-
-                        if not (reader.IsDBNull(3))
-                        then 
-                            c.ExtendedProperties.["MS_Description"] <- reader.[3]
-                        
                 let serializedSchema = 
-                    use writer = new StringWriter()
-                    dataTable.WriteXmlSchema writer
-                    writer.ToString()
+                    cursor
+                    |> SqlDataReader.map(fun record ->
+                        let values = Array.zeroCreate record.FieldCount
+                        let totalReceived = record.GetProviderSpecificValues(values) 
+                        assert(totalReceived = values.Length)
+                        values |> Array.map string |> String.concat "\t"
+                    )
+                    |> String.concat "\n"
+
+                let primaryKey = HashSet()
+                while cursor.Read() do 
+
+                    let values = Array.zeroCreate cursor.FieldCount
+                    cursor.GetValues values |> ignore
+
+                    let c = new DataColumn()
+                    c.ColumnName <- unbox cursor.["name"]
+
+                    let system_type_id = unbox<byte> cursor.["system_type_id"] |> int
+                    let user_type_id = SqlDataReader.getOption "user_type_id" cursor
+                    c.DataType <- 
+                        let typeInfo = findTypeInfoBySqlEngineTypeId(conn.ConnectionString, system_type_id, user_type_id)
+                        typeInfo.ClrType
+                        
+                    c.AutoIncrement <- unbox cursor.["is_identity_column"]
+                    c.AllowDBNull <- unbox cursor.["is_nullable"]
+
+                    let is_part_of_unique_key = unbox cursor.["is_part_of_unique_key"]
+                    if is_part_of_unique_key
+                    then 
+                        primaryKey.Add c |> ignore
+
+                    //allow nullability for non-unique columns with defaults
+                    let default_constraint = cursor.["default_constraint"]
+                    if not(is_part_of_unique_key || Convert.IsDBNull default_constraint)
+                    then 
+                        c.AllowDBNull <- true
+                        c.ExtendedProperties.["COLUMN_DEFAULT"] <- default_constraint
+
+                    let description = cursor.["description"]
+                    if not (Convert.IsDBNull description)
+                    then 
+                        c.ExtendedProperties.["MS_Description"] <- description
+                       
+                    dataTable.Columns.Add c
+                        
+                dataTable.PrimaryKey <- Array.ofSeq primaryKey
 
                 //type data row
                 let dataRowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
@@ -339,14 +389,40 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                 do //ctor
                     let ctor = ProvidedConstructor []
+                    let connectionString = conn.ConnectionString
                     ctor.InvokeCode <- fun _ -> 
                         <@@ 
-                            let table = new DataTable<DataRow>() 
-                            use reader = new StringReader( serializedSchema)
-                            table.ReadXmlSchema reader
-                            for c in table.Columns do
-                                if not c.AllowDBNull 
-                                then c.AllowDBNull <- c.ExtendedProperties.ContainsKey "COLUMN_DEFAULT"
+                            let table = new DataTable<DataRow>(twoPartTableName) 
+                            let primaryKey = ResizeArray()
+                            for line in serializedSchema.Split('\n') do
+                                let xs = line.Split('\t')
+                                let col = new DataColumn()
+                                col.ColumnName <- xs.[0]
+                                col.DataType <-   
+                                    let system_type_id = int xs.[1]
+                                    let user_type_id = int xs.[2]
+                                    let typeInfo = findTypeInfoBySqlEngineTypeId(connectionString, system_type_id, Some user_type_id)
+                                    typeInfo.ClrType
+                                col.MaxLength <- int xs.[3]
+                                col.AllowDBNull <- Boolean.Parse xs.[4]
+                                col.AutoIncrement <- Boolean.Parse xs.[5]
+                                col.ReadOnly <- not( Boolean.Parse xs.[6])
+                                if Boolean.Parse xs.[7]
+                                then    
+                                    primaryKey.Add col 
+                                let default_constraint = xs.[8]
+                                if not (default_constraint = "")
+                                then   
+                                    col.AllowDBNull <- true
+                                    col.ExtendedProperties.["COLUMN_DEFAULT"] <- default_constraint
+                                
+                                let description = xs.[9]
+                                if not (description = "")
+                                then   
+                                    col.ExtendedProperties.["MS_Description"] <- description
+
+                                table.Columns.Add col
+
                             table
                         @@>
                     dataTableType.AddMember ctor
@@ -432,7 +508,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         updateMethod.InvokeCode <- fun args ->
                             <@@
                                 let table: DataTable = %%Expr.Coerce(args.[0], typeof<DataTable>) 
-                                let select = new SqlCommand(tableDirectSql)
+                                let select = new SqlCommand(cmdText = sprintf "SELECT * FROM " + twoPartTableName)
                                 select.Connection <- 
                                     match %%args.[1] with 
                                     | null -> 

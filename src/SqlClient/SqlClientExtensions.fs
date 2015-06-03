@@ -41,17 +41,36 @@ let DbNull = box DBNull.Value
 
 type Column = {
     Name: string
-    Ordinal: int
     TypeInfo: TypeInfo
     IsNullable: bool
     MaxLength: int
     ReadOnly: bool
     Identity: bool
+    IsPartOfUniqueKey: bool
+    DefaultConstraint: string
+    Description: string
 }   with
+    
     member this.ClrTypeConsideringNullable = 
         if this.IsNullable 
         then typedefof<_ option>.MakeGenericType this.TypeInfo.ClrType
         else this.TypeInfo.ClrType
+
+    static member Parse(cursor: SqlDataReader, connectionString) = {
+        Name = unbox cursor.["name"]
+        TypeInfo = 
+            let system_type_id = unbox<byte> cursor.["system_type_id"] |> int
+            let user_type_id = SqlDataReader.getOption "user_type_id" cursor
+            findTypeInfoBySqlEngineTypeId(connectionString, system_type_id, user_type_id)
+        IsNullable = unbox cursor.["is_nullable"]
+        MaxLength = cursor.["max_length"] |> unbox<int16> |> int
+        ReadOnly = not( SqlDataReader.getValueOrDefault "is_updateable" true cursor)
+        Identity = SqlDataReader.getValueOrDefault "is_identity_column" false cursor 
+        IsPartOfUniqueKey = unbox cursor.["is_part_of_unique_key"]
+        DefaultConstraint = null
+        Description = null
+    }
+        
 
 and TypeInfo = {
     TypeName: string
@@ -275,7 +294,6 @@ type SqlConnection with
 
             let x = { 
                 Column.Name = string reader.["name"]
-                Ordinal = unbox reader.["column_ordinal"]
                 TypeInfo = findTypeInfoBySqlEngineTypeId (this.ConnectionString, system_type_id, user_type_id)
                 IsNullable = unbox reader.["is_nullable"]
                 MaxLength = reader.["max_length"] |> unbox<int16> |> int
@@ -299,7 +317,6 @@ type SqlConnection with
                 for row in columnSchema.Rows do
                     yield { 
                         Column.Name = unbox row.["ColumnName"]
-                        Ordinal = unbox row.["ColumnOrdinal"]
                         TypeInfo =
                             let t = Enum.Parse(typeof<SqlDbType>, string row.["ProviderType"]) |> unbox
                             findTypeInfoByProviderType(this.ConnectionString, t)
@@ -381,7 +398,7 @@ type SqlConnection with
                         then
                             seq {
                                 use cmd = new SqlCommand("
-                                    SELECT c.name, c.column_id, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length, c.is_identity, c.is_computed
+                                    SELECT c.name, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length, c.is_identity, c.is_computed
                                     FROM sys.table_types AS tt
                                     INNER JOIN sys.columns AS c ON tt.type_table_object_id = c.object_id
                                     WHERE tt.user_type_id = @user_type_id
@@ -395,7 +412,6 @@ type SqlConnection with
                                     let stid = reader.["system_type_id"] |> unbox<byte> |> int
                                     yield {
                                         Column.Name = string reader.["name"]
-                                        Ordinal = unbox reader.["column_id"]
                                         TypeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, stid, user_type_id)
                                         IsNullable = unbox reader.["is_nullable"]
                                         MaxLength = reader.["max_length"] |> unbox<int16> |> int

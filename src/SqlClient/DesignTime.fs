@@ -64,22 +64,22 @@ type DesignTime private() =
         
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
         let properties, ctorParameters = 
-            [
-                for col in columns do
+            columns
+            |> List.mapi ( fun i col ->
+                let propertyName = col.Name
+
+                if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
                     
-                    let propertyName = col.Name
+                let propType = col.ClrTypeConsideringNullable
 
-                    if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
-                    
-                    let propType = col.ClrTypeConsideringNullable
+                let property = ProvidedProperty(propertyName, propType)
+                property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
 
-                    let property = ProvidedProperty(propertyName, propType)
-                    property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
+                let ctorParameter = ProvidedParameter(propertyName, propType)  
 
-                    let ctorParameter = ProvidedParameter(propertyName, propType)  
-
-                    yield property, ctorParameter
-            ] |> List.unzip
+                property, ctorParameter
+            )
+            |> List.unzip
 
         recordType.AddMembers properties
 
@@ -99,9 +99,9 @@ type DesignTime private() =
     static member internal GetDataRowType (columns: Column list) = 
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
 
-        columns |> List.map( fun col ->
+        columns |> List.mapi( fun i col ->
             let name = col.Name
-            if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
+            if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
 
             let propertyType = col.ClrTypeConsideringNullable
             if col.IsNullable 
