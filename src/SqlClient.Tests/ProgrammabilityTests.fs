@@ -1,5 +1,6 @@
 ﻿module FSharp.Data.ProgrammabilityTest
 
+open System
 open System.Data.SqlClient
 open Xunit
 
@@ -45,3 +46,95 @@ let ``GEOMETRY and GEOGRAPHY sp params``() =
 [<Fact>]
 let routineCommandTypeTag() = 
     Assert.Equal<string>(ConnectionStrings.AdventureWorksNamed, GetContactInformation.ConnectionStringOrName)
+
+[<Fact>]
+let localTransactionCtor() = 
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
+    conn.Open()
+    use tran = conn.BeginTransaction()
+    let jamesKramerId = 42
+
+    let businessEntityID, jobTitle, hireDate = 
+        use cmd = new SqlCommandProvider<"
+            SELECT 
+	            BusinessEntityID
+	            ,JobTitle
+	            ,HireDate
+            FROM 
+                HumanResources.Employee 
+            WHERE 
+                BusinessEntityID = @id
+            ", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples, SingleRow = true>(conn, tran)
+        jamesKramerId |> cmd.Execute |> Option.get
+
+    Assert.Equal<string>("Production Technician - WC60", jobTitle)
+    
+    let newJobTitle = "Uber " + jobTitle
+    do
+        //let get
+        use updatedJobTitle = new AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo(conn, tran)
+        let recordsAffrected = 
+            updatedJobTitle.Execute(
+                businessEntityID, 
+                newJobTitle, 
+                hireDate, 
+                RateChangeDate = DateTime.Now, 
+                Rate = 12M, 
+                PayFrequency = 1uy, 
+                CurrentFlag = true 
+            )
+        System.Diagnostics.Debug.WriteLine(recordsAffrected)
+        //Assert.Equal(1, recordsAffrected)
+    
+    let updatedJobTitle = 
+        use cmd = new AdventureWorks.dbo.ufnGetContactInformation(conn, tran)
+        let result = cmd.Execute(PersonID = jamesKramerId) |> Seq.exactlyOne
+        result.JobTitle.Value
+
+    Assert.Equal<string>(newJobTitle, updatedJobTitle)
+        
+[<Fact>]
+let localTransactionCreateAndSingleton() = 
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
+    conn.Open()
+    use tran = conn.BeginTransaction()
+    let jamesKramerId = 42
+
+    let businessEntityID, jobTitle, hireDate = 
+        use cmd = SqlCommandProvider<"
+            SELECT 
+	            BusinessEntityID
+	            ,JobTitle
+	            ,HireDate
+            FROM 
+                HumanResources.Employee 
+            WHERE 
+                BusinessEntityID = @id
+            ", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples, SingleRow = true>.Create(conn, tran)
+        jamesKramerId |> cmd.Execute |> Option.get
+
+    Assert.Equal<string>("Production Technician - WC60", jobTitle)
+    
+    let newJobTitle = "Uber " + jobTitle
+    do
+        //let get
+        use updatedJobTitle = AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo.Create(conn, tran)
+        let recordsAffrected = 
+            updatedJobTitle.Execute(
+                businessEntityID, 
+                newJobTitle, 
+                hireDate, 
+                RateChangeDate = DateTime.Now, 
+                Rate = 12M, 
+                PayFrequency = 1uy, 
+                CurrentFlag = true 
+            )
+        System.Diagnostics.Debug.WriteLine(recordsAffrected)
+        //Assert.Equal(1, recordsAffrected)
+    
+    let updatedJobTitle = 
+        use cmd = AdventureWorks.dbo.ufnGetContactInformation.Create(conn, tran)
+        let result = cmd.ExecuteSingle(PersonID = jamesKramerId) 
+        result.Value.JobTitle.Value
+
+    Assert.Equal<string>(newJobTitle, updatedJobTitle)

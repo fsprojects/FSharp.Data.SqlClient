@@ -13,8 +13,6 @@ open FSharp.Data
 
 type QuotationsFactory private() = 
     
-    static let setTypeName = typeof<SqlParameter>.GetMethod("set_TypeName")
-    
     static member internal GetBody(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
         
         let bodyFactory =   
