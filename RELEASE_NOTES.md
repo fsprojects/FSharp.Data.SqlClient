@@ -165,3 +165,4 @@
 	* Issue #126 fixed - AsSqlCommand removed
 	* Issue #129 - ExecuteSingle method on SqlProgrammability stored procedure/function types
 	* Issue #131 - unify SqlProgrammabilityProvider and SqlCommandProvider ctors
+	* Issue #124 - DataTable ReadXmlSchema/WriteXmlSchema are not used anymore
