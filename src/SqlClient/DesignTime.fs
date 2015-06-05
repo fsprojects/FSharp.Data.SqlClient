@@ -104,7 +104,7 @@ type DesignTime private() =
             if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
 
             let propertyType = col.ClrTypeConsideringNullable
-            if col.IsNullable 
+            if col.Nullable 
             then
                 let property = ProvidedProperty(name, propertyType, GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", col.TypeInfo.ClrType, name))
                 if not col.ReadOnly
@@ -200,16 +200,14 @@ type DesignTime private() =
             with :? SqlException ->
                 raise why
 
-    static member internal ExtractParameters(connection, commandText: string) =  [
+    static member internal ExtractParameters(connection, commandText: string) =  
         use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", connection, CommandType = CommandType.StoredProcedure)
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
-        use reader = cmd.ExecuteReader()
-        while(reader.Read()) do
-
+        cmd.ExecuteQuery(fun reader ->
             let paramName = string reader.["name"]
             let sqlEngineTypeId = unbox<int> reader.["suggested_system_type_id"]
 
-            let userTypeId = reader |> SqlDataReader.getOption<int> "suggested_user_type_id"
+            let userTypeId = reader.TryGetValue "suggested_user_type_id"
             let direction = 
                 if unbox reader.["suggested_is_output"]
                 then 
@@ -220,13 +218,14 @@ type DesignTime private() =
                     
             let typeInfo = findTypeInfoBySqlEngineTypeId(connection.ConnectionString, sqlEngineTypeId, userTypeId)
 
-            yield { 
+            { 
                 Name = paramName
                 TypeInfo = typeInfo 
                 Direction = direction 
                 DefaultValue = None
             }
-    ]
+        )
+        |> Seq.toList
 
     static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, allParametersOptional, udtts: ProvidedTypeDefinition list) = 
         [
@@ -253,7 +252,7 @@ type DesignTime private() =
                                 cmdProvidedType.AddMember rowType
                                 let parameters = [ 
                                     for p in p.TypeInfo.TableTypeColumns -> 
-                                        ProvidedParameter( p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
+                                        ProvidedParameter( p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.Nullable then Some null else None) 
                                 ] 
 
                                 let ctor = ProvidedConstructor( parameters)

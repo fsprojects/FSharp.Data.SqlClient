@@ -157,7 +157,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 let ctor1Params = 
                     [ 
                         ProvidedParameter("connectionString", typeof<string>, optionalValue = "") 
-                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
+                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
                     ]
 
                 let ctor1Body(args: _ list) = 
@@ -177,7 +177,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     [ 
                         ProvidedParameter("connection", typeof<SqlConnection>)
                         ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
-                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
+                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
                     ]
 
                 let ctor2Body (args: _ list) = 

@@ -122,7 +122,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     
                 let parameters = [ 
                     for p in t.TableTypeColumns -> 
-                        ProvidedParameter(p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
+                        ProvidedParameter(p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.Nullable then Some null else None) 
                 ] 
 
                 let ctor = ProvidedConstructor( parameters)
@@ -184,7 +184,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let ctor1Params = 
                             [ 
                                 ProvidedParameter("connectionString", typeof<string>, optionalValue = "") 
-                                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
+                                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
                             ]
 
                         let ctor1Body(args: _ list) = 
@@ -204,7 +204,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             [ 
                                 ProvidedParameter("connection", typeof<SqlConnection>)
                                 ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
-                                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
+                                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
                             ]
 
                         let ctor2Body (args: _ list) = 
@@ -252,12 +252,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             |> List.map (fun tableName -> 
 
                 let twoPartTableName = sprintf "[%s].[%s]" schema tableName 
-//                let tableDirectSql = sprintf "SELECT * FROM " + twoPartTableName
-//                use adapter = new SqlDataAdapter(tableDirectSql, conn)
-//                let dataTable = adapter.FillSchema(new DataTable(twoPartTableName), SchemaType.Source)
-
-                let dataTable = new DataTable(twoPartTableName)
-                let columns = dataTable.Columns
 
                 let descriptionSelector = 
                     if isSqlAzure 
@@ -299,78 +293,36 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 let cmd = new SqlCommand(query, conn)
                 cmd.Parameters.AddWithValue("@tableName", tableName) |> ignore
                 cmd.Parameters.AddWithValue("@schema", schema) |> ignore
-                use cursor = cmd.ExecuteReader()
 
-                let serializedSchema = 
-                    cursor
-                    |> SqlDataReader.map(fun record ->
-                        let values = Array.zeroCreate record.FieldCount
-                        let totalReceived = record.GetProviderSpecificValues(values) 
-                        assert(totalReceived = values.Length)
-                        values |> Array.map string |> String.concat "\t"
+                let columns =  
+                    cmd.ExecuteQuery( fun x ->
+                        let c = Column.Parse(x, fun(system_type_id, user_type_id) -> findTypeInfoBySqlEngineTypeId(conn.ConnectionString, system_type_id, user_type_id)) 
+                        { c with DefaultConstraint = string x.["default_constraint"]; Description = string x.["description"]}
                     )
-                    |> String.concat "\n"
+                    |> Seq.toArray
 
-                let primaryKey = HashSet()
-                while cursor.Read() do 
-
-                    let values = Array.zeroCreate cursor.FieldCount
-                    cursor.GetValues values |> ignore
-
-                    let c = new DataColumn()
-                    c.ColumnName <- unbox cursor.["name"]
-
-                    let system_type_id = unbox<byte> cursor.["system_type_id"] |> int
-                    let user_type_id = SqlDataReader.getOption "user_type_id" cursor
-                    c.DataType <- 
-                        let typeInfo = findTypeInfoBySqlEngineTypeId(conn.ConnectionString, system_type_id, user_type_id)
-                        typeInfo.ClrType
-                        
-                    c.AutoIncrement <- unbox cursor.["is_identity_column"]
-                    c.AllowDBNull <- unbox cursor.["is_nullable"]
-
-                    let is_part_of_unique_key = unbox cursor.["is_part_of_unique_key"]
-                    if is_part_of_unique_key
-                    then 
-                        primaryKey.Add c |> ignore
-
-                    //allow nullability for non-unique columns with defaults
-                    let default_constraint = cursor.["default_constraint"]
-                    if not(is_part_of_unique_key || Convert.IsDBNull default_constraint)
-                    then 
-                        c.AllowDBNull <- true
-                        c.ExtendedProperties.["COLUMN_DEFAULT"] <- default_constraint
-
-                    let description = cursor.["description"]
-                    if not (Convert.IsDBNull description)
-                    then 
-                        c.ExtendedProperties.["MS_Description"] <- description
-                       
-                    dataTable.Columns.Add c
-                        
-                dataTable.PrimaryKey <- Array.ofSeq primaryKey
 
                 //type data row
                 let dataRowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
                 do 
                     for c in columns do
-                        let name = c.ColumnName
                         let property = 
-                            if c.AllowDBNull && not( c.ExtendedProperties.ContainsKey("COLUMN_DEFAULT")) //non-nullable columns with default still don't option<_> type
+                            let name, dataType = c.Name, c.TypeInfo.ClrType
+                            if c.Nullable 
                             then
-                                let propertType = typedefof<_ option>.MakeGenericType c.DataType
-                                let property = ProvidedProperty(c.ColumnName, propertType, GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", c.DataType, name))
+                                let propertType = typedefof<_ option>.MakeGenericType dataType
+                                let property = ProvidedProperty(name, propertType, GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", dataType, name))
                                 if not c.ReadOnly
-                                then property.SetterCode <- QuotationsFactory.GetBody("SetNullableValueInDataRow", c.DataType, name)
+                                then property.SetterCode <- QuotationsFactory.GetBody("SetNullableValueInDataRow", dataType, name)
                                 property
                             else
-                                let property = ProvidedProperty(name, c.DataType, GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>))
+                                let property = ProvidedProperty(name, dataType, GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>))
                                 if not c.ReadOnly
                                 then property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
                                 property
 
-                        if c.ExtendedProperties.ContainsKey "MS_Description" 
-                        then property.AddXmlDoc(string c.ExtendedProperties.["MS_Description"])
+                        if c.Description <> "" 
+                        then property.AddXmlDoc c.Description
 
                         dataRowType.AddMember property
 
@@ -389,8 +341,16 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                 do //ctor
                     let ctor = ProvidedConstructor []
-                    let connectionString = conn.ConnectionString
                     ctor.InvokeCode <- fun _ -> 
+                        let serializedSchema = 
+                            columns 
+                            |> Array.map (fun x ->
+                                let nullable = x.Nullable || x.HasDefaultConstraint
+                                sprintf "%s\t%s\t%b\t%i\t%b\t%b\t%b" 
+                                    x.Name x.TypeInfo.ClrTypeFullName nullable x.MaxLength x.ReadOnly x.Identity x.PartOfUniqueKey                                 
+                            ) 
+                            |> String.concat "\n"
+
                         <@@ 
                             let table = new DataTable<DataRow>(twoPartTableName) 
                             let primaryKey = ResizeArray()
@@ -398,30 +358,19 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 let xs = line.Split('\t')
                                 let col = new DataColumn()
                                 col.ColumnName <- xs.[0]
-                                col.DataType <-   
-                                    let system_type_id = int xs.[1]
-                                    let user_type_id = int xs.[2]
-                                    let typeInfo = findTypeInfoBySqlEngineTypeId(connectionString, system_type_id, Some user_type_id)
-                                    typeInfo.ClrType
-                                col.MaxLength <- int xs.[3]
-                                col.AllowDBNull <- Boolean.Parse xs.[4]
+                                col.DataType <- Type.GetType xs.[1]  
+                                col.AllowDBNull <- Boolean.Parse xs.[2]
+                                if col.DataType = typeof<string>
+                                then 
+                                    col.MaxLength <- int xs.[3]
+                                col.ReadOnly <- Boolean.Parse xs.[4]
                                 col.AutoIncrement <- Boolean.Parse xs.[5]
-                                col.ReadOnly <- not( Boolean.Parse xs.[6])
-                                if Boolean.Parse xs.[7]
+                                if Boolean.Parse xs.[6]
                                 then    
                                     primaryKey.Add col 
-                                let default_constraint = xs.[8]
-                                if not (default_constraint = "")
-                                then   
-                                    col.AllowDBNull <- true
-                                    col.ExtendedProperties.["COLUMN_DEFAULT"] <- default_constraint
-                                
-                                let description = xs.[9]
-                                if not (description = "")
-                                then   
-                                    col.ExtendedProperties.["MS_Description"] <- description
-
                                 table.Columns.Add col
+
+                            table.PrimaryKey <- Array.ofSeq primaryKey
 
                             table
                         @@>
@@ -431,25 +380,26 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     let parameters, updateableColumns= 
                         [ 
                             for c in columns do 
-                                if not(c.AutoIncrement || c.ReadOnly)
+                                if not(c.Identity || c.ReadOnly)
                                 then 
+                                    let dataType = c.TypeInfo.ClrType
                                     let parameter = 
-                                        if c.AllowDBNull
-                                        then ProvidedParameter(c.ColumnName, parameterType = typedefof<_ option>.MakeGenericType c.DataType, optionalValue = null)
-                                        else ProvidedParameter(c.ColumnName, c.DataType)
+                                        if c.NullableParameter
+                                        then ProvidedParameter(c.Name, parameterType = typedefof<_ option>.MakeGenericType dataType, optionalValue = null)
+                                        else ProvidedParameter(c.Name, dataType)
 
                                     yield parameter, c
                         ] 
-                        |> List.sortBy (fun (_, c) -> c.AllowDBNull) //move non-nullable params in front
+                        |> List.sortBy (fun (_, c) -> c.NullableParameter) //move non-nullable params in front
                         |> List.unzip
 
 
                     let methodXmlDoc = 
                         String.concat "\n" [
                             for c in updateableColumns do
-                                if c.ExtendedProperties.ContainsKey "MS_Description" 
+                                if c.Description <> "" 
                                 then 
-                                    yield sprintf "<param name='%s'>%O</param>" c.ColumnName c.ExtendedProperties.["MS_Description"]
+                                    yield sprintf "<param name='%s'>%O</param>" c.Name c.Description
                         ]
                         
                     let invokeCode = fun (args: _ list)-> 
@@ -457,11 +407,11 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let argsValuesConverted = 
                             (args.Tail, updateableColumns)
                             ||> List.map2 (fun valueExpr c ->
-                                if c.AllowDBNull
+                                if c.NullableParameter
                                 then 
                                     typeof<QuotationsFactory>
                                         .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
-                                        .MakeGenericMethod(c.DataType)
+                                        .MakeGenericMethod(c.TypeInfo.ClrType)
                                         .Invoke(null, [| box valueExpr |])
                                         |> unbox
                                 else
@@ -473,8 +423,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             let row = table.NewRow()
 
                             let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for x in argsValuesConverted -> Expr.Coerce(x, typeof<obj>) ])
-                            let namesOfUpdateableColumns: string[] = %%Expr.NewArray(typeof<string>, [ for c in updateableColumns -> Expr.Value(c.ColumnName) ])
-                            let optionalParams: bool[] = %%Expr.NewArray(typeof<bool>, [ for c in updateableColumns -> Expr.Value(c.AllowDBNull) ])
+                            let namesOfUpdateableColumns: string[] = %%Expr.NewArray(typeof<string>, [ for c in updateableColumns -> Expr.Value(c.Name) ])
+                            let optionalParams: bool[] = %%Expr.NewArray(typeof<bool>, [ for c in updateableColumns -> Expr.Value(c.NullableParameter) ])
 
                             Debug.Assert(values.Length = namesOfUpdateableColumns.Length, "values.Length = namesOfUpdateableColumns.Length")
                             Debug.Assert(values.Length = optionalParams.Length, "values.Length = optionalParams.Length")
@@ -555,7 +505,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                 do //columns accessors
                     for c in columns do
-                        let name = c.ColumnName
+                        let name = c.Name
                         dataTableType.AddMember <| 
                             ProvidedProperty(name + "Column", typeof<DataColumn>, [], GetterCode = fun args -> <@@ (%%Expr.Coerce(args.[0], typeof<DataTable>): DataTable).Columns.[name]  @@>)
 

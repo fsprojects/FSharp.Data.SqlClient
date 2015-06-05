@@ -21,56 +21,71 @@ type SqlCommand with
     member this.AsyncExecuteNonQuery() =
         Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) 
 
-let defaultCommandTimeout = (new SqlCommand()).CommandTimeout
+    static member internal DefaultTimeout = (new SqlCommand()).CommandTimeout
 
-module SqlDataReader = 
+    member internal this.ExecuteQuery mapper = 
+        seq {
+            use cursor = this.ExecuteReader()
+            while cursor.Read() do
+                yield mapper cursor
+        }
 
-    let internal map mapping (reader: SqlDataReader) = 
-        reader |> Seq.unfold (fun current -> if current.Read() then Some( mapping reader, current) else None) 
+type SqlDataReader with
+    member internal this.TryGetValue(name: string) = 
+        let value = this.[name] 
+        if Convert.IsDBNull value then None else Some(unbox<'a> value)
+    member internal this.GetValueOrDefault<'a>(name: string, defaultValue) = 
+        let value = this.[name] 
+        if Convert.IsDBNull value then defaultValue else unbox<'a> value
 
-    let internal getOption<'a> (key: string) (reader: SqlDataReader) =
-        let v = reader.[key] 
-        if Convert.IsDBNull v then None else Some(unbox<'a> v)
-
-    let internal getValueOrDefault<'a> (key: string) defaultValue (reader: SqlDataReader) =
-        let v = reader.[key] 
-        if Convert.IsDBNull v then defaultValue else unbox<'a> v
-
-        
 let DbNull = box DBNull.Value
 
 type Column = {
     Name: string
     TypeInfo: TypeInfo
-    IsNullable: bool
+    Nullable: bool
     MaxLength: int
     ReadOnly: bool
     Identity: bool
-    IsPartOfUniqueKey: bool
+    PartOfUniqueKey: bool
     DefaultConstraint: string
     Description: string
 }   with
     
     member this.ClrTypeConsideringNullable = 
-        if this.IsNullable 
+        if this.Nullable
         then typedefof<_ option>.MakeGenericType this.TypeInfo.ClrType
         else this.TypeInfo.ClrType
 
-    static member Parse(cursor: SqlDataReader, connectionString) = {
+    member this.HasDefaultConstraint = this.DefaultConstraint <> ""
+    member this.NullableParameter = this.Nullable || this.HasDefaultConstraint
+
+    static member Parse(cursor: SqlDataReader, typeLookup: int * int option -> TypeInfo) = {
         Name = unbox cursor.["name"]
         TypeInfo = 
             let system_type_id = unbox<byte> cursor.["system_type_id"] |> int
-            let user_type_id = SqlDataReader.getOption "user_type_id" cursor
-            findTypeInfoBySqlEngineTypeId(connectionString, system_type_id, user_type_id)
-        IsNullable = unbox cursor.["is_nullable"]
+            let user_type_id = cursor.TryGetValue "user_type_id"
+            typeLookup(system_type_id, user_type_id)
+        Nullable = unbox cursor.["is_nullable"]
         MaxLength = cursor.["max_length"] |> unbox<int16> |> int
-        ReadOnly = not( SqlDataReader.getValueOrDefault "is_updateable" true cursor)
-        Identity = SqlDataReader.getValueOrDefault "is_identity_column" false cursor 
-        IsPartOfUniqueKey = unbox cursor.["is_part_of_unique_key"]
-        DefaultConstraint = null
-        Description = null
+        ReadOnly = not( cursor.GetValueOrDefault("is_updateable", false))
+        Identity = cursor.GetValueOrDefault( "is_identity_column", false)
+        PartOfUniqueKey = unbox cursor.["is_part_of_unique_key"]
+        DefaultConstraint = ""
+        Description = ""
     }
-        
+
+    override this.ToString() = 
+        sprintf "%s\t%s\t%b\t%i\t%b\t%b\t%b\t%s\t%s" 
+            this.Name 
+            this.TypeInfo.ClrTypeFullName 
+            this.Nullable 
+            this.MaxLength
+            this.ReadOnly
+            this.Identity
+            this.PartOfUniqueKey
+            this.DefaultConstraint
+            this.Description
 
 and TypeInfo = {
     TypeName: string
@@ -191,8 +206,7 @@ type SqlConnection with
     member internal this.GetUserSchemas() = 
         use __ = this.UseLocally()
         use cmd = new SqlCommand("SELECT name FROM SYS.SCHEMAS WHERE principal_id = 1", this)
-        use reader = cmd.ExecuteReader()
-        reader |> SqlDataReader.map (fun record -> record.GetString(0)) |> Seq.toList
+        cmd.ExecuteQuery(fun record -> record.GetString(0)) |> Seq.toList
 
     member internal this.GetRoutines( schema) = 
         assert (this.State = ConnectionState.Open)
@@ -201,9 +215,7 @@ type SqlConnection with
             FROM INFORMATION_SCHEMA.ROUTINES 
             WHERE ROUTINE_SCHEMA = '%s'" schema
         use cmd = new SqlCommand(getRoutinesQuery, this)
-        use reader = cmd.ExecuteReader()
-        reader 
-        |> SqlDataReader.map (fun x -> 
+        cmd.ExecuteQuery(fun x ->
             let schema, name = unbox x.["SPECIFIC_SCHEMA"], unbox x.["SPECIFIC_NAME"]
             let definition = unbox x.["Definition"]
             match x.["DATA_TYPE"] with
@@ -248,8 +260,7 @@ type SqlConnection with
             ORDER BY ORDINAL_POSITION" routine.TwoPartName
 
         use cmd = new SqlCommand( query, this)
-        use reader = cmd.ExecuteReader()
-        reader |> SqlDataReader.map (fun record -> 
+        cmd.ExecuteQuery(fun record -> 
             let name = string record.["name"]
             let direction = 
                 if unbox record.["suggested_is_output"]
@@ -260,7 +271,7 @@ type SqlConnection with
                     ParameterDirection.Input 
 
             let system_type_id: int = unbox record.["suggested_system_type_id"]
-            let user_type_id = record |> SqlDataReader.getOption "suggested_user_type_id"
+            let user_type_id = record.TryGetValue "suggested_user_type_id"
 
             let typeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, system_type_id, user_type_id)
 
@@ -273,35 +284,33 @@ type SqlConnection with
         )
         |> Seq.toList
 
-    member internal this.GetTables( schema) = [
+    member internal this.GetTables( schema) = 
         assert (this.State = ConnectionState.Open)
         let getTablesQuery = sprintf "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = '%s'" schema
         use cmd = new SqlCommand(getTablesQuery, this)
-        use reader = cmd.ExecuteReader()
-        while reader.Read() do
-            yield reader.GetString(0)
-    ]
+        cmd.ExecuteQuery(fun x -> x.GetString 0) |> Seq.toList
 
-    member internal this.GetFullQualityColumnInfo commandText = [
+    member internal this.GetFullQualityColumnInfo commandText = 
         assert (this.State = ConnectionState.Open)
         use cmd = new SqlCommand("sys.sp_describe_first_result_set", this, CommandType = CommandType.StoredProcedure)
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
-        use reader = cmd.ExecuteReader()
+        cmd.ExecuteQuery(fun cursor ->
+            let user_type_id = cursor.TryGetValue "user_type_id"
+            let system_type_id = cursor.["system_type_id"] |> unbox<int>
 
-        while reader.Read() do
-            let user_type_id = reader |> SqlDataReader.getOption<int> "user_type_id"
-            let system_type_id = reader.["system_type_id"] |> unbox<int>
-
-            let x = { 
-                Column.Name = string reader.["name"]
+            { 
+                Column.Name = string cursor.["name"]
                 TypeInfo = findTypeInfoBySqlEngineTypeId (this.ConnectionString, system_type_id, user_type_id)
-                IsNullable = unbox reader.["is_nullable"]
-                MaxLength = reader.["max_length"] |> unbox<int16> |> int
-                ReadOnly = not( SqlDataReader.getValueOrDefault "is_updateable" true reader)
-                Identity = SqlDataReader.getValueOrDefault "is_identity_column" false reader 
+                Nullable = unbox cursor.["is_nullable"]
+                MaxLength = cursor.["max_length"] |> unbox<int16> |> int
+                ReadOnly = not( cursor.GetValueOrDefault("is_updateable", true))
+                Identity = cursor.GetValueOrDefault("is_identity_column", false)
+                PartOfUniqueKey = cursor.GetValueOrDefault( "is_part_of_unique_key", false)
+                DefaultConstraint = null
+                Description = null
             }
-            yield x 
-    ] 
+        )
+        |> Seq.toList 
 
     member internal this.FallbackToSETFMONLY(commandText, commandType, parameters: Parameter list) = 
         assert (this.State = ConnectionState.Open)
@@ -320,10 +329,13 @@ type SqlConnection with
                         TypeInfo =
                             let t = Enum.Parse(typeof<SqlDbType>, string row.["ProviderType"]) |> unbox
                             findTypeInfoByProviderType(this.ConnectionString, t)
-                        IsNullable = unbox row.["AllowDBNull"]
+                        Nullable = unbox row.["AllowDBNull"]
                         MaxLength = unbox row.["ColumnSize"]
                         ReadOnly = unbox row.["IsAutoIncrement"] || unbox row.["IsReadOnly"]
                         Identity = unbox row.["IsAutoIncrement"]
+                        PartOfUniqueKey = false
+                        DefaultConstraint = null
+                        Description = null
                     }
             ]
 
@@ -408,15 +420,18 @@ type SqlConnection with
                                 cmd.Connection <- this
                                 use reader = cmd.ExecuteReader()
                                 while reader.Read() do 
-                                    let user_type_id = reader |> SqlDataReader.getOption "user_type_id"
+                                    let user_type_id = reader.TryGetValue "user_type_id"
                                     let stid = reader.["system_type_id"] |> unbox<byte> |> int
                                     yield {
                                         Column.Name = string reader.["name"]
                                         TypeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, stid, user_type_id)
-                                        IsNullable = unbox reader.["is_nullable"]
+                                        Nullable = unbox reader.["is_nullable"]
                                         MaxLength = reader.["max_length"] |> unbox<int16> |> int
                                         ReadOnly = unbox reader.["is_identity"] || unbox reader.["is_computed"]
                                         Identity = unbox reader.["is_identity"] 
+                                        PartOfUniqueKey = false
+                                        DefaultConstraint = null
+                                        Description = null
                                     }
                             } 
                             |> Seq.cache

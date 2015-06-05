@@ -70,7 +70,7 @@ type QuotationsFactory private() =
         @> 
 
     static member internal MapArrayNullableItems(outputColumns : Column list, mapper : string) = 
-        let columnTypes, isNullableColumn = outputColumns |> List.map (fun c -> c.TypeInfo.ClrTypeFullName, c.IsNullable) |> List.unzip
+        let columnTypes, isNullableColumn = outputColumns |> List.map (fun c -> c.TypeInfo.ClrTypeFullName, c.Nullable) |> List.unzip
         QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, mapper)            
 
     static member internal MapArrayNullableItems(columnTypes : string list, isNullableColumn : bool list, mapper : string) = 
