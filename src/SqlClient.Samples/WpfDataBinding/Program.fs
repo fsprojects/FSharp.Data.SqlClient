@@ -13,7 +13,7 @@ open FSharp.Data
 [<Literal>]
 let queryTableSql = "select top 5 AddressID, AddressLine1, City, SpatialLocation from Person.Address where AddressLine1 like @startsWith"
 
-type Query = SqlCommandProvider<queryTableSql, ConnectionStringOrName="name=AdventureWorks2012", ResultType=ResultType.DataTable>
+type Query = SqlCommandProvider<queryTableSql, "name=AdventureWorks", ResultType=ResultType.DataTable>
 
 [<STAThread>]
 [<EntryPoint>]
@@ -29,7 +29,7 @@ let main argv =
 
     close.Click.Add <| fun _ -> mainWindow.Close()
     save.Click.Add <| fun _ -> 
-        let sqlCommand = cmd.AsSqlCommand()
+        let sqlCommand = (cmd :> FSharp.Data.ISqlCommand).Raw
         let adapter = new SqlDataAdapter(sqlCommand)
         let builder = new SqlCommandBuilder(adapter)
         adapter.UpdateCommand <- builder.GetUpdateCommand()

@@ -3,9 +3,9 @@
 open FSharp.Data
 
 [<Literal>]
-let AdventureWorks2012 = "name=AdventureWorks2012"
+let AdventureWorks = "name=AdventureWorks"
 
-type QueryProducts = SqlCommandProvider<"T-SQL/Products.sql", AdventureWorks2012, DataDirectory = "App_Data">
+type QueryProducts = SqlCommandProvider<"T-SQL/Products.sql", AdventureWorks, DataDirectory = "App_Data">
 
-type AdventureWorks = SqlProgrammabilityProvider<AdventureWorks2012, DataDirectory = "App_Data">
+type AdventureWorks = SqlProgrammabilityProvider<AdventureWorks, DataDirectory = "App_Data">
 
