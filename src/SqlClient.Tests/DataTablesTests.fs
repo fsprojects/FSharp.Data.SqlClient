@@ -186,6 +186,24 @@ type DataTablesTests() =
 
         Assert.True(row.EndDate.IsNone)
 
+    [<Fact>]
+    member __.SqlCommandTableUpdate() = 
+        use cmd = 
+            new SqlCommandProvider<"SELECT Name, StartTime, EndTime FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>()
+        let t = cmd.Execute()
+        use conn = new SqlConnection(connectionString = adventureWorks)
+        conn.Open()
+        use tran = conn.BeginTransaction()
+    
+        let row = t.NewRow()
+        row.Name <- "French coffee break"
+        row.StartTime <- TimeSpan.FromHours 10.
+        row.EndTime <- TimeSpan.FromHours 12.
+        t.Rows.Add row
+        //removing ModifiedDate column is not required as oppose to bulk insert 
+        let rowsInserted = t.Update(conn, tran)
+        Assert.Equal(1, rowsInserted)
+
 
 
 

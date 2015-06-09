@@ -99,7 +99,7 @@ and TypeInfo = {
     TableTypeColumns: Column seq
 }   with
     member this.SqlDbType : SqlDbType = enum this.SqlDbTypeId
-    member this.ClrType : Type = Type.GetType this.ClrTypeFullName
+    member this.ClrType : Type = Type.GetType( this.ClrTypeFullName, throwOnError = true)
     member this.TableType = this.SqlDbType = SqlDbType.Structured
     member this.IsValueType = not this.TableType && this.ClrType.IsValueType
 

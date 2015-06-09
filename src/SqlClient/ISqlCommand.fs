@@ -52,6 +52,12 @@ type Connection =
     | NameInConfig of string
     | ``Connection and-or Transaction`` of SqlConnection * SqlTransaction
 
+    member this.ConnectionString = 
+        match this with
+        | Literal s -> s
+        | NameInConfig name -> Configuration.GetConnectionStringAtRunTime name
+        | ``Connection and-or Transaction``(conn, _) -> conn.ConnectionString 
+
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, isStoredProcedure, parameters, resultType, rank, rowMapping: RowMapping, itemTypeName) = 
 
@@ -209,15 +215,15 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
         cmd.AsyncExecuteReader( getReaderBehavior())
     
     static member internal ExecuteDataTable(cmd, getReaderBehavior, parameters) = 
-        use reader = ``ISqlCommand Implementation``.ExecuteReader(cmd, getReaderBehavior, parameters)  
-        let result = new FSharp.Data.DataTable<DataRow>()
+        use reader = ``ISqlCommand Implementation``.ExecuteReader(cmd, getReaderBehavior, parameters) 
+        let result = new FSharp.Data.DataTable<DataRow>(null, cmd.Clone())
         result.Load(reader)
         result
 
     static member internal AsyncExecuteDataTable(cmd, getReaderBehavior, parameters) = 
         async {
             use! reader = ``ISqlCommand Implementation``.AsyncExecuteReader(cmd, getReaderBehavior, parameters) 
-            let result = new FSharp.Data.DataTable<DataRow>()
+            let result = new FSharp.Data.DataTable<DataRow>(null, cmd.Clone())
             result.Load(reader)
             return result
         }

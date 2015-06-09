@@ -1,12 +1,16 @@
 ﻿namespace FSharp.Data
 
+open System
 open System.Data
+open System.Data.SqlClient
 open System.Collections.Generic
+
+open FSharp.Data.SqlClient
 
 [<Sealed>]
 ///<summary>Generic implementation of <see cref='DataTable'/></summary>
-type DataTable<'T when 'T :> DataRow>(?tableName) = 
-    inherit DataTable(defaultArg tableName null)
+type DataTable<'T when 'T :> DataRow>(tableName, selectCommand) = 
+    inherit DataTable(tableName)
 
     let rows = base.Rows
 
@@ -34,5 +38,31 @@ type DataTable<'T when 'T :> DataRow>(?tableName) =
     }
 
     member __.NewRow(): 'T = downcast base.NewRow()
+
+    member this.Update(?connection, ?transaction, ?batchSize) = 
+        
+        use dataAdapter = new SqlDataAdapter(selectCommand)
+        use commandBuilder = new SqlCommandBuilder(dataAdapter) 
+
+        connection |> Option.iter dataAdapter.SelectCommand.set_Connection
+        transaction |> Option.iter dataAdapter.SelectCommand.set_Transaction
+        batchSize |> Option.iter dataAdapter.set_UpdateBatchSize
+
+        dataAdapter.Update(this)
+
+    member this.BulkCopy(?connection, ?copyOptions, ?transaction, ?batchSize, ?timeout) = 
+        
+        let connection = defaultArg connection selectCommand.Connection
+        use __ = connection.UseLocally()
+        use bulkCopy = 
+            new SqlBulkCopy(
+                connection, 
+                copyOptions = defaultArg copyOptions SqlBulkCopyOptions.Default, 
+                externalTransaction = defaultArg transaction selectCommand.Transaction
+            )
+        bulkCopy.DestinationTableName <- tableName
+        batchSize |> Option.iter bulkCopy.set_BatchSize
+        timeout |> Option.iter bulkCopy.set_BulkCopyTimeout
+        bulkCopy.WriteToServer this
 
 

@@ -352,7 +352,17 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             |> String.concat "\n"
 
                         <@@ 
-                            let table = new DataTable<DataRow>(twoPartTableName) 
+                            let runTimeConnectionString = 
+                                if isByName 
+                                then Configuration.GetConnectionStringAtRunTime connectionStringName
+                                else connectionString
+                            let selectCommand = new SqlCommand()
+                            selectCommand.CommandText <- "SELECT * FROM " + twoPartTableName
+                            selectCommand.Connection <- 
+                                new SqlConnection(runTimeConnectionString)
+
+                            let table = new DataTable<DataRow>(twoPartTableName, selectCommand) 
+
                             let primaryKey = ResizeArray()
                             for line in serializedSchema.Split('\n') do
                                 let xs = line.Split('\t')
@@ -449,59 +459,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 table.Rows.Add row
                             @@>
                         dataTableType.AddMember addRowMethod
-
-                    do
-                        let updateMethod = 
-                            let connection = ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
-                            let transaction = ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null)
-                            ProvidedMethod("Update", [ connection; transaction ], typeof<int>) 
-                        updateMethod.InvokeCode <- fun args ->
-                            <@@
-                                let table: DataTable = %%Expr.Coerce(args.[0], typeof<DataTable>) 
-                                let select = new SqlCommand(cmdText = sprintf "SELECT * FROM " + twoPartTableName)
-                                select.Connection <- 
-                                    match %%args.[1] with 
-                                    | null -> 
-                                        let connStr = 
-                                            if isByName 
-                                            then Configuration.GetConnectionStringAtRunTime connectionStringName
-                                            else connectionString
-                                        new SqlConnection(connStr) 
-                                    | conn -> conn
-
-                                use __ = select.Connection.UseLocally()
-                                select.Transaction <- %%args.[2]
-                                use adapter = new SqlDataAdapter(select)
-                                use builder = new SqlCommandBuilder(adapter)
-                                adapter.Update table
-                            @@>
-                        dataTableType.AddMember updateMethod
-
-                    do
-                        let bulkCopyMethod = 
-                            let connection = ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
-                            let copyOptions = ProvidedParameter("copyOptions", typeof<SqlBulkCopyOptions>, optionalValue = SqlBulkCopyOptions.Default)
-                            let transaction = ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null)
-                            ProvidedMethod("BulkCopy", [ connection; copyOptions; transaction ], typeof<Void>) 
-                        bulkCopyMethod.InvokeCode <- fun args ->
-                            <@@
-                                let connection = 
-                                    match %%args.[1] with 
-                                    | null -> 
-                                        let connStr = 
-                                            if isByName 
-                                            then Configuration.GetConnectionStringAtRunTime connectionStringName
-                                            else connectionString
-                                        new SqlConnection(connStr) 
-                                    | conn -> conn
-                                use __ = connection.UseLocally()
-                                use bulkCopy = new SqlBulkCopy(connection, copyOptions = %%args.[2], externalTransaction = %%args.[3])
-                                bulkCopy.DestinationTableName <- twoPartTableName
-                                let table: DataTable = %%Expr.Coerce(args.[0], typeof<DataTable>) 
-                                bulkCopy.WriteToServer(table)
-                            @@>
-                        dataTableType.AddMember bulkCopyMethod
-                        
 
                 do //columns accessors
                     for c in columns do

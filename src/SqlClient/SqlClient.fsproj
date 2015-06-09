@@ -74,9 +74,9 @@
     <Compile Include="DebugProvidedTypes.fs" />
     <Compile Include="Configuration.fs" />
     <Compile Include="ProvidedTypesCache.fs" />
-    <Compile Include="DataTable.fs" />
     <Compile Include="DynamicRecord.fs" />
     <Compile Include="SqlClientExtensions.fs" />
+    <Compile Include="DataTable.fs" />
     <Compile Include="ISqlCommand.fs" />
     <Compile Include="QuotationsFactory.fs" />
     <Compile Include="DesignTime.fs" />
