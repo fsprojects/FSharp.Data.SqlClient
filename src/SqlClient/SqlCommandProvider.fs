@@ -119,7 +119,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         conn.CheckVersion()
         conn.LoadDataTypesMap()
 
-        let parameters = DesignTime.ExtractParameters(conn, sqlStatement)
+        let parameters = DesignTime.ExtractParameters(conn, sqlStatement, allParametersOptional)
 
         let outputColumns = 
             if resultType <> ResultType.DataReader
@@ -188,10 +188,10 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         do  //AsyncExecute, Execute, and ToTraceString
 
-            let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, allParametersOptional, udtts = [])
+            let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, udtts = [])
 
             let addRedirectToISqlCommandMethod outputType name = 
-                DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType.BaseType, outputType, name) 
+                DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, outputType, name) 
                 |> cmdProvidedType.AddMember
 
             addRedirectToISqlCommandMethod output.ProvidedType "Execute" 

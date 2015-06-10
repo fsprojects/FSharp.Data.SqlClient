@@ -108,6 +108,7 @@ type Parameter = {
     TypeInfo: TypeInfo
     Direction: ParameterDirection 
     DefaultValue: obj option
+    Optional: bool
 }
 
 let internal dataTypeMappings = Dictionary<string, TypeInfo[]>()
@@ -274,13 +275,10 @@ type SqlConnection with
             let user_type_id = record.TryGetValue "suggested_user_type_id"
 
             let typeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, system_type_id, user_type_id)
+            let defaultValue = match paramDefaults.Result.TryGetValue(name) with | true, value -> value | false, _ -> None
+            let valueTypeWithNullDefault = typeInfo.IsValueType && defaultValue = Some(null)
 
-            { 
-                Name = name 
-                TypeInfo = typeInfo
-                Direction = direction 
-                DefaultValue = match paramDefaults.Result.TryGetValue(name) with | true, value -> value | false, _ -> None
-            }
+            { Name = name; TypeInfo = typeInfo; Direction = direction; DefaultValue = defaultValue; Optional = valueTypeWithNullDefault }
         )
         |> Seq.toList
 

@@ -27,13 +27,13 @@ type internal ResultTypes = {
 
 type DesignTime private() = 
     static member internal AddGeneratedMethod
-        (sqlParameters: Parameter list, executeArgs: ProvidedParameter list, allParametersOptional, erasedType, providedOutputType, name) =
+        (sqlParameters: Parameter list, executeArgs: ProvidedParameter list, erasedType, providedOutputType, name) =
 
         let mappedParamValues (exprArgs: Expr list) = 
             (exprArgs.Tail, sqlParameters)
             ||> List.map2 (fun expr info ->
                 let value = 
-                    if allParametersOptional && not info.TypeInfo.TableType
+                    if info.Optional && not info.TypeInfo.TableType
                     then 
                         typeof<QuotationsFactory>
                             .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
@@ -200,7 +200,7 @@ type DesignTime private() =
             with :? SqlException ->
                 raise why
 
-    static member internal ExtractParameters(connection, commandText: string) =  
+    static member internal ExtractParameters(connection, commandText: string, allParametersOptional) =  
         use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", connection, CommandType = CommandType.StoredProcedure)
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
         cmd.ExecuteQuery(fun reader ->
@@ -223,11 +223,12 @@ type DesignTime private() =
                 TypeInfo = typeInfo 
                 Direction = direction 
                 DefaultValue = None
+                Optional = allParametersOptional 
             }
         )
         |> Seq.toList
 
-    static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, allParametersOptional, udtts: ProvidedTypeDefinition list) = 
+    static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, udtts: ProvidedTypeDefinition list) = 
         [
             for p in sqlParameters do
                 assert p.Name.StartsWith("@")
@@ -236,7 +237,7 @@ type DesignTime private() =
                 yield 
                     if not p.TypeInfo.TableType 
                     then
-                        if allParametersOptional 
+                        if p.Optional 
                         then 
                             ProvidedParameter(parameterName, parameterType = typedefof<_ option>.MakeGenericType( p.TypeInfo.ClrType) , optionalValue = null)
                         else

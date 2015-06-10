@@ -78,3 +78,33 @@ FROM Person.[Address]
 WHERE
 	SpatialLocation.STDistance(@SpatialLocation) = 0;
 GO
+
+CREATE FUNCTION [dbo].[ufnGetStock2](@ProductID [int] = NULL)
+RETURNS [int] 
+AS 
+-- Returns the stock level for the product. This function is used internally only
+BEGIN
+    DECLARE @ret int;
+    
+    SELECT @ret = SUM(p.[Quantity]) 
+    FROM [Production].[ProductInventory] p 
+    WHERE 
+		(@ProductID IS NULL OR p.[ProductID] = @ProductID) 
+        AND p.[LocationID] = '6'; -- Only look at inventory in the misc storage
+    
+    IF (@ret IS NULL) 
+        SET @ret = 0
+    
+    RETURN @ret
+END;
+GO
+
+CREATE PROCEDURE dbo.Echo(@in SQL_VARIANT = 'Empty')
+AS
+	SELECT @in;
+GO
+
+CREATE PROCEDURE dbo.EchoText(@in VARCHAR(max) = 'Empty')
+AS
+	SELECT @in;
+GO

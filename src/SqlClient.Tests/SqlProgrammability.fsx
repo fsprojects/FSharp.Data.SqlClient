@@ -13,8 +13,8 @@ let connectionString = ConnectionStrings.AdventureWorksLiteral
 [<Literal>] 
 let prodConnectionString = ConnectionStrings.MasterDb
 
-//type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
-//type dbo = AdventureWorks2012.dbo
+type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
+type dbo = AdventureWorks2012.dbo
 //type HumanResources = AdventureWorks2012.HumanResources
 //type Person = AdventureWorks2012.Person
 //type Production = AdventureWorks2012.Production
@@ -98,9 +98,12 @@ let prodConnectionString = ConnectionStrings.MasterDb
 //            |> Async.RunSynchronously 
 //
 
-let cmd42 = new SqlProgrammabilityProvider<connectionString>.dbo.Get42()
-cmd42.ExecuteSingle()
-cmd42.Execute() |> Seq.exactlyOne
-cmd42.AsyncExecuteSingle() |> Async.RunSynchronously
-cmd42.AsyncExecute() |> Async.RunSynchronously |> Seq.exactlyOne
+dbo.ufnGetStock2.Create().Execute(Some 1) //324
+dbo.ufnGetStock2.Create().Execute() //83173
 
+dbo.Echo.Create().ExecuteSingle 42
+dbo.Echo.Create().ExecuteSingle()
+
+
+dbo.EchoText.Create().Execute()
+dbo.EchoText.Create().Execute("Hello, world!")
