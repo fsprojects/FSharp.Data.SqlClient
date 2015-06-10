@@ -162,7 +162,8 @@
 	* Issue #119 fixed
 
 #### 1.7 - June 4, 2015
-	* Issue #126 fixed - AsSqlCommand removed
-	* Issue #129 - ExecuteSingle method on SqlProgrammability stored procedure/function types
+	* Issue #126 - AsSqlCommand removed
+	* Issue #129 - ExecuteSingle/AsyncExecuteSingle method on SqlProgrammability stored procedure/function types
 	* Issue #131 - unify SqlProgrammabilityProvider and SqlCommandProvider ctors
 	* Issue #124 - DataTable ReadXmlSchema/WriteXmlSchema are not used anymore
+	* Issue #132 - Make value types parameters with default value NULL in SqlProgrammabilityProvider of type option<_>
