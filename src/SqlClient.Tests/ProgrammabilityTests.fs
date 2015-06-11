@@ -138,3 +138,37 @@ let localTransactionCreateAndSingleton() =
         result.Value.JobTitle.Value
 
     Assert.Equal<string>(newJobTitle, updatedJobTitle)
+
+[<Fact>]
+let FunctionWithParamOfValueTypeWithNullDefault() = 
+    Assert.Equal(
+        AdventureWorks.dbo.ufnGetStock.Create().Execute(1),
+        AdventureWorks.dbo.ufnGetStock2.Create().Execute(Some 1)
+    )
+    Assert.Equal(
+        Some 83173,
+        AdventureWorks.dbo.ufnGetStock2.Create().Execute()
+    )
+
+[<Fact>]
+let SpWithParamOfRefTypeWithNullDefault() = 
+    Assert.Equal(
+        Some (Some (box "Empty")),
+        AdventureWorks.dbo.Echo.Create().ExecuteSingle()
+    )
+
+    Assert.Equal(
+        Some(Some (box 42)),
+        AdventureWorks.dbo.Echo.Create().ExecuteSingle 42
+    )
+
+    Assert.Equal<string seq>(
+        [| "<NULL>" |],
+        AdventureWorks.dbo.EchoText.Create().Execute() |> Seq.toArray
+    )
+
+    let param = "Hello, world!"
+    Assert.Equal<string seq>(
+        [| param |],
+        AdventureWorks.dbo.EchoText.Create().Execute param |> Seq.toArray
+    )

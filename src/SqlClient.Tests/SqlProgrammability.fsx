@@ -98,12 +98,3 @@ type dbo = AdventureWorks2012.dbo
 //            |> Async.RunSynchronously 
 //
 
-dbo.ufnGetStock2.Create().Execute(Some 1) //324
-dbo.ufnGetStock2.Create().Execute() //83173
-
-dbo.Echo.Create().ExecuteSingle 42
-dbo.Echo.Create().ExecuteSingle()
-
-
-dbo.EchoText.Create().Execute()
-dbo.EchoText.Create().Execute("Hello, world!")

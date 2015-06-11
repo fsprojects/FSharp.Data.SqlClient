@@ -104,7 +104,7 @@ AS
 	SELECT @in;
 GO
 
-CREATE PROCEDURE dbo.EchoText(@in VARCHAR(max) = 'Empty')
+CREATE PROCEDURE dbo.EchoText(@in VARCHAR(max) = NULL)
 AS
-	SELECT @in;
+	SELECT ISNULL(@in, '<NULL>');
 GO
