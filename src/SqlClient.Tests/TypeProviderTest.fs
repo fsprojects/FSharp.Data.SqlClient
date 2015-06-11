@@ -5,10 +5,7 @@ open System.Data
 open System.Data.SqlClient
 open Xunit
 
-[<Literal>]
-let connection = ConnectionStrings.AdventureWorksNamed
-
-type GetEvenNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (24)) as T(value)", connection>
+type GetEvenNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (24)) as T(value)", ConnectionStrings.AdventureWorksNamed>
 
 [<Fact>]
 let asyncSinlgeColumn() = 
@@ -26,7 +23,7 @@ let ConnectionClose() =
 
 [<Fact>]
 let ExternalInstanceConnection() = 
-    use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
     use cmd = new GetEvenNumbers(conn)
     let untypedCmd : ISqlCommand = upcast cmd
@@ -38,12 +35,12 @@ let ExternalInstanceConnection() =
 
 [<Fact>]
 let TinyIntConversion() = 
-    use cmd = new SqlCommandProvider<"SELECT CAST(10 AS TINYINT) AS Value", connection, SingleRow = true>()
+    use cmd = new SqlCommandProvider<"SELECT CAST(10 AS TINYINT) AS Value", ConnectionStrings.AdventureWorksNamed, SingleRow = true>()
     Assert.Equal(Some 10uy, cmd.Execute().Value)    
 
 [<Fact>]
 let ConditionalQuery() = 
-    use cmd = new SqlCommandProvider<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", connection, SingleRow=true, ResultType = ResultType.Tuples>()
+    use cmd = new SqlCommandProvider<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", ConnectionStrings.AdventureWorksNamed, SingleRow=true, ResultType = ResultType.Tuples>()
     Assert.Equal(Some(1, "monkey"), cmd.Execute(flag = 0))    
     Assert.Equal(Some(2, "donkey"), cmd.Execute(flag = 1))    
 
@@ -54,7 +51,7 @@ let columnsShouldNotBeNull2() =
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_NAME = 'DatabaseLog' and numeric_precision is null
         ORDER BY ORDINAL_POSITION
-    ", connection, ResultType.Tuples, SingleRow = true>()
+    ", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples, SingleRow = true>()
 
     let _,_,_,_,precision = cmd.Execute().Value
     Assert.Equal(None, precision)    
@@ -64,9 +61,9 @@ let bitCoinCode = "BTC"
 [<Literal>]
 let bitCoinName = "Bitcoin"
 
-type DeleteBitCoin = SqlCommandProvider<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code", connection>
-type InsertBitCoin = SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", connection>
-type GetBitCoin = SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", connection>
+type DeleteBitCoin = SqlCommandProvider<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code", ConnectionStrings.AdventureWorksNamed>
+type InsertBitCoin = SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", ConnectionStrings.AdventureWorksNamed>
+type GetBitCoin = SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", ConnectionStrings.AdventureWorksNamed>
 
 [<Fact>]
 let asyncCustomRecord() =
@@ -78,10 +75,10 @@ let asyncCustomRecord() =
 
 [<Fact>]
 let singleRowOption() =
-    use noneSingleton = new SqlCommandProvider<"select 1 where 1 = 0", connection, SingleRow = true>()
+    use noneSingleton = new SqlCommandProvider<"select 1 where 1 = 0", ConnectionStrings.AdventureWorksNamed, SingleRow = true>()
     Assert.IsNone <| noneSingleton.Execute()
 
-    use someSingleton = new SqlCommandProvider<"select 1", connection, SingleRow = true>()
+    use someSingleton = new SqlCommandProvider<"select 1", ConnectionStrings.AdventureWorksNamed, SingleRow = true>()
     Assert.Equal( Some 1, someSingleton.AsyncExecute() |> Async.RunSynchronously)
 
 [<Fact>]
@@ -89,7 +86,7 @@ let ToTraceString() =
     let now = DateTime.Now
     let num = 42
     let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE), CAST(@Number AS INT)',N'@Date Date,@Number Int',@Date='%A',@Number='%d'" now num
-    let cmd = new SqlCommandProvider<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", connection, ResultType.Tuples>()
+    let cmd = new SqlCommandProvider<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples>()
     Assert.Equal<string>(
         expected, 
         actual = cmd.ToTraceString( now, num)
@@ -115,20 +112,22 @@ let ``ToTraceString for CRUD``() =
     
 [<Fact>]
 let ``ToTraceString double-quotes``() =    
-    use cmd = new SqlCommandProvider<"SELECT OBJECT_ID('Sales.Currency')", connection>()
+    use cmd = new SqlCommandProvider<"SELECT OBJECT_ID('Sales.Currency')", ConnectionStrings.AdventureWorksNamed>()
     let trace = cmd.ToTraceString()
     Assert.Equal<string>("exec sp_executesql N'SELECT OBJECT_ID(''Sales.Currency'')'", trace)
 
-type LongRunning = SqlCommandProvider<"WAITFOR DELAY '00:00:35'; SELECT 42", connection, SingleRow = true>
 [<Fact(
     Skip = "Don't execute for usual runs. Too slow."
     )>]
 let CommandTimeout() =
-    use cmd = new LongRunning(commandTimeout = 60)
+    use cmd = 
+        new SqlCommandProvider<"WAITFOR DELAY '00:00:35'; SELECT 42", ConnectionStrings.AdventureWorksNamed, SingleRow = true>(commandTimeout = 60)
     Assert.Equal(60, cmd.CommandTimeout)
     Assert.Equal(Some 42, cmd.Execute())     
 
-type DynamicCommand = SqlCommandProvider<"
+[<Fact>]
+let DynamicSql() =    
+    let cmd = new SqlCommandProvider<"
 	    DECLARE @stmt AS NVARCHAR(MAX) = @tsql
 	    DECLARE @params AS NVARCHAR(MAX) = N'@p1 nvarchar(100)'
 	    DECLARE @p1 AS NVARCHAR(100) = @firstName
@@ -140,11 +139,7 @@ type DynamicCommand = SqlCommandProvider<"
 			    ,UUID UNIQUEIDENTIFIER 
 		    )
 	    )
-    ", connection>
-
-[<Fact>]
-let DynamicSql() =    
-    let cmd = new DynamicCommand()
+    ", ConnectionStrings.AdventureWorksNamed>()
     //provide dynamic sql query with param
     Assert.Equal(
         51,
@@ -167,13 +162,13 @@ let DeleteStatement() =
         DECLARE @myTable TABLE( id INT)
         INSERT INTO @myTable VALUES (42)
         DELETE FROM @myTable
-        ", connection>(ConnectionStrings.AdventureWorksLiteral)
+        ", ConnectionStrings.AdventureWorksNamed>(ConnectionStrings.AdventureWorks)
     Assert.Equal(2, cmd.Execute())
 
 [<Fact>]
-let ``Setting the command timeout isn't overridden when giving connection context``() =
+let ``Setting the command timeout isn't overridden when giving ConnectionStrings.AdventureWorksNamed context``() =
     let customTimeout = (Random()).Next(512, 1024)
-    let getDate = new SqlCommandProvider<"select getdate()", ConnectionStrings.AdventureWorksLiteral>(commandTimeout = customTimeout)
+    let getDate = new SqlCommandProvider<"select getdate()", ConnectionStrings.AdventureWorksNamed>(commandTimeout = customTimeout)
     Assert.Equal(customTimeout, getDate.CommandTimeout)
     let sqlCommand = (getDate :> ISqlCommand).Raw
     Assert.Equal(customTimeout, sqlCommand.CommandTimeout)

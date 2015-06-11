@@ -8,12 +8,10 @@ open System.Data.SqlClient
 open Xunit
 
 open FSharp.Data.TypeProviderTest
-
-[<Literal>]
-let connection = ConnectionStrings.AdventureWorksLiteral
+open FSharp.Data.SqlClient
 
 [<Fact>]
-let ``Closing connection on complete``() =
+let ``Closing ConnectionStrings.AdventureWorks on complete``() =
     use command = new DeleteBitCoin()
     command.Execute(bitCoinCode) |> ignore
     Assert.Equal(System.Data.ConnectionState.Closed, (command :> ISqlCommand).Raw.Connection.State)
@@ -34,7 +32,7 @@ let implicitWithConnInstance() =
     (new DeleteBitCoin()).Execute(bitCoinCode) |> ignore
     begin
         use tran = new TransactionScope() 
-        use conn = new SqlConnection(connection)
+        use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
         conn.Open()
         Assert.Equal(1, InsertBitCoin.Create(conn).Execute(bitCoinCode, bitCoinName))
         Assert.Equal(1, GetBitCoin.Create(conn).Execute(bitCoinCode) |> Seq.length)
@@ -58,7 +56,7 @@ let implicitAsyncNETBefore451() =
     (new DeleteBitCoin()).Execute(bitCoinCode) |> ignore
     begin
         use tran = new TransactionScope() 
-        use conn = new SqlConnection(connection)
+        use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
         conn.Open()
         conn.EnlistTransaction(Transaction.Current)
         let localTran = conn.BeginTransaction()
@@ -71,7 +69,7 @@ let implicitAsyncNETBefore451() =
 [<Fact>]
 let local() =
     (new DeleteBitCoin()).Execute(bitCoinCode) |> ignore
-    use conn = new SqlConnection(connection)
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
     let tran = conn.BeginTransaction()
     Assert.Equal(1, (new InsertBitCoin(conn, tran)).Execute(bitCoinCode, bitCoinName))
@@ -79,11 +77,11 @@ let local() =
     tran.Rollback()
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
 
-type RaiseError = SqlCommandProvider<"SELECT 42; THROW 51000, 'Error raised.', 1 ", connection>
+type RaiseError = SqlCommandProvider<"SELECT 42; THROW 51000, 'Error raised.', 1 ", ConnectionStrings.AdventureWorksNamed>
 
 [<Fact>]
 let notCloseExternalConnInCaseOfError() =
-    use conn = new SqlConnection(connection)
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
     let tran = conn.BeginTransaction()
     use cmd = new RaiseError(conn, tran)
@@ -94,7 +92,7 @@ let notCloseExternalConnInCaseOfError() =
 
 [<Fact>]
 let notCloseExternalConnInCaseOfError2() =
-    use conn = new SqlConnection(connection)
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
     use cmd = new RaiseError(conn)
     try
@@ -102,22 +100,21 @@ let notCloseExternalConnInCaseOfError2() =
     with _ ->
         Assert.True(conn.State = ConnectionState.Open)
 
-type Get42 = SqlCommandProvider<"SELECT 42", connection>
-
 [<Fact>]
 let donNotOpenConnectionOnObject() =
-    use conn = new SqlConnection(connection)
-    Assert.Throws<InvalidOperationException>(fun() -> Get42.Create(conn).Execute() |> ignore)    
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
+    use cmd = new SqlCommandProvider<"SELECT 42", ConnectionStrings.AdventureWorksNamed>(conn)
+    Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> ignore)    
 
 type NonQuery = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", ConnectionStrings.AdventureWorksNamed>
 
 [<Fact>]
 let donNotOpenConnectionOnObjectForNonQuery() =
-    use conn = new SqlConnection(connection)
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     Assert.Throws<InvalidOperationException>(fun() -> NonQuery.Create(conn).Execute()|> ignore)    
     
 [<Fact>]
 let donNotOpenConnectionOnObjectForAsyncNonQuery() =
-    use conn = new SqlConnection(connection)
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     Assert.Throws<InvalidOperationException>(fun() -> NonQuery.Create(conn).AsyncExecute() |> Async.RunSynchronously |> ignore)    
     

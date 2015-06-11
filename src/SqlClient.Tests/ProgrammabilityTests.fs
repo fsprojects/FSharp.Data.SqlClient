@@ -4,10 +4,7 @@ open System
 open System.Data.SqlClient
 open Xunit
 
-[<Literal>] 
-let connection = ConnectionStrings.AdventureWorksNamed
-
-type AdventureWorks = SqlProgrammabilityProvider<connection>
+type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksNamed>
 
 type GetContactInformation = AdventureWorks.dbo.ufnGetContactInformation
 
@@ -30,7 +27,7 @@ let ScalarValuedFunction() =
 
 [<Fact>]
 let ConnectionObject() =
-    let conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
+    let conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     let cmd = new GetLeadingZeros()
     let x = 42
     Assert.Equal( Some(sprintf "%08i" x), cmd.Execute(x))
@@ -49,7 +46,7 @@ let routineCommandTypeTag() =
 
 [<Fact>]
 let localTransactionCtor() = 
-    use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
     use tran = conn.BeginTransaction()
     let jamesKramerId = 42
@@ -95,7 +92,7 @@ let localTransactionCtor() =
         
 [<Fact>]
 let localTransactionCreateAndSingleton() = 
-    use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
     use tran = conn.BeginTransaction()
     let jamesKramerId = 42

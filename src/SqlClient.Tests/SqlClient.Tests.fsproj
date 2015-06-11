@@ -80,7 +80,6 @@
     <None Include="prereqs.sql" />
     <None Include="packages.config" />
     <None Include="Performance.fsx" />
-    <None Include="Ado.fsx" />
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
