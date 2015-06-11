@@ -53,10 +53,6 @@
       <HintPath>..\..\lib\Microsoft.SqlServer.TransactSql.ScriptDom.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Microsoft.SqlServer.Types">
-      <HintPath>..\..\packages\Microsoft.SqlServer.Types.11.0.0\lib\net20\Microsoft.SqlServer.Types.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
@@ -85,8 +81,6 @@
     <Compile Include="SqlEnumProvider.fs" />
     <None Include="Scratchpad.fsx" />
     <None Include="packages.config" />
-    <None Include="SqlServerTypes\x86\SqlServerSpatial110.dll" />
-    <None Include="SqlServerTypes\x64\SqlServerSpatial110.dll" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>

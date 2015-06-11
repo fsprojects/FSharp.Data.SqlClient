@@ -18,9 +18,6 @@
       <frameworkAssembly assemblyName="System.Data" />
       <frameworkAssembly assemblyName="System.Xml" />
     </frameworkAssemblies>
-    <dependencies>
-      <dependency id="Microsoft.SqlServer.Types" version="11.0.0"/>
-    </dependencies>
     <references>
       <reference file="FSharp.Data.SqlClient.dll" />
     </references>
@@ -30,6 +27,5 @@
     <file src="..\bin\FSharp.Data.SqlClient.pdb" target="lib\net40" />
     <file src="..\bin\FSharp.Data.SqlClient.xml" target="lib\net40" />
     <file src="..\bin\Microsoft.SqlServer.TransactSql.ScriptDom.dll" target="lib\net40" />
-    <file src="..\bin\Microsoft.SqlServer.Types.dll" target="lib\net40" />
   </files>
 </package>

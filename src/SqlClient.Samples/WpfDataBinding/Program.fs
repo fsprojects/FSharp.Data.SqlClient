@@ -28,15 +28,6 @@ let main argv =
     grid.ItemsSource <- data.DefaultView
 
     close.Click.Add <| fun _ -> mainWindow.Close()
-    save.Click.Add <| fun _ -> 
-        let sqlCommand = (cmd :> FSharp.Data.ISqlCommand).Raw
-        let adapter = new SqlDataAdapter(sqlCommand)
-        let builder = new SqlCommandBuilder(adapter)
-        adapter.UpdateCommand <- builder.GetUpdateCommand()
-        sqlCommand.Connection.Open()
-        try
-            adapter.Update data |> ignore
-        finally
-            sqlCommand.Connection.Close()
+    save.Click.Add <| fun _ -> data.Update() |> ignore
 
     Application().Run mainWindow
