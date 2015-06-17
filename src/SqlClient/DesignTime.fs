@@ -164,7 +164,7 @@ type DesignTime private() =
 
                     let tupleTypeName = tupleType.PartialAssemblyQualifiedName
                     //None, tupleType, <@@ FSharpValue.PreComputeTupleConstructor (Type.GetType (tupleTypeName))  @@>
-                    None, tupleType, <@@ fun values -> Type.GetType(tupleTypeName).GetConstructors().[0].Invoke(values) @@>
+                    None, tupleType, <@@ fun values -> Type.GetType(tupleTypeName, throwOnError = true).GetConstructors().[0].Invoke(values) @@>
             
             let nullsToOptions = QuotationsFactory.MapArrayNullableItems(outputColumns, "MapArrayObjItemToOption") 
             let combineWithNullsToOptions = typeof<QuotationsFactory>.GetMethod("GetMapperWithNullsToOptions") 
@@ -252,12 +252,18 @@ type DesignTime private() =
                                 let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<obj>, HideObjectMethods = true)
                                 cmdProvidedType.AddMember rowType
                                 let parameters = [ 
-                                    for p in p.TypeInfo.TableTypeColumns -> 
-                                        ProvidedParameter( p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.Nullable then Some null else None) 
+                                    for p in p.TypeInfo.TableTypeColumns.Value -> 
+                                        ProvidedParameter( p.Name, p.ClrTypeConsideringNullable, ?optionalValue = if p.Nullable then Some null else None) 
                                 ] 
 
                                 let ctor = ProvidedConstructor( parameters)
-                                ctor.InvokeCode <- fun args -> Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
+                                ctor.InvokeCode <- fun args -> 
+                                    let optionsToNulls = QuotationsFactory.MapArrayNullableItems(List.ofArray p.TypeInfo.TableTypeColumns.Value, "MapArrayOptionItemToObj") 
+                                    <@@
+                                        let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for a in args -> Expr.Coerce(a, typeof<obj>) ])
+                                        (%%optionsToNulls) values
+                                        values
+                                    @@>
                                 rowType.AddMember ctor
                             
                                 rowType

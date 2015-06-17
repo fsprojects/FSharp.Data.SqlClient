@@ -86,8 +86,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         let databaseRootType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
 
-//        databaseRootType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
-
         let tagProvidedType(t: ProvidedTypeDefinition) =
             t.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
 
@@ -121,12 +119,19 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj>, HideObjectMethods = true)
                     
                 let parameters = [ 
-                    for p in t.TableTypeColumns -> 
-                        ProvidedParameter(p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.Nullable then Some null else None) 
+                    for p in t.TableTypeColumns.Value -> 
+                        ProvidedParameter(p.Name, p.ClrTypeConsideringNullable, ?optionalValue = if p.Nullable then Some null else None) 
                 ] 
 
                 let ctor = ProvidedConstructor( parameters)
-                ctor.InvokeCode <- fun args -> Expr.NewArray(typeof<obj>, [ for a in args -> Expr.Coerce(a, typeof<obj>) ])
+                ctor.InvokeCode <- fun args -> 
+                    let optionsToNulls = QuotationsFactory.MapArrayNullableItems(List.ofArray t.TableTypeColumns.Value, "MapArrayOptionItemToObj") 
+                    <@@
+                        let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for a in args -> Expr.Coerce(a, typeof<obj>) ])
+                        (%%optionsToNulls) values
+                        values
+                    @@>
+
                 rowType.AddMember ctor
                 rowType.AddXmlDoc "User-Defined Table Type"
                 yield rowType
@@ -367,7 +372,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 let xs = line.Split('\t')
                                 let col = new DataColumn()
                                 col.ColumnName <- xs.[0]
-                                col.DataType <- Type.GetType xs.[1]  
+                                col.DataType <- Type.GetType( xs.[1], throwOnError = true)  
                                 col.AllowDBNull <- Boolean.Parse xs.[2]
                                 if col.DataType = typeof<string>
                                 then 

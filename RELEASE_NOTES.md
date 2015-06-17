@@ -167,3 +167,6 @@
 	* Issue #131 - unify SqlProgrammabilityProvider and SqlCommandProvider ctors
 	* Issue #124 - DataTable ReadXmlSchema/WriteXmlSchema are not used anymore
 	* Issue #132 - Make value types parameters with default value NULL in SqlProgrammabilityProvider of type option<_>
+
+#### 1.7.1 - June 16, 2015
+	* Issue #136 - calling tvp sproc with nullable fields

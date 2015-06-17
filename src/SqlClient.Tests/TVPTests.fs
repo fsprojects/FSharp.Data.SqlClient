@@ -3,8 +3,6 @@
 open FSharp.Data
 open Xunit
 
-type Get42FromMasterDb = SqlCommandProvider<"SELECT 42", ConnectionStrings.MasterDb>
-
 // If compile fails here, check prereqs.sql
 type TableValuedTuple = SqlCommandProvider<"exec Person.myProc @x", ConnectionStrings.AdventureWorksNamed, SingleRow = true, ResultType = ResultType.Tuples>
 type MyTableType = TableValuedTuple.MyTableType
@@ -13,8 +11,8 @@ type MyTableType = TableValuedTuple.MyTableType
 let Basic() = 
     let cmd = new TableValuedTuple()
     let p = [
-        MyTableType(myId = 1, myName = "monkey")
-        MyTableType(myId = 2, myName = "donkey")
+        MyTableType(myId = 1, myName = Some "monkey")
+        MyTableType(myId = 2, myName = Some "donkey")
     ]
     Assert.Equal(Some(1, Some "monkey"), cmd.Execute(x = p))    
 
@@ -25,7 +23,7 @@ let InputIsEnumeratedExactlyOnce() =
     let x = seq { 
          counter := !counter + 1
          yield MyTableType(myId = 1)
-         yield MyTableType(myId = 2, myName = "donkey")
+         yield MyTableType(myId = 2, myName = Some "donkey")
     }
     cmd.Execute x |> ignore
     Assert.Equal(1, !counter)    
@@ -35,7 +33,7 @@ let NullableColumn() =
     let cmd = new TableValuedTuple()
     let p = [
         MyTableType(myId = 1)
-        MyTableType(myId = 2, myName = "donkey")
+        MyTableType(myId = 2, myName = Some "donkey")
     ]
     Assert.Equal(Some(1, None), cmd.Execute p)    
 
@@ -69,8 +67,8 @@ type TableValuedSprocTuple  = SqlCommandProvider<"exec Person.myProc @x", Connec
 let SprocTupleValue() = 
     let cmd = new TableValuedSprocTuple()
     let p = [
-        TableValuedSprocTuple.MyTableType(myId = 1, myName = "monkey")
-        TableValuedSprocTuple.MyTableType(myId = 2, myName = "donkey")
+        TableValuedSprocTuple.MyTableType(myId = 1, myName = Some "monkey")
+        TableValuedSprocTuple.MyTableType(myId = 2, myName = Some "donkey")
     ]
     let actual = cmd.Execute(p).Value
     Assert.Equal((1, Some "monkey"), actual)    

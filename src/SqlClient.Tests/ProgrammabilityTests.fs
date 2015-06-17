@@ -15,11 +15,9 @@ let TableValuedFunction() =
     let expected = GetContactInformation.Record(PersonID = 1, FirstName = Some "Ken", LastName = Some "Sánchez", JobTitle = Some "Chief Executive Officer", BusinessEntityType = Some "Employee")
     Assert.Equal(expected, person)
 
-type GetLeadingZeros = AdventureWorks.dbo.ufnLeadingZeros
-
 [<Fact>]
 let ScalarValuedFunction() =
-    let cmd = new GetLeadingZeros()
+    let cmd = new AdventureWorks.dbo.ufnLeadingZeros()
     let x = 42
     Assert.Equal(Some(sprintf "%08i" x), cmd.Execute(x))
     //async execution
@@ -28,7 +26,7 @@ let ScalarValuedFunction() =
 [<Fact>]
 let ConnectionObject() =
     let conn = new SqlConnection(ConnectionStrings.AdventureWorks)
-    let cmd = new GetLeadingZeros()
+    let cmd = new AdventureWorks.dbo.ufnLeadingZeros()
     let x = 42
     Assert.Equal( Some(sprintf "%08i" x), cmd.Execute(x))
 
@@ -168,4 +166,34 @@ let SpWithParamOfRefTypeWithNullDefault() =
     Assert.Equal<string seq>(
         [| param |],
         AdventureWorks.dbo.EchoText.Create().Execute param |> Seq.toArray
+    )
+
+type DboMyTableType = AdventureWorks.dbo.``User-Defined Table Types``.MyTableType 
+
+[<Fact>]
+let SpWithParamOfTvpWithNullableColumns() = 
+    use cmd = new AdventureWorks.dbo.MyProc()
+    let p = [
+        DboMyTableType(myId = 1)
+        DboMyTableType(myId = 2, myName = Some "donkey")
+    ]
+    let actual = [| for x in cmd.Execute( p) -> x.myId, x.myName |]
+    Assert.Equal<_ []>(
+        [| 1, None; 2, Some "donkey" |],
+        [| for x in cmd.Execute( p) -> x.myId, x.myName |]
+    )
+
+type PersonMyTableType = AdventureWorks.Person.``User-Defined Table Types``.MyTableType 
+
+[<Fact>]
+let SpWithParamOfTvpWithNullableColumns2() = 
+    use cmd = new AdventureWorks.Person.MyProc()
+    let p = [
+        PersonMyTableType(myId = 1)
+        PersonMyTableType(myId = 2, myName = Some "donkey")
+    ]
+    let actual = [| for x in cmd.Execute( p) -> x.myId, x.myName |]
+    Assert.Equal<_ []>(
+        [| 1, None; 2, Some "donkey" |],
+        [| for x in cmd.Execute( p) -> x.myId, x.myName |]
     )

@@ -81,7 +81,7 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
         let valueType, getValue = 
             
             let getValueType(row: DataRow) = 
-                let t = Type.GetType( typeName = string row.["DataType"])
+                let t = Type.GetType( typeName = string row.["DataType"], throwOnError = true)
                 if not( t.IsValueType || t = typeof<string>)
                 then 
                     failwithf "Invalid type %s of column %O for value part. Only .NET value types and strings supported as value." t.FullName row.["ColumnName"]

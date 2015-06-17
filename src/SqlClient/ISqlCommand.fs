@@ -112,14 +112,14 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
             notImplemented
         | ResultType.Records | ResultType.Tuples ->
             match box rowMapping, itemTypeName with
-            | null, itemTypeName when Type.GetType(itemTypeName) = typeof<Void> ->
+            | null, itemTypeName when Type.GetType(itemTypeName, throwOnError = true) = typeof<Void> ->
                 ``ISqlCommand Implementation``.ExecuteNonQuery privateConnection >> box, 
                 ``ISqlCommand Implementation``.AsyncExecuteNonQuery privateConnection >> box,
                 notImplemented, 
                 notImplemented
             | rowMapping, itemTypeName ->
                 assert (rowMapping <> null && itemTypeName <> null)
-                let itemType = Type.GetType itemTypeName
+                let itemType = Type.GetType( itemTypeName, throwOnError = true)
                 
                 let executeHandle = 
                     typeof<``ISqlCommand Implementation``>
