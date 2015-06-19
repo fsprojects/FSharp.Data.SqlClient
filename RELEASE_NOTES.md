@@ -170,3 +170,6 @@
 
 #### 1.7.1 - June 16, 2015
 	* Issue #136 - calling tvp sproc with nullable fields
+
+#### 1.7.2 - June 19, 2015
+	* Issue #136 - SqlProgrammabilityProvider does not update User-Defined Table Types on rebuild 

@@ -40,6 +40,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             try  
                 if watcher <> null then watcher.Dispose()
                 cache.Dispose()
+                dataTypeMappings.Clear()
             with _ -> ()
 
     do 

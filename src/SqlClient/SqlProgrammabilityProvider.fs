@@ -30,8 +30,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     let cache = new MemoryCache(name = this.GetType().Name)
 
     do 
-        this.Disposing.Add <| fun _ -> cache.Dispose()
-
+        this.Disposing.Add <| fun _ -> 
+            cache.Dispose()
+            dataTypeMappings.Clear()
     do 
         //this.RegisterRuntimeAssemblyLocationAsProbingFolder( config) 
 
