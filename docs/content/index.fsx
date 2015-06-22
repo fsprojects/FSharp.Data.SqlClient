@@ -8,7 +8,7 @@ Not your grandfather's ORM
 The library is a home for three type providers:
 
 - __SqlCommandProvider__ - type-safe access to full set of T-SQL language
-- __SqlProgrammabilityProvider__ - quick access to Sql Server functions and stored procedures in idiomatic F# way
+- __SqlProgrammabilityProvider__ - quick access to Sql Server functions, stored procedures and tables in idiomatic F# way
 - __SqlEnumProvider__ - generates enumeration types based on static lookup data from any ADO.NET complaint source
 
 <div class="row">
@@ -32,7 +32,7 @@ open FSharp.Data
 
 [<Literal>]
 let connectionString = 
-    @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+    @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
 
 (**
 
@@ -40,19 +40,15 @@ The query below retrieves top 3 sales representatives from North American region
 
 *)
 
-[<Literal>]
-let query = "
-    SELECT TOP(@TopN) FirstName, LastName, SalesYTD 
-    FROM Sales.vSalesPerson
-    WHERE CountryRegionName = @regionName AND SalesYTD > @salesMoreThan 
-    ORDER BY SalesYTD
-" 
+do
+    use cmd = new SqlCommandProvider<"
+        SELECT TOP(@topN) FirstName, LastName, SalesYTD 
+        FROM Sales.vSalesPerson
+        WHERE CountryRegionName = @regionName AND SalesYTD > @salesMoreThan 
+        ORDER BY SalesYTD
+        " , connectionString>()
 
-type SalesPersonQuery = SqlCommandProvider<query, connectionString>
-let cmd = new SalesPersonQuery()
-
-cmd.AsyncExecute(TopN = 3L, regionName = "United States", salesMoreThan = 1000000M) 
-|> Async.RunSynchronously
+    cmd.Execute(topN = 3L, regionName = "United States", salesMoreThan = 1000000M) |> printfn "%A"
 
 //output
 //seq
@@ -66,19 +62,21 @@ SqlProgrammabilityProvider
 -------------------------------------
 *)
 
-type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
-type GetWhereUsedProductID = AdventureWorks2012.dbo.uspGetWhereUsedProductID
-let getWhereUsedProductID = new GetWhereUsedProductID()
-
-getWhereUsedProductID.Execute( StartProductID = 1, CheckDate = System.DateTime(2013,1,1))
+type AdventureWorks = SqlProgrammabilityProvider<connectionString>
+do
+    use cmd = new AdventureWorks.dbo.uspGetWhereUsedProductID()
+    for x in cmd.Execute( StartProductID = 1, CheckDate = System.DateTime(2013,1,1)) do
+        //check for nulls
+        match x.ProductAssemblyID, x.StandardCost, x.TotalQuantity with 
+        | Some prodAsmId, Some cost, Some qty -> 
+            printfn "ProductAssemblyID: %i, StandardCost: %M, TotalQuantity: %M" prodAsmId cost qty
+        | _ -> ()
 
 //output
-//seq
-//  [{ ProductAssemblyID = Some 749; ComponentID = Some 807; ... };
-//   { ProductAssemblyID = Some 750; ComponentID = Some 807; ... };
-//   { ProductAssemblyID = Some 751; ComponentID = Some 807; ... };
-//   { ProductAssemblyID = Some 752; ComponentID = Some 807; ... };
-//   ...]
+//ProductAssemblyID: 749, StandardCost: 2171.2942, TotalQuantity: 1.00
+//ProductAssemblyID: 750, StandardCost: 2171.2942, TotalQuantity: 1.00
+//ProductAssemblyID: 751, StandardCost: 2171.2942, TotalQuantity: 1.00
+//...
 
 (**
 
@@ -92,17 +90,16 @@ type ShipMethod = SqlEnumProvider<"
     SELECT Name, ShipMethodID FROM Purchasing.ShipMethod ORDER BY ShipMethodID", connectionString>
 
 //Combine with SqlCommandProvider
-type OrdersByShipTypeSince = SqlCommandProvider<"
-    SELECT COUNT(*) 
-    FROM Purchasing.PurchaseOrderHeader 
-    WHERE ShipDate > @shippedLaterThan AND ShipMethodID = @shipMethodId", connectionString, SingleRow = true>
-
-let ordersByShipTypeSince = new OrdersByShipTypeSince() 
-
-//overnight orders shipped since Jan 1, 2008 
-ordersByShipTypeSince.Execute( System.DateTime( 2008, 1, 1), ShipMethod.``OVERNIGHT J-FAST``) 
-//output
-//Some (Some 748)
+do 
+    use cmd = new SqlCommandProvider<"
+        SELECT COUNT(*) 
+        FROM Purchasing.PurchaseOrderHeader 
+        WHERE ShipDate > @shippedLaterThan AND ShipMethodID = @shipMethodId
+    ", connectionString, SingleRow = true>() 
+    //overnight orders shipped since Jan 1, 2008 
+    cmd.Execute( System.DateTime( 2008, 1, 1), ShipMethod.``OVERNIGHT J-FAST``) |> printfn "%A"
+    //output
+    //Some (Some 1085)
 
 (**
 
