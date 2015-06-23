@@ -96,11 +96,6 @@ This conforms familiar ADO.NET conventions for commands constructors.</p>
 <span class="l">34: </span>
 <span class="l">35: </span>
 <span class="l">36: </span>
-<span class="l">37: </span>
-<span class="l">38: </span>
-<span class="l">39: </span>
-<span class="l">40: </span>
-<span class="l">41: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
@@ -132,16 +127,11 @@ This conforms familiar ADO.NET conventions for commands constructors.</p>
 
     <span class="k">let</span> <span onmouseout="hideTip(event, 'fs14', 23)" onmouseover="showTip(event, 'fs14', 23)" class="i">today</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs15', 24)" onmouseover="showTip(event, 'fs15', 24)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs16', 25)" onmouseover="showTip(event, 'fs16', 25)" class="i">Now</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs17', 26)" onmouseover="showTip(event, 'fs17', 26)" class="i">Date</span>
     <span class="k">let</span> <span onmouseout="hideTip(event, 'fs18', 27)" onmouseover="showTip(event, 'fs18', 27)" class="i">recordsInserted</span> <span class="o">=</span> 
-        <span onmouseout="hideTip(event, 'fs13', 28)" onmouseover="showTip(event, 'fs13', 28)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs19', 29)" onmouseover="showTip(event, 'fs19', 29)" class="i">Execute</span>(
-            <span class="i">currencyRateDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs14', 30)" onmouseover="showTip(event, 'fs14', 30)" class="i">today</span>, 
-            <span class="i">fromCurrencyCode</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">USD</span><span class="s">&quot;</span>, 
-            <span class="i">toCurrencyCode</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">GBP</span><span class="s">&quot;</span>, 
-            <span class="i">averageRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
-            <span class="i">endOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
-            <span class="i">modifiedDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs14', 31)" onmouseover="showTip(event, 'fs14', 31)" class="i">today</span>) 
+        <span onmouseout="hideTip(event, 'fs13', 28)" onmouseover="showTip(event, 'fs13', 28)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs19', 29)" onmouseover="showTip(event, 'fs19', 29)" class="i">Execute</span>(<span class="i">currencyRateDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs14', 30)" onmouseover="showTip(event, 'fs14', 30)" class="i">today</span>, <span class="i">fromCurrencyCode</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">USD</span><span class="s">&quot;</span>, <span class="i">toCurrencyCode</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">GBP</span><span class="s">&quot;</span>, 
+                    <span class="i">averageRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, <span class="i">endOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, <span class="i">modifiedDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs14', 31)" onmouseover="showTip(event, 'fs14', 31)" class="i">today</span>) 
     <span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs18', 32)" onmouseover="showTip(event, 'fs18', 32)" class="i">recordsInserted</span> <span class="o">=</span> <span class="n">1</span>)
 
-    <span class="c">// Don�t forget to invoke Commit. </span>
+    <span class="c">// Don\�t forget to invoke Commit. </span>
     <span class="c">// Otherwise transaction will be disposed (roll-backed) </span>
     <span class="c">// when transaction instance goes out of scope</span>
     <span onmouseout="hideTip(event, 'fs10', 33)" onmouseover="showTip(event, 'fs10', 33)" class="i">tran</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs20', 34)" onmouseover="showTip(event, 'fs20', 34)" class="i">Commit</span>()</pre>
