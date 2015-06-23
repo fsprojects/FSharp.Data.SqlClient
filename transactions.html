@@ -90,12 +90,6 @@ This conforms familiar ADO.NET conventions for commands constructors.</p>
 <span class="l">28: </span>
 <span class="l">29: </span>
 <span class="l">30: </span>
-<span class="l">31: </span>
-<span class="l">32: </span>
-<span class="l">33: </span>
-<span class="l">34: </span>
-<span class="l">35: </span>
-<span class="l">36: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
@@ -106,14 +100,8 @@ This conforms familiar ADO.NET conventions for commands constructors.</p>
 
 <span class="k">type</span> <span onmouseout="hideTip(event, 'fs4', 5)" onmouseover="showTip(event, 'fs4', 5)" class="i">InsertCurrencyRate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs5', 6)" onmouseover="showTip(event, 'fs5', 6)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
 <span class="s">        </span><span class="s">INSERT</span><span class="s"> </span><span class="s">INTO</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">CurrencyRate</span><span class="s"> </span>
-<span class="s">        </span><span class="s">VALUES</span><span class="s"> </span><span class="s">(</span>
-<span class="s">            </span><span class="s">@</span><span class="s">currencyRateDate</span><span class="s">,</span><span class="s"> </span>
-<span class="s">            </span><span class="s">@</span><span class="s">fromCurrencyCode</span><span class="s">,</span><span class="s"> </span>
-<span class="s">            </span><span class="s">@</span><span class="s">toCurrencyCode</span><span class="s">,</span><span class="s"> </span>
-<span class="s">            </span><span class="s">@</span><span class="s">averageRate</span><span class="s">,</span><span class="s"> </span>
-<span class="s">            </span><span class="s">@</span><span class="s">endOfDayRate</span><span class="s">,</span><span class="s"> </span>
-<span class="s">            </span><span class="s">@</span><span class="s">modifiedDate</span>
-<span class="s">        </span><span class="s">)</span><span class="s"> </span>
+<span class="s">        </span><span class="s">VALUES</span><span class="s"> </span><span class="s">(</span><span class="s">@</span><span class="s">currencyRateDate</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">fromCurrencyCode</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">toCurrencyCode</span><span class="s">,</span><span class="s"> </span>
+<span class="s">                </span><span class="s">@</span><span class="s">averageRate</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">endOfDayRate</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">modifiedDate</span><span class="s">)</span><span class="s"> </span>
 <span class="s">    </span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs6', 7)" onmouseover="showTip(event, 'fs6', 7)" class="i">connectionString</span><span class="o">&gt;</span>
 <span class="k">do</span>
     <span class="k">use</span> <span onmouseout="hideTip(event, 'fs7', 8)" onmouseover="showTip(event, 'fs7', 8)" class="i">conn</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs8', 9)" onmouseover="showTip(event, 'fs8', 9)" class="i">SqlConnection</span>(<span onmouseout="hideTip(event, 'fs6', 10)" onmouseover="showTip(event, 'fs6', 10)" class="i">connectionString</span>)
@@ -131,7 +119,7 @@ This conforms familiar ADO.NET conventions for commands constructors.</p>
                     <span class="i">averageRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, <span class="i">endOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, <span class="i">modifiedDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs14', 31)" onmouseover="showTip(event, 'fs14', 31)" class="i">today</span>) 
     <span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs18', 32)" onmouseover="showTip(event, 'fs18', 32)" class="i">recordsInserted</span> <span class="o">=</span> <span class="n">1</span>)
 
-    <span class="c">// Don\�t forget to invoke Commit. </span>
+    <span class="c">// Don&#39;t forget to invoke Commit. </span>
     <span class="c">// Otherwise transaction will be disposed (roll-backed) </span>
     <span class="c">// when transaction instance goes out of scope</span>
     <span onmouseout="hideTip(event, 'fs10', 33)" onmouseover="showTip(event, 'fs10', 33)" class="i">tran</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs20', 34)" onmouseover="showTip(event, 'fs20', 34)" class="i">Commit</span>()</pre>
