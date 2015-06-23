@@ -90,13 +90,22 @@ This conforms familiar <a href="https://msdn.microsoft.com/en-us/library/352y4sf
 <span class="l">28: </span>
 <span class="l">29: </span>
 <span class="l">30: </span>
+<span class="l">31: </span>
+<span class="l">32: </span>
+<span class="l">33: </span>
+<span class="l">34: </span>
+<span class="l">35: </span>
+<span class="l">36: </span>
+<span class="l">37: </span>
+<span class="l">38: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
 <span class="k">open</span> <span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">System</span>
 <span class="k">open</span> <span onmouseout="hideTip(event, 'fs1', 2)" onmouseover="showTip(event, 'fs1', 2)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs2', 3)" onmouseover="showTip(event, 'fs2', 3)" class="i">Data</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs3', 4)" onmouseover="showTip(event, 'fs3', 4)" class="i">SqlClient</span>
 
-<span class="k">type</span> <span onmouseout="hideTip(event, 'fs4', 5)" onmouseover="showTip(event, 'fs4', 5)" class="i">CurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs5', 6)" onmouseover="showTip(event, 'fs5', 6)" class="i">SqlEnumProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">Name</span><span class="s">,</span><span class="s"> </span><span class="s">CurrencyCode</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">Currency</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs6', 7)" onmouseover="showTip(event, 'fs6', 7)" class="i">connectionString</span><span class="o">&gt;</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs4', 5)" onmouseover="showTip(event, 'fs4', 5)" class="i">CurrencyCode</span> <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs5', 6)" onmouseover="showTip(event, 'fs5', 6)" class="i">SqlEnumProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">Name</span><span class="s">,</span><span class="s"> </span><span class="s">CurrencyCode</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">Currency</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs6', 7)" onmouseover="showTip(event, 'fs6', 7)" class="i">connectionString</span><span class="o">&gt;</span>
 
 <span class="k">type</span> <span onmouseout="hideTip(event, 'fs7', 8)" onmouseover="showTip(event, 'fs7', 8)" class="i">InsertCurrencyRate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs8', 9)" onmouseover="showTip(event, 'fs8', 9)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
 <span class="s">        </span><span class="s">INSERT</span><span class="s"> </span><span class="s">INTO</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">CurrencyRate</span><span class="s"> </span>
@@ -114,9 +123,16 @@ This conforms familiar <a href="https://msdn.microsoft.com/en-us/library/352y4sf
     <span class="k">use</span> <span onmouseout="hideTip(event, 'fs15', 22)" onmouseover="showTip(event, 'fs15', 22)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs7', 23)" onmouseover="showTip(event, 'fs7', 23)" class="i">InsertCurrencyRate</span>(<span onmouseout="hideTip(event, 'fs9', 24)" onmouseover="showTip(event, 'fs9', 24)" class="i">conn</span>, <span onmouseout="hideTip(event, 'fs12', 25)" onmouseover="showTip(event, 'fs12', 25)" class="i">tran</span>)
 
     <span class="k">let</span> <span onmouseout="hideTip(event, 'fs16', 26)" onmouseover="showTip(event, 'fs16', 26)" class="i">today</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs17', 27)" onmouseover="showTip(event, 'fs17', 27)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs18', 28)" onmouseover="showTip(event, 'fs18', 28)" class="i">Now</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs19', 29)" onmouseover="showTip(event, 'fs19', 29)" class="i">Date</span>
+
     <span class="k">let</span> <span onmouseout="hideTip(event, 'fs20', 30)" onmouseover="showTip(event, 'fs20', 30)" class="i">recordsInserted</span> <span class="o">=</span> 
-        <span onmouseout="hideTip(event, 'fs15', 31)" onmouseover="showTip(event, 'fs15', 31)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs21', 32)" onmouseover="showTip(event, 'fs21', 32)" class="i">Execute</span>(<span class="i">currencyRateDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs16', 33)" onmouseover="showTip(event, 'fs16', 33)" class="i">today</span>, <span class="i">fromCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs4', 34)" onmouseover="showTip(event, 'fs4', 34)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``US Dollar``</span>, <span class="i">toCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs4', 35)" onmouseover="showTip(event, 'fs4', 35)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``United Kingdom Pound``</span>, 
-                    <span class="i">averageRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, <span class="i">endOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, <span class="i">modifiedDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs16', 36)" onmouseover="showTip(event, 'fs16', 36)" class="i">today</span>) 
+        <span onmouseout="hideTip(event, 'fs15', 31)" onmouseover="showTip(event, 'fs15', 31)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs21', 32)" onmouseover="showTip(event, 'fs21', 32)" class="i">Execute</span>(
+            <span class="i">currencyRateDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs16', 33)" onmouseover="showTip(event, 'fs16', 33)" class="i">today</span>, 
+            <span class="i">fromCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs4', 34)" onmouseover="showTip(event, 'fs4', 34)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``US Dollar``</span>, 
+            <span class="i">toCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs4', 35)" onmouseover="showTip(event, 'fs4', 35)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``United Kingdom Pound``</span>, 
+            <span class="i">averageRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
+            <span class="i">endOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
+            <span class="i">modifiedDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs16', 36)" onmouseover="showTip(event, 'fs16', 36)" class="i">today</span>) 
+
     <span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs20', 37)" onmouseover="showTip(event, 'fs20', 37)" class="i">recordsInserted</span> <span class="o">=</span> <span class="n">1</span>)
 
     <span class="c">// Don&#39;t forget to invoke Commit. </span>
