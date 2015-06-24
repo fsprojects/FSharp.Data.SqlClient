@@ -146,8 +146,16 @@ This conforms familiar <a href="https://msdn.microsoft.com/en-us/library/352y4sf
 
 <p>Note, that <code>Connection</code> property of transaction instance has to match connection supplied at first position.</p>
 
-<p>Although typically transactions used in combination with data modification commands (INSERT, UPDATE, DELETE, MERGE) 
-it can be used along with SELECT statement and/or call to a stored procedure (function).</p>
+<div class="well well-small" style="margin:0px 70px 0px 20px;">
+
+<p>This chapter assumes basic understanding of "Transactions and Concurrency" topic as applied to ADO.NET/SQL Server. 
+If you need to brush up your knowledge use favorite search engine - there is plenty information on the subject.</p>
+
+</p></div>
+
+<p>Typically transactions used in combination with data modification commands (INSERT, UPDATE, DELETE, MERGE) 
+That said nothing stops command based on SELECT statement and/or call to a stored procedure (function) 
+to join a transaction.</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
@@ -276,6 +284,10 @@ it can be used along with SELECT statement and/or call to a stored procedure (fu
 </table>
 
 <h2>Implicit a.k.a ambient transaction</h2>
+
+<p>.NET BCL class TransactionScope (<a href="https://msdn.microsoft.com/en-us/library/system.transactions.transactionscope.aspx)">https://msdn.microsoft.com/en-us/library/system.transactions.transactionscope.aspx)</a> is 
+convinient way to deal with transactions. Basic idea is that all database connections opened within specific scope are 
+enslisted in that transaction.</p>
 
 <div class="tip" id="fs1">namespace System</div>
 <div class="tip" id="fs2">namespace System.Data</div>
