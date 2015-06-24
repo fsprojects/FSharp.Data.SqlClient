@@ -1,6 +1,6 @@
 (*** hide ***)
-#r "../../bin/FSharp.Data.SqlClient.dll"
-#r "../../bin/Microsoft.SqlServer.Types.dll"
+#r @"..\..\src\SqlClient\bin\Debug\FSharp.Data.SqlClient.dll"
+#r "Microsoft.SqlServer.Types.dll"
 (**
 
 Configuration and Input

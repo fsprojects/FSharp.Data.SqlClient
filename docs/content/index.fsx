@@ -1,5 +1,5 @@
 (*** hide ***)
-#r "../../bin/FSharp.Data.SqlClient.dll"
+#r @"..\..\src\SqlClient\bin\Debug\FSharp.Data.SqlClient.dll"
 
 (**
 Not your grandfather's ORM
@@ -36,7 +36,7 @@ let connectionString =
 
 (**
 
-The query below retrieves top 3 sales representatives from North American region who have sales YTD of more than one million. 
+The query below retrieves top 3 sales representatives from North American region with YTD sales of more than one million. 
 
 *)
 
@@ -141,7 +141,7 @@ SqlCommandProvider and SqlProgrammabilityProvider features at glance
 
 Limitations
 -------------------------------------
-In addition to system requirements listed above `SqlCommandProvider and SqlProgrammabilityProvider` constrained by same limitations as two system meta-stored procedures 
+In addition to system requirements listed above `SqlCommandProvider` and `SqlProgrammabilityProvider` constrained by same limitations as two system meta-stored procedures 
 it uses in implementation: [sys.sp\_describe\_undeclared\_parameters](http://technet.microsoft.com/en-us/library/ff878260.aspx) 
 and [sys.sp\_describe\_first\_result\_set](http://technet.microsoft.com/en-us/library/ff878602.aspx). Look online for more details.
 *)

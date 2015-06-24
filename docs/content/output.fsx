@@ -1,5 +1,8 @@
 (*** hide ***)
-#r "../../bin/FSharp.Data.SqlClient.dll"
+#r @"..\..\src\SqlClient\bin\Debug\FSharp.Data.SqlClient.dll"
+open FSharp.Data
+[<Literal>]
+let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
 
 (**
 
@@ -7,13 +10,8 @@ Controlling output
 ===============================================
 *)
 
-open FSharp.Data
 
 //Connection and query definition are shared for most of the examples below
-
-[<Literal>]
-let connectionString = 
-    @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 [<Literal>]
 let productsSql = " 
