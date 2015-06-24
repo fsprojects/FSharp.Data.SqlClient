@@ -146,11 +146,9 @@ This conforms familiar <a href="https://msdn.microsoft.com/en-us/library/352y4sf
 
 <p>Note, that <code>Connection</code> property of transaction instance has to match connection supplied at first position.</p>
 
-<div class="well well-small" style="margin:0px 70px 0px 20px;">
-
-<p>This chapter assumes basic understanding of "Transactions and Concurrency" topic as applied to ADO.NET/SQL Server. 
-If you need to brush up your knowledge use favorite search engine - there is plenty information on the subject.</p>
-
+<div class="well well-small" style="margin:0px 70px 0px 20px;" id="12">
+**WARNING** Always use ```use tran = conn.BeginTransaction()``` to properly scope transaction. 
+This for example guarantees rollback in case of unhandled exception. 
 </p></div>
 
 <p>Typically transactions used in combination with data modification commands (INSERT, UPDATE, DELETE, MERGE) 
