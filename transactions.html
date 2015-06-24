@@ -270,9 +270,9 @@ to join a transaction.</p>
 
 <h2>Implicit a.k.a Ambient Transactions</h2>
 
-<p>.NET BCL class <a href="https://msdn.microsoft.com/en-us/library/system.transactions.transactionscope.aspx">TransactionScope</a> is 
-convenient way to deal with transactions. Basic idea is that all database connections opened within specific scope are 
-enlisted in that transaction.</p>
+<p>.NET BCL class <a href="https://msdn.microsoft.com/en-us/library/system.transactions.transactionscope.aspx">TransactionScope</a> 
+is convenient way to deal with transactions. 
+Basic idea is that all database connections opened within specific scope are enlisted in that transaction.</p>
 
 <p>Example above can be re-written as following:</p>
 
@@ -416,6 +416,10 @@ Have a simple check in a code right before commit to reveal the issue.:</p>
 </table>
 
 <div class="well well-small" style="margin:0px 70px 0px 20px;">
+
+<p><strong>TIP</strong> Sql Server can use multiple <code>SQLConnections</code> in a <code>TransactionScope</code> without escalating, 
+provided the connections are not open at the same time, 
+which would result in multiple "physical" TCP connections and thus require escalation.</p>
 
 <p><strong>TIP</strong> A value of <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlconnectionstringbuilder.enlist.aspx">Enlist</a> 
 key from <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlconnection.connectionstring.aspx">SqlConnection.ConnectionString</a> 
