@@ -388,7 +388,7 @@ Make sure you read <a href="https://msdn.microsoft.com/en-us/library/ee818746.as
 Rare necessity it should be avoided in most cases. 
 Strictly speaking this problem is not specific to TransactionScope 
 but automatic <a href="https://msdn.microsoft.com/en-us/library/ee818742.aspx">Transaction Management Escalation</a> 
-makes it�s really easy to fall into the trap.</p>
+makes it's really easy to fall into the trap.</p>
 
 <p>If a local transaction was accidently promoted to distributed it is software design problem. 
 Have a simple check in a code right before commit to reveal the issue.:</p>
@@ -421,8 +421,8 @@ Have a simple check in a code right before commit to reveal the issue.:</p>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-(<span class="i">https</span><span class="o">:</span><span class="c">//msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlconnection.connectionstring.aspx) </span>
-<span class="i">has</span> <span class="i">a</span> <span class="i">property</span> <span class="i">called</span> [<span class="i">Enlist</span>](<span class="i">https</span><span class="o">:</span><span class="c">//msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlconnectionstringbuilder.enlist.aspx) that might be useful. </span></pre>
+<span class="i">SqlConnection</span><span class="o">.</span>[<span class="i">ConnectionString</span>](<span class="i">https</span><span class="o">:</span><span class="c">//msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlconnection.connectionstring.aspx) </span>
+<span class="i">has</span> <span class="i">a</span> <span class="i">value</span> <span class="i">called</span> [<span class="i">Enlist</span>](<span class="i">https</span><span class="o">:</span><span class="c">//msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlconnectionstringbuilder.enlist.aspx) that might be useful. </span></pre>
 </td>
 </tr>
 </table>
