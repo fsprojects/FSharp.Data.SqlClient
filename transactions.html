@@ -148,9 +148,8 @@ This conforms familiar <a href="https://msdn.microsoft.com/en-us/library/352y4sf
 
 <p>Note, that <code>Connection</code> property of transaction instance has to match connection supplied at first position.</p>
 
-<p>Typically transactions used in combination with data modification commands (INSERT, UPDATE, DELETE, MERGE) 
-That said nothing stops command based on SELECT statement and/or call to a stored procedure (function) 
-to join a transaction.</p>
+<p>Most often transaction used in combination with data modification commands (INSERT, UPDATE, DELETE, MERGE). 
+Commands based on SELECT statement or call to a stored procedure (function) can join a transaction as well.</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
@@ -427,6 +426,13 @@ property determines auto-enlistment behavior of connection instance.
 </p></div></p>
 
 <h2>TransactionScope + AsyncExecute</h2>
+
+<p>Another tricky problem is combining TransactionScope with asynchronous execution. 
+TransactoinScope <a href="http://stackoverflow.com/q/13543254/1603572">has thread affinity</a>. 
+To propagate transaction context to other thread .NET 4.5.1 introduced <a href="https://msdn.microsoft.com/en-us/library/system.transactions.transactionscopeasyncflowoption.aspx">TransactionScopeAsyncFlowOption.Enabled</a>. 
+This setting needs to be passed into <a href="http://stackoverflow.com/a/17527759/1603572">TransactionScope constructor</a>. 
+Unfortunately if you stuck with the .NET Framework before 4.5.1 version the only way 
+to combine TransactionScope with AsyncExecute is explicit transactions.</p>
 
 <div class="tip" id="fs1">namespace System</div>
 <div class="tip" id="fs2">namespace System.Data</div>
