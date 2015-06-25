@@ -427,12 +427,174 @@ property determines auto-enlistment behavior of connection instance.
 
 <h2>TransactionScope + AsyncExecute</h2>
 
-<p>Another tricky problem is combining TransactionScope with asynchronous execution. 
-TransactoinScope <a href="http://stackoverflow.com/q/13543254/1603572">has thread affinity</a>. 
+<p>Another tricky problem is combining <code>TransactionScope</code> with asynchronous execution. 
+<code>TransactoinScope</code> <a href="http://stackoverflow.com/q/13543254/1603572">has thread affinity</a>. 
 To propagate transaction context to other thread .NET 4.5.1 introduced <a href="https://msdn.microsoft.com/en-us/library/system.transactions.transactionscopeasyncflowoption.aspx">TransactionScopeAsyncFlowOption.Enabled</a>. 
-This setting needs to be passed into <a href="http://stackoverflow.com/a/17527759/1603572">TransactionScope constructor</a>. 
+This setting needs to be passed into <a href="https://msdn.microsoft.com/en-us/library/dn261473.aspx">TransactionScope constructor</a>. 
 Unfortunately if you stuck with the .NET Framework before 4.5.1 version the only way 
-to combine TransactionScope with AsyncExecute is explicit transactions.</p>
+to combine <code>TransactionScope</code> with <code>AsyncExecute</code> is explicit transactions.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+<span class="l">14: </span>
+<span class="l">15: </span>
+<span class="l">16: </span>
+<span class="l">17: </span>
+<span class="l">18: </span>
+<span class="l">19: </span>
+<span class="l">20: </span>
+<span class="l">21: </span>
+<span class="l">22: </span>
+<span class="l">23: </span>
+<span class="l">24: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">do</span>
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs55', 170)" onmouseover="showTip(event, 'fs55', 170)" class="i">tran</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs56', 171)" onmouseover="showTip(event, 'fs56', 171)" class="i">TransactionScope</span>(<span class="i">TransactionScopeAsyncFlowOption</span><span class="o">.</span><span class="i">Enabled</span>)
+    
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs32', 172)" onmouseover="showTip(event, 'fs32', 172)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs8', 173)" onmouseover="showTip(event, 'fs8', 173)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
+<span class="s">        </span><span class="s">INSERT</span><span class="s"> </span><span class="s">INTO</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">CurrencyRate</span><span class="s"> </span>
+<span class="s">        </span><span class="s">VALUES</span><span class="s"> </span><span class="s">(</span><span class="s">@</span><span class="s">currencyRateDate</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">fromCurrencyCode</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">toCurrencyCode</span><span class="s">,</span><span class="s"> </span>
+<span class="s">                </span><span class="s">@</span><span class="s">averageRate</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">endOfDayRate</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">modifiedDate</span><span class="s">)</span><span class="s"> </span>
+<span class="s">    </span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs6', 174)" onmouseover="showTip(event, 'fs6', 174)" class="i">connectionString</span><span class="o">&gt;</span>()
+
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs16', 175)" onmouseover="showTip(event, 'fs16', 175)" class="i">today</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs17', 176)" onmouseover="showTip(event, 'fs17', 176)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs18', 177)" onmouseover="showTip(event, 'fs18', 177)" class="i">Now</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs19', 178)" onmouseover="showTip(event, 'fs19', 178)" class="i">Date</span>
+
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs20', 179)" onmouseover="showTip(event, 'fs20', 179)" class="i">recordsInserted</span> <span class="o">=</span> 
+        <span onmouseout="hideTip(event, 'fs32', 180)" onmouseover="showTip(event, 'fs32', 180)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs66', 181)" onmouseover="showTip(event, 'fs66', 181)" class="i">AsyncExecute</span>(
+            <span class="i">currencyRateDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs16', 182)" onmouseover="showTip(event, 'fs16', 182)" class="i">today</span>, 
+            <span class="i">fromCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs4', 183)" onmouseover="showTip(event, 'fs4', 183)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``US Dollar``</span>, 
+            <span class="i">toCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs4', 184)" onmouseover="showTip(event, 'fs4', 184)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``United Kingdom Pound``</span>, 
+            <span class="i">averageRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
+            <span class="i">endOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
+            <span class="i">modifiedDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs16', 185)" onmouseover="showTip(event, 'fs16', 185)" class="i">today</span>) 
+        <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs67', 186)" onmouseover="showTip(event, 'fs67', 186)" class="i">Async</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs68', 187)" onmouseover="showTip(event, 'fs68', 187)" class="i">RunSynchronously</span>
+
+    <span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs20', 188)" onmouseover="showTip(event, 'fs20', 188)" class="i">recordsInserted</span> <span class="o">=</span> <span class="n">1</span>)
+
+    <span onmouseout="hideTip(event, 'fs55', 189)" onmouseover="showTip(event, 'fs55', 189)" class="i">tran</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs57', 190)" onmouseover="showTip(event, 'fs57', 190)" class="i">Complete</span>()</pre>
+</td>
+</tr>
+</table>
+
+<h2>DataTable Updates/Bulk Load</h2>
+
+<p>Statically typed data tables generated either by SqlProgrammabilityProvider or by SqlCommandProvider 
+with ResultType.DataTable have two helper methods <code>Update</code> and <code>BulkCopy</code> to send changes back into a database. 
+Both methods accept connection + transaction to support explicit transactions.</p>
+
+<p>Example above to insert a new USD/GBP currency rate can be re-written as</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+<span class="l">14: </span>
+<span class="l">15: </span>
+<span class="l">16: </span>
+<span class="l">17: </span>
+<span class="l">18: </span>
+<span class="l">19: </span>
+<span class="l">20: </span>
+<span class="l">21: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">do</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs69', 191)" onmouseover="showTip(event, 'fs69', 191)" class="i">currencyRates</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs23', 192)" onmouseover="showTip(event, 'fs23', 192)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs70', 193)" onmouseover="showTip(event, 'fs70', 193)" class="i">Sales</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs71', 194)" onmouseover="showTip(event, 'fs71', 194)" class="i">Tables</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs72', 195)" onmouseover="showTip(event, 'fs72', 195)" class="i">CurrencyRate</span>()
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs16', 196)" onmouseover="showTip(event, 'fs16', 196)" class="i">today</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs17', 197)" onmouseover="showTip(event, 'fs17', 197)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs18', 198)" onmouseover="showTip(event, 'fs18', 198)" class="i">Now</span>
+    <span onmouseout="hideTip(event, 'fs69', 199)" onmouseover="showTip(event, 'fs69', 199)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs73', 200)" onmouseover="showTip(event, 'fs73', 200)" class="i">AddRow</span>(
+            <span class="i">CurrencyRateDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs16', 201)" onmouseover="showTip(event, 'fs16', 201)" class="i">today</span>, 
+            <span class="i">FromCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs4', 202)" onmouseover="showTip(event, 'fs4', 202)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``US Dollar``</span>, 
+            <span class="i">ToCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs4', 203)" onmouseover="showTip(event, 'fs4', 203)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``United Kingdom Pound``</span>, 
+            <span class="i">AverageRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
+            <span class="i">EndOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>)
+
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs9', 204)" onmouseover="showTip(event, 'fs9', 204)" class="i">conn</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs10', 205)" onmouseover="showTip(event, 'fs10', 205)" class="i">SqlConnection</span>(<span onmouseout="hideTip(event, 'fs6', 206)" onmouseover="showTip(event, 'fs6', 206)" class="i">connectionString</span>)
+    <span onmouseout="hideTip(event, 'fs9', 207)" onmouseover="showTip(event, 'fs9', 207)" class="i">conn</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs11', 208)" onmouseover="showTip(event, 'fs11', 208)" class="i">Open</span>()
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs12', 209)" onmouseover="showTip(event, 'fs12', 209)" class="i">tran</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs9', 210)" onmouseover="showTip(event, 'fs9', 210)" class="i">conn</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs13', 211)" onmouseover="showTip(event, 'fs13', 211)" class="i">BeginTransaction</span>()
+
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs74', 212)" onmouseover="showTip(event, 'fs74', 212)" class="i">recordsAffected</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs69', 213)" onmouseover="showTip(event, 'fs69', 213)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs75', 214)" onmouseover="showTip(event, 'fs75', 214)" class="i">Update</span>(<span onmouseout="hideTip(event, 'fs9', 215)" onmouseover="showTip(event, 'fs9', 215)" class="i">conn</span>, <span onmouseout="hideTip(event, 'fs12', 216)" onmouseover="showTip(event, 'fs12', 216)" class="i">tran</span>)
+    <span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs74', 217)" onmouseover="showTip(event, 'fs74', 217)" class="i">recordsAffected</span> <span class="o">=</span> <span class="n">1</span>)
+    
+    <span class="c">//or Bulk Load</span>
+    <span class="c">//currencyRates.BulkCopy(conn, transaction = tran)</span>
+
+    <span onmouseout="hideTip(event, 'fs12', 218)" onmouseover="showTip(event, 'fs12', 218)" class="i">tran</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs22', 219)" onmouseover="showTip(event, 'fs22', 219)" class="i">Commit</span>()</pre>
+</td>
+</tr>
+</table>
+
+<p>Same as above with implicit transaction.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+<span class="l">14: </span>
+<span class="l">15: </span>
+<span class="l">16: </span>
+<span class="l">17: </span>
+<span class="l">18: </span>
+<span class="l">19: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">do</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs69', 220)" onmouseover="showTip(event, 'fs69', 220)" class="i">currencyRates</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs23', 221)" onmouseover="showTip(event, 'fs23', 221)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs70', 222)" onmouseover="showTip(event, 'fs70', 222)" class="i">Sales</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs71', 223)" onmouseover="showTip(event, 'fs71', 223)" class="i">Tables</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs72', 224)" onmouseover="showTip(event, 'fs72', 224)" class="i">CurrencyRate</span>()
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs16', 225)" onmouseover="showTip(event, 'fs16', 225)" class="i">today</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs17', 226)" onmouseover="showTip(event, 'fs17', 226)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs18', 227)" onmouseover="showTip(event, 'fs18', 227)" class="i">Now</span>
+    <span onmouseout="hideTip(event, 'fs69', 228)" onmouseover="showTip(event, 'fs69', 228)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs73', 229)" onmouseover="showTip(event, 'fs73', 229)" class="i">AddRow</span>(
+            <span class="i">CurrencyRateDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs16', 230)" onmouseover="showTip(event, 'fs16', 230)" class="i">today</span>, 
+            <span class="i">FromCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs4', 231)" onmouseover="showTip(event, 'fs4', 231)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``US Dollar``</span>, 
+            <span class="i">ToCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs4', 232)" onmouseover="showTip(event, 'fs4', 232)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``United Kingdom Pound``</span>, 
+            <span class="i">AverageRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
+            <span class="i">EndOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>)
+
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs55', 233)" onmouseover="showTip(event, 'fs55', 233)" class="i">tran</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs56', 234)" onmouseover="showTip(event, 'fs56', 234)" class="i">TransactionScope</span>()
+
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs74', 235)" onmouseover="showTip(event, 'fs74', 235)" class="i">recordsAffected</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs69', 236)" onmouseover="showTip(event, 'fs69', 236)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs75', 237)" onmouseover="showTip(event, 'fs75', 237)" class="i">Update</span>()
+    <span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs74', 238)" onmouseover="showTip(event, 'fs74', 238)" class="i">recordsAffected</span> <span class="o">=</span> <span class="n">1</span>)
+    
+    <span class="c">//or Bulk Load</span>
+    <span class="c">//currencyRates.BulkCopy()</span>
+
+    <span onmouseout="hideTip(event, 'fs55', 239)" onmouseover="showTip(event, 'fs55', 239)" class="i">tran</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs57', 240)" onmouseover="showTip(event, 'fs57', 240)" class="i">Complete</span>()</pre>
+</td>
+</tr>
+</table>
 
 <div class="tip" id="fs1">namespace System</div>
 <div class="tip" id="fs2">namespace System.Data</div>
@@ -499,6 +661,16 @@ to combine TransactionScope with AsyncExecute is explicit transactions.</p>
 <div class="tip" id="fs63">Multiple items<br />type Guid =<br />&#160;&#160;struct<br />&#160;&#160;&#160;&#160;new : b:byte[] -&gt; Guid + 4 overloads<br />&#160;&#160;&#160;&#160;member CompareTo : value:obj -&gt; int + 1 overload<br />&#160;&#160;&#160;&#160;member Equals : o:obj -&gt; bool + 1 overload<br />&#160;&#160;&#160;&#160;member GetHashCode : unit -&gt; int<br />&#160;&#160;&#160;&#160;member ToByteArray : unit -&gt; byte[]<br />&#160;&#160;&#160;&#160;member ToString : unit -&gt; string + 2 overloads<br />&#160;&#160;&#160;&#160;static val Empty : Guid<br />&#160;&#160;&#160;&#160;static member NewGuid : unit -&gt; Guid<br />&#160;&#160;&#160;&#160;static member Parse : input:string -&gt; Guid<br />&#160;&#160;&#160;&#160;static member ParseExact : input:string * format:string -&gt; Guid<br />&#160;&#160;&#160;&#160;...<br />&#160;&#160;end<br /><br />Full name: System.Guid<br /><br />--------------------<br />Guid()<br />Guid(b: byte []) : unit<br />Guid(g: string) : unit<br />Guid(a: int, b: int16, c: int16, d: byte []) : unit<br />Guid(a: uint32, b: uint16, c: uint16, d: byte, e: byte, f: byte, g: byte, h: byte, i: byte, j: byte, k: byte) : unit<br />Guid(a: int, b: int16, c: int16, d: byte, e: byte, f: byte, g: byte, h: byte, i: byte, j: byte, k: byte) : unit</div>
 <div class="tip" id="fs64">field Guid.Empty</div>
 <div class="tip" id="fs65">val invalidOp : message:string -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.Operators.invalidOp</div>
+<div class="tip" id="fs66">SqlCommandProvider&lt;...&gt;.AsyncExecute(currencyRateDate: DateTime, fromCurrencyCode: string, toCurrencyCode: string, averageRate: decimal, endOfDayRate: decimal, modifiedDate: DateTime) : Async&lt;int&gt;</div>
+<div class="tip" id="fs67">Multiple items<br />type Async<br />static member AsBeginEnd : computation:(&#39;Arg -&gt; Async&lt;&#39;T&gt;) -&gt; (&#39;Arg * AsyncCallback * obj -&gt; IAsyncResult) * (IAsyncResult -&gt; &#39;T) * (IAsyncResult -&gt; unit)<br />static member AwaitEvent : event:IEvent&lt;&#39;Del,&#39;T&gt; * ?cancelAction:(unit -&gt; unit) -&gt; Async&lt;&#39;T&gt; (requires delegate and &#39;Del :&gt; Delegate)<br />static member AwaitIAsyncResult : iar:IAsyncResult * ?millisecondsTimeout:int -&gt; Async&lt;bool&gt;<br />static member AwaitTask : task:Task&lt;&#39;T&gt; -&gt; Async&lt;&#39;T&gt;<br />static member AwaitWaitHandle : waitHandle:WaitHandle * ?millisecondsTimeout:int -&gt; Async&lt;bool&gt;<br />static member CancelDefaultToken : unit -&gt; unit<br />static member Catch : computation:Async&lt;&#39;T&gt; -&gt; Async&lt;Choice&lt;&#39;T,exn&gt;&gt;<br />static member FromBeginEnd : beginAction:(AsyncCallback * obj -&gt; IAsyncResult) * endAction:(IAsyncResult -&gt; &#39;T) * ?cancelAction:(unit -&gt; unit) -&gt; Async&lt;&#39;T&gt;<br />static member FromBeginEnd : arg:&#39;Arg1 * beginAction:(&#39;Arg1 * AsyncCallback * obj -&gt; IAsyncResult) * endAction:(IAsyncResult -&gt; &#39;T) * ?cancelAction:(unit -&gt; unit) -&gt; Async&lt;&#39;T&gt;<br />static member FromBeginEnd : arg1:&#39;Arg1 * arg2:&#39;Arg2 * beginAction:(&#39;Arg1 * &#39;Arg2 * AsyncCallback * obj -&gt; IAsyncResult) * endAction:(IAsyncResult -&gt; &#39;T) * ?cancelAction:(unit -&gt; unit) -&gt; Async&lt;&#39;T&gt;<br />static member FromBeginEnd : arg1:&#39;Arg1 * arg2:&#39;Arg2 * arg3:&#39;Arg3 * beginAction:(&#39;Arg1 * &#39;Arg2 * &#39;Arg3 * AsyncCallback * obj -&gt; IAsyncResult) * endAction:(IAsyncResult -&gt; &#39;T) * ?cancelAction:(unit -&gt; unit) -&gt; Async&lt;&#39;T&gt;<br />static member FromContinuations : callback:((&#39;T -&gt; unit) * (exn -&gt; unit) * (OperationCanceledException -&gt; unit) -&gt; unit) -&gt; Async&lt;&#39;T&gt;<br />static member Ignore : computation:Async&lt;&#39;T&gt; -&gt; Async&lt;unit&gt;<br />static member OnCancel : interruption:(unit -&gt; unit) -&gt; Async&lt;IDisposable&gt;<br />static member Parallel : computations:seq&lt;Async&lt;&#39;T&gt;&gt; -&gt; Async&lt;&#39;T []&gt;<br />static member RunSynchronously : computation:Async&lt;&#39;T&gt; * ?timeout:int * ?cancellationToken:CancellationToken -&gt; &#39;T<br />static member Sleep : millisecondsDueTime:int -&gt; Async&lt;unit&gt;<br />static member Start : computation:Async&lt;unit&gt; * ?cancellationToken:CancellationToken -&gt; unit<br />static member StartAsTask : computation:Async&lt;&#39;T&gt; * ?taskCreationOptions:TaskCreationOptions * ?cancellationToken:CancellationToken -&gt; Task&lt;&#39;T&gt;<br />static member StartChild : computation:Async&lt;&#39;T&gt; * ?millisecondsTimeout:int -&gt; Async&lt;Async&lt;&#39;T&gt;&gt;<br />static member StartChildAsTask : computation:Async&lt;&#39;T&gt; * ?taskCreationOptions:TaskCreationOptions -&gt; Async&lt;Task&lt;&#39;T&gt;&gt;<br />static member StartImmediate : computation:Async&lt;unit&gt; * ?cancellationToken:CancellationToken -&gt; unit<br />static member StartWithContinuations : computation:Async&lt;&#39;T&gt; * continuation:(&#39;T -&gt; unit) * exceptionContinuation:(exn -&gt; unit) * cancellationContinuation:(OperationCanceledException -&gt; unit) * ?cancellationToken:CancellationToken -&gt; unit<br />static member SwitchToContext : syncContext:SynchronizationContext -&gt; Async&lt;unit&gt;<br />static member SwitchToNewThread : unit -&gt; Async&lt;unit&gt;<br />static member SwitchToThreadPool : unit -&gt; Async&lt;unit&gt;<br />static member TryCancelled : computation:Async&lt;&#39;T&gt; * compensation:(OperationCanceledException -&gt; unit) -&gt; Async&lt;&#39;T&gt;<br />static member CancellationToken : Async&lt;CancellationToken&gt;<br />static member DefaultCancellationToken : CancellationToken<br /><br />Full name: Microsoft.FSharp.Control.Async<br /><br />--------------------<br />type Async&lt;&#39;T&gt;<br /><br />Full name: Microsoft.FSharp.Control.Async&lt;_&gt;</div>
+<div class="tip" id="fs68">static member Async.RunSynchronously : computation:Async&lt;&#39;T&gt; * ?timeout:int * ?cancellationToken:Threading.CancellationToken -&gt; &#39;T</div>
+<div class="tip" id="fs69">val currencyRates : SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate</div>
+<div class="tip" id="fs70">type Sales =<br />&#160;&#160;nested type Tables<br />&#160;&#160;nested type User-Defined Table Types<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider,ConnectionStringOrName=&quot;Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True&quot;.Sales</div>
+<div class="tip" id="fs71">type Tables =<br />&#160;&#160;nested type CountryRegionCurrency<br />&#160;&#160;nested type CreditCard<br />&#160;&#160;nested type Currency<br />&#160;&#160;nested type CurrencyRate<br />&#160;&#160;nested type Customer<br />&#160;&#160;nested type PersonCreditCard<br />&#160;&#160;nested type SalesOrderDetail<br />&#160;&#160;nested type SalesOrderHeader<br />&#160;&#160;nested type SalesOrderHeaderSalesReason<br />&#160;&#160;nested type SalesPerson<br />&#160;&#160;...<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider,ConnectionStringOrName=&quot;Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True&quot;.Sales.Tables</div>
+<div class="tip" id="fs72">type CurrencyRate =<br />&#160;&#160;inherit DataTable&lt;Row&gt;<br />&#160;&#160;new : unit -&gt; CurrencyRate<br />&#160;&#160;member AddRow : CurrencyRateDate: DateTime * FromCurrencyCode: string * ToCurrencyCode: string * AverageRate: decimal * EndOfDayRate: decimal * ?ModifiedDate: DateTime -&gt; unit<br />&#160;&#160;member AreIndexEventsSuspended : bool<br />&#160;&#160;member AverageRateColumn : DataColumn<br />&#160;&#160;member CaseSensitive : bool with get, set<br />&#160;&#160;member ChildRelations : DataRelationCollection<br />&#160;&#160;event ColumnChanged : DataColumnChangeEventHandler<br />&#160;&#160;event ColumnChanging : DataColumnChangeEventHandler<br />&#160;&#160;member Columns : DataColumnCollection<br />&#160;&#160;...<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider,ConnectionStringOrName=&quot;Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True&quot;.Sales.Tables.CurrencyRate<br /><em><br /><br />&lt;summary&gt;Currency exchange rates.&lt;/summary&gt;</em></div>
+<div class="tip" id="fs73">SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.AddRow(CurrencyRateDate: DateTime, FromCurrencyCode: string, ToCurrencyCode: string, AverageRate: decimal, EndOfDayRate: decimal, ?ModifiedDate: DateTime) : unit<br /><em><br /><br />&lt;param name=&#39;CurrencyRateDate&#39;&gt;Date and time the exchange rate was obtained.&lt;/param&gt;<br />&lt;param name=&#39;FromCurrencyCode&#39;&gt;Exchange rate was converted from this currency code.&lt;/param&gt;<br />&lt;param name=&#39;ToCurrencyCode&#39;&gt;Exchange rate was converted to this currency code.&lt;/param&gt;<br />&lt;param name=&#39;AverageRate&#39;&gt;Average exchange rate for the day.&lt;/param&gt;<br />&lt;param name=&#39;EndOfDayRate&#39;&gt;Final exchange rate for the day.&lt;/param&gt;<br />&lt;param name=&#39;ModifiedDate&#39;&gt;Date and time the record was last updated.&lt;/param&gt;</em></div>
+<div class="tip" id="fs74">val recordsAffected : int</div>
+<div class="tip" id="fs75">member DataTable.Update : ?connection:SqlConnection * ?transaction:SqlTransaction * ?batchSize:int -&gt; int</div>
 
             </div>
 
