@@ -74,9 +74,8 @@ do
 (**
 Note, that ``Connection`` property of transaction instance has to match connection supplied at first position. 
 
-Typically transactions used in combination with data modification commands (INSERT, UPDATE, DELETE, MERGE) 
-That said nothing stops command based on SELECT statement and/or call to a stored procedure (function) 
-to join a transaction. 
+Most often transaction used in combination with data modification commands (INSERT, UPDATE, DELETE, MERGE). 
+Commands based on SELECT statement or call to a stored procedure (function) can join a transaction as well. 
 
 *)
 
@@ -139,9 +138,9 @@ do
 Implicit a.k.a Ambient Transactions
 -------------------------------------
 
-.NET BCL class [TransactionScope](https://msdn.microsoft.com/en-us/library/system.transactions.transactionscope.aspx) is 
-convenient way to deal with transactions. Basic idea is that all database connections opened within specific scope are 
-enlisted in that transaction.
+.NET BCL class [TransactionScope](https://msdn.microsoft.com/en-us/library/system.transactions.transactionscope.aspx) 
+is convenient way to deal with transactions. 
+Basic idea is that all database connections opened within specific scope are enlisted in that transaction.
 
 Example above can be re-written as following:
 *)
@@ -200,9 +199,9 @@ Make sure you read [general usage guidelines](https://msdn.microsoft.com/en-us/l
 
 There are two kind of issues you might run into when using `TransactionScope`
 
-[Distributed Transactions](https://msdn.microsoft.com/en-us/library/ms254973.aspx)
+Distributed transactions 
 -------------------------------------
-Distributed transactions spell all kind of troubles. 
+[Distributed Transactions](https://msdn.microsoft.com/en-us/library/ms254973.aspx) spell all kind of troubles. 
 Rare necessity it should be avoided in most cases. 
 Strictly speaking this problem is not specific to TransactionScope 
 but automatic [Transaction Management Escalation](https://msdn.microsoft.com/en-us/library/ee818742.aspx) 
@@ -210,6 +209,7 @@ makes it's really easy to fall into the trap.
 
 If a local transaction was accidently promoted to distributed it is software design problem. 
 Have a simple check in a code right before commit to reveal the issue.: 
+
 *)
 
 do
@@ -220,12 +220,109 @@ do
     then invalidOp "Unexpected distributed transaction."
     else tran.Complete()
 
+
 (**
 
-    SqlConnection.[ConnectionString](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlconnection.connectionstring.aspx) 
-    has a value called [Enlist](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlconnectionstringbuilder.enlist.aspx) that might be useful. 
+<div class="well well-small" style="margin:0px 70px 0px 20px;">
+
+**TIP** Sql Server can use multiple `SQLConnections` in a `TransactionScope` without escalating, 
+provided the connections are not open at the same time, 
+which would result in multiple "physical" TCP connections and thus require escalation.
+
+**TIP** A value of [Enlist](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlconnectionstringbuilder.enlist.aspx) 
+key from [SqlConnection.ConnectionString](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlconnection.connectionstring.aspx) 
+property determines auto-enlistment behavior of connection instance.
+</p></div>
 
 TransactionScope + AsyncExecute 
 -------------------------------------
 
+Another tricky problem is combining `TransactionScope` with asynchronous execution. 
+`TransactoinScope` [has thread affinity](http://stackoverflow.com/q/13543254/1603572). 
+To propagate transaction context to other thread .NET 4.5.1 introduced [TransactionScopeAsyncFlowOption.Enabled](https://msdn.microsoft.com/en-us/library/system.transactions.transactionscopeasyncflowoption.aspx). 
+This setting needs to be passed into [TransactionScope constructor](https://msdn.microsoft.com/en-us/library/dn261473.aspx). 
+Unfortunately if you stuck with the .NET Framework before 4.5.1 version the only way 
+to combine `TransactionScope` with `AsyncExecute` is explicit transactions.  
+
 *)
+
+do
+    use tran = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled)
+    
+    use cmd = new SqlCommandProvider<"
+        INSERT INTO Sales.CurrencyRate 
+        VALUES (@currencyRateDate, @fromCurrencyCode, @toCurrencyCode, 
+                @averageRate, @endOfDayRate, @modifiedDate) 
+    ", connectionString>()
+
+    let today = DateTime.Now.Date
+
+    let recordsInserted = 
+        cmd.AsyncExecute(
+            currencyRateDate = today, 
+            fromCurrencyCode = CurrencyCode.``US Dollar``, 
+            toCurrencyCode = CurrencyCode.``United Kingdom Pound``, 
+            averageRate = 0.63219M, 
+            endOfDayRate = 0.63219M, 
+            modifiedDate = today) 
+        |> Async.RunSynchronously
+
+    assert (recordsInserted = 1)
+
+    tran.Complete()
+
+(**
+DataTable Updates/Bulk Load
+-------------------------------------
+Statically typed data tables generated either by SqlProgrammabilityProvider or by SqlCommandProvider 
+with ResultType.DataTable have two helper methods `Update` and `BulkCopy` to send changes back into a database. 
+Both methods accept connection + transaction to support explicit transactions.
+
+Example above to insert a new USD/GBP currency rate can be re-written as
+*)
+
+do
+    let currencyRates = new AdventureWorks.Sales.Tables.CurrencyRate()
+    let today = DateTime.Now
+    currencyRates.AddRow(
+            CurrencyRateDate = today, 
+            FromCurrencyCode = CurrencyCode.``US Dollar``, 
+            ToCurrencyCode = CurrencyCode.``United Kingdom Pound``, 
+            AverageRate = 0.63219M, 
+            EndOfDayRate = 0.63219M)
+
+    use conn = new SqlConnection(connectionString)
+    conn.Open()
+    use tran = conn.BeginTransaction()
+
+    let recordsAffected = currencyRates.Update(conn, tran)
+    assert (recordsAffected = 1)
+    
+    //or Bulk Load
+    //currencyRates.BulkCopy(conn, transaction = tran)
+
+    tran.Commit()
+
+(**
+Same as above with implicit transaction.
+*)
+
+do
+    let currencyRates = new AdventureWorks.Sales.Tables.CurrencyRate()
+    let today = DateTime.Now
+    currencyRates.AddRow(
+            CurrencyRateDate = today, 
+            FromCurrencyCode = CurrencyCode.``US Dollar``, 
+            ToCurrencyCode = CurrencyCode.``United Kingdom Pound``, 
+            AverageRate = 0.63219M, 
+            EndOfDayRate = 0.63219M)
+
+    use tran = new TransactionScope()
+
+    let recordsAffected = currencyRates.Update()
+    assert (recordsAffected = 1)
+    
+    //or Bulk Load
+    //currencyRates.BulkCopy()
+
+    tran.Complete()

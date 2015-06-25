@@ -25,7 +25,6 @@ type DataTablesTests() =
 
     let adventureWorks = FSharp.Configuration.AppSettings<"app.config">.ConnectionStrings.AdventureWorks
     
-
     [<Fact>]
     member __.NewRowAndBulkCopy() = 
         let t = new ShiftTable()
@@ -53,35 +52,36 @@ type DataTablesTests() =
         //(Skip="")
     >]
     member __.AddRowAndBulkCopy() = 
-        let t = new ShiftTable()
+        try
+            let t = new ShiftTable()
     
-        //erased method to provide static typing
-        let now = DateTime.Now.Date
-        t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some now)
-        t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some now)
+            //erased method to provide static typing
+            let now = DateTime.Now.Date
+            t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some now)
+            t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some now)
 
-        //check type. Should DateTime not option<DateTime>
-        Assert.Equal<DateTime>(now, t.Rows.[0].ModifiedDate)
+            //check type. Should DateTime not option<DateTime>
+            Assert.Equal<DateTime>(now, t.Rows.[0].ModifiedDate)
 
-        use getRowsCount = new GetRowCount()
-        let rowsBefore = getRowsCount.Execute().Value.Value
+            use getRowsCount = new GetRowCount()
+            let rowsBefore = getRowsCount.Execute().Value.Value
         
-        //shortcut, convenience method
-        t.BulkCopy()
+            //shortcut, convenience method
+            t.BulkCopy()
 
-        let rowsAdded = getRowsCount.Execute().Value.Value - rowsBefore
-        Assert.Equal(t.Rows.Count, rowsAdded)
-
-        //compenstating tran
-        let t2 = new ShiftTable()
-        use getShiftTableData = new GetShiftTableData()
-        getShiftTableData.Execute() |> t2.Load
-        for r in t2.Rows do
-            if r.Name = "French coffee break" || r.Name = "Spanish siesta"
-            then 
-                r.Delete()
-        let rowsAffected = t2.Update()
-        assert (rowsAffected = 2)
+            let rowsAdded = getRowsCount.Execute().Value.Value - rowsBefore
+            Assert.Equal(t.Rows.Count, rowsAdded)
+        finally
+            //compenstating tran
+            let t2 = new ShiftTable()
+            use getShiftTableData = new GetShiftTableData()
+            getShiftTableData.Execute() |> t2.Load
+            for r in t2.Rows do
+                if r.Name = "French coffee break" || r.Name = "Spanish siesta"
+                then 
+                    r.Delete()
+            let rowsAffected = t2.Update()
+            assert (rowsAffected = 2)
 
     [<Fact>]
     member __.AddRowAndBulkCopyWithConnOverride() = 
@@ -204,7 +204,41 @@ type DataTablesTests() =
         let rowsInserted = t.Update(conn, tran)
         Assert.Equal(1, rowsInserted)
 
+    [<Fact>]
+    member __.NewRowAndBulkCopyWithTrsansactionScope() = 
+        try
+            use tran = new TransactionScope()
+            let t = new ShiftTable()
+    
+            //erased method to provide static typing
+            let now = DateTime.Now.Date
+            t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some now)
+            t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some now)
 
+            //check type. Should DateTime not option<DateTime>
+            Assert.Equal<DateTime>(now, t.Rows.[0].ModifiedDate)
+
+            use getRowsCount = new GetRowCount()
+            let rowsBefore = getRowsCount.Execute().Value.Value
+        
+            //shortcut, convenience method
+            t.BulkCopy()
+
+            let rowsAdded = getRowsCount.Execute().Value.Value - rowsBefore
+            Assert.Equal(t.Rows.Count, rowsAdded)
+            
+            tran.Complete()
+        finally
+            //compenstating tran
+            let t2 = new ShiftTable()
+            use getShiftTableData = new GetShiftTableData()
+            getShiftTableData.Execute() |> t2.Load
+            for r in t2.Rows do
+                if r.Name = "French coffee break" || r.Name = "Spanish siesta"
+                then 
+                    r.Delete()
+            let rowsAffected = t2.Update()
+            assert (rowsAffected = 2)
 
 
 
