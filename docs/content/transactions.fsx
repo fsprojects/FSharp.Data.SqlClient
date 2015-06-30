@@ -268,6 +268,7 @@ do
 
     tran.Complete()
 
+(**
 DataTable Updates/Bulk Load
 -------------------------------------
 Statically typed data tables generated either by SqlProgrammabilityProvider or by SqlCommandProvider 

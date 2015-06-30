@@ -317,13 +317,30 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             then
                                 let propertType = typedefof<_ option>.MakeGenericType dataType
                                 let property = ProvidedProperty(name, propertType, GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", dataType, name))
+                                
                                 if not c.ReadOnly
-                                then property.SetterCode <- QuotationsFactory.GetBody("SetNullableValueInDataRow", dataType, name)
+                                then 
+                                    property.SetterCode <- QuotationsFactory.GetBody("SetNullableValueInDataRow", dataType, name)
+                                
                                 property
                             else
-                                let property = ProvidedProperty(name, dataType, GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>))
+                                let property = ProvidedProperty(name, dataType)
+                                property.GetterCode <- 
+                                    if c.Identity && c.TypeInfo.ClrType <> typeof<int>
+                                    then
+                                        fun args -> 
+                                            <@@ 
+                                                let value = (%%args.[0] : DataRow).[name]
+                                                let targetType = Type.GetType(%%Expr.Value( c.TypeInfo.ClrTypeFullName), throwOnError = true)
+                                                Convert.ChangeType(value, targetType)
+                                            @@>
+                                    else
+                                        fun args -> <@@ (%%args.[0] : DataRow).[name] @@>
+                                
                                 if not c.ReadOnly
-                                then property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
+                                then 
+                                    property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
+                                
                                 property
 
                         if c.Description <> "" 
@@ -392,7 +409,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     dataTableType.AddMember ctor
                 
                 do
-                    let parameters, updateableColumns= 
+                    let parameters, updateableColumns = 
                         [ 
                             for c in columns do 
                                 if not(c.Identity || c.ReadOnly)

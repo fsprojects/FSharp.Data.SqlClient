@@ -43,6 +43,18 @@ type DataTable<'T when 'T :> DataRow>(tableName, selectCommand) =
         
         use dataAdapter = new SqlDataAdapter(selectCommand)
         use commandBuilder = new SqlCommandBuilder(dataAdapter) 
+        use __ = dataAdapter.RowUpdating.Subscribe(fun args ->
+            if args.StatementType = StatementType.Insert
+                && defaultArg batchSize dataAdapter.UpdateBatchSize = 1
+            then 
+                let cmd = args.Command
+                cmd.CommandText <- 
+                    cmd.CommandText.Insert(
+                        cmd.CommandText.IndexOf( " VALUES"),
+                        " OUTPUT inserted.$identity"
+                    )
+                cmd.UpdatedRowSource <- UpdateRowSource.FirstReturnedRecord
+        )
 
         connection |> Option.iter dataAdapter.SelectCommand.set_Connection
         transaction |> Option.iter dataAdapter.SelectCommand.set_Transaction

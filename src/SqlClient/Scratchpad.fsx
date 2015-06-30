@@ -9,36 +9,28 @@ open System.Data.SqlTypes
 
 [<Literal>]
 let connStr = "Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
-let conn = new SqlConnection(connStr)
-conn.Open()
+do 
+    use conn = new SqlConnection(connStr)
+    conn.Open()
+    use tran = conn.BeginTransaction()
+    let cmd = new SqlCommand()
+    cmd.Connection <- conn
+    cmd.Transaction <- tran
+    cmd.CommandText <- 
+        //"INSERT INTO [HumanResources].[Shift] ([Name], [StartTime], [EndTime]) VALUES (@p1, @p2, @p3)"
+        "INSERT INTO [HumanResources].[Shift] ([Name], [StartTime], [EndTime], [ModifiedDate]) VALUES (@p1, @p2, @p3, @p4)"
+    cmd.Parameters.AddWithValue("@p1", "French coffee break") |> ignore
+    cmd.Parameters.AddWithValue("@p2", TimeSpan.FromHours 10.) |> ignore
+    cmd.Parameters.AddWithValue("@p3", TimeSpan.FromHours 12.) |> ignore
+    cmd.Parameters.AddRange [|
+        SqlParameter("@p4", SqlDbType.DateTime2, IsNullable = true, Value = DBNull.Value)
+    |]
+    //cmd.Parameters.AddWithValue("@p4", DBNull.Value)
+    cmd.ExecuteNonQuery() |> printfn "Records affected: %i"
 
-let cmd = new SqlCommand("select * from HumanResources.Shift where StartTime > @startTime", conn)
-cmd.Parameters.AddWithValue("@startTime", TimeSpan.FromHours 12.)
-let reader = cmd.ExecuteReader()
-let dataTable = new DataTable()
-dataTable.Load reader 
-let row = dataTable.NewRow()
-row.["Name"] <- "Test"
-row.["StartTime"] <- TimeSpan.FromHours 1.
-row.["EndTime"] <- TimeSpan.FromHours 5.
-row.["ModifiedDate"] <- DateTime.Now
 
-dataTable.Rows.Add row
-
-//reader |> Seq.cast<obj> |> Seq.map (fun x -> x.GetType().FullName) |> Seq.head |> printfn "%A"
-
-let dataAdapter = new SqlDataAdapter(cmd)
-
-let commandBuilder = new SqlCommandBuilder(dataAdapter)
-dataAdapter.InsertCommand <- commandBuilder.GetInsertCommand()
-conn.Close()
-dataAdapter.Update(dataTable)
-conn.State
-let clone = cmd.Clone()
-clone.Connection = cmd.Connection
-cmd.Parameters.[0].Value
-clone.Parameters.[0].Value
-
-cmd.UpdatedRowSource
-
-[ for x in dataAdapter.InsertCommand.Parameters -> x.ParameterName, x.SourceColumn ]
+let table = new DataTable()
+let col = new DataColumn("ModifiedDate", typeof<DateTime>)
+col.DefaultValue.GetType().FullName
+col.AllowDBNull
+table.Columns.Add col

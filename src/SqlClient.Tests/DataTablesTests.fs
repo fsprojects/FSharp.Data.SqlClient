@@ -136,11 +136,24 @@ type DataTablesTests() =
     
         //ModifiedDate is not provided
         t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12.)
-        t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16.)
+        let yesterday = DateTime.Now.Date.AddDays -1.
+        t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., ModifiedDate = Some yesterday)
 
         //removing ModifiedDate column is not required as oppose to bulk insert 
         let rowsInserted = t.Update(conn, tran)
+        let latestIdentity = 
+            use cmd = new SqlCommandProvider<"SELECT IDENT_CURRENT (@tableName)", ConnectionStrings.AdventureWorksNamed, SingleRow = true>()
+            cmd.Execute( t.TableName) |> Option.get |> Option.get |> Convert.ToByte
+
         Assert.Equal(t.Rows.Count, rowsInserted)
+
+        //identity values retrived
+        Assert.Equal(t.Rows.[1].ShiftID, latestIdentity)
+        Assert.Equal(t.Rows.[0].ShiftID, latestIdentity - 1uy)
+
+        //default values
+        Assert.Equal(t.Rows.[1].ModifiedDate, yesterday)
+        //Assert.Equal(t.Rows.[0].ModifiedDate.Date, DateTime.Now.Date)
 
     [<Fact>]
     member __.UpdatesPlusAmbientTransaction() = 
