@@ -200,7 +200,7 @@ type DataTablesTests() =
         Assert.True(row.EndDate.IsNone)
 
     [<Fact>]
-    member __.SqlCommandTableUpdate() = 
+    member __.SqlCommandTableInsert() = 
         use cmd = 
             new SqlCommandProvider<"SELECT Name, StartTime, EndTime FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>()
         let t = cmd.Execute()
@@ -213,9 +213,22 @@ type DataTablesTests() =
         row.StartTime <- TimeSpan.FromHours 10.
         row.EndTime <- TimeSpan.FromHours 12.
         t.Rows.Add row
-        //removing ModifiedDate column is not required as oppose to bulk insert 
         let rowsInserted = t.Update(conn, tran)
         Assert.Equal(1, rowsInserted)
+
+    [<Fact>]
+    member __.SqlCommandTableUpdate() = 
+        use cmd = 
+            new SqlCommandProvider<"SELECT ShiftID, Name, StartTime, EndTime, ModifiedDate FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>()
+        let t = cmd.Execute()
+        use conn = new SqlConnection(connectionString = adventureWorks)
+        conn.Open()
+        use tran = conn.BeginTransaction()
+    
+        let row = t.Rows.[0]
+        row.ModifiedDate <- DateTime.Now.Date
+        let rowsAffected = t.Update(conn, tran)
+        Assert.Equal(1, rowsAffected)
 
     [<Fact>]
     member __.NewRowAndBulkCopyWithTrsansactionScope() = 
