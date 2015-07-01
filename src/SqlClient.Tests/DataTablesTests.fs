@@ -136,7 +136,7 @@ type DataTablesTests() =
     
         //ModifiedDate is not provided
         t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12.)
-        let yesterday = DateTime.Now.Date.AddDays -1.
+        let yesterday = DateTime.Today.AddDays -1.
         t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., ModifiedDate = Some yesterday)
 
         //removing ModifiedDate column is not required as oppose to bulk insert 
@@ -153,7 +153,7 @@ type DataTablesTests() =
 
         //default values
         Assert.Equal(t.Rows.[1].ModifiedDate, yesterday)
-        //Assert.Equal(t.Rows.[0].ModifiedDate.Date, DateTime.Now.Date)
+        Assert.Equal(t.Rows.[0].ModifiedDate.Date, DateTime.Today)
 
     [<Fact>]
     member __.UpdatesPlusAmbientTransaction() = 
@@ -265,12 +265,4 @@ type DataTablesTests() =
                     r.Delete()
             let rowsAffected = t2.Update()
             assert (rowsAffected = 2)
-
-
-
-
-
-
-
-
 

@@ -47,13 +47,23 @@ type DataTable<'T when 'T :> DataRow>(tableName, selectCommand) =
             if args.StatementType = StatementType.Insert
                 && defaultArg batchSize dataAdapter.UpdateBatchSize = 1
             then 
-                let cmd = args.Command
-                cmd.CommandText <- 
-                    cmd.CommandText.Insert(
-                        cmd.CommandText.IndexOf( " VALUES"),
-                        " OUTPUT inserted.$identity"
-                    )
-                cmd.UpdatedRowSource <- UpdateRowSource.FirstReturnedRecord
+                let columnsToRefresh = ResizeArray()
+                for c in this.Columns do
+                    if c.AutoIncrement 
+                    then columnsToRefresh.Add( "inserted." + c.ColumnName)
+                    elif c.AllowDBNull && args.Row.IsNull c.Ordinal
+                    then columnsToRefresh.Add( "inserted." + c.ColumnName)
+
+                if columnsToRefresh.Count > 0
+                then                        
+                    let outputClause = columnsToRefresh |> String.concat "," |> sprintf " OUTPUT %s"
+                    let cmd = args.Command
+                    cmd.CommandText <- 
+                        cmd.CommandText.Insert(
+                            cmd.CommandText.IndexOf( " VALUES"),
+                            outputClause
+                        )
+                    cmd.UpdatedRowSource <- UpdateRowSource.FirstReturnedRecord
         )
 
         connection |> Option.iter dataAdapter.SelectCommand.set_Connection
