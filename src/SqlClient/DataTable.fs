@@ -8,7 +8,7 @@ open System.Collections.Generic
 open FSharp.Data.SqlClient
 
 [<Sealed>]
-///<summary>Generic implementation of <see cref='DataTable'/></summary>
+[<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type DataTable<'T when 'T :> DataRow>(tableName, selectCommand) = 
     inherit DataTable(tableName)
 

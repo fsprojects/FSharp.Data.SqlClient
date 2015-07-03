@@ -70,7 +70,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         let designTimeConnectionString = 
             if isByName 
-            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, config.ResolutionFolder, configFile)
+            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, config.ResolutionFolder, configFile) |> fst
             else connectionStringOrName
 
         let dataDirectoryFullPath = 

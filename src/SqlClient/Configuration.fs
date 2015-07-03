@@ -80,7 +80,9 @@ type Configuration() =
         let configSection = ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None).ConnectionStrings.ConnectionStrings
         match configSection, lazy configSection.[name] with
         | null, _ | _, Lazy null -> raise <| KeyNotFoundException(message = sprintf "Cannot find name %s in <connectionStrings> section of %s file." name configFilename)
-        | _, Lazy x -> x.ConnectionString
+        | _, Lazy x -> 
+            let providerName = if String.IsNullOrEmpty x.ProviderName then "System.Data.SqlClient" else x.ProviderName
+            x.ConnectionString, providerName
 
     static member GetConnectionStringAtRunTime(name: string) = 
         let section = ConfigurationManager.ConnectionStrings.[name]

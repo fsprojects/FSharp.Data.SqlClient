@@ -14,7 +14,7 @@ let ``Wrong config file name`` () =
 
 [<Fact>]
 let ``From config file`` () = 
-    let connStr = 
+    let connStr, _ = 
         Configuration.ReadConnectionStringFromConfigFileByName(
             name = "AdventureWorks", 
             resolutionFolder = __SOURCE_DIRECTORY__,
@@ -27,7 +27,7 @@ let ``From config file`` () =
 let RuntimeConfig() = 
     Assert.Equal<string>(
         expected = adventureWorks,
-        actual = Configuration.GetConnectionStringAtRunTime "AdventureWorks"
+        actual = Configuration.GetConnectionStringAtRunTime "AdventureWorks" 
     )
 
 [<Fact>]
