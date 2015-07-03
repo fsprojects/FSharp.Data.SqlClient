@@ -194,6 +194,14 @@
 
 <h2>Statically typed DataTable</h2>
 
+<p>Both hand-written T-SQL and stored procedures methods have significant downside - it requires tedious coding. 
+It gets worse when different kinds of modification (inserts, updates, deletes, merges) for same entity need to be issued. 
+In most cases it forces to have command/stored procedure per modification type. 
+<code>SqlProgrammabilityProvider</code> offers elegant solution based on ADO.NET <a href="https://msdn.microsoft.com/en-us/library/system.data.datatable.aspx">DataTable</a> 
+class with static types on a top. 
+To certain extend this is similar to ancient, almost forgotten <a href="https://msdn.microsoft.com/en-us/library/wha85tzb.aspx">Generating Strongly Typed DataSets</a> 
+technique except that epic F# feature type providers streamlines the whole development experience.</p>
+
 <div class="tip" id="fs1">type CurrencyCode =<br />&#160;&#160;static val Afghani : string<br />&#160;&#160;static val ``Algerian Dinar`` : string<br />&#160;&#160;static val ``Argentine Peso`` : string<br />&#160;&#160;static val ``Armenian Dram`` : string<br />&#160;&#160;static val ``Aruban Guilder`` : string<br />&#160;&#160;static val ``Australian Dollar`` : string<br />&#160;&#160;static val ``Azerbaijanian Manat`` : string<br />&#160;&#160;static val ``Bahamian Dollar`` : string<br />&#160;&#160;static val ``Bahraini Dinar`` : string<br />&#160;&#160;static val Baht : string<br />&#160;&#160;...<br /><br />Full name: Data modification.CurrencyCode</div>
 <div class="tip" id="fs2">type SqlEnumProvider<br /><br />Full name: FSharp.Data.SqlEnumProvider<br /><em><br /><br /><br />&lt;summary&gt;Enumeration based on SQL query.&lt;/summary&gt; <br />&lt;param name=&#39;Query&#39;&gt;SQL used to get the enumeration labels and values. A result set must have at least two columns. The first one is a label.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionString&#39;&gt;String used to open a data connection.&lt;/param&gt;<br />&lt;param name=&#39;Provider&#39;&gt;Invariant name of a ADO.NET provider. Default is &quot;System.Data.SqlClient&quot;.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;CLIEnum&#39;&gt;Generate standard CLI Enum. Default is false.&lt;/param&gt;<br /></em></div>
 <div class="tip" id="fs3">val connectionString : string<br /><br />Full name: Data modification.connectionString</div>
@@ -260,11 +268,11 @@
                     <li><a href="/FSharp.Data.SqlClient/samples.html">Sample applications</a></li>
                     <li><a href="/FSharp.Data.SqlClient/dynamic local db.html">Dynamic local db</a></li>
 
-                    <li class="nav-header">SqlProgrammabilityProvider</li>
-                    <li><a href="/FSharp.Data.SqlClient/sqlprogrammabilityprovider.quickstart.html">Quick start tutorial</a></li>
+                    <li class="divider"></li>
+                    <li><a href="/FSharp.Data.SqlClient/sqlprogrammabilityprovider.quickstart.html">SqlProgrammability</a></li>
 
-                    <li class="nav-header">SqlEnumProvider</li>
-                    <li><a href="/FSharp.Data.SqlClient/sqlenumprovider.quickstart.html">Quick start tutorial</a></li>
+                    <li class="divider"></li>
+                    <li><a href="/FSharp.Data.SqlClient/sqlenumprovider.quickstart.html">SqlEnumProvider</a></li>
 
                     <li class="nav-header">Tools</li>
                     <li><a href="http://tpetricek.github.io/FSharp.Formatting/">F# Formatting</a></li>
