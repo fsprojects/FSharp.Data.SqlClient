@@ -62,7 +62,6 @@
 <span class="l">17: </span>
 <span class="l">18: </span>
 <span class="l">19: </span>
-<span class="l">20: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
@@ -73,7 +72,7 @@
     <span class="k">use</span> <span onmouseout="hideTip(event, 'fs4', 4)" onmouseover="showTip(event, 'fs4', 4)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs5', 5)" onmouseover="showTip(event, 'fs5', 5)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
 <span class="s">        </span><span class="s">INSERT</span><span class="s"> </span><span class="s">INTO</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">CurrencyRate</span><span class="s"> </span>
 <span class="s">        </span><span class="s">VALUES</span><span class="s"> </span><span class="s">(</span><span class="s">@</span><span class="s">currencyRateDate</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">fromCurrencyCode</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">toCurrencyCode</span><span class="s">,</span><span class="s"> </span>
-<span class="s">                </span><span class="s">@</span><span class="s">averageRate</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">endOfDayRate</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">modifiedDate</span><span class="s">)</span><span class="s"> </span>
+<span class="s">                </span><span class="s">@</span><span class="s">averageRate</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">endOfDayRate</span><span class="s">,</span><span class="s"> </span><span class="s">DEFAULT</span><span class="s">)</span><span class="s"> </span>
 <span class="s">    </span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 6)" onmouseover="showTip(event, 'fs3', 6)" class="i">connectionString</span><span class="o">&gt;</span>()
 
     <span class="k">let</span> <span onmouseout="hideTip(event, 'fs6', 7)" onmouseover="showTip(event, 'fs6', 7)" class="i">recordsInserted</span> <span class="o">=</span> 
@@ -82,13 +81,118 @@
             <span class="i">fromCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs1', 12)" onmouseover="showTip(event, 'fs1', 12)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``US Dollar``</span>, 
             <span class="i">toCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs1', 13)" onmouseover="showTip(event, 'fs1', 13)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``United Kingdom Pound``</span>, 
             <span class="i">averageRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
-            <span class="i">endOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
-            <span class="i">modifiedDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs8', 14)" onmouseover="showTip(event, 'fs8', 14)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 15)" onmouseover="showTip(event, 'fs9', 15)" class="i">Today</span>) 
+            <span class="i">endOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>) 
 
-    <span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs6', 16)" onmouseover="showTip(event, 'fs6', 16)" class="i">recordsInserted</span> <span class="o">=</span> <span class="n">1</span>)</pre>
+    <span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs6', 14)" onmouseover="showTip(event, 'fs6', 14)" class="i">recordsInserted</span> <span class="o">=</span> <span class="n">1</span>)</pre>
 </td>
 </tr>
 </table>
+
+<p>This works any kind of data modification statement: <em>INSERT</em>, <em>UPDATE</em>, <em>DELETE</em>, <em>MERGE</em> etc.</p>
+
+<h2>Stored Procedures</h2>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+<span class="l">14: </span>
+<span class="l">15: </span>
+<span class="l">16: </span>
+<span class="l">17: </span>
+<span class="l">18: </span>
+<span class="l">19: </span>
+<span class="l">20: </span>
+<span class="l">21: </span>
+<span class="l">22: </span>
+<span class="l">23: </span>
+<span class="l">24: </span>
+<span class="l">25: </span>
+<span class="l">26: </span>
+<span class="l">27: </span>
+<span class="l">28: </span>
+<span class="l">29: </span>
+<span class="l">30: </span>
+<span class="l">31: </span>
+<span class="l">32: </span>
+<span class="l">33: </span>
+<span class="l">34: </span>
+<span class="l">35: </span>
+<span class="l">36: </span>
+<span class="l">37: </span>
+<span class="l">38: </span>
+<span class="l">39: </span>
+<span class="l">40: </span>
+<span class="l">41: </span>
+<span class="l">42: </span>
+<span class="l">43: </span>
+<span class="l">44: </span>
+<span class="l">45: </span>
+<span class="l">46: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs10', 15)" onmouseover="showTip(event, 'fs10', 15)" class="i">AdventureWorks</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs11', 16)" onmouseover="showTip(event, 'fs11', 16)" class="i">SqlProgrammabilityProvider</span><span class="o">&lt;</span><span onmouseout="hideTip(event, 'fs3', 17)" onmouseover="showTip(event, 'fs3', 17)" class="i">connectionString</span><span class="o">&gt;</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs12', 18)" onmouseover="showTip(event, 'fs12', 18)" class="i">jamesKramerId</span> <span class="o">=</span> <span class="n">42</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs13', 19)" onmouseover="showTip(event, 'fs13', 19)" class="i">businessEntityID</span>, <span onmouseout="hideTip(event, 'fs14', 20)" onmouseover="showTip(event, 'fs14', 20)" class="i">jobTitle</span>, <span onmouseout="hideTip(event, 'fs15', 21)" onmouseover="showTip(event, 'fs15', 21)" class="i">hireDate</span> <span class="o">=</span> 
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs4', 22)" onmouseover="showTip(event, 'fs4', 22)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs5', 23)" onmouseover="showTip(event, 'fs5', 23)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
+<span class="s">        </span><span class="s">SELECT</span><span class="s"> </span>
+<span class="s">	        </span><span class="s">BusinessEntityID</span>
+<span class="s">	        </span><span class="s">,</span><span class="s">JobTitle</span>
+<span class="s">	        </span><span class="s">,</span><span class="s">HireDate</span>
+<span class="s">        </span><span class="s">FROM</span><span class="s"> </span>
+<span class="s">            </span><span class="s">HumanResources</span><span class="s">.</span><span class="s">Employee</span><span class="s"> </span>
+<span class="s">        </span><span class="s">WHERE</span><span class="s"> </span>
+<span class="s">            </span><span class="s">BusinessEntityID</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">@</span><span class="s">id</span>
+<span class="s">        </span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 24)" onmouseover="showTip(event, 'fs3', 24)" class="i">connectionString</span>, <span onmouseout="hideTip(event, 'fs16', 25)" onmouseover="showTip(event, 'fs16', 25)" class="i">ResultType</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs17', 26)" onmouseover="showTip(event, 'fs17', 26)" class="i">Tuples</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>()
+
+    <span onmouseout="hideTip(event, 'fs12', 27)" onmouseover="showTip(event, 'fs12', 27)" class="i">jamesKramerId</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs4', 28)" onmouseover="showTip(event, 'fs4', 28)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs18', 29)" onmouseover="showTip(event, 'fs18', 29)" class="i">Execute</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs19', 30)" onmouseover="showTip(event, 'fs19', 30)" class="i">Option</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs20', 31)" onmouseover="showTip(event, 'fs20', 31)" class="i">get</span>
+
+<span class="k">assert</span>(<span class="s">&quot;</span><span class="s">Production</span><span class="s"> </span><span class="s">Technician</span><span class="s"> </span><span class="s">-</span><span class="s"> </span><span class="s">WC60</span><span class="s">&quot;</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs14', 32)" onmouseover="showTip(event, 'fs14', 32)" class="i">jobTitle</span>)
+    
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs21', 33)" onmouseover="showTip(event, 'fs21', 33)" class="i">newJobTitle</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">Uber</span><span class="s"> </span><span class="s">&quot;</span> <span class="o">+</span> <span onmouseout="hideTip(event, 'fs14', 34)" onmouseover="showTip(event, 'fs14', 34)" class="i">jobTitle</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs22', 35)" onmouseover="showTip(event, 'fs22', 35)" class="i">recordsAffrected</span> <span class="o">=</span> 
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs23', 36)" onmouseover="showTip(event, 'fs23', 36)" class="i">updatedJobTitle</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs10', 37)" onmouseover="showTip(event, 'fs10', 37)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs24', 38)" onmouseover="showTip(event, 'fs24', 38)" class="i">HumanResources</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs25', 39)" onmouseover="showTip(event, 'fs25', 39)" class="i">uspUpdateEmployeeHireInfo</span>()
+    <span onmouseout="hideTip(event, 'fs23', 40)" onmouseover="showTip(event, 'fs23', 40)" class="i">updatedJobTitle</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs26', 41)" onmouseover="showTip(event, 'fs26', 41)" class="i">Execute</span>(
+        <span onmouseout="hideTip(event, 'fs13', 42)" onmouseover="showTip(event, 'fs13', 42)" class="i">businessEntityID</span>, 
+        <span onmouseout="hideTip(event, 'fs21', 43)" onmouseover="showTip(event, 'fs21', 43)" class="i">newJobTitle</span>, 
+        <span onmouseout="hideTip(event, 'fs15', 44)" onmouseover="showTip(event, 'fs15', 44)" class="i">hireDate</span>, 
+        <span class="i">RateChangeDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs8', 45)" onmouseover="showTip(event, 'fs8', 45)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs27', 46)" onmouseover="showTip(event, 'fs27', 46)" class="i">Now</span>, 
+        <span class="i">Rate</span> <span class="o">=</span> <span class="n">12M</span>, 
+        <span class="i">PayFrequency</span> <span class="o">=</span> <span class="n">1uy</span>, 
+        <span class="i">CurrentFlag</span> <span class="o">=</span> <span class="k">true</span> 
+    )
+
+<span class="k">assert</span>(<span onmouseout="hideTip(event, 'fs22', 47)" onmouseover="showTip(event, 'fs22', 47)" class="i">recordsAffrected</span> <span class="o">=</span> <span class="n">1</span>)
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs28', 48)" onmouseover="showTip(event, 'fs28', 48)" class="i">updatedJobTitle</span> <span class="o">=</span> 
+    <span class="c">// Static Create factory method because it provides better intellisense.</span>
+    <span class="c">// See https://github.com/Microsoft/visualfsharp/issues/449</span>
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs29', 49)" onmouseover="showTip(event, 'fs29', 49)" class="i">cmd</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs10', 50)" onmouseover="showTip(event, 'fs10', 50)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs30', 51)" onmouseover="showTip(event, 'fs30', 51)" class="i">dbo</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs31', 52)" onmouseover="showTip(event, 'fs31', 52)" class="i">ufnGetContactInformation</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs32', 53)" onmouseover="showTip(event, 'fs32', 53)" class="i">Create</span>()
+
+    <span class="c">//Use ExecuteSingle if you&#39;re sure it return 0 or 1 rows</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs33', 54)" onmouseover="showTip(event, 'fs33', 54)" class="i">result</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs29', 55)" onmouseover="showTip(event, 'fs29', 55)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs34', 56)" onmouseover="showTip(event, 'fs34', 56)" class="i">ExecuteSingle</span>(<span class="i">PersonID</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs12', 57)" onmouseover="showTip(event, 'fs12', 57)" class="i">jamesKramerId</span>) 
+    <span onmouseout="hideTip(event, 'fs33', 58)" onmouseover="showTip(event, 'fs33', 58)" class="i">result</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs35', 59)" onmouseover="showTip(event, 'fs35', 59)" class="i">Value</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs36', 60)" onmouseover="showTip(event, 'fs36', 60)" class="i">JobTitle</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs37', 61)" onmouseover="showTip(event, 'fs37', 61)" class="i">Value</span>
+
+<span class="k">assert</span>(<span onmouseout="hideTip(event, 'fs21', 62)" onmouseover="showTip(event, 'fs21', 62)" class="i">newJobTitle</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs28', 63)" onmouseover="showTip(event, 'fs28', 63)" class="i">updatedJobTitle</span>)</pre>
+</td>
+</tr>
+</table>
+
+<h2>Statically typed DataTable</h2>
 
 <div class="tip" id="fs1">type CurrencyCode =<br />&#160;&#160;static val Afghani : string<br />&#160;&#160;static val ``Algerian Dinar`` : string<br />&#160;&#160;static val ``Argentine Peso`` : string<br />&#160;&#160;static val ``Armenian Dram`` : string<br />&#160;&#160;static val ``Aruban Guilder`` : string<br />&#160;&#160;static val ``Australian Dollar`` : string<br />&#160;&#160;static val ``Azerbaijanian Manat`` : string<br />&#160;&#160;static val ``Bahamian Dollar`` : string<br />&#160;&#160;static val ``Bahraini Dinar`` : string<br />&#160;&#160;static val Baht : string<br />&#160;&#160;...<br /><br />Full name: Data modification.CurrencyCode</div>
 <div class="tip" id="fs2">type SqlEnumProvider<br /><br />Full name: FSharp.Data.SqlEnumProvider<br /><em><br /><br /><br />&lt;summary&gt;Enumeration based on SQL query.&lt;/summary&gt; <br />&lt;param name=&#39;Query&#39;&gt;SQL used to get the enumeration labels and values. A result set must have at least two columns. The first one is a label.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionString&#39;&gt;String used to open a data connection.&lt;/param&gt;<br />&lt;param name=&#39;Provider&#39;&gt;Invariant name of a ADO.NET provider. Default is &quot;System.Data.SqlClient&quot;.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;CLIEnum&#39;&gt;Generate standard CLI Enum. Default is false.&lt;/param&gt;<br /></em></div>
@@ -96,9 +200,37 @@
 <div class="tip" id="fs4">val cmd : SqlCommandProvider&lt;...&gt;</div>
 <div class="tip" id="fs5">type SqlCommandProvider<br /><br />Full name: FSharp.Data.SqlCommandProvider<br /><em><br /><br /><br />&lt;summary&gt;Typed representation of a T-SQL statement to execute against a SQL Server database.&lt;/summary&gt; <br />&lt;param name=&#39;CommandText&#39;&gt;Transact-SQL statement to execute at the data source.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.&lt;/param&gt;<br />&lt;param name=&#39;SingleRow&#39;&gt;If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;AllParametersOptional&#39;&gt;If set all parameters become optional. NULL input values must be handled inside T-SQL.&lt;/param&gt;<br />&lt;param name=&#39;ResolutionFolder&#39;&gt;A folder to be used to resolve relative file paths to *.sql script files at compile time. The default value is the folder that contains the project or script.&lt;/param&gt;<br />&lt;param name=&#39;DataDirectory&#39;&gt;The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.&lt;/param&gt;<br /></em></div>
 <div class="tip" id="fs6">val recordsInserted : int</div>
-<div class="tip" id="fs7">SqlCommandProvider&lt;...&gt;.Execute(currencyRateDate: DateTime, fromCurrencyCode: string, toCurrencyCode: string, averageRate: decimal, endOfDayRate: decimal, modifiedDate: DateTime) : int</div>
+<div class="tip" id="fs7">SqlCommandProvider&lt;...&gt;.Execute(currencyRateDate: DateTime, fromCurrencyCode: string, toCurrencyCode: string, averageRate: decimal, endOfDayRate: decimal) : int</div>
 <div class="tip" id="fs8">Multiple items<br />type DateTime =<br />&#160;&#160;struct<br />&#160;&#160;&#160;&#160;new : ticks:int64 -&gt; DateTime + 10 overloads<br />&#160;&#160;&#160;&#160;member Add : value:TimeSpan -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddDays : value:float -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddHours : value:float -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddMilliseconds : value:float -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddMinutes : value:float -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddMonths : months:int -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddSeconds : value:float -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddTicks : value:int64 -&gt; DateTime<br />&#160;&#160;&#160;&#160;member AddYears : value:int -&gt; DateTime<br />&#160;&#160;&#160;&#160;...<br />&#160;&#160;end<br /><br />Full name: System.DateTime<br /><br />--------------------<br />DateTime()<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />DateTime(ticks: int64) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />DateTime(ticks: int64, kind: DateTimeKind) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />DateTime(year: int, month: int, day: int) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />DateTime(year: int, month: int, day: int, calendar: Globalization.Calendar) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />DateTime(year: int, month: int, day: int, hour: int, minute: int, second: int) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />DateTime(year: int, month: int, day: int, hour: int, minute: int, second: int, kind: DateTimeKind) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />DateTime(year: int, month: int, day: int, hour: int, minute: int, second: int, calendar: Globalization.Calendar) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />DateTime(year: int, month: int, day: int, hour: int, minute: int, second: int, millisecond: int) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em><br />DateTime(year: int, month: int, day: int, hour: int, minute: int, second: int, millisecond: int, kind: DateTimeKind) : unit<br />&#160;&#160;&#160;<em>(+0 other overloads)</em></div>
 <div class="tip" id="fs9">property DateTime.Today: DateTime</div>
+<div class="tip" id="fs10">type AdventureWorks = SqlProgrammabilityProvider&lt;...&gt;<br /><br />Full name: Data modification.AdventureWorks</div>
+<div class="tip" id="fs11">type SqlProgrammabilityProvider<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider<br /><em><br /><br /><br />&lt;summary&gt;Typed access to SQL Server programmable objects: stored procedures, functions and user defined table types.&lt;/summary&gt; <br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;DataDirectory&#39;&gt;The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.&lt;/param&gt;<br /></em></div>
+<div class="tip" id="fs12">val jamesKramerId : int<br /><br />Full name: Data modification.jamesKramerId</div>
+<div class="tip" id="fs13">val businessEntityID : int<br /><br />Full name: Data modification.businessEntityID</div>
+<div class="tip" id="fs14">val jobTitle : string<br /><br />Full name: Data modification.jobTitle</div>
+<div class="tip" id="fs15">val hireDate : DateTime<br /><br />Full name: Data modification.hireDate</div>
+<div class="tip" id="fs16">type ResultType =<br />&#160;&#160;|  Records  =  0<br />&#160;&#160;|  Tuples  =  1<br />&#160;&#160;|  DataTable  =  2<br />&#160;&#160;|  DataReader  =  3<br /><br />Full name: FSharp.Data.ResultType</div>
+<div class="tip" id="fs17">ResultType.Tuples: ResultType = 1</div>
+<div class="tip" id="fs18">SqlCommandProvider&lt;...&gt;.Execute(id: int) : Option&lt;int * string * DateTime&gt;</div>
+<div class="tip" id="fs19">module Option<br /><br />from Microsoft.FSharp.Core</div>
+<div class="tip" id="fs20">val get : option:&#39;T option -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.Option.get</div>
+<div class="tip" id="fs21">val newJobTitle : string<br /><br />Full name: Data modification.newJobTitle</div>
+<div class="tip" id="fs22">val recordsAffrected : int<br /><br />Full name: Data modification.recordsAffrected</div>
+<div class="tip" id="fs23">val updatedJobTitle : SqlProgrammabilityProvider&lt;...&gt;.HumanResources.uspUpdateEmployeeHireInfo</div>
+<div class="tip" id="fs24">type HumanResources =<br />&#160;&#160;nested type Tables<br />&#160;&#160;nested type User-Defined Table Types<br />&#160;&#160;nested type uspUpdateEmployeeHireInfo<br />&#160;&#160;nested type uspUpdateEmployeeLogin<br />&#160;&#160;nested type uspUpdateEmployeePersonalInfo<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider,ConnectionStringOrName=&quot;Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True&quot;.HumanResources</div>
+<div class="tip" id="fs25">type uspUpdateEmployeeHireInfo =<br />&#160;&#160;inherit ISqlCommand Implementation<br />&#160;&#160;new : ?connectionString: string * ?commandTimeout: int -&gt; uspUpdateEmployeeHireInfo + 1 overload<br />&#160;&#160;member AsyncExecute : BusinessEntityID: int * JobTitle: string * HireDate: DateTime * RateChangeDate: DateTime * Rate: decimal * PayFrequency: byte * CurrentFlag: bool -&gt; Async&lt;int&gt;<br />&#160;&#160;member CommandTimeout : int<br />&#160;&#160;member Execute : BusinessEntityID: int * JobTitle: string * HireDate: DateTime * RateChangeDate: DateTime * Rate: decimal * PayFrequency: byte * CurrentFlag: bool -&gt; int<br />&#160;&#160;static member ConnectionStringOrName : string<br />&#160;&#160;static member Create : ?connectionString: string * ?commandTimeout: int -&gt; uspUpdateEmployeeHireInfo + 1 overload<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider,ConnectionStringOrName=&quot;Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True&quot;.HumanResources.uspUpdateEmployeeHireInfo<br /><em><br /><br />Stored Procedure</em></div>
+<div class="tip" id="fs26">SqlProgrammabilityProvider&lt;...&gt;.HumanResources.uspUpdateEmployeeHireInfo.Execute(BusinessEntityID: int, JobTitle: string, HireDate: DateTime, RateChangeDate: DateTime, Rate: decimal, PayFrequency: byte, CurrentFlag: bool) : int</div>
+<div class="tip" id="fs27">property DateTime.Now: DateTime</div>
+<div class="tip" id="fs28">val updatedJobTitle : string<br /><br />Full name: Data modification.updatedJobTitle</div>
+<div class="tip" id="fs29">val cmd : SqlProgrammabilityProvider&lt;...&gt;.dbo.ufnGetContactInformation</div>
+<div class="tip" id="fs30">type dbo =<br />&#160;&#160;nested type Echo<br />&#160;&#160;nested type EchoText<br />&#160;&#160;nested type Get<br />&#160;&#160;nested type Init<br />&#160;&#160;nested type MyProc<br />&#160;&#160;nested type SingleElementProc<br />&#160;&#160;nested type Swap<br />&#160;&#160;nested type Tables<br />&#160;&#160;nested type User-Defined Table Types<br />&#160;&#160;nested type ufnGetAccountingEndDate<br />&#160;&#160;...<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider,ConnectionStringOrName=&quot;Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True&quot;.dbo</div>
+<div class="tip" id="fs31">type ufnGetContactInformation =<br />&#160;&#160;inherit ISqlCommand Implementation<br />&#160;&#160;new : ?connectionString: string * ?commandTimeout: int -&gt; ufnGetContactInformation + 1 overload<br />&#160;&#160;member AsyncExecute : PersonID: int -&gt; Async&lt;IEnumerable&lt;Record&gt;&gt;<br />&#160;&#160;member AsyncExecuteSingle : PersonID: int -&gt; Async&lt;Option&lt;Record&gt;&gt;<br />&#160;&#160;member CommandTimeout : int<br />&#160;&#160;member Execute : PersonID: int -&gt; IEnumerable&lt;Record&gt;<br />&#160;&#160;member ExecuteSingle : PersonID: int -&gt; Option&lt;Record&gt;<br />&#160;&#160;static member ConnectionStringOrName : string<br />&#160;&#160;static member Create : ?connectionString: string * ?commandTimeout: int -&gt; ufnGetContactInformation + 1 overload<br />&#160;&#160;nested type Record<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider,ConnectionStringOrName=&quot;Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True&quot;.dbo.ufnGetContactInformation<br /><em><br /><br />Table-Valued Function</em></div>
+<div class="tip" id="fs32">SqlProgrammabilityProvider&lt;...&gt;.dbo.ufnGetContactInformation.Create(?connectionString: string, ?commandTimeout: int) : SqlProgrammabilityProvider&lt;...&gt;.dbo.ufnGetContactInformation<br />SqlProgrammabilityProvider&lt;...&gt;.dbo.ufnGetContactInformation.Create(connection: Data.SqlClient.SqlConnection, ?transaction: Data.SqlClient.SqlTransaction, ?commandTimeout: int) : SqlProgrammabilityProvider&lt;...&gt;.dbo.ufnGetContactInformation</div>
+<div class="tip" id="fs33">val result : Option&lt;SqlProgrammabilityProvider&lt;...&gt;.dbo.ufnGetContactInformation.Record&gt;</div>
+<div class="tip" id="fs34">SqlProgrammabilityProvider&lt;...&gt;.dbo.ufnGetContactInformation.ExecuteSingle(PersonID: int) : Option&lt;SqlProgrammabilityProvider&lt;...&gt;.dbo.ufnGetContactInformation.Record&gt;</div>
+<div class="tip" id="fs35">property Option.Value: SqlProgrammabilityProvider&lt;...&gt;.dbo.ufnGetContactInformation.Record</div>
+<div class="tip" id="fs36">property SqlProgrammabilityProvider&lt;...&gt;.dbo.ufnGetContactInformation.Record.JobTitle: Option&lt;string&gt;</div>
+<div class="tip" id="fs37">property Option.Value: string</div>
 
             </div>
 
