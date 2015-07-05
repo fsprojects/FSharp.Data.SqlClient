@@ -222,9 +222,9 @@ streamlines the whole development experience.</p>
 <p><code>TableName property</code> is set to appropriate value.</p>
 
 <p>Collection of rows is reachable via <code>Rows</code> property of type <code>IList&lt;#DataRow&gt;</code>.
-This makes familiar list operations: Add, Remove, Insert etc. available for typed DataTable. 
+Familiar list operations: Add, Remove, Insert etc. are available for typed DataTable. 
 Typed column accessors are added to existing set of <code>DataRow</code> type members. 
-It make the intellisense experience a little clunky but it felt important to keep legacy <code>DataRow</code>
+An intellisense experience a little clunky but it felt important to keep legacy <code>DataRow</code>
 type members available for invocation.</p>
 
 <img src="img/DataRowTypedAccessors.png"/>
@@ -455,15 +455,17 @@ You can find <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlcl
 <p>Pseudo code for custom data adapter:</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
-<span class="l">1: </span>
-<span class="l">2: </span>
-<span class="l">3: </span>
-<span class="l">4: </span>
-<span class="l">5: </span>
-<span class="l">6: </span>
-<span class="l">7: </span>
-<span class="l">8: </span>
-<span class="l">9: </span>
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
@@ -472,8 +474,10 @@ You can find <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlcl
 <span class="k">do</span>
     <span class="k">let</span> <span onmouseout="hideTip(event, 'fs50', 175)" onmouseover="showTip(event, 'fs50', 175)" class="i">currencyRates</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs10', 176)" onmouseover="showTip(event, 'fs10', 176)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs38', 177)" onmouseover="showTip(event, 'fs38', 177)" class="i">Sales</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs39', 178)" onmouseover="showTip(event, 'fs39', 178)" class="i">Tables</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 179)" onmouseover="showTip(event, 'fs40', 179)" class="i">CurrencyRate</span>()
     <span class="c">//load, update, delete, insert rows </span>
+    <span class="c">// ...</span>
     <span class="k">use</span> <span onmouseout="hideTip(event, 'fs75', 180)" onmouseover="showTip(event, 'fs75', 180)" class="i">adapter</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs76', 181)" onmouseover="showTip(event, 'fs76', 181)" class="i">SqlDataAdapter</span>()
     <span class="c">//configure adapter: setup select command, transaction etc.</span>
+    <span class="c">// ...</span>
     <span onmouseout="hideTip(event, 'fs75', 182)" onmouseover="showTip(event, 'fs75', 182)" class="i">adapter</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs77', 183)" onmouseover="showTip(event, 'fs77', 183)" class="i">Update</span>( <span onmouseout="hideTip(event, 'fs50', 184)" onmouseover="showTip(event, 'fs50', 184)" class="i">currencyRates</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs78', 185)" onmouseover="showTip(event, 'fs78', 185)" class="i">ignore</span>
     </pre>
 </td>
