@@ -251,8 +251,8 @@ type members available for invocation.</p>
 <li>Nullable columns are mappend to parameters of type <code>option&lt;_&gt;</code></li>
 <li>Columns with <code>DEFAULT</code> constraint are also represented as parameters of type <code>option&lt;_&gt;</code>. 
 This is more convenient that specifying DEFAULT as a value in INSERT statement</li>
-<li>Both kinds of parameters - for nullable columns or columns with defaults � can be omitted from invocation</li>
-<li>Extra icing is ability to retrieve <code>MS_Description</code> which works only for Sql Server 
+<li>Both kinds of parameters - for nullable columns or columns with defaults - can be omitted from invocation</li>
+<li>Minor but nice feature is ability to retrieve <code>MS_Description</code> which works only for Sql Server 
 because Sql Azure doesn't support extended properties.</li>
 </ul>
 
@@ -278,8 +278,8 @@ because Sql Azure doesn't support extended properties.</li>
 </tr>
 </table>
 
-<p>Although side-effectful <code>AddRow</code> makes easier to add rows in type-safe manner. 
-Pair of invocations to NewRow and Rows.Add can be used as alternative. 
+<p>Side-effectful <code>AddRow</code> makes easier to add rows in type-safe manner. 
+Pair of invocations to <code>NewRow</code> and <code>Rows.Add</code> can be used as alternative. 
 This approach also makes sense if for some reason you need to keep a reference to newly added 
 for further manipulations.</p>
 
@@ -359,14 +359,132 @@ for further manipulations.</p>
 <li>Call to <code>Update</code> is required to push changes into a database</li>
 <li><code>CurrencyRateID</code> IDENTITY column and all fields with DEFAULT constraints that didn't have value specified are 
 refreshed after update from database. This is very cool feature. <strong>It works only for <code>BatchSize</code> = 1</strong> which is default.
-Of course it's applicable only to new data rows (ones that cause INSERT statement to be issued).</li>
+Of course it's applicable only to new data rows (ones that cause INSERT statement to be issued).
+Follow <a href="https://msdn.microsoft.com/en-us/library/aadf8fk2.aspx">this link</a> to find out more about batch updates.</li>
 </ul>
 
-<h2>Query-derived tables</h2>
+<p>The snippet below demonstrates update and delete logic. 
+Note how combining SqlCommandProvider to load existing data with typed data tables produces simple and safe code.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+<span class="l">14: </span>
+<span class="l">15: </span>
+<span class="l">16: </span>
+<span class="l">17: </span>
+<span class="l">18: </span>
+<span class="l">19: </span>
+<span class="l">20: </span>
+<span class="l">21: </span>
+<span class="l">22: </span>
+<span class="l">23: </span>
+<span class="l">24: </span>
+<span class="l">25: </span>
+<span class="l">26: </span>
+<span class="l">27: </span>
+<span class="l">28: </span>
+<span class="l">29: </span>
+<span class="l">30: </span>
+<span class="l">31: </span>
+<span class="l">32: </span>
+<span class="l">33: </span>
+<span class="l">34: </span>
+<span class="l">35: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">do</span>
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs4', 118)" onmouseover="showTip(event, 'fs4', 118)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs5', 119)" onmouseover="showTip(event, 'fs5', 119)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
+<span class="s">        </span><span class="s">SELECT</span><span class="s"> </span><span class="s">*</span><span class="s"> </span>
+<span class="s">        </span><span class="s">FROM</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">CurrencyRate</span><span class="s"> </span>
+<span class="s">        </span><span class="s">WHERE</span><span class="s"> </span><span class="s">FromCurrencyCode</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">@</span><span class="s">from</span>
+<span class="s">            </span><span class="s">AND</span><span class="s"> </span><span class="s">ToCurrencyCode</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">@</span><span class="s">to</span>
+<span class="s">            </span><span class="s">AND</span><span class="s"> </span><span class="s">CurrencyRateDate</span><span class="s"> </span><span class="s">&gt;</span><span class="s"> </span><span class="s">@</span><span class="s">date</span>
+<span class="s">        </span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 120)" onmouseover="showTip(event, 'fs3', 120)" class="i">connectionString</span>, <span onmouseout="hideTip(event, 'fs16', 121)" onmouseover="showTip(event, 'fs16', 121)" class="i">ResultType</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs56', 122)" onmouseover="showTip(event, 'fs56', 122)" class="i">DataReader</span><span class="o">&gt;</span>()
+    <span class="c">//ResultType.DataReader !!!</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs50', 123)" onmouseover="showTip(event, 'fs50', 123)" class="i">currencyRates</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs10', 124)" onmouseover="showTip(event, 'fs10', 124)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs38', 125)" onmouseover="showTip(event, 'fs38', 125)" class="i">Sales</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs39', 126)" onmouseover="showTip(event, 'fs39', 126)" class="i">Tables</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 127)" onmouseover="showTip(event, 'fs40', 127)" class="i">CurrencyRate</span>()
+    <span class="c">//load data into data table</span>
+    <span onmouseout="hideTip(event, 'fs4', 128)" onmouseover="showTip(event, 'fs4', 128)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs57', 129)" onmouseover="showTip(event, 'fs57', 129)" class="i">Execute</span>(<span class="s">&quot;</span><span class="s">USD</span><span class="s">&quot;</span>, <span class="s">&quot;</span><span class="s">GBP</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs8', 130)" onmouseover="showTip(event, 'fs8', 130)" class="i">DateTime</span>(<span class="n">2014</span>, <span class="n">1</span>, <span class="n">1</span>)) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs50', 131)" onmouseover="showTip(event, 'fs50', 131)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs58', 132)" onmouseover="showTip(event, 'fs58', 132)" class="i">Load</span>
+
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs59', 133)" onmouseover="showTip(event, 'fs59', 133)" class="i">latestModification</span> <span class="o">=</span>
+        <span class="c">//manipulate Rows as any sequence</span>
+        <span onmouseout="hideTip(event, 'fs50', 134)" onmouseover="showTip(event, 'fs50', 134)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs43', 135)" onmouseover="showTip(event, 'fs43', 135)" class="i">Rows</span>
+        <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs60', 136)" onmouseover="showTip(event, 'fs60', 136)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs61', 137)" onmouseover="showTip(event, 'fs61', 137)" class="i">sortBy</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs62', 138)" onmouseover="showTip(event, 'fs62', 138)" class="i">x</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs62', 139)" onmouseover="showTip(event, 'fs62', 139)" class="i">x</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs55', 140)" onmouseover="showTip(event, 'fs55', 140)" class="i">ModifiedDate</span>)
+        <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs60', 141)" onmouseover="showTip(event, 'fs60', 141)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs63', 142)" onmouseover="showTip(event, 'fs63', 142)" class="i">last</span>
+
+    <span onmouseout="hideTip(event, 'fs59', 143)" onmouseover="showTip(event, 'fs59', 143)" class="i">latestModification</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs64', 144)" onmouseover="showTip(event, 'fs64', 144)" class="i">Delete</span>()
+    <span class="c">//or use list operatoin</span>
+    <span class="c">//currencyRates.Rows.Remove latestModification</span>
+
+    <span class="c">//adjust rates slightly</span>
+    <span class="k">for</span> <span onmouseout="hideTip(event, 'fs65', 145)" onmouseover="showTip(event, 'fs65', 145)" class="i">row</span> <span class="k">in</span> <span onmouseout="hideTip(event, 'fs50', 146)" onmouseover="showTip(event, 'fs50', 146)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs43', 147)" onmouseover="showTip(event, 'fs43', 147)" class="i">Rows</span> <span class="k">do</span>
+        <span class="k">if</span> <span onmouseout="hideTip(event, 'fs65', 148)" onmouseover="showTip(event, 'fs65', 148)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs66', 149)" onmouseover="showTip(event, 'fs66', 149)" class="i">RowState</span> <span class="o">&lt;&gt;</span> <span onmouseout="hideTip(event, 'fs67', 150)" onmouseover="showTip(event, 'fs67', 150)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs68', 151)" onmouseover="showTip(event, 'fs68', 151)" class="i">Data</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs69', 152)" onmouseover="showTip(event, 'fs69', 152)" class="i">DataRowState</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs70', 153)" onmouseover="showTip(event, 'fs70', 153)" class="i">Deleted</span>
+        <span class="k">then</span> 
+            <span onmouseout="hideTip(event, 'fs65', 154)" onmouseover="showTip(event, 'fs65', 154)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs71', 155)" onmouseover="showTip(event, 'fs71', 155)" class="i">EndOfDayRate</span> <span class="o">&lt;-</span> <span onmouseout="hideTip(event, 'fs65', 156)" onmouseover="showTip(event, 'fs65', 156)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs71', 157)" onmouseover="showTip(event, 'fs71', 157)" class="i">EndOfDayRate</span> <span class="o">+</span> <span class="n">0.01M</span>
+            <span onmouseout="hideTip(event, 'fs65', 158)" onmouseover="showTip(event, 'fs65', 158)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs55', 159)" onmouseover="showTip(event, 'fs55', 159)" class="i">ModifiedDate</span> <span class="o">&lt;-</span> <span onmouseout="hideTip(event, 'fs8', 160)" onmouseover="showTip(event, 'fs8', 160)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 161)" onmouseover="showTip(event, 'fs9', 161)" class="i">Today</span>
+
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs72', 162)" onmouseover="showTip(event, 'fs72', 162)" class="i">totalRecords</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs50', 163)" onmouseover="showTip(event, 'fs50', 163)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs43', 164)" onmouseover="showTip(event, 'fs43', 164)" class="i">Rows</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs73', 165)" onmouseover="showTip(event, 'fs73', 165)" class="i">Count</span>
+    <span class="c">//</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs51', 166)" onmouseover="showTip(event, 'fs51', 166)" class="i">recordsAffected</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs50', 167)" onmouseover="showTip(event, 'fs50', 167)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs52', 168)" onmouseover="showTip(event, 'fs52', 168)" class="i">Update</span>(<span class="i">batchSize</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs72', 169)" onmouseover="showTip(event, 'fs72', 169)" class="i">totalRecords</span>) 
+    
+    <span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs51', 170)" onmouseover="showTip(event, 'fs51', 170)" class="i">recordsAffected</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs72', 171)" onmouseover="showTip(event, 'fs72', 171)" class="i">totalRecords</span>)</pre>
+</td>
+</tr>
+</table>
 
 <h2>Custom update logic</h2>
 
+<p>Default update logic provided by typed Data Table can be not sufficient for some advanced scenarios. 
+It doesn�t mean you need to give up on convenience of static typing. 
+Customize update behavior by creating you own instance of <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqldataadapter.aspx">SqlDataAdapter</a> 
+and configuring it to your needs. 
+You can find <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlcommandbuilder.aspx">SqlCommandBuilder</a> class useful for T-SQL generation.
+Pseudo code for custom data adapter:</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+<span class="l">5: </span>
+<span class="l">6: </span>
+<span class="l">7: </span>
+<span class="l">8: </span>
+<span class="l">9: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs67', 172)" onmouseover="showTip(event, 'fs67', 172)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs68', 173)" onmouseover="showTip(event, 'fs68', 173)" class="i">Data</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs74', 174)" onmouseover="showTip(event, 'fs74', 174)" class="i">SqlClient</span>
+
+<span class="k">do</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs50', 175)" onmouseover="showTip(event, 'fs50', 175)" class="i">currencyRates</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs10', 176)" onmouseover="showTip(event, 'fs10', 176)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs38', 177)" onmouseover="showTip(event, 'fs38', 177)" class="i">Sales</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs39', 178)" onmouseover="showTip(event, 'fs39', 178)" class="i">Tables</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 179)" onmouseover="showTip(event, 'fs40', 179)" class="i">CurrencyRate</span>()
+    <span class="c">//load, update, delete, insert rows </span>
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs75', 180)" onmouseover="showTip(event, 'fs75', 180)" class="i">adapter</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs76', 181)" onmouseover="showTip(event, 'fs76', 181)" class="i">SqlDataAdapter</span>()
+    <span class="c">//configure adapter: setup select command, transaction etc.</span>
+    <span onmouseout="hideTip(event, 'fs75', 182)" onmouseover="showTip(event, 'fs75', 182)" class="i">adapter</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs77', 183)" onmouseover="showTip(event, 'fs77', 183)" class="i">Update</span>( <span onmouseout="hideTip(event, 'fs50', 184)" onmouseover="showTip(event, 'fs50', 184)" class="i">currencyRates</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs78', 185)" onmouseover="showTip(event, 'fs78', 185)" class="i">ignore</span>
+    </pre>
+</td>
+</tr>
+</table>
+
 <h2>Transaction and connection management</h2>
+
+<p>Please read [Transactions](transactions.html] chapter of the documentation.
+Pay particular attention to DataTable Updates/Bulk Load section.</p>
+
+<h2>Query-derived tables</h2>
 
 <div class="tip" id="fs1">type CurrencyCode =<br />&#160;&#160;static val Afghani : string<br />&#160;&#160;static val ``Algerian Dinar`` : string<br />&#160;&#160;static val ``Argentine Peso`` : string<br />&#160;&#160;static val ``Armenian Dram`` : string<br />&#160;&#160;static val ``Aruban Guilder`` : string<br />&#160;&#160;static val ``Australian Dollar`` : string<br />&#160;&#160;static val ``Azerbaijanian Manat`` : string<br />&#160;&#160;static val ``Bahamian Dollar`` : string<br />&#160;&#160;static val ``Bahraini Dinar`` : string<br />&#160;&#160;static val Baht : string<br />&#160;&#160;...<br /><br />Full name: Data modification.CurrencyCode</div>
 <div class="tip" id="fs2">type SqlEnumProvider<br /><br />Full name: FSharp.Data.SqlEnumProvider<br /><em><br /><br /><br />&lt;summary&gt;Enumeration based on SQL query.&lt;/summary&gt; <br />&lt;param name=&#39;Query&#39;&gt;SQL used to get the enumeration labels and values. A result set must have at least two columns. The first one is a label.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionString&#39;&gt;String used to open a data connection.&lt;/param&gt;<br />&lt;param name=&#39;Provider&#39;&gt;Invariant name of a ADO.NET provider. Default is &quot;System.Data.SqlClient&quot;.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;CLIEnum&#39;&gt;Generate standard CLI Enum. Default is false.&lt;/param&gt;<br /></em></div>
@@ -423,6 +541,29 @@ Of course it's applicable only to new data rows (ones that cause INSERT statemen
 <div class="tip" id="fs53">val printfn : format:Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.ExtraTopLevelOperators.printfn</div>
 <div class="tip" id="fs54">property SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row.CurrencyRateID: int<br /><em><br /><br />Primary key for CurrencyRate records.</em></div>
 <div class="tip" id="fs55">property SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row.ModifiedDate: DateTime<br /><em><br /><br />Date and time the record was last updated.</em></div>
+<div class="tip" id="fs56">ResultType.DataReader: ResultType = 3</div>
+<div class="tip" id="fs57">SqlCommandProvider&lt;...&gt;.Execute(from: string, to: string, date: DateTime) : Data.SqlClient.SqlDataReader</div>
+<div class="tip" id="fs58">Data.DataTable.Load(reader: Data.IDataReader) : unit<br />Data.DataTable.Load(reader: Data.IDataReader, loadOption: Data.LoadOption) : unit<br />Data.DataTable.Load(reader: Data.IDataReader, loadOption: Data.LoadOption, errorHandler: Data.FillErrorEventHandler) : unit</div>
+<div class="tip" id="fs59">val latestModification : SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row</div>
+<div class="tip" id="fs60">module Seq<br /><br />from Microsoft.FSharp.Collections</div>
+<div class="tip" id="fs61">val sortBy : projection:(&#39;T -&gt; &#39;Key) -&gt; source:seq&lt;&#39;T&gt; -&gt; seq&lt;&#39;T&gt; (requires comparison)<br /><br />Full name: Microsoft.FSharp.Collections.Seq.sortBy</div>
+<div class="tip" id="fs62">val x : SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row</div>
+<div class="tip" id="fs63">val last : source:seq&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Collections.Seq.last</div>
+<div class="tip" id="fs64">Data.DataRow.Delete() : unit</div>
+<div class="tip" id="fs65">val row : SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row</div>
+<div class="tip" id="fs66">property Data.DataRow.RowState: Data.DataRowState</div>
+<div class="tip" id="fs67">namespace System</div>
+<div class="tip" id="fs68">namespace System.Data</div>
+<div class="tip" id="fs69">type DataRowState =<br />&#160;&#160;| Detached = 1<br />&#160;&#160;| Unchanged = 2<br />&#160;&#160;| Added = 4<br />&#160;&#160;| Deleted = 8<br />&#160;&#160;| Modified = 16<br /><br />Full name: System.Data.DataRowState</div>
+<div class="tip" id="fs70">field Data.DataRowState.Deleted = 8</div>
+<div class="tip" id="fs71">property SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row.EndOfDayRate: decimal<br /><em><br /><br />Final exchange rate for the day.</em></div>
+<div class="tip" id="fs72">val totalRecords : int</div>
+<div class="tip" id="fs73">property Collections.Generic.ICollection.Count: int</div>
+<div class="tip" id="fs74">namespace System.Data.SqlClient</div>
+<div class="tip" id="fs75">val adapter : SqlDataAdapter</div>
+<div class="tip" id="fs76">Multiple items<br />type SqlDataAdapter =<br />&#160;&#160;inherit DbDataAdapter<br />&#160;&#160;new : unit -&gt; SqlDataAdapter + 3 overloads<br />&#160;&#160;member DeleteCommand : SqlCommand with get, set<br />&#160;&#160;member InsertCommand : SqlCommand with get, set<br />&#160;&#160;member SelectCommand : SqlCommand with get, set<br />&#160;&#160;member UpdateBatchSize : int with get, set<br />&#160;&#160;member UpdateCommand : SqlCommand with get, set<br />&#160;&#160;event RowUpdated : SqlRowUpdatedEventHandler<br />&#160;&#160;event RowUpdating : SqlRowUpdatingEventHandler<br /><br />Full name: System.Data.SqlClient.SqlDataAdapter<br /><br />--------------------<br />SqlDataAdapter() : unit<br />SqlDataAdapter(selectCommand: SqlCommand) : unit<br />SqlDataAdapter(selectCommandText: string, selectConnectionString: string) : unit<br />SqlDataAdapter(selectCommandText: string, selectConnection: SqlConnection) : unit</div>
+<div class="tip" id="fs77">Data.Common.DbDataAdapter.Update(dataTable: Data.DataTable) : int<br />Data.Common.DbDataAdapter.Update(dataRows: Data.DataRow []) : int<br />Data.Common.DbDataAdapter.Update(dataSet: Data.DataSet) : int<br />Data.Common.DbDataAdapter.Update(dataSet: Data.DataSet, srcTable: string) : int</div>
+<div class="tip" id="fs78">val ignore : value:&#39;T -&gt; unit<br /><br />Full name: Microsoft.FSharp.Core.Operators.ignore</div>
 
             </div>
 
