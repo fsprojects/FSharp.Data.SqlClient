@@ -447,11 +447,12 @@ Note how combining SqlCommandProvider to load existing data with typed data tabl
 <h2>Custom update logic</h2>
 
 <p>Default update logic provided by typed Data Table can be not sufficient for some advanced scenarios. 
-It doesn�t mean you need to give up on convenience of static typing. 
+It doesn't mean you need to give up on convenience of static typing. 
 Customize update behavior by creating you own instance of <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqldataadapter.aspx">SqlDataAdapter</a> 
 and configuring it to your needs. 
-You can find <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlcommandbuilder.aspx">SqlCommandBuilder</a> class useful for T-SQL generation.
-Pseudo code for custom data adapter:</p>
+You can find <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlcommandbuilder.aspx">SqlCommandBuilder</a> class useful for T-SQL generation.</p>
+
+<p>Pseudo code for custom data adapter:</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
@@ -481,7 +482,7 @@ Pseudo code for custom data adapter:</p>
 
 <h2>Transaction and connection management</h2>
 
-<p>Please read [Transactions](transactions.html] chapter of the documentation.
+<p>Please read <a href="transactions.html">Transactions</a> chapter of the documentation.
 Pay particular attention to DataTable Updates/Bulk Load section.</p>
 
 <h2>Query-derived tables</h2>
