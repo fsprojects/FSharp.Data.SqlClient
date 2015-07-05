@@ -44,7 +44,7 @@ CommandText
 open FSharp.Data
 
 [<Literal>]
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
 
 //Inline T-SQL text convinient for short queries 
 type GetDate = SqlCommandProvider<"SELECT GETDATE() AS Now", connectionString>

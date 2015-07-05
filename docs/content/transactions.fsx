@@ -40,7 +40,7 @@ type CurrencyCode =
 type InsertCurrencyRate = SqlCommandProvider<"
         INSERT INTO Sales.CurrencyRate 
         VALUES (@currencyRateDate, @fromCurrencyCode, @toCurrencyCode, 
-                @averageRate, @endOfDayRate, @modifiedDate) 
+                @averageRate, @endOfDayRate, DEFAULT) 
     ", connectionString>
 do
     //Don't forget `use` binding to properly scope transactoin.
@@ -55,16 +55,13 @@ do
     //Supply connection and transaction 
     use cmd = new InsertCurrencyRate(conn, tran)
 
-    let today = DateTime.Now.Date
-
     let recordsInserted = 
         cmd.Execute(
-            currencyRateDate = today, 
-            fromCurrencyCode = CurrencyCode.``US Dollar``, 
-            toCurrencyCode = CurrencyCode.``United Kingdom Pound``, 
+            currencyRateDate = DateTime.Today, 
+            fromCurrencyCode = "USD", 
+            toCurrencyCode = "GBP", 
             averageRate = 0.63219M, 
-            endOfDayRate = 0.63219M, 
-            modifiedDate = today) 
+            endOfDayRate = 0.63219M) 
 
     assert (recordsInserted = 1)
 
