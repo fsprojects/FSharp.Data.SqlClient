@@ -329,6 +329,7 @@ for further manipulations.</p>
 <span class="l">12: </span>
 <span class="l">13: </span>
 <span class="l">14: </span>
+<span class="l">15: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
@@ -337,18 +338,32 @@ for further manipulations.</p>
     <span class="k">let</span> <span onmouseout="hideTip(event, 'fs47', 101)" onmouseover="showTip(event, 'fs47', 101)" class="i">newRow</span> <span class="o">=</span> 
         <span onmouseout="hideTip(event, 'fs51', 102)" onmouseover="showTip(event, 'fs51', 102)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs48', 103)" onmouseover="showTip(event, 'fs48', 103)" class="i">NewRow</span>(
             <span class="i">CurrencyRateDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs8', 104)" onmouseover="showTip(event, 'fs8', 104)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 105)" onmouseover="showTip(event, 'fs9', 105)" class="i">Today</span>, 
-            <span class="i">FromCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs1', 106)" onmouseover="showTip(event, 'fs1', 106)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``US Dollar``</span>, 
-            <span class="i">ToCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs1', 107)" onmouseover="showTip(event, 'fs1', 107)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``United Kingdom Pound``</span>, 
+            <span class="i">FromCurrencyCode</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">USD</span><span class="s">&quot;</span>, 
+            <span class="i">ToCurrencyCode</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">GBP</span><span class="s">&quot;</span>, 
             <span class="i">AverageRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
             <span class="i">EndOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>
         )
-    <span onmouseout="hideTip(event, 'fs51', 108)" onmouseover="showTip(event, 'fs51', 108)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs44', 109)" onmouseover="showTip(event, 'fs44', 109)" class="i">Rows</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs50', 110)" onmouseover="showTip(event, 'fs50', 110)" class="i">Add</span> <span onmouseout="hideTip(event, 'fs47', 111)" onmouseover="showTip(event, 'fs47', 111)" class="i">newRow</span>
-    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs52', 112)" onmouseover="showTip(event, 'fs52', 112)" class="i">recordsAffected</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs51', 113)" onmouseover="showTip(event, 'fs51', 113)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs53', 114)" onmouseover="showTip(event, 'fs53', 114)" class="i">Update</span>()
-    <span class="k">assert</span>(<span onmouseout="hideTip(event, 'fs52', 115)" onmouseover="showTip(event, 'fs52', 115)" class="i">recordsAffected</span> <span class="o">=</span> <span class="n">1</span>)
-    <span onmouseout="hideTip(event, 'fs54', 116)" onmouseover="showTip(event, 'fs54', 116)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">ID</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">i</span><span class="s">,</span><span class="s"> </span><span class="s">ModifiedDate</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">O</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs47', 117)" onmouseover="showTip(event, 'fs47', 117)" class="i">newRow</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs55', 118)" onmouseover="showTip(event, 'fs55', 118)" class="i">CurrencyRateID</span> <span onmouseout="hideTip(event, 'fs47', 119)" onmouseover="showTip(event, 'fs47', 119)" class="i">newRow</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs56', 120)" onmouseover="showTip(event, 'fs56', 120)" class="i">ModifiedDate</span></pre>
+    <span onmouseout="hideTip(event, 'fs51', 106)" onmouseover="showTip(event, 'fs51', 106)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs44', 107)" onmouseover="showTip(event, 'fs44', 107)" class="i">Rows</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs50', 108)" onmouseover="showTip(event, 'fs50', 108)" class="i">Add</span> <span onmouseout="hideTip(event, 'fs47', 109)" onmouseover="showTip(event, 'fs47', 109)" class="i">newRow</span>
+    <span class="c">//Call Update to push changes to a database</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs52', 110)" onmouseover="showTip(event, 'fs52', 110)" class="i">recordsAffected</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs51', 111)" onmouseover="showTip(event, 'fs51', 111)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs53', 112)" onmouseover="showTip(event, 'fs53', 112)" class="i">Update</span>()
+    <span class="k">assert</span>(<span onmouseout="hideTip(event, 'fs52', 113)" onmouseover="showTip(event, 'fs52', 113)" class="i">recordsAffected</span> <span class="o">=</span> <span class="n">1</span>)
+    <span onmouseout="hideTip(event, 'fs54', 114)" onmouseover="showTip(event, 'fs54', 114)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">ID</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">i</span><span class="s">,</span><span class="s"> </span><span class="s">ModifiedDate</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">O</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs47', 115)" onmouseover="showTip(event, 'fs47', 115)" class="i">newRow</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs55', 116)" onmouseover="showTip(event, 'fs55', 116)" class="i">CurrencyRateID</span> <span onmouseout="hideTip(event, 'fs47', 117)" onmouseover="showTip(event, 'fs47', 117)" class="i">newRow</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs56', 118)" onmouseover="showTip(event, 'fs56', 118)" class="i">ModifiedDate</span></pre>
 </td>
 </tr>
 </table>
+
+<ul>
+<li>Call to <code>Update</code> is required to push changes into a database</li>
+<li><code>CurrencyRateID</code> IDENTITY column and all fields with DEFAULT constraints that didn't have value specified are 
+refreshed after update from database. This is very cool feature. <strong>It works only for <code>BatchSize</code> = 1</strong> which is default.
+Of course it's applicable only to new data rows (ones that cause INSERT statement to be issued).</li>
+</ul>
+
+<h2>Query-derived tables</h2>
+
+<h2>Custom update logic</h2>
+
+<h2>Transaction and connection management</h2>
 
 <div class="tip" id="fs1">type CurrencyCode =<br />&#160;&#160;static val Afghani : string<br />&#160;&#160;static val ``Algerian Dinar`` : string<br />&#160;&#160;static val ``Argentine Peso`` : string<br />&#160;&#160;static val ``Armenian Dram`` : string<br />&#160;&#160;static val ``Aruban Guilder`` : string<br />&#160;&#160;static val ``Australian Dollar`` : string<br />&#160;&#160;static val ``Azerbaijanian Manat`` : string<br />&#160;&#160;static val ``Bahamian Dollar`` : string<br />&#160;&#160;static val ``Bahraini Dinar`` : string<br />&#160;&#160;static val Baht : string<br />&#160;&#160;...<br /><br />Full name: Data modification.CurrencyCode</div>
 <div class="tip" id="fs2">type SqlEnumProvider<br /><br />Full name: FSharp.Data.SqlEnumProvider<br /><em><br /><br /><br />&lt;summary&gt;Enumeration based on SQL query.&lt;/summary&gt; <br />&lt;param name=&#39;Query&#39;&gt;SQL used to get the enumeration labels and values. A result set must have at least two columns. The first one is a label.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionString&#39;&gt;String used to open a data connection.&lt;/param&gt;<br />&lt;param name=&#39;Provider&#39;&gt;Invariant name of a ADO.NET provider. Default is &quot;System.Data.SqlClient&quot;.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;CLIEnum&#39;&gt;Generate standard CLI Enum. Default is false.&lt;/param&gt;<br /></em></div>
