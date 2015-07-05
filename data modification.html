@@ -203,19 +203,43 @@ To certain extend this is similar to ancient, almost forgotten <a href="https://
 technique except that epic F# feature <a href="https://msdn.microsoft.com/en-us/library/hh156509.aspx">Type Providers</a> 
 streamlines the whole development experience.</p>
 
-<p>Using <code>Sales.CurrencyRate</code> table as example let have a closer look of what exactly SqlProgrammabilityProvider adds to DataTable class.</p>
+<p>Using <code>Sales.CurrencyRate</code> table as example let see how's generated table type is different from it's base <a href="https://msdn.microsoft.com/en-us/library/system.data.datatable.aspx">DataTable</a> type.</p>
 
 <p>Generated tables type names follow a pattern: <em>TypeAliasForRoot</em>.<em>SchemaName</em>.<strong>Tables</strong>.<em>TableName</em></p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+<span class="l">5: </span>
+<span class="l">6: </span>
+<span class="l">7: </span>
+<span class="l">8: </span>
+<span class="l">9: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs38', 64)" onmouseover="showTip(event, 'fs38', 64)" class="i">currencyRates</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs10', 65)" onmouseover="showTip(event, 'fs10', 65)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs39', 66)" onmouseover="showTip(event, 'fs39', 66)" class="i">Sales</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 67)" onmouseover="showTip(event, 'fs40', 67)" class="i">Tables</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs41', 68)" onmouseover="showTip(event, 'fs41', 68)" class="i">CurrencyRate</span>()</pre>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs38', 64)" onmouseover="showTip(event, 'fs38', 64)" class="i">currencyRates</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs10', 65)" onmouseover="showTip(event, 'fs10', 65)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs39', 66)" onmouseover="showTip(event, 'fs39', 66)" class="i">Sales</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 67)" onmouseover="showTip(event, 'fs40', 67)" class="i">Tables</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs41', 68)" onmouseover="showTip(event, 'fs41', 68)" class="i">CurrencyRate</span>()
+<span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs38', 69)" onmouseover="showTip(event, 'fs38', 69)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs42', 70)" onmouseover="showTip(event, 'fs42', 70)" class="i">TableName</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">[</span><span class="s">Sales</span><span class="s">]</span><span class="s">.</span><span class="s">[</span><span class="s">CurrencyRate</span><span class="s">]</span><span class="s">&quot;</span>)
+<span onmouseout="hideTip(event, 'fs38', 71)" onmouseover="showTip(event, 'fs38', 71)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs43', 72)" onmouseover="showTip(event, 'fs43', 72)" class="i">AddRow</span>(
+        <span class="i">CurrencyRateDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs8', 73)" onmouseover="showTip(event, 'fs8', 73)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 74)" onmouseover="showTip(event, 'fs9', 74)" class="i">Today</span>, 
+        <span class="i">FromCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs1', 75)" onmouseover="showTip(event, 'fs1', 75)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``US Dollar``</span>, 
+        <span class="i">ToCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs1', 76)" onmouseover="showTip(event, 'fs1', 76)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``United Kingdom Pound``</span>, 
+        <span class="i">AverageRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
+        <span class="i">EndOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>,
+    )</pre>
 </td>
 </tr>
 </table>
+
+<p><code>TableName property</code> is set to appropriate value.</p>
+
+<p>Method <code>AddRow</code> adds a new row to a table. 
+<img src="img/AddRow.png"/>
+- There is 1-1 correspondence between column names/types and the method parameters
+- <code>IDENTITY</code> column is excluded from parameters list for obvious reasons
+- Columns with <code>DEFAULT</code> constraint or accepting <code>NULL</code> as a value is type of option<_></p>
 
 <p>The example at top of can be re-written as</p>
 
@@ -238,21 +262,21 @@ streamlines the whole development experience.</p>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs42', 69)" onmouseover="showTip(event, 'fs42', 69)" class="i">newRow</span> <span class="o">=</span> 
-    <span onmouseout="hideTip(event, 'fs38', 70)" onmouseover="showTip(event, 'fs38', 70)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs43', 71)" onmouseover="showTip(event, 'fs43', 71)" class="i">NewRow</span>(
-        <span class="i">CurrencyRateDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs8', 72)" onmouseover="showTip(event, 'fs8', 72)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 73)" onmouseover="showTip(event, 'fs9', 73)" class="i">Today</span>, 
-        <span class="i">FromCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs1', 74)" onmouseover="showTip(event, 'fs1', 74)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``US Dollar``</span>, 
-        <span class="i">ToCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs1', 75)" onmouseover="showTip(event, 'fs1', 75)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``United Kingdom Pound``</span>, 
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs44', 77)" onmouseover="showTip(event, 'fs44', 77)" class="i">newRow</span> <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs38', 78)" onmouseover="showTip(event, 'fs38', 78)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs45', 79)" onmouseover="showTip(event, 'fs45', 79)" class="i">NewRow</span>(
+        <span class="i">CurrencyRateDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs8', 80)" onmouseover="showTip(event, 'fs8', 80)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 81)" onmouseover="showTip(event, 'fs9', 81)" class="i">Today</span>, 
+        <span class="i">FromCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs1', 82)" onmouseover="showTip(event, 'fs1', 82)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``US Dollar``</span>, 
+        <span class="i">ToCurrencyCode</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs1', 83)" onmouseover="showTip(event, 'fs1', 83)" class="i">CurrencyCode</span><span class="o">.</span><span class="i">``United Kingdom Pound``</span>, 
         <span class="i">AverageRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
         <span class="i">EndOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>
     )
-<span onmouseout="hideTip(event, 'fs38', 76)" onmouseover="showTip(event, 'fs38', 76)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs44', 77)" onmouseover="showTip(event, 'fs44', 77)" class="i">Rows</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs45', 78)" onmouseover="showTip(event, 'fs45', 78)" class="i">Add</span> <span onmouseout="hideTip(event, 'fs42', 79)" onmouseover="showTip(event, 'fs42', 79)" class="i">newRow</span>
+<span onmouseout="hideTip(event, 'fs38', 84)" onmouseover="showTip(event, 'fs38', 84)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs46', 85)" onmouseover="showTip(event, 'fs46', 85)" class="i">Rows</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs47', 86)" onmouseover="showTip(event, 'fs47', 86)" class="i">Add</span> <span onmouseout="hideTip(event, 'fs44', 87)" onmouseover="showTip(event, 'fs44', 87)" class="i">newRow</span>
 
 <span class="c">//Pair oif  invocatiuon </span>
 
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs46', 80)" onmouseover="showTip(event, 'fs46', 80)" class="i">recordsAffected</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs38', 81)" onmouseover="showTip(event, 'fs38', 81)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs47', 82)" onmouseover="showTip(event, 'fs47', 82)" class="i">Update</span>()
-<span class="k">assert</span>(<span onmouseout="hideTip(event, 'fs46', 83)" onmouseover="showTip(event, 'fs46', 83)" class="i">recordsAffected</span> <span class="o">=</span> <span class="n">1</span>)
-<span onmouseout="hideTip(event, 'fs48', 84)" onmouseover="showTip(event, 'fs48', 84)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">ID</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">i</span><span class="s">,</span><span class="s"> </span><span class="s">ModifiedDate</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">O</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs42', 85)" onmouseover="showTip(event, 'fs42', 85)" class="i">newRow</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs49', 86)" onmouseover="showTip(event, 'fs49', 86)" class="i">CurrencyRateID</span> <span onmouseout="hideTip(event, 'fs42', 87)" onmouseover="showTip(event, 'fs42', 87)" class="i">newRow</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs50', 88)" onmouseover="showTip(event, 'fs50', 88)" class="i">ModifiedDate</span></pre>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs48', 88)" onmouseover="showTip(event, 'fs48', 88)" class="i">recordsAffected</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs38', 89)" onmouseover="showTip(event, 'fs38', 89)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs49', 90)" onmouseover="showTip(event, 'fs49', 90)" class="i">Update</span>()
+<span class="k">assert</span>(<span onmouseout="hideTip(event, 'fs48', 91)" onmouseover="showTip(event, 'fs48', 91)" class="i">recordsAffected</span> <span class="o">=</span> <span class="n">1</span>)
+<span onmouseout="hideTip(event, 'fs50', 92)" onmouseover="showTip(event, 'fs50', 92)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">ID</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">i</span><span class="s">,</span><span class="s"> </span><span class="s">ModifiedDate</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">O</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs44', 93)" onmouseover="showTip(event, 'fs44', 93)" class="i">newRow</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs51', 94)" onmouseover="showTip(event, 'fs51', 94)" class="i">CurrencyRateID</span> <span onmouseout="hideTip(event, 'fs44', 95)" onmouseover="showTip(event, 'fs44', 95)" class="i">newRow</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs52', 96)" onmouseover="showTip(event, 'fs52', 96)" class="i">ModifiedDate</span></pre>
 </td>
 </tr>
 </table>
@@ -306,15 +330,17 @@ streamlines the whole development experience.</p>
 <div class="tip" id="fs39">type Sales =<br />&#160;&#160;nested type Tables<br />&#160;&#160;nested type User-Defined Table Types<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider,ConnectionStringOrName=&quot;Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True&quot;.Sales</div>
 <div class="tip" id="fs40">type Tables =<br />&#160;&#160;nested type CountryRegionCurrency<br />&#160;&#160;nested type CreditCard<br />&#160;&#160;nested type Currency<br />&#160;&#160;nested type CurrencyRate<br />&#160;&#160;nested type Customer<br />&#160;&#160;nested type PersonCreditCard<br />&#160;&#160;nested type SalesOrderDetail<br />&#160;&#160;nested type SalesOrderHeader<br />&#160;&#160;nested type SalesOrderHeaderSalesReason<br />&#160;&#160;nested type SalesPerson<br />&#160;&#160;...<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider,ConnectionStringOrName=&quot;Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True&quot;.Sales.Tables</div>
 <div class="tip" id="fs41">type CurrencyRate =<br />&#160;&#160;inherit DataTable&lt;Row&gt;<br />&#160;&#160;new : unit -&gt; CurrencyRate<br />&#160;&#160;member AddRow : CurrencyRateDate: DateTime * FromCurrencyCode: string * ToCurrencyCode: string * AverageRate: decimal * EndOfDayRate: decimal * ?ModifiedDate: DateTime -&gt; unit<br />&#160;&#160;member AreIndexEventsSuspended : bool<br />&#160;&#160;member AverageRateColumn : DataColumn<br />&#160;&#160;member CaseSensitive : bool with get, set<br />&#160;&#160;member ChildRelations : DataRelationCollection<br />&#160;&#160;event ColumnChanged : DataColumnChangeEventHandler<br />&#160;&#160;event ColumnChanging : DataColumnChangeEventHandler<br />&#160;&#160;member Columns : DataColumnCollection<br />&#160;&#160;...<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider,ConnectionStringOrName=&quot;Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True&quot;.Sales.Tables.CurrencyRate<br /><em><br /><br />&lt;summary&gt;Currency exchange rates.&lt;/summary&gt;</em></div>
-<div class="tip" id="fs42">val newRow : SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row<br /><br />Full name: Data modification.newRow</div>
-<div class="tip" id="fs43">member DataTable.NewRow : unit -&gt; &#39;T<br />SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.NewRow(CurrencyRateDate: DateTime, FromCurrencyCode: string, ToCurrencyCode: string, AverageRate: decimal, EndOfDayRate: decimal, ?ModifiedDate: DateTime) : SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row<br /><em><br /><br />&lt;param name=&#39;CurrencyRateDate&#39;&gt;Date and time the exchange rate was obtained.&lt;/param&gt;<br />&lt;param name=&#39;FromCurrencyCode&#39;&gt;Exchange rate was converted from this currency code.&lt;/param&gt;<br />&lt;param name=&#39;ToCurrencyCode&#39;&gt;Exchange rate was converted to this currency code.&lt;/param&gt;<br />&lt;param name=&#39;AverageRate&#39;&gt;Average exchange rate for the day.&lt;/param&gt;<br />&lt;param name=&#39;EndOfDayRate&#39;&gt;Final exchange rate for the day.&lt;/param&gt;<br />&lt;param name=&#39;ModifiedDate&#39;&gt;Date and time the record was last updated.&lt;/param&gt;</em></div>
-<div class="tip" id="fs44">property DataTable.Rows: Collections.Generic.IList&lt;SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row&gt;</div>
-<div class="tip" id="fs45">Collections.Generic.ICollection.Add(item: SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row) : unit</div>
-<div class="tip" id="fs46">val recordsAffected : int<br /><br />Full name: Data modification.recordsAffected</div>
-<div class="tip" id="fs47">member DataTable.Update : ?connection:Data.SqlClient.SqlConnection * ?transaction:Data.SqlClient.SqlTransaction * ?batchSize:int -&gt; int</div>
-<div class="tip" id="fs48">val printfn : format:Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.ExtraTopLevelOperators.printfn</div>
-<div class="tip" id="fs49">property SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row.CurrencyRateID: int<br /><em><br /><br />Primary key for CurrencyRate records.</em></div>
-<div class="tip" id="fs50">property SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row.ModifiedDate: DateTime<br /><em><br /><br />Date and time the record was last updated.</em></div>
+<div class="tip" id="fs42">property Data.DataTable.TableName: string</div>
+<div class="tip" id="fs43">SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.AddRow(CurrencyRateDate: DateTime, FromCurrencyCode: string, ToCurrencyCode: string, AverageRate: decimal, EndOfDayRate: decimal, ?ModifiedDate: DateTime) : unit<br /><em><br /><br />&lt;param name=&#39;CurrencyRateDate&#39;&gt;Date and time the exchange rate was obtained.&lt;/param&gt;<br />&lt;param name=&#39;FromCurrencyCode&#39;&gt;Exchange rate was converted from this currency code.&lt;/param&gt;<br />&lt;param name=&#39;ToCurrencyCode&#39;&gt;Exchange rate was converted to this currency code.&lt;/param&gt;<br />&lt;param name=&#39;AverageRate&#39;&gt;Average exchange rate for the day.&lt;/param&gt;<br />&lt;param name=&#39;EndOfDayRate&#39;&gt;Final exchange rate for the day.&lt;/param&gt;<br />&lt;param name=&#39;ModifiedDate&#39;&gt;Date and time the record was last updated.&lt;/param&gt;</em></div>
+<div class="tip" id="fs44">val newRow : SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row<br /><br />Full name: Data modification.newRow</div>
+<div class="tip" id="fs45">member DataTable.NewRow : unit -&gt; &#39;T<br />SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.NewRow(CurrencyRateDate: DateTime, FromCurrencyCode: string, ToCurrencyCode: string, AverageRate: decimal, EndOfDayRate: decimal, ?ModifiedDate: DateTime) : SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row<br /><em><br /><br />&lt;param name=&#39;CurrencyRateDate&#39;&gt;Date and time the exchange rate was obtained.&lt;/param&gt;<br />&lt;param name=&#39;FromCurrencyCode&#39;&gt;Exchange rate was converted from this currency code.&lt;/param&gt;<br />&lt;param name=&#39;ToCurrencyCode&#39;&gt;Exchange rate was converted to this currency code.&lt;/param&gt;<br />&lt;param name=&#39;AverageRate&#39;&gt;Average exchange rate for the day.&lt;/param&gt;<br />&lt;param name=&#39;EndOfDayRate&#39;&gt;Final exchange rate for the day.&lt;/param&gt;<br />&lt;param name=&#39;ModifiedDate&#39;&gt;Date and time the record was last updated.&lt;/param&gt;</em></div>
+<div class="tip" id="fs46">property DataTable.Rows: Collections.Generic.IList&lt;SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row&gt;</div>
+<div class="tip" id="fs47">Collections.Generic.ICollection.Add(item: SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row) : unit</div>
+<div class="tip" id="fs48">val recordsAffected : int<br /><br />Full name: Data modification.recordsAffected</div>
+<div class="tip" id="fs49">member DataTable.Update : ?connection:Data.SqlClient.SqlConnection * ?transaction:Data.SqlClient.SqlTransaction * ?batchSize:int -&gt; int</div>
+<div class="tip" id="fs50">val printfn : format:Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.ExtraTopLevelOperators.printfn</div>
+<div class="tip" id="fs51">property SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row.CurrencyRateID: int<br /><em><br /><br />Primary key for CurrencyRate records.</em></div>
+<div class="tip" id="fs52">property SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row.ModifiedDate: DateTime<br /><em><br /><br />Date and time the record was last updated.</em></div>
 
             </div>
 
