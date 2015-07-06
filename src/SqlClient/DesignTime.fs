@@ -31,18 +31,18 @@ type DesignTime private() =
 
         let mappedParamValues (exprArgs: Expr list) = 
             (exprArgs.Tail, sqlParameters)
-            ||> List.map2 (fun expr info ->
+            ||> List.map2 (fun expr param ->
                 let value = 
-                    if info.Optional && not info.TypeInfo.TableType
+                    if param.Optional && not param.TypeInfo.TableType
                     then 
                         typeof<QuotationsFactory>
                             .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
-                            .MakeGenericMethod(info.TypeInfo.ClrType)
+                            .MakeGenericMethod(param.TypeInfo.ClrType)
                             .Invoke(null, [| box expr|])
                             |> unbox
                     else
                         expr
-                <@@ (%%Expr.Value(info.Name) : string), %%Expr.Coerce(value, typeof<obj>) @@>
+                <@@ (%%Expr.Value(param.Name) : string), %%Expr.Coerce(value, typeof<obj>) @@>
             )
 
         let m = ProvidedMethod(name, executeArgs, providedOutputType)
@@ -52,6 +52,19 @@ type DesignTime private() =
             let vals = mappedParamValues(exprArgs)
             let paramValues = Expr.NewArray(typeof<string*obj>, elements = vals)
             Expr.Call( Expr.Coerce(exprArgs.[0], erasedType), methodInfo, [paramValues])
+
+        let xmlDoc = 
+            sqlParameters
+            |> Seq.choose (fun p ->
+                if String.IsNullOrWhiteSpace p.Description
+                then None
+                else
+                    let defaultConstrain = if p.DefaultValue.IsSome then sprintf " Default value: %O." p.DefaultValue.Value else ""
+                    Some( sprintf "<param name='%s'>%O%s</param>" p.Name p.Description defaultConstrain)
+            )
+            |> String.concat "\n" 
+
+        if not(String.IsNullOrWhiteSpace xmlDoc) then m.AddXmlDoc xmlDoc
 
         m
 
@@ -224,6 +237,7 @@ type DesignTime private() =
                 Direction = direction 
                 DefaultValue = None
                 Optional = allParametersOptional 
+                Description = null 
             }
         )
         |> Seq.toList

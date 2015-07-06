@@ -141,6 +141,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     member internal __.Routines(conn, schema, udtts, resultType, isByName, connectionStringName, connectionStringOrName) = 
         [
             use _ = conn.UseLocally()
+            let isSqlAzure = conn.IsSqlAzure
             let routines = conn.GetRoutines( schema) 
             for routine in routines do
              
@@ -155,7 +156,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 //cmdProvidedType.AddMembers
                     [
                         use __ = conn.UseLocally()
-                        let parameters = conn.GetParameters( routine)
+                        let parameters = conn.GetParameters( routine, isSqlAzure)
 
                         let commandText = routine.CommantText(parameters)
                         let outputColumns = 
@@ -431,7 +432,11 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             for c in updateableColumns do
                                 if c.Description <> "" 
                                 then 
-                                    yield sprintf "<param name='%s'>%O</param>" c.Name c.Description
+                                    let defaultConstrain = 
+                                        if c.HasDefaultConstraint 
+                                        then sprintf " Default constraint: %s." c.DefaultConstraint
+                                        else ""
+                                    yield sprintf "<param name='%s'>%s%s</param>" c.Name c.Description defaultConstrain
                         ]
                         
                     let invokeCode = fun (args: _ list)-> 

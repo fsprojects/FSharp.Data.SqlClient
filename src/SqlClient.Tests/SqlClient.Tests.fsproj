@@ -71,16 +71,19 @@
     <Compile Include="DynamicRecordTests.fs" />
     <Compile Include="SqlEnumTests.fs" />
     <Compile Include="DataTablesTests.fs" />
-    <None Include="Schema.fsx" />
-    <Content Include="connectionStrings.config" />
-    <Content Include="appWithInclude.config" />
-    <None Include="SqlCommand.fsx" />
-    <None Include="SqlProgrammability.fsx" />
     <None Include="sampleCommand.sql" />
     <None Include="prereqs.sql" />
-    <None Include="packages.config" />
+    <None Include="SqlCommand.fsx" />
+    <None Include="SqlProgrammability.fsx" />
+    <None Include="Schema.fsx" />
     <None Include="Performance.fsx" />
+    <None Include="packages.config" />
     <None Include="app.config" />
+    <Content Include="appWithInclude.config" />
+    <Content Include="connectionStrings.config" />
+    <Content Include="connectionStrings.Azure.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Configuration">

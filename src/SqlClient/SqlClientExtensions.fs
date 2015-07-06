@@ -109,6 +109,7 @@ type Parameter = {
     Direction: ParameterDirection 
     DefaultValue: obj option
     Optional: bool
+    Description: string
 }
 
 let internal dataTypeMappings = Dictionary<string, TypeInfo[]>()
@@ -226,7 +227,7 @@ type SqlConnection with
         ) 
         |> Seq.toArray
             
-    member internal this.GetParameters( routine: Routine) =      
+    member internal this.GetParameters( routine: Routine, isSqlAzure) =      
         assert (this.State = ConnectionState.Open)
 
         let paramDefaults = Task.Factory.StartNew( fun() ->
@@ -248,20 +249,32 @@ type SqlConnection with
             result
         )
 
+        let descriptionSelector = 
+            if isSqlAzure 
+            then 
+                "(SELECT NULL AS Value)"
+            else 
+                let routineType = if routine.IsStoredProc then "PROCEDURE" else "FUNCTION"
+                sprintf "fn_listextendedproperty ('MS_Description', 'schema', SPECIFIC_SCHEMA, '%s', SPECIFIC_NAME, 'PARAMETER', ps.PARAMETER_NAME)" routineType 
+
         let query = sprintf "
             SELECT 
-	            ps.PARAMETER_NAME AS name
-	            ,CAST(ts.system_type_id AS INT) AS suggested_system_type_id
-	            ,ts.user_type_id AS suggested_user_type_id
-	            ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_output
-	            ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'IN' THEN 1 WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_input 
+                ps.PARAMETER_NAME AS name
+                ,CAST(ts.system_type_id AS INT) AS suggested_system_type_id
+                ,ts.user_type_id AS suggested_user_type_id
+                ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_output
+                ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'IN' THEN 1 WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_input 
+                ,suggested_is_output = CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'INOUT' THEN 1 ELSE 0 END) 
+                ,suggested_is_input = CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'IN' THEN 1 WHEN 'INOUT' THEN 1 ELSE 0 END)   
+                ,description = ISNULL(XProp.Value, '')
             FROM INFORMATION_SCHEMA.PARAMETERS AS ps
 	            JOIN sys.types AS ts ON 
 		            ps.PARAMETER_NAME <> '' 
 		            AND (ts.is_user_defined = 0 OR ts.schema_id = SCHEMA_ID(SPECIFIC_SCHEMA))
 		            AND (ps.DATA_TYPE = ts.name OR (ps.DATA_TYPE = 'table type' AND ps.USER_DEFINED_TYPE_NAME = ts.name))
+                OUTER APPLY %s AS XProp
             WHERE SPECIFIC_CATALOG = db_name() AND CONCAT(SPECIFIC_SCHEMA,'.',SPECIFIC_NAME) = '%s'
-            ORDER BY ORDINAL_POSITION" routine.TwoPartName
+            ORDER BY ORDINAL_POSITION" descriptionSelector routine.TwoPartName
 
         use cmd = new SqlCommand( query, this)
         cmd.ExecuteQuery(fun record -> 
@@ -281,7 +294,14 @@ type SqlConnection with
             let defaultValue = match paramDefaults.Result.TryGetValue(name) with | true, value -> value | false, _ -> None
             let valueTypeWithNullDefault = typeInfo.IsValueType && defaultValue = Some(null)
 
-            { Name = name; TypeInfo = typeInfo; Direction = direction; DefaultValue = defaultValue; Optional = valueTypeWithNullDefault }
+            { 
+                Name = name
+                TypeInfo = typeInfo
+                Direction = direction
+                DefaultValue = defaultValue
+                Optional = valueTypeWithNullDefault 
+                Description = string record.["description"]
+            }
         )
         |> Seq.toList
 

@@ -173,3 +173,8 @@
 
 #### 1.7.2 - June 19, 2015
 	* Issue #136 - SqlProgrammabilityProvider does not update User-Defined Table Types on rebuild 
+
+#### 1.7.3 - July 6, 2015
+	* Issue #137 - support single column select in SqlEnumProvider - natural keys case
+	* Issue #135 - create xml doc from MS_Description ext.prop for routines and params
+	* Issue #130 - help section dedicated to database updates
