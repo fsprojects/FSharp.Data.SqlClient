@@ -446,13 +446,54 @@ Note how combining SqlCommandProvider to load existing data with typed data tabl
 
 <div class="well well-small" style="margin:0px 70px 0px 20px;">
 
-<p><strong>WARNING</strong> Unfortunately Update method on typed data table doesn't have asynchronous version.</p>
+<p><strong>WARNING</strong> Unfortunately Update method on typed data table doesn't have asynchronous version. 
+That's where command types provided by SqlCommandProvider have distinct advantage.</p>
 
 </p></div>
 
-<h2>Custom update logic</h2>
+<h2>Bulk Load</h2>
 
-<p>Default update logic provided by typed Data Table can be not sufficient for some advanced scenarios. 
+<p>Another useful scenario for typed data tables is bulk load. 
+It looks exactly like adding new rows except at the end you make a call to <code>BulkCopy</code> instead of <code>Update</code>.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">do</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs50', 172)" onmouseover="showTip(event, 'fs50', 172)" class="i">currencyRates</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs10', 173)" onmouseover="showTip(event, 'fs10', 173)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs38', 174)" onmouseover="showTip(event, 'fs38', 174)" class="i">Sales</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs39', 175)" onmouseover="showTip(event, 'fs39', 175)" class="i">Tables</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 176)" onmouseover="showTip(event, 'fs40', 176)" class="i">CurrencyRate</span>()
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs46', 177)" onmouseover="showTip(event, 'fs46', 177)" class="i">newRow</span> <span class="o">=</span> 
+        <span onmouseout="hideTip(event, 'fs50', 178)" onmouseover="showTip(event, 'fs50', 178)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs47', 179)" onmouseover="showTip(event, 'fs47', 179)" class="i">NewRow</span>(
+            <span class="i">CurrencyRateDate</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs8', 180)" onmouseover="showTip(event, 'fs8', 180)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 181)" onmouseover="showTip(event, 'fs9', 181)" class="i">Today</span>, 
+            <span class="i">FromCurrencyCode</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">USD</span><span class="s">&quot;</span>, 
+            <span class="i">ToCurrencyCode</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">GBP</span><span class="s">&quot;</span>, 
+            <span class="i">AverageRate</span> <span class="o">=</span> <span class="n">0.63219M</span>, 
+            <span class="i">EndOfDayRate</span> <span class="o">=</span> <span class="n">0.63219M</span>
+        )
+    <span onmouseout="hideTip(event, 'fs50', 182)" onmouseover="showTip(event, 'fs50', 182)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs43', 183)" onmouseover="showTip(event, 'fs43', 183)" class="i">Rows</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs49', 184)" onmouseover="showTip(event, 'fs49', 184)" class="i">Add</span> <span onmouseout="hideTip(event, 'fs46', 185)" onmouseover="showTip(event, 'fs46', 185)" class="i">newRow</span>
+    <span class="c">//Insert many more rows here</span>
+    <span onmouseout="hideTip(event, 'fs50', 186)" onmouseover="showTip(event, 'fs50', 186)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs74', 187)" onmouseover="showTip(event, 'fs74', 187)" class="i">BulkCopy</span>()</pre>
+</td>
+</tr>
+</table>
+
+<h2>Custom update/bulk copy logic</h2>
+
+<p>Both Update and BulkCopy operations can be configured via parameters they accept (connection, transaction, batchSize etc) 
+That said, default update logic provided by typed Data Table can be not sufficient for some advanced scenarios. 
 It doesn't mean you need to give up on convenience of static typing. 
 Customize update behavior by creating you own instance of <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqldataadapter.aspx">SqlDataAdapter</a> 
 and configuring it to your needs. 
@@ -472,20 +513,40 @@ You can find <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlcl
 <span class="l"> 9: </span>
 <span class="l">10: </span>
 <span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+<span class="l">14: </span>
+<span class="l">15: </span>
+<span class="l">16: </span>
+<span class="l">17: </span>
+<span class="l">18: </span>
+<span class="l">19: </span>
+<span class="l">20: </span>
+<span class="l">21: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">open</span> <span onmouseout="hideTip(event, 'fs67', 172)" onmouseover="showTip(event, 'fs67', 172)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs68', 173)" onmouseover="showTip(event, 'fs68', 173)" class="i">Data</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs74', 174)" onmouseover="showTip(event, 'fs74', 174)" class="i">SqlClient</span>
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs67', 188)" onmouseover="showTip(event, 'fs67', 188)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs68', 189)" onmouseover="showTip(event, 'fs68', 189)" class="i">Data</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs75', 190)" onmouseover="showTip(event, 'fs75', 190)" class="i">SqlClient</span>
 
 <span class="k">do</span>
-    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs50', 175)" onmouseover="showTip(event, 'fs50', 175)" class="i">currencyRates</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs10', 176)" onmouseover="showTip(event, 'fs10', 176)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs38', 177)" onmouseover="showTip(event, 'fs38', 177)" class="i">Sales</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs39', 178)" onmouseover="showTip(event, 'fs39', 178)" class="i">Tables</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 179)" onmouseover="showTip(event, 'fs40', 179)" class="i">CurrencyRate</span>()
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs50', 191)" onmouseover="showTip(event, 'fs50', 191)" class="i">currencyRates</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs10', 192)" onmouseover="showTip(event, 'fs10', 192)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs38', 193)" onmouseover="showTip(event, 'fs38', 193)" class="i">Sales</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs39', 194)" onmouseover="showTip(event, 'fs39', 194)" class="i">Tables</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 195)" onmouseover="showTip(event, 'fs40', 195)" class="i">CurrencyRate</span>()
     <span class="c">//load, update, delete, insert rows </span>
     <span class="c">// ...</span>
-    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs75', 180)" onmouseover="showTip(event, 'fs75', 180)" class="i">adapter</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs76', 181)" onmouseover="showTip(event, 'fs76', 181)" class="i">SqlDataAdapter</span>()
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs76', 196)" onmouseover="showTip(event, 'fs76', 196)" class="i">adapter</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs77', 197)" onmouseover="showTip(event, 'fs77', 197)" class="i">SqlDataAdapter</span>()
     <span class="c">//configure adapter: setup select command, transaction etc.</span>
     <span class="c">// ...</span>
-    <span onmouseout="hideTip(event, 'fs75', 182)" onmouseover="showTip(event, 'fs75', 182)" class="i">adapter</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs77', 183)" onmouseover="showTip(event, 'fs77', 183)" class="i">Update</span>( <span onmouseout="hideTip(event, 'fs50', 184)" onmouseover="showTip(event, 'fs50', 184)" class="i">currencyRates</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs78', 185)" onmouseover="showTip(event, 'fs78', 185)" class="i">ignore</span>
-    </pre>
+    <span onmouseout="hideTip(event, 'fs76', 198)" onmouseover="showTip(event, 'fs76', 198)" class="i">adapter</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs78', 199)" onmouseover="showTip(event, 'fs78', 199)" class="i">Update</span>( <span onmouseout="hideTip(event, 'fs50', 200)" onmouseover="showTip(event, 'fs50', 200)" class="i">currencyRates</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs79', 201)" onmouseover="showTip(event, 'fs79', 201)" class="i">ignore</span>
+
+<span class="c">//Similarly for custom bulk copy:</span>
+    
+<span class="k">do</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs50', 202)" onmouseover="showTip(event, 'fs50', 202)" class="i">currencyRates</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs10', 203)" onmouseover="showTip(event, 'fs10', 203)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs38', 204)" onmouseover="showTip(event, 'fs38', 204)" class="i">Sales</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs39', 205)" onmouseover="showTip(event, 'fs39', 205)" class="i">Tables</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 206)" onmouseover="showTip(event, 'fs40', 206)" class="i">CurrencyRate</span>()
+    <span class="c">//load, update, delete, insert rows </span>
+    <span class="c">// ...</span>
+    <span class="c">//configure bulkCopy: copyOptions, connectoin, transaction, timeout, batch size etc.</span>
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs80', 207)" onmouseover="showTip(event, 'fs80', 207)" class="i">bulkCopy</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs81', 208)" onmouseover="showTip(event, 'fs81', 208)" class="i">SqlBulkCopy</span>(<span onmouseout="hideTip(event, 'fs10', 209)" onmouseover="showTip(event, 'fs10', 209)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs38', 210)" onmouseover="showTip(event, 'fs38', 210)" class="i">Sales</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs39', 211)" onmouseover="showTip(event, 'fs39', 211)" class="i">Tables</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 212)" onmouseover="showTip(event, 'fs40', 212)" class="i">CurrencyRate</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs82', 213)" onmouseover="showTip(event, 'fs82', 213)" class="i">ConnectionStringOrName</span>)
+    <span class="c">// ...</span>
+    <span onmouseout="hideTip(event, 'fs80', 214)" onmouseover="showTip(event, 'fs80', 214)" class="i">bulkCopy</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs83', 215)" onmouseover="showTip(event, 'fs83', 215)" class="i">WriteToServer</span>( <span onmouseout="hideTip(event, 'fs50', 216)" onmouseover="showTip(event, 'fs50', 216)" class="i">currencyRates</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs79', 217)" onmouseover="showTip(event, 'fs79', 217)" class="i">ignore</span></pre>
 </td>
 </tr>
 </table>
@@ -556,52 +617,58 @@ That said it's still possible to add rows with some static typing support.</p>
 <span class="l">41: </span>
 <span class="l">42: </span>
 <span class="l">43: </span>
+<span class="l">44: </span>
+<span class="l">45: </span>
+<span class="l">46: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
 <span class="k">do</span>
     <span class="c">//CurrencyRateID is included</span>
-    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs4', 186)" onmouseover="showTip(event, 'fs4', 186)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs5', 187)" onmouseover="showTip(event, 'fs5', 187)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
-<span class="s">        </span><span class="s">SELECT</span><span class="s"> </span><span class="s">*</span><span class="s">   </span>
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs4', 218)" onmouseover="showTip(event, 'fs4', 218)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs5', 219)" onmouseover="showTip(event, 'fs5', 219)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
+<span class="s">        </span><span class="s">SELECT</span><span class="s"> </span>
+<span class="s">            </span><span class="s">CurrencyRateID</span><span class="s">,</span>
+<span class="s">            </span><span class="s">CurrencyRateDate</span><span class="s">,</span>
+<span class="s">            </span><span class="s">FromCurrencyCode</span><span class="s">,</span>
+<span class="s">            </span><span class="s">ToCurrencyCode</span><span class="s">,</span>
+<span class="s">            </span><span class="s">AverageRate</span><span class="s">,</span>
+<span class="s">            </span><span class="s">EndOfDayRate</span>
 <span class="s">        </span><span class="s">FROM</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">CurrencyRate</span><span class="s"> </span>
 <span class="s">        </span><span class="s">WHERE</span><span class="s"> </span><span class="s">FromCurrencyCode</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">@</span><span class="s">from</span>
 <span class="s">            </span><span class="s">AND</span><span class="s"> </span><span class="s">ToCurrencyCode</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">@</span><span class="s">to</span>
 <span class="s">            </span><span class="s">AND</span><span class="s"> </span><span class="s">CurrencyRateDate</span><span class="s"> </span><span class="s">&gt;</span><span class="s"> </span><span class="s">@</span><span class="s">date</span>
-<span class="s">        </span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 188)" onmouseover="showTip(event, 'fs3', 188)" class="i">connectionString</span>, <span onmouseout="hideTip(event, 'fs16', 189)" onmouseover="showTip(event, 'fs16', 189)" class="i">ResultType</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs79', 190)" onmouseover="showTip(event, 'fs79', 190)" class="i">DataTable</span><span class="o">&gt;</span>()
+<span class="s">        </span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 220)" onmouseover="showTip(event, 'fs3', 220)" class="i">connectionString</span>, <span onmouseout="hideTip(event, 'fs16', 221)" onmouseover="showTip(event, 'fs16', 221)" class="i">ResultType</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs84', 222)" onmouseover="showTip(event, 'fs84', 222)" class="i">DataTable</span><span class="o">&gt;</span>()
     <span class="c">//ResultType.DataTable !!!</span>
-    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs80', 191)" onmouseover="showTip(event, 'fs80', 191)" class="i">currencyRates</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs4', 192)" onmouseover="showTip(event, 'fs4', 192)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs81', 193)" onmouseover="showTip(event, 'fs81', 193)" class="i">Execute</span>(<span class="s">&quot;</span><span class="s">USD</span><span class="s">&quot;</span>, <span class="s">&quot;</span><span class="s">GBP</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs8', 194)" onmouseover="showTip(event, 'fs8', 194)" class="i">DateTime</span>(<span class="n">2014</span>, <span class="n">1</span>, <span class="n">1</span>)) 
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs85', 223)" onmouseover="showTip(event, 'fs85', 223)" class="i">currencyRates</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs4', 224)" onmouseover="showTip(event, 'fs4', 224)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs86', 225)" onmouseover="showTip(event, 'fs86', 225)" class="i">Execute</span>(<span class="s">&quot;</span><span class="s">USD</span><span class="s">&quot;</span>, <span class="s">&quot;</span><span class="s">GBP</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs8', 226)" onmouseover="showTip(event, 'fs8', 226)" class="i">DateTime</span>(<span class="n">2014</span>, <span class="n">1</span>, <span class="n">1</span>)) 
 
-    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs82', 195)" onmouseover="showTip(event, 'fs82', 195)" class="i">latestModification</span> <span class="o">=</span>
-        <span onmouseout="hideTip(event, 'fs80', 196)" onmouseover="showTip(event, 'fs80', 196)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs83', 197)" onmouseover="showTip(event, 'fs83', 197)" class="i">Rows</span>
-        <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs60', 198)" onmouseover="showTip(event, 'fs60', 198)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs61', 199)" onmouseover="showTip(event, 'fs61', 199)" class="i">sortBy</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs84', 200)" onmouseover="showTip(event, 'fs84', 200)" class="i">x</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs84', 201)" onmouseover="showTip(event, 'fs84', 201)" class="i">x</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs85', 202)" onmouseover="showTip(event, 'fs85', 202)" class="i">ModifiedDate</span>)
-        <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs60', 203)" onmouseover="showTip(event, 'fs60', 203)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs63', 204)" onmouseover="showTip(event, 'fs63', 204)" class="i">last</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs87', 227)" onmouseover="showTip(event, 'fs87', 227)" class="i">latestModification</span> <span class="o">=</span>
+        <span onmouseout="hideTip(event, 'fs85', 228)" onmouseover="showTip(event, 'fs85', 228)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs88', 229)" onmouseover="showTip(event, 'fs88', 229)" class="i">Rows</span>
+        <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs60', 230)" onmouseover="showTip(event, 'fs60', 230)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs61', 231)" onmouseover="showTip(event, 'fs61', 231)" class="i">sortBy</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs89', 232)" onmouseover="showTip(event, 'fs89', 232)" class="i">x</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs89', 233)" onmouseover="showTip(event, 'fs89', 233)" class="i">x</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs90', 234)" onmouseover="showTip(event, 'fs90', 234)" class="i">CurrencyRateDate</span>)
+        <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs60', 235)" onmouseover="showTip(event, 'fs60', 235)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs63', 236)" onmouseover="showTip(event, 'fs63', 236)" class="i">last</span>
     
     <span class="c">//Delete</span>
-    <span onmouseout="hideTip(event, 'fs82', 205)" onmouseover="showTip(event, 'fs82', 205)" class="i">latestModification</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs64', 206)" onmouseover="showTip(event, 'fs64', 206)" class="i">Delete</span>()
+    <span onmouseout="hideTip(event, 'fs87', 237)" onmouseover="showTip(event, 'fs87', 237)" class="i">latestModification</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs64', 238)" onmouseover="showTip(event, 'fs64', 238)" class="i">Delete</span>()
 
     <span class="c">//Update</span>
-    <span class="k">for</span> <span onmouseout="hideTip(event, 'fs86', 207)" onmouseover="showTip(event, 'fs86', 207)" class="i">row</span> <span class="k">in</span> <span onmouseout="hideTip(event, 'fs80', 208)" onmouseover="showTip(event, 'fs80', 208)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs83', 209)" onmouseover="showTip(event, 'fs83', 209)" class="i">Rows</span> <span class="k">do</span>
-        <span class="k">if</span> <span onmouseout="hideTip(event, 'fs86', 210)" onmouseover="showTip(event, 'fs86', 210)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs66', 211)" onmouseover="showTip(event, 'fs66', 211)" class="i">RowState</span> <span class="o">&lt;&gt;</span> <span onmouseout="hideTip(event, 'fs67', 212)" onmouseover="showTip(event, 'fs67', 212)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs68', 213)" onmouseover="showTip(event, 'fs68', 213)" class="i">Data</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs69', 214)" onmouseover="showTip(event, 'fs69', 214)" class="i">DataRowState</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs70', 215)" onmouseover="showTip(event, 'fs70', 215)" class="i">Deleted</span>
+    <span class="k">for</span> <span onmouseout="hideTip(event, 'fs91', 239)" onmouseover="showTip(event, 'fs91', 239)" class="i">row</span> <span class="k">in</span> <span onmouseout="hideTip(event, 'fs85', 240)" onmouseover="showTip(event, 'fs85', 240)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs88', 241)" onmouseover="showTip(event, 'fs88', 241)" class="i">Rows</span> <span class="k">do</span>
+        <span class="k">if</span> <span onmouseout="hideTip(event, 'fs91', 242)" onmouseover="showTip(event, 'fs91', 242)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs66', 243)" onmouseover="showTip(event, 'fs66', 243)" class="i">RowState</span> <span class="o">&lt;&gt;</span> <span onmouseout="hideTip(event, 'fs67', 244)" onmouseover="showTip(event, 'fs67', 244)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs68', 245)" onmouseover="showTip(event, 'fs68', 245)" class="i">Data</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs69', 246)" onmouseover="showTip(event, 'fs69', 246)" class="i">DataRowState</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs70', 247)" onmouseover="showTip(event, 'fs70', 247)" class="i">Deleted</span>
         <span class="k">then</span> 
-            <span onmouseout="hideTip(event, 'fs86', 216)" onmouseover="showTip(event, 'fs86', 216)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs87', 217)" onmouseover="showTip(event, 'fs87', 217)" class="i">EndOfDayRate</span> <span class="o">&lt;-</span> <span onmouseout="hideTip(event, 'fs86', 218)" onmouseover="showTip(event, 'fs86', 218)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs87', 219)" onmouseover="showTip(event, 'fs87', 219)" class="i">EndOfDayRate</span> <span class="o">+</span> <span class="n">0.01M</span>
-            <span onmouseout="hideTip(event, 'fs86', 220)" onmouseover="showTip(event, 'fs86', 220)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs85', 221)" onmouseover="showTip(event, 'fs85', 221)" class="i">ModifiedDate</span> <span class="o">&lt;-</span> <span onmouseout="hideTip(event, 'fs8', 222)" onmouseover="showTip(event, 'fs8', 222)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 223)" onmouseover="showTip(event, 'fs9', 223)" class="i">Today</span>
+            <span onmouseout="hideTip(event, 'fs91', 248)" onmouseover="showTip(event, 'fs91', 248)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs92', 249)" onmouseover="showTip(event, 'fs92', 249)" class="i">EndOfDayRate</span> <span class="o">&lt;-</span> <span onmouseout="hideTip(event, 'fs91', 250)" onmouseover="showTip(event, 'fs91', 250)" class="i">row</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs92', 251)" onmouseover="showTip(event, 'fs92', 251)" class="i">EndOfDayRate</span> <span class="o">+</span> <span class="n">0.01M</span>
 
     <span class="c">//Insert</span>
-    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs88', 224)" onmouseover="showTip(event, 'fs88', 224)" class="i">newRecord</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs80', 225)" onmouseover="showTip(event, 'fs80', 225)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs89', 226)" onmouseover="showTip(event, 'fs89', 226)" class="i">NewRow</span>()
-    <span onmouseout="hideTip(event, 'fs88', 227)" onmouseover="showTip(event, 'fs88', 227)" class="i">newRecord</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs90', 228)" onmouseover="showTip(event, 'fs90', 228)" class="i">CurrencyRateDate</span> <span class="o">&lt;-</span> <span onmouseout="hideTip(event, 'fs8', 229)" onmouseover="showTip(event, 'fs8', 229)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 230)" onmouseover="showTip(event, 'fs9', 230)" class="i">Today</span>
-    <span onmouseout="hideTip(event, 'fs88', 231)" onmouseover="showTip(event, 'fs88', 231)" class="i">newRecord</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs91', 232)" onmouseover="showTip(event, 'fs91', 232)" class="i">FromCurrencyCode</span> <span class="o">&lt;-</span> <span class="s">&quot;</span><span class="s">USD</span><span class="s">&quot;</span>
-    <span onmouseout="hideTip(event, 'fs88', 233)" onmouseover="showTip(event, 'fs88', 233)" class="i">newRecord</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs92', 234)" onmouseover="showTip(event, 'fs92', 234)" class="i">ToCurrencyCode</span> <span class="o">&lt;-</span> <span class="s">&quot;</span><span class="s">GBP</span><span class="s">&quot;</span>
-    <span onmouseout="hideTip(event, 'fs88', 235)" onmouseover="showTip(event, 'fs88', 235)" class="i">newRecord</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs93', 236)" onmouseover="showTip(event, 'fs93', 236)" class="i">AverageRate</span> <span class="o">&lt;-</span> <span class="n">0.63219M</span>
-    <span onmouseout="hideTip(event, 'fs88', 237)" onmouseover="showTip(event, 'fs88', 237)" class="i">newRecord</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs87', 238)" onmouseover="showTip(event, 'fs87', 238)" class="i">EndOfDayRate</span> <span class="o">&lt;-</span> <span class="n">0.63219M</span>
-    <span onmouseout="hideTip(event, 'fs88', 239)" onmouseover="showTip(event, 'fs88', 239)" class="i">newRecord</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs85', 240)" onmouseover="showTip(event, 'fs85', 240)" class="i">ModifiedDate</span> <span class="o">&lt;-</span> <span onmouseout="hideTip(event, 'fs8', 241)" onmouseover="showTip(event, 'fs8', 241)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 242)" onmouseover="showTip(event, 'fs9', 242)" class="i">Today</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs93', 252)" onmouseover="showTip(event, 'fs93', 252)" class="i">newRecord</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs85', 253)" onmouseover="showTip(event, 'fs85', 253)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs94', 254)" onmouseover="showTip(event, 'fs94', 254)" class="i">NewRow</span>()
+    <span onmouseout="hideTip(event, 'fs93', 255)" onmouseover="showTip(event, 'fs93', 255)" class="i">newRecord</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs90', 256)" onmouseover="showTip(event, 'fs90', 256)" class="i">CurrencyRateDate</span> <span class="o">&lt;-</span> <span onmouseout="hideTip(event, 'fs8', 257)" onmouseover="showTip(event, 'fs8', 257)" class="i">DateTime</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 258)" onmouseover="showTip(event, 'fs9', 258)" class="i">Today</span>
+    <span onmouseout="hideTip(event, 'fs93', 259)" onmouseover="showTip(event, 'fs93', 259)" class="i">newRecord</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs95', 260)" onmouseover="showTip(event, 'fs95', 260)" class="i">FromCurrencyCode</span> <span class="o">&lt;-</span> <span class="s">&quot;</span><span class="s">USD</span><span class="s">&quot;</span>
+    <span onmouseout="hideTip(event, 'fs93', 261)" onmouseover="showTip(event, 'fs93', 261)" class="i">newRecord</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs96', 262)" onmouseover="showTip(event, 'fs96', 262)" class="i">ToCurrencyCode</span> <span class="o">&lt;-</span> <span class="s">&quot;</span><span class="s">GBP</span><span class="s">&quot;</span>
+    <span onmouseout="hideTip(event, 'fs93', 263)" onmouseover="showTip(event, 'fs93', 263)" class="i">newRecord</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs97', 264)" onmouseover="showTip(event, 'fs97', 264)" class="i">AverageRate</span> <span class="o">&lt;-</span> <span class="n">0.63219M</span>
+    <span onmouseout="hideTip(event, 'fs93', 265)" onmouseover="showTip(event, 'fs93', 265)" class="i">newRecord</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs92', 266)" onmouseover="showTip(event, 'fs92', 266)" class="i">EndOfDayRate</span> <span class="o">&lt;-</span> <span class="n">0.63219M</span>
 
-    <span onmouseout="hideTip(event, 'fs80', 243)" onmouseover="showTip(event, 'fs80', 243)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs83', 244)" onmouseover="showTip(event, 'fs83', 244)" class="i">Rows</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs94', 245)" onmouseover="showTip(event, 'fs94', 245)" class="i">Add</span> <span onmouseout="hideTip(event, 'fs88', 246)" onmouseover="showTip(event, 'fs88', 246)" class="i">newRecord</span>
+    <span onmouseout="hideTip(event, 'fs85', 267)" onmouseover="showTip(event, 'fs85', 267)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs88', 268)" onmouseover="showTip(event, 'fs88', 268)" class="i">Rows</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs98', 269)" onmouseover="showTip(event, 'fs98', 269)" class="i">Add</span> <span onmouseout="hideTip(event, 'fs93', 270)" onmouseover="showTip(event, 'fs93', 270)" class="i">newRecord</span>
 
-    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs72', 247)" onmouseover="showTip(event, 'fs72', 247)" class="i">totalRecords</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs80', 248)" onmouseover="showTip(event, 'fs80', 248)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs83', 249)" onmouseover="showTip(event, 'fs83', 249)" class="i">Rows</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs73', 250)" onmouseover="showTip(event, 'fs73', 250)" class="i">Count</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs72', 271)" onmouseover="showTip(event, 'fs72', 271)" class="i">totalRecords</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs85', 272)" onmouseover="showTip(event, 'fs85', 272)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs88', 273)" onmouseover="showTip(event, 'fs88', 273)" class="i">Rows</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs73', 274)" onmouseover="showTip(event, 'fs73', 274)" class="i">Count</span>
 
-    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs51', 251)" onmouseover="showTip(event, 'fs51', 251)" class="i">recordsAffected</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs80', 252)" onmouseover="showTip(event, 'fs80', 252)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs95', 253)" onmouseover="showTip(event, 'fs95', 253)" class="i">Update</span>(<span class="i">batchSize</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs72', 254)" onmouseover="showTip(event, 'fs72', 254)" class="i">totalRecords</span>) 
-    
-    <span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs51', 255)" onmouseover="showTip(event, 'fs51', 255)" class="i">recordsAffected</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs72', 256)" onmouseover="showTip(event, 'fs72', 256)" class="i">totalRecords</span>)</pre>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs51', 275)" onmouseover="showTip(event, 'fs51', 275)" class="i">recordsAffected</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs85', 276)" onmouseover="showTip(event, 'fs85', 276)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs99', 277)" onmouseover="showTip(event, 'fs99', 277)" class="i">Update</span>(<span class="i">batchSize</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs72', 278)" onmouseover="showTip(event, 'fs72', 278)" class="i">totalRecords</span>) 
+    <span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs51', 279)" onmouseover="showTip(event, 'fs51', 279)" class="i">recordsAffected</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs72', 280)" onmouseover="showTip(event, 'fs72', 280)" class="i">totalRecords</span>)</pre>
 </td>
 </tr>
 </table>
@@ -679,28 +746,32 @@ That said it's still possible to add rows with some static typing support.</p>
 <div class="tip" id="fs71">property SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.Row.EndOfDayRate: decimal<br /><em><br /><br />Final exchange rate for the day.</em></div>
 <div class="tip" id="fs72">val totalRecords : int</div>
 <div class="tip" id="fs73">property Collections.Generic.ICollection.Count: int</div>
-<div class="tip" id="fs74">namespace System.Data.SqlClient</div>
-<div class="tip" id="fs75">val adapter : SqlDataAdapter</div>
-<div class="tip" id="fs76">Multiple items<br />type SqlDataAdapter =<br />&#160;&#160;inherit DbDataAdapter<br />&#160;&#160;new : unit -&gt; SqlDataAdapter + 3 overloads<br />&#160;&#160;member DeleteCommand : SqlCommand with get, set<br />&#160;&#160;member InsertCommand : SqlCommand with get, set<br />&#160;&#160;member SelectCommand : SqlCommand with get, set<br />&#160;&#160;member UpdateBatchSize : int with get, set<br />&#160;&#160;member UpdateCommand : SqlCommand with get, set<br />&#160;&#160;event RowUpdated : SqlRowUpdatedEventHandler<br />&#160;&#160;event RowUpdating : SqlRowUpdatingEventHandler<br /><br />Full name: System.Data.SqlClient.SqlDataAdapter<br /><br />--------------------<br />SqlDataAdapter() : unit<br />SqlDataAdapter(selectCommand: SqlCommand) : unit<br />SqlDataAdapter(selectCommandText: string, selectConnectionString: string) : unit<br />SqlDataAdapter(selectCommandText: string, selectConnection: SqlConnection) : unit</div>
-<div class="tip" id="fs77">Data.Common.DbDataAdapter.Update(dataTable: Data.DataTable) : int<br />Data.Common.DbDataAdapter.Update(dataRows: Data.DataRow []) : int<br />Data.Common.DbDataAdapter.Update(dataSet: Data.DataSet) : int<br />Data.Common.DbDataAdapter.Update(dataSet: Data.DataSet, srcTable: string) : int</div>
-<div class="tip" id="fs78">val ignore : value:&#39;T -&gt; unit<br /><br />Full name: Microsoft.FSharp.Core.Operators.ignore</div>
-<div class="tip" id="fs79">ResultType.DataTable: ResultType = 2</div>
-<div class="tip" id="fs80">val currencyRates : DataTable&lt;SqlCommandProvider&lt;...&gt;.Row&gt;</div>
-<div class="tip" id="fs81">SqlCommandProvider&lt;...&gt;.Execute(from: string, to: string, date: DateTime) : DataTable&lt;SqlCommandProvider&lt;...&gt;.Row&gt;</div>
-<div class="tip" id="fs82">val latestModification : SqlCommandProvider&lt;...&gt;.Row</div>
-<div class="tip" id="fs83">property DataTable.Rows: Collections.Generic.IList&lt;SqlCommandProvider&lt;...&gt;.Row&gt;</div>
-<div class="tip" id="fs84">val x : SqlCommandProvider&lt;...&gt;.Row</div>
-<div class="tip" id="fs85">property SqlCommandProvider&lt;...&gt;.Row.ModifiedDate: DateTime</div>
-<div class="tip" id="fs86">val row : SqlCommandProvider&lt;...&gt;.Row</div>
-<div class="tip" id="fs87">property SqlCommandProvider&lt;...&gt;.Row.EndOfDayRate: decimal</div>
-<div class="tip" id="fs88">val newRecord : SqlCommandProvider&lt;...&gt;.Row</div>
-<div class="tip" id="fs89">member DataTable.NewRow : unit -&gt; &#39;T</div>
+<div class="tip" id="fs74">member DataTable.BulkCopy : ?connection:Data.SqlClient.SqlConnection * ?copyOptions:Data.SqlClient.SqlBulkCopyOptions * ?transaction:Data.SqlClient.SqlTransaction * ?batchSize:int * ?timeout:int -&gt; unit</div>
+<div class="tip" id="fs75">namespace System.Data.SqlClient</div>
+<div class="tip" id="fs76">val adapter : SqlDataAdapter</div>
+<div class="tip" id="fs77">Multiple items<br />type SqlDataAdapter =<br />&#160;&#160;inherit DbDataAdapter<br />&#160;&#160;new : unit -&gt; SqlDataAdapter + 3 overloads<br />&#160;&#160;member DeleteCommand : SqlCommand with get, set<br />&#160;&#160;member InsertCommand : SqlCommand with get, set<br />&#160;&#160;member SelectCommand : SqlCommand with get, set<br />&#160;&#160;member UpdateBatchSize : int with get, set<br />&#160;&#160;member UpdateCommand : SqlCommand with get, set<br />&#160;&#160;event RowUpdated : SqlRowUpdatedEventHandler<br />&#160;&#160;event RowUpdating : SqlRowUpdatingEventHandler<br /><br />Full name: System.Data.SqlClient.SqlDataAdapter<br /><br />--------------------<br />SqlDataAdapter() : unit<br />SqlDataAdapter(selectCommand: SqlCommand) : unit<br />SqlDataAdapter(selectCommandText: string, selectConnectionString: string) : unit<br />SqlDataAdapter(selectCommandText: string, selectConnection: SqlConnection) : unit</div>
+<div class="tip" id="fs78">Data.Common.DbDataAdapter.Update(dataTable: Data.DataTable) : int<br />Data.Common.DbDataAdapter.Update(dataRows: Data.DataRow []) : int<br />Data.Common.DbDataAdapter.Update(dataSet: Data.DataSet) : int<br />Data.Common.DbDataAdapter.Update(dataSet: Data.DataSet, srcTable: string) : int</div>
+<div class="tip" id="fs79">val ignore : value:&#39;T -&gt; unit<br /><br />Full name: Microsoft.FSharp.Core.Operators.ignore</div>
+<div class="tip" id="fs80">val bulkCopy : SqlBulkCopy</div>
+<div class="tip" id="fs81">Multiple items<br />type SqlBulkCopy =<br />&#160;&#160;new : connection:SqlConnection -&gt; SqlBulkCopy + 3 overloads<br />&#160;&#160;member BatchSize : int with get, set<br />&#160;&#160;member BulkCopyTimeout : int with get, set<br />&#160;&#160;member Close : unit -&gt; unit<br />&#160;&#160;member ColumnMappings : SqlBulkCopyColumnMappingCollection<br />&#160;&#160;member DestinationTableName : string with get, set<br />&#160;&#160;member NotifyAfter : int with get, set<br />&#160;&#160;member WriteToServer : reader:IDataReader -&gt; unit + 3 overloads<br />&#160;&#160;event SqlRowsCopied : SqlRowsCopiedEventHandler<br /><br />Full name: System.Data.SqlClient.SqlBulkCopy<br /><br />--------------------<br />SqlBulkCopy(connection: SqlConnection) : unit<br />SqlBulkCopy(connectionString: string) : unit<br />SqlBulkCopy(connectionString: string, copyOptions: SqlBulkCopyOptions) : unit<br />SqlBulkCopy(connection: SqlConnection, copyOptions: SqlBulkCopyOptions, externalTransaction: SqlTransaction) : unit</div>
+<div class="tip" id="fs82">property SqlProgrammabilityProvider&lt;...&gt;.Sales.Tables.CurrencyRate.ConnectionStringOrName: string</div>
+<div class="tip" id="fs83">SqlBulkCopy.WriteToServer(rows: Data.DataRow []) : unit<br />SqlBulkCopy.WriteToServer(table: Data.DataTable) : unit<br />SqlBulkCopy.WriteToServer(reader: Data.IDataReader) : unit<br />SqlBulkCopy.WriteToServer(table: Data.DataTable, rowState: Data.DataRowState) : unit</div>
+<div class="tip" id="fs84">ResultType.DataTable: ResultType = 2</div>
+<div class="tip" id="fs85">val currencyRates : DataTable&lt;SqlCommandProvider&lt;...&gt;.Row&gt;</div>
+<div class="tip" id="fs86">SqlCommandProvider&lt;...&gt;.Execute(from: string, to: string, date: DateTime) : DataTable&lt;SqlCommandProvider&lt;...&gt;.Row&gt;</div>
+<div class="tip" id="fs87">val latestModification : SqlCommandProvider&lt;...&gt;.Row</div>
+<div class="tip" id="fs88">property DataTable.Rows: Collections.Generic.IList&lt;SqlCommandProvider&lt;...&gt;.Row&gt;</div>
+<div class="tip" id="fs89">val x : SqlCommandProvider&lt;...&gt;.Row</div>
 <div class="tip" id="fs90">property SqlCommandProvider&lt;...&gt;.Row.CurrencyRateDate: DateTime</div>
-<div class="tip" id="fs91">property SqlCommandProvider&lt;...&gt;.Row.FromCurrencyCode: string</div>
-<div class="tip" id="fs92">property SqlCommandProvider&lt;...&gt;.Row.ToCurrencyCode: string</div>
-<div class="tip" id="fs93">property SqlCommandProvider&lt;...&gt;.Row.AverageRate: decimal</div>
-<div class="tip" id="fs94">Collections.Generic.ICollection.Add(item: SqlCommandProvider&lt;...&gt;.Row) : unit</div>
-<div class="tip" id="fs95">member DataTable.Update : ?connection:SqlConnection * ?transaction:SqlTransaction * ?batchSize:int -&gt; int</div>
+<div class="tip" id="fs91">val row : SqlCommandProvider&lt;...&gt;.Row</div>
+<div class="tip" id="fs92">property SqlCommandProvider&lt;...&gt;.Row.EndOfDayRate: decimal</div>
+<div class="tip" id="fs93">val newRecord : SqlCommandProvider&lt;...&gt;.Row</div>
+<div class="tip" id="fs94">member DataTable.NewRow : unit -&gt; &#39;T</div>
+<div class="tip" id="fs95">property SqlCommandProvider&lt;...&gt;.Row.FromCurrencyCode: string</div>
+<div class="tip" id="fs96">property SqlCommandProvider&lt;...&gt;.Row.ToCurrencyCode: string</div>
+<div class="tip" id="fs97">property SqlCommandProvider&lt;...&gt;.Row.AverageRate: decimal</div>
+<div class="tip" id="fs98">Collections.Generic.ICollection.Add(item: SqlCommandProvider&lt;...&gt;.Row) : unit</div>
+<div class="tip" id="fs99">member DataTable.Update : ?connection:SqlConnection * ?transaction:SqlTransaction * ?batchSize:int -&gt; int</div>
 
             </div>
 
