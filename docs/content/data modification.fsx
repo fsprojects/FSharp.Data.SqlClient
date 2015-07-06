@@ -125,9 +125,9 @@ assert (currencyRates.TableName = "[Sales].[CurrencyRate]")
 `TableName property` is set to appropriate value. 
 
 Collection of rows is reachable via `Rows` property of type `IList<#DataRow>`.
-This makes familiar list operations: Add, Remove, Insert etc. available for typed DataTable. 
+Familiar list operations: Add, Remove, Insert etc. are available for typed DataTable. 
 Typed column accessors are added to existing set of `DataRow` type members. 
-It make the intellisense experience a little clunky but it felt important to keep legacy `DataRow`
+An intellisense experience a little clunky but it felt important to keep legacy `DataRow`
 type members available for invocation. 
 
 <img src="img/DataRowTypedAccessors.png"/>
@@ -245,13 +245,55 @@ do
     assert (recordsAffected = totalRecords)
 
 (**
-Custom update logic
+
+<div class="well well-small" style="margin:0px 70px 0px 20px;">
+
+__WARNING__ Unfortunately Update method on typed data table doesn't have asynchronous version. 
+That's where command types provided by SqlCommandProvider have distinct advantage.
+
+</p></div>
+
+Bulk Load
 -------------------------------------
-Default update logic provided by typed Data Table can be not sufficient for some advanced scenarios. 
+
+Another useful scenario for typed data tables is bulk load. 
+It looks exactly like adding new rows except at the end you make a call to `BulkCopy` instead of `Update`.
+*)
+
+do
+    let currencyRates = new AdventureWorks.Sales.Tables.CurrencyRate()
+    let newRow = 
+        currencyRates.NewRow(
+            CurrencyRateDate = DateTime.Today, 
+            FromCurrencyCode = "USD", 
+            ToCurrencyCode = "GBP", 
+            AverageRate = 0.63219M, 
+            EndOfDayRate = 0.63219M,
+            ModifiedDate = DateTime.Today
+        )
+
+    currencyRates.Rows.Add newRow
+    //Insert many more rows here
+    currencyRates.BulkCopy(copyOptions = System.Data.SqlClient.SqlBulkCopyOptions.TableLock)
+
+(**
+
+There is one vcase 
+
+Custom update/bulk copy logic
+-------------------------------------
+Both Update and BulkCopy operations can be configured via parameters they accept (connection, transaction, batchSize etc) 
+That said, default update logic provided by typed Data Table can be not sufficient for some advanced scenarios. 
 It doesn't mean you need to give up on convenience of static typing. 
 Customize update behavior by creating you own instance of [SqlDataAdapter](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqldataadapter.aspx) 
-and configuring it to your needs. 
-You can find [SqlCommandBuilder](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlcommandbuilder.aspx) class useful for T-SQL generation.
+(or [SqlBulkCopy](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlbulkcopy.aspx)) and configuring it to your needs. 
+
+<div class="well well-small" style="margin:0px 70px 0px 20px;">
+
+__TI__ You can find [SqlCommandBuilder](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlcommandbuilder.aspx) 
+class useful for T-SQL generation.
+
+</p></div>
 
 Pseudo code for custom data adapter:
 *)
@@ -261,39 +303,60 @@ open System.Data.SqlClient
 do
     let currencyRates = new AdventureWorks.Sales.Tables.CurrencyRate()
     //load, update, delete, insert rows 
+    // ...
     use adapter = new SqlDataAdapter()
     //configure adapter: setup select command, transaction etc.
+    // ...
     adapter.Update( currencyRates) |> ignore
+
+//Similarly for custom bulk copy:
     
+do
+    let currencyRates = new AdventureWorks.Sales.Tables.CurrencyRate()
+    //load, update, delete, insert rows 
+    // ...
+    //configure bulkCopy: copyOptions, connectoin, transaction, timeout, batch size etc.
+    use bulkCopy = new SqlBulkCopy(AdventureWorks.Sales.Tables.CurrencyRate.ConnectionStringOrName)
+    // ...
+    bulkCopy.WriteToServer( currencyRates) |> ignore
+
+
+
 (**
 Transaction and connection management
 -------------------------------------
 Please read [Transactions](transactions.html) chapter of the documentation.
-Pay particular attention to *DataTable Updates/Bulk* Load section.
+Pay particular attention to *DataTable Updates/Bulk Load* section.
 
 Query-derived tables
 -------------------------------------
 
 There is a way to get your hands on typed data table by specifying ResultType.DataTable as output type 
-for SqlCommandProvider generated command type. 
+for `SqlCommandProvider` generated command type. 
 This approach gives a flexibility at a cost of leaving more room for error. 
 To begin with an output projection should be suitable for sending changes back to a database. 
 It rules out transformations, extensive joins etc. 
 Basically only raw columns for a single table make good candidates for persistable changes. 
-Typed data table class you get back by executing command with ResultType.DataTable is in large similar to one 
-describe above. One noticeable difference is absence of parametrized AddRow/NewRow method. This is intentional. 
+Typed data table class you get back by executing command with `ResultType.DataTable` is in large similar to one 
+describe above. One noticeable difference is absence of parametrized `AddRow`/`NewRow` method. This is intentional. 
 Updating, deleting or merging rows are most likely scenarios where this can be useful. 
 For update/delete/merge logic to work properly primary key (or unique index) columns must be included 
-into column selection. To insert new records use static data tables types generated by SqlProgrammbilityProvider. 
-That said it’s still possible to add rows with some static typing support. 
+into column selection. To insert new records use static data tables types generated by `SqlProgrammbilityProvider`. 
+That said it's still possible to add rows with some static typing support. 
 
-One of the example above can be re-written as 
+One of the examples above can be re-written as 
 *)
 
 do
     //CurrencyRateID is included
     use cmd = new SqlCommandProvider<"
-        SELECT *   
+        SELECT 
+            CurrencyRateID,
+            CurrencyRateDate,
+            FromCurrencyCode,
+            ToCurrencyCode,
+            AverageRate,
+            EndOfDayRate
         FROM Sales.CurrencyRate 
         WHERE FromCurrencyCode = @from
             AND ToCurrencyCode = @to
@@ -304,38 +367,30 @@ do
 
     let latestModification =
         currencyRates.Rows
-        |> Seq.sortBy (fun x -> x.ModifiedDate)
+        |> Seq.sortBy (fun x -> x.CurrencyRateDate)
         |> Seq.last
-
+    
+    //Delete
     latestModification.Delete()
 
+    //Update
     for row in currencyRates.Rows do
         if row.RowState <> System.Data.DataRowState.Deleted
         then 
             row.EndOfDayRate <- row.EndOfDayRate + 0.01M
-            row.ModifiedDate <- DateTime.Today
 
-
+    //Insert
     let newRecord = currencyRates.NewRow()
     newRecord.CurrencyRateDate <- DateTime.Today
     newRecord.FromCurrencyCode <- "USD"
     newRecord.ToCurrencyCode <- "GBP"
     newRecord.AverageRate <- 0.63219M
     newRecord.EndOfDayRate <- 0.63219M
-    newRecord.ModifiedDate <- DateTime.Today
 
     currencyRates.Rows.Add newRecord
 
     let totalRecords = currencyRates.Rows.Count
 
     let recordsAffected = currencyRates.Update(batchSize = totalRecords) 
-    printfn "totalRecords: %i, recordsAffected: %i" totalRecords recordsAffected
     assert (recordsAffected = totalRecords)
 
-(**
-
-<div class="well well-small" style="margin:0px 70px 0px 20px;">
-**WARNING** Unfortunately Update method on typed data table doesn't have asynchronous version. 
-</p></div>
-    
-*)

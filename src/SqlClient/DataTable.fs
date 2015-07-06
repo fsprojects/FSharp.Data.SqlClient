@@ -72,7 +72,7 @@ type DataTable<'T when 'T :> DataRow>(tableName, selectCommand) =
 
         dataAdapter.Update(this)
 
-    member this.BulkCopy(?connection, ?copyOptions, ?transaction, ?batchSize, ?timeout) = 
+    member this.BulkCopy(?connection, ?copyOptions, ?transaction, ?batchSize, ?timeout: TimeSpan) = 
         
         let connection = defaultArg connection selectCommand.Connection
         use __ = connection.UseLocally()
@@ -84,7 +84,7 @@ type DataTable<'T when 'T :> DataRow>(tableName, selectCommand) =
             )
         bulkCopy.DestinationTableName <- tableName
         batchSize |> Option.iter bulkCopy.set_BatchSize
-        timeout |> Option.iter bulkCopy.set_BulkCopyTimeout
+        timeout |> Option.iter (fun x -> bulkCopy.BulkCopyTimeout <- int x.TotalSeconds)
         bulkCopy.WriteToServer this
 
 
