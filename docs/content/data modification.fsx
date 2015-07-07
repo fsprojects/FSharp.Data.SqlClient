@@ -12,13 +12,12 @@ let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integr
 Data modification
 ===================
 
-Library supports different ways to send data modifications to Sql Server. 
-
+FSharp.Data.SqlClient supports multiple approaches to send data modifications to Sql Server. 
 
 Hand-written DML statements
 -------------------------------------
 
-The most obvious approach is to explicitly written DML statements combined with SqlCommandProvider.
+Write DML statements using `SqlCommandProvider`:
 
 *)
 
@@ -43,7 +42,7 @@ do
     assert (recordsInserted = 1)
 
 (**
-This works any kind of data modification statement: _INSERT_, _UPDATE_, _DELETE_, _MERGE_ etc.
+This works for any kind of data modification statement: _INSERT_, _UPDATE_, _DELETE_, _MERGE_ etc.
 
 Stored Procedures
 -------------------------------------
@@ -87,48 +86,45 @@ let recordsAffrected =
 assert(recordsAffrected = 1)
 
 let updatedJobTitle = 
-    // Static Create factory method provides better than ctor intellisense.
+    // Static Create factory method provides better IntelliSense than ctor.
     // See https://github.com/Microsoft/visualfsharp/issues/449
     use cmd = new AdventureWorks.dbo.ufnGetContactInformation()
 
-    //Use ExecuteSingle if you're sure it return 0 or 1 rows
+    //Use ExecuteSingle if you're sure it return 0 or 1 rows.
     let result = cmd.ExecuteSingle(PersonID = jamesKramerId) 
     result.Value.JobTitle.Value
 
 assert(newJobTitle = updatedJobTitle)
 
-
 (**
 
-
-Statically typed DataTable
+Statically-typed DataTable
 -------------------------------------
 
-Both hand-written T-SQL and stored procedures methods have significant downside - it requires tedious coding. 
-It gets worse when different kinds of modification (inserts, updates, deletes, merges) for same entity need to be issued. 
-In most cases it forces to have command/stored procedure per modification type. 
-`SqlProgrammabilityProvider` offers elegant solution based on ADO.NET [DataTable](https://msdn.microsoft.com/en-us/library/system.data.datatable.aspx) 
-class with static types on a top. 
-To certain extend this is similar to ancient, almost forgotten [Generating Strongly Typed DataSets](https://msdn.microsoft.com/en-us/library/wha85tzb.aspx) 
-technique except that epic F# feature [Type Providers](https://msdn.microsoft.com/en-us/library/hh156509.aspx) 
+Both hand-written T-SQL and stored procedures have a significant downside: it requires tedious coding. 
+It gets worse when different kinds of modifications -- inserts, updates, deletes, merges -- need to be issued for the same entity.
+In most cases you are forced to have one command/stored procedure per modification type. 
+`SqlProgrammabilityProvider` offers an elegant solution based on the ADO.NET [DataTable](https://msdn.microsoft.com/en-us/library/system.data.datatable.aspx) 
+class with static types on top. 
+To a certain extent, this is similar to the ancient, almost forgotten [Generating Strongly Typed DataSets](https://msdn.microsoft.com/en-us/library/wha85tzb.aspx) 
+technique except that the epic F# [Type Providers](https://msdn.microsoft.com/en-us/library/hh156509.aspx) feature
 streamlines the whole development experience. 
 
-Using `Sales.CurrencyRate` table as example let see how's generated table type is different from it's base [DataTable](https://msdn.microsoft.com/en-us/library/system.data.datatable.aspx) type. 
+Using `Sales.CurrencyRate` table as an example, let's see how a generated table type is different from its base [DataTable](https://msdn.microsoft.com/en-us/library/system.data.datatable.aspx) type. 
 
-Generated tables type names follow a pattern: _TypeAliasForRoot_._SchemaName_.__Tables__._TableName_
+Generated table type names follow a consistent pattern: _TypeAliasForRoot_._SchemaName_._Tables_._TableName_
 *)
 
 let currencyRates = new AdventureWorks.Sales.Tables.CurrencyRate()
 assert (currencyRates.TableName = "[Sales].[CurrencyRate]")
 
 (**
-`TableName property` is set to appropriate value. 
+The type provider generates an expected value for the `TableName` property. 
 
-Collection of rows is reachable via `Rows` property of type `IList<#DataRow>`.
-Familiar list operations: Add, Remove, Insert etc. are available for typed DataTable. 
-Typed column accessors are added to existing set of `DataRow` type members. 
-An intellisense experience a little clunky but it felt important to keep legacy `DataRow`
-type members available for invocation. 
+The `Rows` property, of type `IList<#DataRow>`, provides access to the rows within the table.
+Familiar list operations are available for typed DataTable: Add, Remove, Insert etc.
+Typed column accessors are added to the existing set of `DataRow` type members. 
+The IntelliSense experience is left a little clunky to retain legacy `DataRow` type members.
 
 <img src="img/DataRowTypedAccessors.png"/>
 
@@ -138,7 +134,7 @@ let firstRow = currencyRates.Rows.[0]
 firstRow.AverageRate
 
 (**
-Method `AddRow` adds a new row to a table. 
+The `AddRow` method adds a new row to a table. 
 
 <img src="img/AddRow.png"/>
 
@@ -147,8 +143,8 @@ Method `AddRow` adds a new row to a table.
 - Nullable columns are mappend to parameters of type `option<_>`
 - Columns with `DEFAULT` constraint are also represented as parameters of type `option<_>`. 
 This is more convenient that specifying DEFAULT as a value in INSERT statement
-- Both kinds of parameters - for nullable columns or columns with defaults - can be omitted from invocation
-- Minor but nice feature is ability to retrieve `MS_Description` which works only for Sql Server 
+- Both kinds of parameters -- nullable columns or columns with defaults -- can be omitted from invocation
+- Minor but nice feature is the ability to retrieve `MS_Description`, which works only for Sql Server 
   because Sql Azure doesn't support extended properties.  
 *)
 do
@@ -158,10 +154,9 @@ do
         ToCurrencyCode = CurrencyCode.``United Kingdom Pound``, 
         AverageRate = 0.63219M, 
         EndOfDayRate = 0.63219M)
-(** Side-effectful `AddRow` makes easier to add rows in type-safe manner. 
-Pair of invocations to `NewRow` and `Rows.Add` can be used as alternative. 
-This approach also makes sense if for some reason you need to keep a reference to newly added 
-for further manipulations.  
+(** Side-effecting `AddRow` makes it easier to add rows in type-safe manner. 
+A pair of invocations to `NewRow` and `Rows.Add` can be used as an alternative. 
+This approach also makes sense if for some reason you need to keep a reference to a newly added row for further manipulations.  
 *)
 do 
     let newRow = 
@@ -178,7 +173,7 @@ do
 
 (**
 
-With this knowledge in mind example at top the page can be re-written as 
+With this knowledge in mind, the example at top the page can be re-written as follows:
 *)
 
 do
@@ -200,12 +195,12 @@ do
 (**
 - Call to `Update` is required to push changes into a database 
 - `CurrencyRateID` IDENTITY column and all fields with DEFAULT constraints that didn't have value specified are 
-refreshed after update from database. This is very cool feature. **It works only for `BatchSize` = 1** which is default. 
-Of course it's applicable only to new data rows (ones that cause INSERT statement to be issued). 
+refreshed after an update from the database. This is a very cool feature. **It works only for `BatchSize` = 1**, which is the default. 
+Of course it's applicable only to new data rows (that issue an INSERT statement). 
 Follow [this link](https://msdn.microsoft.com/en-us/library/aadf8fk2.aspx) to find out more about batch updates. 
 
 The snippet below demonstrates update and delete logic. 
-Note how combining SqlCommandProvider to load existing data with typed data tables produces simple and safe code. 
+Note how combining `SqlCommandProvider` to load existing data with typed data tables produces simple and safe code. 
 *)
 
 do
@@ -222,13 +217,13 @@ do
     cmd.Execute("USD", "GBP", DateTime(2014, 1, 1)) |> currencyRates.Load
 
     let latestModification =
-        //manipulate Rows as any sequence
+        //manipulate Rows as a sequence
         currencyRates.Rows
         |> Seq.sortBy (fun x -> x.ModifiedDate)
         |> Seq.last
 
     latestModification.Delete()
-    //or use list operatoin
+    //or use list operation
     //currencyRates.Rows.Remove latestModification
 
     //adjust rates slightly
@@ -248,15 +243,15 @@ do
 
 <div class="well well-small" style="margin:0px 70px 0px 20px;">
 
-__WARNING__ Unfortunately Update method on typed data table doesn't have asynchronous version. 
-That's where command types provided by SqlCommandProvider have distinct advantage.
+__WARNING__ Unfortunately, the `Update` method on the typed data table doesn't have an asynchronous version. 
+Command types provided by SqlCommandProvider have distinct advantage when you need asynchronous invocation.
 
 </p></div>
 
 Bulk Load
 -------------------------------------
 
-Another useful scenario for typed data tables is bulk load. 
+Bulk loading is another useful scenario for typed data tables. 
 It looks exactly like adding new rows except at the end you make a call to `BulkCopy` instead of `Update`.
 *)
 
@@ -278,14 +273,12 @@ do
 
 (**
 
-There is one vcase 
-
 Custom update/bulk copy logic
 -------------------------------------
-Both Update and BulkCopy operations can be configured via parameters they accept (connection, transaction, batchSize etc) 
-That said, default update logic provided by typed Data Table can be not sufficient for some advanced scenarios. 
-It doesn't mean you need to give up on convenience of static typing. 
-Customize update behavior by creating you own instance of [SqlDataAdapter](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqldataadapter.aspx) 
+Both `Update` and `BulkCopy` operations can be configured via parameters, i.e. connection, transaction, batchSize, etc.
+That said, default update logic provided by typed DataTable can be insufficient for some advanced scenarios. 
+You don't need to give up on convenience of static typing, however. You can also 
+customize update behavior by creating your own instance of [SqlDataAdapter](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqldataadapter.aspx) 
 (or [SqlBulkCopy](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlbulkcopy.aspx)) and configuring it to your needs. 
 
 <div class="well well-small" style="margin:0px 70px 0px 20px;">
@@ -295,7 +288,7 @@ class useful for T-SQL generation.
 
 </p></div>
 
-Pseudo code for custom data adapter:
+Pseudocode for custom data adapter:
 *)
 
 open System.Data.SqlClient
@@ -331,18 +324,18 @@ Pay particular attention to *DataTable Updates/Bulk Load* section.
 Query-derived tables
 -------------------------------------
 
-There is a way to get your hands on typed data table by specifying ResultType.DataTable as output type 
-for `SqlCommandProvider` generated command type. 
-This approach gives a flexibility at a cost of leaving more room for error. 
-To begin with an output projection should be suitable for sending changes back to a database. 
+You can get your hands on a typed data table by specifying ResultType.DataTable as the output type 
+for `SqlCommandProvider` generated command types. 
+This approach gives flexibility at a cost of leaving more room for error. 
+An output projection should be suitable for sending changes back to a database. 
 It rules out transformations, extensive joins etc. 
-Basically only raw columns for a single table make good candidates for persistable changes. 
-Typed data table class you get back by executing command with `ResultType.DataTable` is in large similar to one 
-describe above. One noticeable difference is absence of parametrized `AddRow`/`NewRow` method. This is intentional. 
-Updating, deleting or merging rows are most likely scenarios where this can be useful. 
-For update/delete/merge logic to work properly primary key (or unique index) columns must be included 
-into column selection. To insert new records use static data tables types generated by `SqlProgrammbilityProvider`. 
-That said it's still possible to add rows with some static typing support. 
+Only raw columns for a single table make good candidates for persistable changes. 
+The typed `DataTable` class you get back by executing a command with `ResultType.DataTable` is largely similar to the one 
+describe above. One noticeable difference is the absence of the parametrized `AddRow`/`NewRow` method. This is intentional. 
+Updating, deleting or merging rows are the most likely scenarios where this can be useful. 
+For update/delete/merge logic to work properly, primary key (or unique index) columns must be included 
+in column selection. To insert new records, use static data table types generated by `SqlProgrammbilityProvider`. 
+That said, it's still possible to add rows with some static typing support. 
 
 One of the examples above can be re-written as 
 *)
