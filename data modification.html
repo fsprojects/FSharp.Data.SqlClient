@@ -36,11 +36,11 @@
                 
 <h1>Data modification</h1>
 
-<p>Library supports different ways to send data modifications to Sql Server.</p>
+<p>FSharp.Data.SqlClient supports multiple approaches to send data modifications to Sql Server.</p>
 
 <h2>Hand-written DML statements</h2>
 
-<p>The most obvious approach is to explicitly written DML statements combined with SqlCommandProvider.</p>
+<p>Write DML statements using <code>SqlCommandProvider</code>:</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
@@ -88,7 +88,7 @@
 </tr>
 </table>
 
-<p>This works any kind of data modification statement: <em>INSERT</em>, <em>UPDATE</em>, <em>DELETE</em>, <em>MERGE</em> etc.</p>
+<p>This works for any kind of data modification statement: <em>INSERT</em>, <em>UPDATE</em>, <em>DELETE</em>, <em>MERGE</em> etc.</p>
 
 <h2>Stored Procedures</h2>
 
@@ -179,11 +179,11 @@
 <span class="k">assert</span>(<span onmouseout="hideTip(event, 'fs22', 47)" onmouseover="showTip(event, 'fs22', 47)" class="i">recordsAffrected</span> <span class="o">=</span> <span class="n">1</span>)
 
 <span class="k">let</span> <span onmouseout="hideTip(event, 'fs28', 48)" onmouseover="showTip(event, 'fs28', 48)" class="i">updatedJobTitle</span> <span class="o">=</span> 
-    <span class="c">// Static Create factory method provides better than ctor intellisense.</span>
+    <span class="c">// Static Create factory method provides better IntelliSense than ctor.</span>
     <span class="c">// See https://github.com/Microsoft/visualfsharp/issues/449</span>
     <span class="k">use</span> <span onmouseout="hideTip(event, 'fs29', 49)" onmouseover="showTip(event, 'fs29', 49)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs10', 50)" onmouseover="showTip(event, 'fs10', 50)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs30', 51)" onmouseover="showTip(event, 'fs30', 51)" class="i">dbo</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs31', 52)" onmouseover="showTip(event, 'fs31', 52)" class="i">ufnGetContactInformation</span>()
 
-    <span class="c">//Use ExecuteSingle if you&#39;re sure it return 0 or 1 rows</span>
+    <span class="c">//Use ExecuteSingle if you&#39;re sure it return 0 or 1 rows.</span>
     <span class="k">let</span> <span onmouseout="hideTip(event, 'fs32', 53)" onmouseover="showTip(event, 'fs32', 53)" class="i">result</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs29', 54)" onmouseover="showTip(event, 'fs29', 54)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs33', 55)" onmouseover="showTip(event, 'fs33', 55)" class="i">ExecuteSingle</span>(<span class="i">PersonID</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs12', 56)" onmouseover="showTip(event, 'fs12', 56)" class="i">jamesKramerId</span>) 
     <span onmouseout="hideTip(event, 'fs32', 57)" onmouseover="showTip(event, 'fs32', 57)" class="i">result</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs34', 58)" onmouseover="showTip(event, 'fs34', 58)" class="i">Value</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs35', 59)" onmouseover="showTip(event, 'fs35', 59)" class="i">JobTitle</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs36', 60)" onmouseover="showTip(event, 'fs36', 60)" class="i">Value</span>
 
@@ -192,20 +192,20 @@
 </tr>
 </table>
 
-<h2>Statically typed DataTable</h2>
+<h2>Statically-typed DataTable</h2>
 
-<p>Both hand-written T-SQL and stored procedures methods have significant downside - it requires tedious coding. 
-It gets worse when different kinds of modification (inserts, updates, deletes, merges) for same entity need to be issued. 
-In most cases it forces to have command/stored procedure per modification type. 
-<code>SqlProgrammabilityProvider</code> offers elegant solution based on ADO.NET <a href="https://msdn.microsoft.com/en-us/library/system.data.datatable.aspx">DataTable</a> 
-class with static types on a top. 
-To certain extend this is similar to ancient, almost forgotten <a href="https://msdn.microsoft.com/en-us/library/wha85tzb.aspx">Generating Strongly Typed DataSets</a> 
-technique except that epic F# feature <a href="https://msdn.microsoft.com/en-us/library/hh156509.aspx">Type Providers</a> 
+<p>Both hand-written T-SQL and stored procedures have a significant downside: it requires tedious coding. 
+It gets worse when different kinds of modifications -- inserts, updates, deletes, merges -- need to be issued for the same entity.
+In most cases you are forced to have one command/stored procedure per modification type. 
+<code>SqlProgrammabilityProvider</code> offers an elegant solution based on the ADO.NET <a href="https://msdn.microsoft.com/en-us/library/system.data.datatable.aspx">DataTable</a> 
+class with static types on top. 
+To a certain extent, this is similar to the ancient, almost forgotten <a href="https://msdn.microsoft.com/en-us/library/wha85tzb.aspx">Generating Strongly Typed DataSets</a> 
+technique except that the epic F# <a href="https://msdn.microsoft.com/en-us/library/hh156509.aspx">Type Providers</a> feature
 streamlines the whole development experience.</p>
 
-<p>Using <code>Sales.CurrencyRate</code> table as example let see how's generated table type is different from it's base <a href="https://msdn.microsoft.com/en-us/library/system.data.datatable.aspx">DataTable</a> type.</p>
+<p>Using <code>Sales.CurrencyRate</code> table as an example, let's see how a generated table type is different from its base <a href="https://msdn.microsoft.com/en-us/library/system.data.datatable.aspx">DataTable</a> type.</p>
 
-<p>Generated tables type names follow a pattern: <em>TypeAliasForRoot</em>.<em>SchemaName</em>.<strong>Tables</strong>.<em>TableName</em></p>
+<p>Generated table type names follow a consistent pattern: <em>TypeAliasForRoot</em>.<em>SchemaName</em>.<em>Tables</em>.<em>TableName</em></p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
@@ -219,13 +219,12 @@ streamlines the whole development experience.</p>
 </tr>
 </table>
 
-<p><code>TableName property</code> is set to appropriate value.</p>
+<p>The type provider generates an expected value for the <code>TableName</code> property.</p>
 
-<p>Collection of rows is reachable via <code>Rows</code> property of type <code>IList&lt;#DataRow&gt;</code>.
-Familiar list operations: Add, Remove, Insert etc. are available for typed DataTable. 
-Typed column accessors are added to existing set of <code>DataRow</code> type members. 
-An intellisense experience a little clunky but it felt important to keep legacy <code>DataRow</code>
-type members available for invocation.</p>
+<p>The <code>Rows</code> property, of type <code>IList&lt;#DataRow&gt;</code>, provides access to the rows within the table.
+Familiar list operations are available for typed DataTable: Add, Remove, Insert etc.
+Typed column accessors are added to the existing set of <code>DataRow</code> type members. 
+The IntelliSense experience is left a little clunky to retain legacy <code>DataRow</code> type members.</p>
 
 <img src="img/DataRowTypedAccessors.png"/>
 
@@ -241,7 +240,7 @@ type members available for invocation.</p>
 </tr>
 </table>
 
-<p>Method <code>AddRow</code> adds a new row to a table.</p>
+<p>The <code>AddRow</code> method adds a new row to a table.</p>
 
 <img src="img/AddRow.png"/>
 
@@ -251,8 +250,8 @@ type members available for invocation.</p>
 <li>Nullable columns are mappend to parameters of type <code>option&lt;_&gt;</code></li>
 <li>Columns with <code>DEFAULT</code> constraint are also represented as parameters of type <code>option&lt;_&gt;</code>. 
 This is more convenient that specifying DEFAULT as a value in INSERT statement</li>
-<li>Both kinds of parameters - for nullable columns or columns with defaults - can be omitted from invocation</li>
-<li>Minor but nice feature is ability to retrieve <code>MS_Description</code> which works only for Sql Server 
+<li>Both kinds of parameters -- nullable columns or columns with defaults -- can be omitted from invocation</li>
+<li>Minor but nice feature is the ability to retrieve <code>MS_Description</code>, which works only for Sql Server 
 because Sql Azure doesn't support extended properties.</li>
 </ul>
 
@@ -278,10 +277,9 @@ because Sql Azure doesn't support extended properties.</li>
 </tr>
 </table>
 
-<p>Side-effectful <code>AddRow</code> makes easier to add rows in type-safe manner. 
-Pair of invocations to <code>NewRow</code> and <code>Rows.Add</code> can be used as alternative. 
-This approach also makes sense if for some reason you need to keep a reference to newly added 
-for further manipulations.</p>
+<p>Side-effecting <code>AddRow</code> makes it easier to add rows in type-safe manner. 
+A pair of invocations to <code>NewRow</code> and <code>Rows.Add</code> can be used as an alternative. 
+This approach also makes sense if for some reason you need to keep a reference to a newly added row for further manipulations.</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
@@ -315,7 +313,7 @@ for further manipulations.</p>
 </tr>
 </table>
 
-<p>With this knowledge in mind example at top the page can be re-written as</p>
+<p>With this knowledge in mind, the example at top the page can be re-written as follows:</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
@@ -358,13 +356,13 @@ for further manipulations.</p>
 <ul>
 <li>Call to <code>Update</code> is required to push changes into a database</li>
 <li><code>CurrencyRateID</code> IDENTITY column and all fields with DEFAULT constraints that didn't have value specified are 
-refreshed after update from database. This is very cool feature. <strong>It works only for <code>BatchSize</code> = 1</strong> which is default.
-Of course it's applicable only to new data rows (ones that cause INSERT statement to be issued).
+refreshed after an update from the database. This is a very cool feature. <strong>It works only for <code>BatchSize</code> = 1</strong>, which is the default.
+Of course it's applicable only to new data rows (that issue an INSERT statement).
 Follow <a href="https://msdn.microsoft.com/en-us/library/aadf8fk2.aspx">this link</a> to find out more about batch updates.</li>
 </ul>
 
 <p>The snippet below demonstrates update and delete logic. 
-Note how combining SqlCommandProvider to load existing data with typed data tables produces simple and safe code.</p>
+Note how combining <code>SqlCommandProvider</code> to load existing data with typed data tables produces simple and safe code.</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
@@ -419,13 +417,13 @@ Note how combining SqlCommandProvider to load existing data with typed data tabl
     <span onmouseout="hideTip(event, 'fs4', 128)" onmouseover="showTip(event, 'fs4', 128)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs57', 129)" onmouseover="showTip(event, 'fs57', 129)" class="i">Execute</span>(<span class="s">&quot;</span><span class="s">USD</span><span class="s">&quot;</span>, <span class="s">&quot;</span><span class="s">GBP</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs8', 130)" onmouseover="showTip(event, 'fs8', 130)" class="i">DateTime</span>(<span class="n">2014</span>, <span class="n">1</span>, <span class="n">1</span>)) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs50', 131)" onmouseover="showTip(event, 'fs50', 131)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs58', 132)" onmouseover="showTip(event, 'fs58', 132)" class="i">Load</span>
 
     <span class="k">let</span> <span onmouseout="hideTip(event, 'fs59', 133)" onmouseover="showTip(event, 'fs59', 133)" class="i">latestModification</span> <span class="o">=</span>
-        <span class="c">//manipulate Rows as any sequence</span>
+        <span class="c">//manipulate Rows as a sequence</span>
         <span onmouseout="hideTip(event, 'fs50', 134)" onmouseover="showTip(event, 'fs50', 134)" class="i">currencyRates</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs43', 135)" onmouseover="showTip(event, 'fs43', 135)" class="i">Rows</span>
         <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs60', 136)" onmouseover="showTip(event, 'fs60', 136)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs61', 137)" onmouseover="showTip(event, 'fs61', 137)" class="i">sortBy</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs62', 138)" onmouseover="showTip(event, 'fs62', 138)" class="i">x</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs62', 139)" onmouseover="showTip(event, 'fs62', 139)" class="i">x</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs55', 140)" onmouseover="showTip(event, 'fs55', 140)" class="i">ModifiedDate</span>)
         <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs60', 141)" onmouseover="showTip(event, 'fs60', 141)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs63', 142)" onmouseover="showTip(event, 'fs63', 142)" class="i">last</span>
 
     <span onmouseout="hideTip(event, 'fs59', 143)" onmouseover="showTip(event, 'fs59', 143)" class="i">latestModification</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs64', 144)" onmouseover="showTip(event, 'fs64', 144)" class="i">Delete</span>()
-    <span class="c">//or use list operatoin</span>
+    <span class="c">//or use list operation</span>
     <span class="c">//currencyRates.Rows.Remove latestModification</span>
 
     <span class="c">//adjust rates slightly</span>
@@ -446,14 +444,14 @@ Note how combining SqlCommandProvider to load existing data with typed data tabl
 
 <div class="well well-small" style="margin:0px 70px 0px 20px;">
 
-<p><strong>WARNING</strong> Unfortunately Update method on typed data table doesn't have asynchronous version. 
-That's where command types provided by SqlCommandProvider have distinct advantage.</p>
+<p><strong>WARNING</strong> Unfortunately, the <code>Update</code> method on the typed data table doesn't have an asynchronous version. 
+Command types provided by SqlCommandProvider have distinct advantage when you need asynchronous invocation.</p>
 
 </p></div>
 
 <h2>Bulk Load</h2>
 
-<p>Another useful scenario for typed data tables is bulk load. 
+<p>Bulk loading is another useful scenario for typed data tables. 
 It looks exactly like adding new rows except at the end you make a call to <code>BulkCopy</code> instead of <code>Update</code>.</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
@@ -494,17 +492,15 @@ It looks exactly like adding new rows except at the end you make a call to <code
 </tr>
 </table>
 
-<p>There is one vcase</p>
-
 <h2>Custom update/bulk copy logic</h2>
 
-<p>Both Update and BulkCopy operations can be configured via parameters they accept (connection, transaction, batchSize etc) 
-That said, default update logic provided by typed Data Table can be not sufficient for some advanced scenarios. 
-It doesn't mean you need to give up on convenience of static typing. 
-Customize update behavior by creating you own instance of <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqldataadapter.aspx">SqlDataAdapter</a> 
+<p>Both <code>Update</code> and <code>BulkCopy</code> operations can be configured via parameters, i.e. connection, transaction, batchSize, etc.
+That said, default update logic provided by typed DataTable can be insufficient for some advanced scenarios. 
+You don't need to give up on convenience of static typing, however. You can also 
+customize update behavior by creating your own instance of <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqldataadapter.aspx">SqlDataAdapter</a> 
 (or <a href="https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlbulkcopy.aspx">SqlBulkCopy</a>) and configuring it to your needs.</p>
 
-<p>Pseudo code for custom data adapter:</p>
+<p>Pseudocode for custom data adapter:</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
@@ -563,18 +559,18 @@ Pay particular attention to <em>DataTable Updates/Bulk Load</em> section.</p>
 
 <h2>Query-derived tables</h2>
 
-<p>There is a way to get your hands on typed data table by specifying ResultType.DataTable as output type 
-for <code>SqlCommandProvider</code> generated command type. 
-This approach gives a flexibility at a cost of leaving more room for error. 
-To begin with an output projection should be suitable for sending changes back to a database. 
+<p>You can get your hands on a typed data table by specifying ResultType.DataTable as the output type 
+for <code>SqlCommandProvider</code> generated command types. 
+This approach gives flexibility at a cost of leaving more room for error. 
+An output projection should be suitable for sending changes back to a database. 
 It rules out transformations, extensive joins etc. 
-Basically only raw columns for a single table make good candidates for persistable changes. 
-Typed data table class you get back by executing command with <code>ResultType.DataTable</code> is in large similar to one 
-describe above. One noticeable difference is absence of parametrized <code>AddRow</code>/<code>NewRow</code> method. This is intentional. 
-Updating, deleting or merging rows are most likely scenarios where this can be useful. 
-For update/delete/merge logic to work properly primary key (or unique index) columns must be included 
-into column selection. To insert new records use static data tables types generated by <code>SqlProgrammbilityProvider</code>. 
-That said it's still possible to add rows with some static typing support.</p>
+Only raw columns for a single table make good candidates for persistable changes. 
+The typed <code>DataTable</code> class you get back by executing a command with <code>ResultType.DataTable</code> is largely similar to the one 
+describe above. One noticeable difference is the absence of the parametrized <code>AddRow</code>/<code>NewRow</code> method. This is intentional. 
+Updating, deleting or merging rows are the most likely scenarios where this can be useful. 
+For update/delete/merge logic to work properly, primary key (or unique index) columns must be included 
+in column selection. To insert new records, use static data table types generated by <code>SqlProgrammbilityProvider</code>. 
+That said, it's still possible to add rows with some static typing support.</p>
 
 <p>One of the examples above can be re-written as</p>
 
