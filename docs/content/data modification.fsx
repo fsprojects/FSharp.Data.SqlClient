@@ -281,13 +281,6 @@ You don't need to give up on convenience of static typing, however. You can also
 customize update behavior by creating your own instance of [SqlDataAdapter](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqldataadapter.aspx) 
 (or [SqlBulkCopy](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlbulkcopy.aspx)) and configuring it to your needs. 
 
-<div class="well well-small" style="margin:0px 70px 0px 20px;">
-
-__TI__ You can find [SqlCommandBuilder](https://msdn.microsoft.com/en-us/library/system.data.sqlclient.sqlcommandbuilder.aspx) 
-class useful for T-SQL generation.
-
-</p></div>
-
 Pseudocode for custom data adapter:
 *)
 
@@ -298,7 +291,7 @@ do
     //load, update, delete, insert rows 
     // ...
     use adapter = new SqlDataAdapter()
-    //configure adapter: setup select command, transaction etc.
+    //configure adapter: setup select, insert, update, delete commands, transaction etc.
     // ...
     adapter.Update( currencyRates) |> ignore
 
