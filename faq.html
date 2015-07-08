@@ -1,0 +1,138 @@
+      <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>FAQ
+</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way. SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code.">
+    <meta name="author" content="Dmitry Morozov, Dmitry Sevastianov">
+
+    <script src="http://code.jquery.com/jquery-1.8.0.js"></script>
+    <script src="http://code.jquery.com/ui/1.8.23/jquery-ui.js"></script>
+    <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
+    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet">
+
+    <link type="text/css" rel="stylesheet" href="/FSharp.Data.SqlClient/content/style.css" />
+    <script type="text/javascript" src="/FSharp.Data.SqlClient/content/tips.js"></script>
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+</head>
+<body>
+    <div class="container">
+        <div class="masthead">
+            <ul class="nav nav-pills pull-right">
+                <li><a href="http://fsharp.org">fsharp.org</a></li>
+                <li><a href="http://fsprojects.github.io/">fsprojects</a></li>
+                <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient">github page</a></li>
+            </ul>
+            <h3 class="muted">FSharp.Data.SqlClient</h3>
+        </div>
+        <hr />
+        <div class="row">
+            <div class="span9" id="main">
+                
+<h1>FAQ</h1>
+
+<h2>How do I pass NULL as parameter value to <code>SqlCommandProvider</code> generated commands?</h2>
+
+<p>By default SqlCommandProvider treat all parameters as mandatory.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">do</span>
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs2', 2)" onmouseover="showTip(event, 'fs2', 2)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">ISNULL</span><span class="s">(</span><span class="s">@</span><span class="s">x</span><span class="s">,</span><span class="s"> </span><span class="s">42</span><span class="s">)</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 3)" onmouseover="showTip(event, 'fs3', 3)" class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>()
+    <span onmouseout="hideTip(event, 'fs1', 4)" onmouseover="showTip(event, 'fs1', 4)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs4', 5)" onmouseover="showTip(event, 'fs4', 5)" class="i">Execute</span>( <span onmouseout="hideTip(event, 'fs5', 6)" onmouseover="showTip(event, 'fs5', 6)" class="i">x</span> <span class="o">=</span> <span class="c">(* must pass int value here *)</span> <span class="n">1</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs6', 7)" onmouseover="showTip(event, 'fs6', 7)" class="i">stdout</span><span class="o">.</span><span class="i">WriteLine</span></pre>
+</td>
+</tr>
+</table>
+
+<p>There is no way to pass NULL as value for parameter <code>@x</code> although the query knows how to handle it.</p>
+
+<p>To resolve the issue specify <code>AllParametersOptional = true</code> as static parameter to type provider. 
+It makes all parameters of type <code>option&lt;_&gt;</code> with default value <code>None</code>. 
+Note <strong>this is not same as F# optional parameters</strong> but mimics them closely.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+<span class="l">5: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">do</span> 
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs1', 8)" onmouseover="showTip(event, 'fs1', 8)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs2', 9)" onmouseover="showTip(event, 'fs2', 9)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">ISNULL</span><span class="s">(</span><span class="s">@</span><span class="s">x</span><span class="s">,</span><span class="s"> </span><span class="s">42</span><span class="s">)</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 10)" onmouseover="showTip(event, 'fs3', 10)" class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span>, <span class="i">AllParametersOptional</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>()
+    <span onmouseout="hideTip(event, 'fs1', 11)" onmouseover="showTip(event, 'fs1', 11)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs7', 12)" onmouseover="showTip(event, 'fs7', 12)" class="i">Execute</span>( <span class="c">(* Pass parameter value. Specifying Some constructor is mandatrory. *)</span> <span onmouseout="hideTip(event, 'fs8', 13)" onmouseover="showTip(event, 'fs8', 13)" class="i">x</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs9', 14)" onmouseover="showTip(event, 'fs9', 14)" class="i">Some</span> <span class="n">1</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs6', 15)" onmouseover="showTip(event, 'fs6', 15)" class="i">stdout</span><span class="o">.</span><span class="i">WriteLine</span>
+    <span onmouseout="hideTip(event, 'fs1', 16)" onmouseover="showTip(event, 'fs1', 16)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs7', 17)" onmouseover="showTip(event, 'fs7', 17)" class="i">Execute</span>( <span class="c">(* Pass NULL *)</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs6', 18)" onmouseover="showTip(event, 'fs6', 18)" class="i">stdout</span><span class="o">.</span><span class="i">WriteLine</span>
+    <span onmouseout="hideTip(event, 'fs1', 19)" onmouseover="showTip(event, 'fs1', 19)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs7', 20)" onmouseover="showTip(event, 'fs7', 20)" class="i">Execute</span>( <span class="c">(* Pass NULL explicitly *)</span> <span onmouseout="hideTip(event, 'fs8', 21)" onmouseover="showTip(event, 'fs8', 21)" class="i">x</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs10', 22)" onmouseover="showTip(event, 'fs10', 22)" class="i">None</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs6', 23)" onmouseover="showTip(event, 'fs6', 23)" class="i">stdout</span><span class="o">.</span><span class="i">WriteLine</span></pre>
+</td>
+</tr>
+</table>
+
+<div class="tip" id="fs1">val cmd : SqlCommandProvider&lt;...&gt;</div>
+<div class="tip" id="fs2">type SqlCommandProvider<br /><br />Full name: FSharp.Data.SqlCommandProvider<br /><em><br /><br /><br />&lt;summary&gt;Typed representation of a T-SQL statement to execute against a SQL Server database.&lt;/summary&gt; <br />&lt;param name=&#39;CommandText&#39;&gt;Transact-SQL statement to execute at the data source.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.&lt;/param&gt;<br />&lt;param name=&#39;SingleRow&#39;&gt;If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;AllParametersOptional&#39;&gt;If set all parameters become optional. NULL input values must be handled inside T-SQL.&lt;/param&gt;<br />&lt;param name=&#39;ResolutionFolder&#39;&gt;A folder to be used to resolve relative file paths to *.sql script files at compile time. The default value is the folder that contains the project or script.&lt;/param&gt;<br />&lt;param name=&#39;DataDirectory&#39;&gt;The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.&lt;/param&gt;<br /></em></div>
+<div class="tip" id="fs3">val connectionString : string<br /><br />Full name: Faq.connectionString</div>
+<div class="tip" id="fs4">SqlCommandProvider&lt;...&gt;.Execute(x: int) : Option&lt;int&gt;</div>
+<div class="tip" id="fs5">argument x : int</div>
+<div class="tip" id="fs6">val stdout&lt;&#39;T&gt; : System.IO.TextWriter<br /><br />Full name: Microsoft.FSharp.Core.Operators.stdout</div>
+<div class="tip" id="fs7">SqlCommandProvider&lt;...&gt;.Execute(?x: int) : Option&lt;int&gt;</div>
+<div class="tip" id="fs8">argument x : Option&lt;int&gt;</div>
+<div class="tip" id="fs9">union case Option.Some: Value: &#39;T -&gt; Option&lt;&#39;T&gt;</div>
+<div class="tip" id="fs10">union case Option.None: Option&lt;&#39;T&gt;</div>
+
+            </div>
+
+            <div class="span3">
+                <a href="http://www.nuget.org/packages/FSharp.Data.SqlClient">
+                    <img src="img/logo.png" style="width: 200px; height: 200px; margin: 10px 0px 0px 35px; border-style: none;" />
+                </a>
+                <ul class="nav nav-list" id="menu">
+                    <li class="nav-header">F# SqlClient</li>
+                    <li><a href="/FSharp.Data.SqlClient/index.html">Home page</a></li>
+                    <li class="divider"></li>
+                    <li><a href="http://www.nuget.org/packages/FSharp.Data.SqlClient">Get Library via NuGet</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient">Source Code on GitHub</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient/blob/master/LICENSE.md">License</a></li>
+                    <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
+
+                    <li class="nav-header">Documentation</li>
+                    <li><a href="/FSharp.Data.SqlClient/configuration and input.html">Configuration and Input</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/output.html">Output</a></li>
+                    <li class="divider"></li>
+                    <li><a href="/FSharp.Data.SqlClient/data modification.html">Data Modification</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/transactions.html">Transactions</a></li>
+                    <li class="divider"></li>
+                    <li><a href="/FSharp.Data.SqlClient/comparison.html">Comparison</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/reference architecture.html">Reference architecture</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/samples.html">Sample applications</a></li>
+                    <li><a href="/FSharp.Data.SqlClient/dynamic local db.html">Dynamic local db</a></li>
+
+                    <li class="divider"></li>
+                    <li><a href="/FSharp.Data.SqlClient/sqlprogrammabilityprovider.quickstart.html">SqlProgrammability</a></li>
+
+                    <li class="divider"></li>
+                    <li><a href="/FSharp.Data.SqlClient/sqlenumprovider.quickstart.html">SqlEnumProvider</a></li>
+
+                    <li class="nav-header">Tools</li>
+                    <li><a href="http://tpetricek.github.io/FSharp.Formatting/">F# Formatting</a></li>
+                    <li><a href="http://fsharp.github.io/FAKE/">FAKE</a></li>
+                    <li><a href="http://fsprojects.github.io/ProjectScaffold/">F# open-source project scaffolding</a></li>
+                    <li><a href="http://tomasp.net/blog/2013/great-open-source/index.html">Building great open-source libraries</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <a href="http://github.com/fsprojects/FSharp.Data.SqlClient">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub">
+    </a>
+</body>
+</html>
