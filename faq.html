@@ -36,7 +36,17 @@
                 
 <h1>FAQ</h1>
 
-<h2>How do I pass NULL as parameter value to <code>SqlCommandProvider</code> generated commands?</h2>
+<h3>How do I specify default value for a parameter?</h3>
+
+<p><code>SqlCommandProvider</code> generates parameters for all unbounds T-SQL script variables. 
+By definition those variables don�t have default value. 
+One workaround is to assume NULL as default value (see next item).
+The other option is to have default value logic in F# code.</p>
+
+<p>T-SQL stored procedures and function parameters can have default values. 
+<code>SqlProgrammabilityProvider</code> fully supports this scenario.</p>
+
+<h3>How do I pass NULL as parameter value?</h3>
 
 <p>By default SqlCommandProvider treat all parameters as mandatory.</p>
 
