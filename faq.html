@@ -36,7 +36,9 @@
                 
 <h1>FAQ</h1>
 
-<h3>How do I specify default value for a parameter?</h3>
+<ol>
+<li>###How do I specify default value for a parameter?</li>
+</ol>
 
 <p><code>SqlCommandProvider</code> generates parameters for all unbounds T-SQL script variables. 
 By definition those variables don't have default value. 
@@ -47,7 +49,9 @@ The other option is to have default value logic in application code.</p>
 consider wrapping it into stored procedure or function. Both accept default values for parameters. 
 <code>SqlProgrammabilityProvider</code> supports this scenario by mapping it to .NET method parameters with default values.</p>
 
-<h3>How do I pass NULL as parameter value?</h3>
+<ol>
+<li>### How do I pass NULL as parameter value?</li>
+</ol>
 
 <p>By default SqlCommandProvider treat all parameters as mandatory.</p>
 
