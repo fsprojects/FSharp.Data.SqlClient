@@ -43,8 +43,9 @@ By definition those variables don't have default value.
 One workaround is to assume NULL as default value (see next item).
 The other option is to have default value logic in application code.</p>
 
-<p>T-SQL stored procedures and function parameters can have default values. 
-<code>SqlProgrammabilityProvider</code> fully supports this scenario.</p>
+<p>If you feel strongly about having default parameter values defined in T-SQL 
+consider wrapping it into stored procedure of function. Both accept default values for parameters. 
+<code>SqlProgrammabilityProvider</code> supports this scenario by mapping it to .NET method parameters with default values.</p>
 
 <h3>How do I pass NULL as parameter value?</h3>
 
@@ -71,7 +72,7 @@ It makes all parameters of type <code>option&lt;_&gt;</code> with default value 
 
 <div class="well well-small" style="margin:0px 70px 0px 20px;">
 
-<p><strong>Note</strong> This is not same as F# optional parameters<em></em> but it mimics them closely.
+<p><strong>Note</strong> This is not same as F# optional parameters<em></em> but mimics them closely.
 Unfortunately type providers in general restricted to emit .NET 1.1 types only. 
 No generics, no F# specific types/annotations which includes optional parameters.</p>
 
@@ -104,7 +105,7 @@ No generics, no F# specific types/annotations which includes optional parameters
     <span class="c">// Pass parameter value. Specifying Some constructor is mandatrory.</span>
     <span onmouseout="hideTip(event, 'fs1', 11)" onmouseover="showTip(event, 'fs1', 11)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs7', 12)" onmouseover="showTip(event, 'fs7', 12)" class="i">Execute</span>( <span onmouseout="hideTip(event, 'fs8', 13)" onmouseover="showTip(event, 'fs8', 13)" class="i">Some</span> <span class="n">1</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs6', 14)" onmouseover="showTip(event, 'fs6', 14)" class="i">stdout</span><span class="o">.</span><span class="i">WriteLine</span>
 
-    <span class="c">// Pass NULL </span>
+    <span class="c">// Pass NULL by omitting parameter</span>
     <span onmouseout="hideTip(event, 'fs1', 15)" onmouseover="showTip(event, 'fs1', 15)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs7', 16)" onmouseover="showTip(event, 'fs7', 16)" class="i">Execute</span>() <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs6', 17)" onmouseover="showTip(event, 'fs6', 17)" class="i">stdout</span><span class="o">.</span><span class="i">WriteLine</span>
 
     <span class="c">//Pass NULL explicitly</span>
