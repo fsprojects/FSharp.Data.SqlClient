@@ -135,7 +135,7 @@ For example, an attempt to use following query will fail:
     WHEN @x % 5 = 0 THEN 'Buzz' 
     ELSE CAST(@x AS NVARCHAR) 
 
-You can work around this by declaring a local intermediate variable in t-sql script and assigning a paramater in question to that variable.
+You can work around this by declaring a local intermediate variable in t-sql script and assigning a parameter in question to that variable.
 *)
     
 type FizzOrBuzz = SqlCommandProvider<"
