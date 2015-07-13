@@ -242,7 +242,7 @@ type DesignTime private() =
         )
         |> Seq.toList
 
-    static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, udtts: ProvidedTypeDefinition list) = 
+    static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, udttsPerSchema: System.Collections.Generic.Dictionary<_, ProvidedTypeDefinition>) = 
         [
             for p in sqlParameters do
                 assert p.Name.StartsWith("@")
@@ -260,9 +260,8 @@ type DesignTime private() =
                         assert(p.Direction = ParameterDirection.Input)
 
                         let userDefinedTableTypeRow = 
-                            match udtts |> List.tryFind (fun x -> x.Name = p.TypeInfo.UdttName) with
-                            | Some x -> x
-                            | None ->
+                            if udttsPerSchema = null
+                            then //SqlCommandProvider case
                                 let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<obj>, HideObjectMethods = true)
                                 cmdProvidedType.AddMember rowType
                                 let parameters = [ 
@@ -281,6 +280,9 @@ type DesignTime private() =
                                 rowType.AddMember ctor
                             
                                 rowType
+                            else //SqlProgrammability
+                                let udtt = udttsPerSchema.[p.TypeInfo.Schema].GetNestedType(p.TypeInfo.UdttName)
+                                downcast udtt
 
                         ProvidedParameter(
                             parameterName, 

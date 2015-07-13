@@ -153,7 +153,10 @@ type DataTablesTests() =
 
         //default values
         Assert.Equal(t.Rows.[1].ModifiedDate, yesterday)
-        Assert.Equal(t.Rows.[0].ModifiedDate.Date, DateTime.Today)
+        let serverDate = //because Azure in UTC
+            use cmd = new SqlCommandProvider<"SELECT GetDate()", ConnectionStrings.AdventureWorksNamed, SingleRow = true>()
+            cmd.Execute().Value
+        Assert.Equal(t.Rows.[0].ModifiedDate.Date, serverDate.Date)
 
     [<Fact>]
     member __.UpdatesPlusAmbientTransaction() = 

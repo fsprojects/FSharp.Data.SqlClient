@@ -160,27 +160,24 @@ type Routine =
     | TableValuedFunction of schema: string * name: string * definition: string
     | ScalarValuedFunction of schema: string * name: string * definition: string
 
-    member this.Name = 
-        match this with
-        | StoredProcedure(_, name, _) | TableValuedFunction(_, name, _) | ScalarValuedFunction(_, name, _) -> name
-
     member this.Definition = 
         match this with
         | StoredProcedure(_, _, definition) | TableValuedFunction(_, _, definition) | ScalarValuedFunction(_, _, definition) -> definition
 
     member this.TwoPartName = 
         match this with
-        | StoredProcedure(schema, name, _) | TableValuedFunction(schema, name, _) | ScalarValuedFunction(schema, name, _) -> sprintf "%s.%s" schema name
+        | StoredProcedure(schema, name, _) | TableValuedFunction(schema, name, _) | ScalarValuedFunction(schema, name, _) -> schema, name
 
     member this.IsStoredProc = match this with StoredProcedure _ -> true | _ -> false
     
-    member this.CommantText(parameters: Parameter list) = 
+    member this.ToCommantText(parameters: Parameter list) = 
+        let twoPartNameIdentifier = sprintf "%s.%s" <|| this.TwoPartName
         match this with 
-        | StoredProcedure _-> this.TwoPartName
+        | StoredProcedure _-> twoPartNameIdentifier
         | TableValuedFunction _ -> 
-            parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT * FROM %s(%s)" this.TwoPartName
+            parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT * FROM %s(%s)" twoPartNameIdentifier
         | ScalarValuedFunction _ ->     
-            parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT %s(%s)" this.TwoPartName
+            parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT %s(%s)" twoPartNameIdentifier
 
 type SqlConnection with
 
@@ -207,7 +204,7 @@ type SqlConnection with
 
     member internal this.GetUserSchemas() = 
         use __ = this.UseLocally()
-        use cmd = new SqlCommand("SELECT name FROM SYS.SCHEMAS WHERE principal_id = 1", this)
+        use cmd = new SqlCommand("SELECT name FROM sys.schemas WHERE principal_id = 1", this)
         cmd.ExecuteQuery(fun record -> record.GetString(0)) |> Seq.toList
 
     member internal this.GetRoutines( schema) = 
@@ -255,26 +252,22 @@ type SqlConnection with
                 "(SELECT NULL AS Value)"
             else 
                 let routineType = if routine.IsStoredProc then "PROCEDURE" else "FUNCTION"
-                sprintf "fn_listextendedproperty ('MS_Description', 'schema', SPECIFIC_SCHEMA, '%s', SPECIFIC_NAME, 'PARAMETER', ps.PARAMETER_NAME)" routineType 
+                sprintf "fn_listextendedproperty ('MS_Description', 'schema', OBJECT_SCHEMA_NAME(object_id), '%s', OBJECT_NAME(object_id), 'PARAMETER', p.name)" routineType 
 
         let query = sprintf "
-            SELECT 
-                ps.PARAMETER_NAME AS name
-                ,CAST(ts.system_type_id AS INT) AS suggested_system_type_id
-                ,ts.user_type_id AS suggested_user_type_id
-                ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_output
-                ,CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'IN' THEN 1 WHEN 'INOUT' THEN 1 ELSE 0 END) AS suggested_is_input 
-                ,suggested_is_output = CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'INOUT' THEN 1 ELSE 0 END) 
-                ,suggested_is_input = CONVERT(BIT, CASE ps.PARAMETER_MODE WHEN 'IN' THEN 1 WHEN 'INOUT' THEN 1 ELSE 0 END)   
-                ,description = ISNULL(XProp.Value, '')
-            FROM INFORMATION_SCHEMA.PARAMETERS AS ps
-	            JOIN sys.types AS ts ON 
-		            ps.PARAMETER_NAME <> '' 
-		            AND (ts.is_user_defined = 0 OR ts.schema_id = SCHEMA_ID(SPECIFIC_SCHEMA))
-		            AND (ps.DATA_TYPE = ts.name OR (ps.DATA_TYPE = 'table type' AND ps.USER_DEFINED_TYPE_NAME = ts.name))
+            SELECT
+	            p.name
+	            ,system_type_id AS suggested_system_type_id
+	            ,user_type_id AS suggested_user_type_id
+	            ,is_output AS suggested_is_output
+	            ,CAST( IIF(is_output = 1, 0, 1) AS BIT) AS suggested_is_input
+	            ,description = ISNULL(XProp.Value, '')
+            FROM sys.all_parameters AS p
                 OUTER APPLY %s AS XProp
-            WHERE SPECIFIC_CATALOG = db_name() AND CONCAT(SPECIFIC_SCHEMA,'.',SPECIFIC_NAME) = '%s'
-            ORDER BY ORDINAL_POSITION" descriptionSelector routine.TwoPartName
+            WHERE
+                p.Name <> '' 
+                AND OBJECT_ID('%s.%s') = object_id" descriptionSelector <|| routine.TwoPartName
+
 
         use cmd = new SqlCommand( query, this)
         cmd.ExecuteQuery(fun record -> 
@@ -287,7 +280,7 @@ type SqlConnection with
                     assert(unbox record.["suggested_is_input"])
                     ParameterDirection.Input 
 
-            let system_type_id: int = unbox record.["suggested_system_type_id"]
+            let system_type_id: int = unbox<byte> record.["suggested_system_type_id"] |> int
             let user_type_id = record.TryGetValue "suggested_user_type_id"
 
             let typeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, system_type_id, user_type_id)

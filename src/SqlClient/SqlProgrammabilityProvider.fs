@@ -90,30 +90,36 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         let tagProvidedType(t: ProvidedTypeDefinition) =
             t.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
 
-        databaseRootType.AddMembersDelayed <| fun () ->
+        let schemas = 
             conn.GetUserSchemas() 
-            |> List.map (fun schema ->
-                let schemaRoot = ProvidedTypeDefinition(schema, baseType = Some typeof<obj>, HideObjectMethods = true)
-                schemaRoot.AddMembersDelayed <| fun() -> 
-                    [
-                        let udtts = this.UDTTs (conn.ConnectionString, schema)
-                        udtts |> List.iter tagProvidedType
-                        let udttsRoot = ProvidedTypeDefinition("User-Defined Table Types", Some typeof<obj>)
-                        udttsRoot.AddMembers udtts
-                        yield udttsRoot
+            |> List.map (fun schema -> ProvidedTypeDefinition(schema, baseType = Some typeof<obj>, HideObjectMethods = true))
+        
+        databaseRootType.AddMembers schemas
 
-                        let routines = this.Routines(conn, schema, udtts, resultType, isByName, connectionStringName, connectionStringOrName)
-                        routines |> List.iter tagProvidedType
-                        yield! routines
+        let uddtsPerSchema = Dictionary()
 
-                        yield this.Tables(conn, schema, isByName, connectionStringName, connectionStringOrName, tagProvidedType)
-                    ]
-                schemaRoot            
-            )
+        for schemaType in schemas do
+            let udttsRoot = ProvidedTypeDefinition("User-Defined Table Types", Some typeof<obj>)
+            udttsRoot.AddMembersDelayed <| fun () -> 
+                this.UDTTs (conn.ConnectionString, schemaType.Name, tagProvidedType)
+
+            uddtsPerSchema.Add( schemaType.Name, udttsRoot)
+            schemaType.AddMember udttsRoot
+                
+        for schemaType in schemas do
+
+            schemaType.AddMembersDelayed <| fun() -> 
+                [
+                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, resultType, isByName, connectionStringName, connectionStringOrName)
+                    routines |> List.iter tagProvidedType
+                    yield! routines
+
+                    yield this.Tables(conn, schemaType.Name, isByName, connectionStringName, connectionStringOrName, tagProvidedType)
+                ]
 
         databaseRootType           
 
-     member internal __.UDTTs( connStr, schema) = [
+     member internal __.UDTTs( connStr, schema, tagProvidedType) = [
         for t in dataTypeMappings.[connStr] do
             if t.TableType && t.Schema = schema
             then 
@@ -135,17 +141,18 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                 rowType.AddMember ctor
                 rowType.AddXmlDoc "User-Defined Table Type"
+                tagProvidedType rowType
                 yield rowType
     ]
 
-    member internal __.Routines(conn, schema, udtts, resultType, isByName, connectionStringName, connectionStringOrName) = 
+    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, isByName, connectionStringName, connectionStringOrName) = 
         [
             use _ = conn.UseLocally()
             let isSqlAzure = conn.IsSqlAzure
             let routines = conn.GetRoutines( schema) 
             for routine in routines do
              
-                let cmdProvidedType = ProvidedTypeDefinition(routine.Name, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
+                let cmdProvidedType = ProvidedTypeDefinition(snd routine.TwoPartName, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
                 cmdProvidedType.AddXmlDoc <| 
                     match routine with 
                     | StoredProcedure _ -> "Stored Procedure"
@@ -158,7 +165,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         use __ = conn.UseLocally()
                         let parameters = conn.GetParameters( routine, isSqlAzure)
 
-                        let commandText = routine.CommantText(parameters)
+                        let commandText = routine.ToCommantText(parameters)
                         let outputColumns = 
                             if resultType <> ResultType.DataReader
                             then 
@@ -220,7 +227,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         yield upcast ProvidedConstructor(ctor2Params, InvokeCode = ctor2Body)
                         yield upcast ProvidedMethod("Create", ctor2Params, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = ctor2Body)
 
-                        let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, udtts)
+                        let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, uddtsPerSchema)
 
                         yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, output.ProvidedType, "Execute") 
                             

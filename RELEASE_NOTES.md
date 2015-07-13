@@ -178,3 +178,6 @@
 	* Issue #137 - support single column select in SqlEnumProvider - natural keys case
 	* Issue #135 - create xml doc from MS_Description ext.prop for routines and params
 	* Issue #130 - help section dedicated to database updates
+
+#### 1.7.4 - July 13, 2015
+	* Issue #145 - Stored Procedure and TVP params from diff schemas

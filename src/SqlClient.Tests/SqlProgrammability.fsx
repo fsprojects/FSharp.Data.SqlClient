@@ -1,5 +1,5 @@
 #r "../../bin/Fsharp.Data.SqlClient.dll"
-#r "../../bin/Microsoft.SqlServer.Types.dll"
+#r "Microsoft.SqlServer.Types.dll"
 #load "ConnectionStrings.fs"
 open System
 open System.Data
@@ -13,8 +13,11 @@ let connectionString = ConnectionStrings.AdventureWorksLiteral
 [<Literal>] 
 let prodConnectionString = ConnectionStrings.MasterDb
 
-type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
-type dbo = AdventureWorks2012.dbo
+type AdventureWorks = SqlProgrammabilityProvider<connectionString>
+type dbo = AdventureWorks.dbo
+
+let cmd = new AdventureWorks.Person.MyProc2()
+//cmd.ExecuteSingle()
 //type HumanResources = AdventureWorks2012.HumanResources
 //type Person = AdventureWorks2012.Person
 //type Production = AdventureWorks2012.Production

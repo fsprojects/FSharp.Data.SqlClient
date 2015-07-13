@@ -189,7 +189,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         do  //AsyncExecute, Execute, and ToTraceString
 
-            let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, udtts = [])
+            let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, udttsPerSchema = null)
 
             let addRedirectToISqlCommandMethod outputType name = 
                 DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, outputType, name) 

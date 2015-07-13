@@ -197,3 +197,16 @@ let SpWithParamOfTvpWithNullableColumns2() =
         [| 1, None; 2, Some "donkey" |],
         [| for x in cmd.Execute( p) -> x.myId, x.myName |]
     )
+
+[<Fact>]
+let SpAndTVPinDiffSchema() = 
+    use cmd = new AdventureWorks.Person.MyProc2()
+    let p = [
+        DboMyTableType(myId = 1)
+        DboMyTableType(myId = 2, myName = Some "donkey")
+    ]
+    let actual = [| for x in cmd.Execute( p) -> x.myId, x.myName |]
+    Assert.Equal<_ []>(
+        [| 1, None; 2, Some "donkey" |],
+        [| for x in cmd.Execute( p) -> x.myId, x.myName |]
+    )
