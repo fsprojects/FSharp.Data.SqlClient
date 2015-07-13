@@ -38,7 +38,7 @@
 
 <h3>1. How do I specify default value for a parameter?</h3>
 
-<p><code>SqlCommandProvider</code> generates parameters for all unbounds T-SQL script variables. 
+<p><code>SqlCommandProvider</code> generates parameters for all unbound T-SQL script variables. 
 By definition those variables don't have default value. 
 One workaround is to assume NULL as default value (see next item).
 The other option is to have default value logic in application code.</p>
@@ -54,13 +54,11 @@ consider wrapping it into stored procedure or function. Both accept default valu
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
 <span class="l">2: </span>
-<span class="l">3: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">do</span>
-    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs2', 2)" onmouseover="showTip(event, 'fs2', 2)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">ISNULL</span><span class="s">(</span><span class="s">@</span><span class="s">x</span><span class="s">,</span><span class="s"> </span><span class="s">42</span><span class="s">)</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 3)" onmouseover="showTip(event, 'fs3', 3)" class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>()
-    <span onmouseout="hideTip(event, 'fs1', 4)" onmouseover="showTip(event, 'fs1', 4)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs4', 5)" onmouseover="showTip(event, 'fs4', 5)" class="i">Execute</span>( <span onmouseout="hideTip(event, 'fs5', 6)" onmouseover="showTip(event, 'fs5', 6)" class="i">x</span> <span class="o">=</span> <span class="c">(* must pass int value here *)</span> <span class="n">1</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs6', 7)" onmouseover="showTip(event, 'fs6', 7)" class="i">stdout</span><span class="o">.</span><span class="i">WriteLine</span></pre>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">echoOnly</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs2', 2)" onmouseover="showTip(event, 'fs2', 2)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">ISNULL</span><span class="s">(</span><span class="s">@</span><span class="s">x</span><span class="s">,</span><span class="s"> </span><span class="s">42</span><span class="s">)</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 3)" onmouseover="showTip(event, 'fs3', 3)" class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>()
+<span onmouseout="hideTip(event, 'fs1', 4)" onmouseover="showTip(event, 'fs1', 4)" class="i">echoOnly</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs4', 5)" onmouseover="showTip(event, 'fs4', 5)" class="i">Execute</span>( <span onmouseout="hideTip(event, 'fs5', 6)" onmouseover="showTip(event, 'fs5', 6)" class="i">x</span> <span class="o">=</span> <span class="c">(* must pass int value here *)</span> <span class="n">1</span>) </pre>
 </td>
 </tr>
 </table>
@@ -92,34 +90,43 @@ No generics, no F# specific types/annotations which includes optional parameters
 <span class="l">11: </span>
 <span class="l">12: </span>
 <span class="l">13: </span>
-<span class="l">14: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">do</span> 
-    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs1', 8)" onmouseover="showTip(event, 'fs1', 8)" class="i">cmd</span> <span class="o">=</span> 
-        <span class="k">new</span> <span onmouseout="hideTip(event, 'fs2', 9)" onmouseover="showTip(event, 'fs2', 9)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
-<span class="s">            </span><span class="s">SELECT</span><span class="s"> </span><span class="s">ISNULL</span><span class="s">(</span><span class="s">@</span><span class="s">x</span><span class="s">,</span><span class="s"> </span><span class="s">42</span><span class="s">)</span>
-<span class="s">        </span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 10)" onmouseover="showTip(event, 'fs3', 10)" class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span>, <span class="i">AllParametersOptional</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>()
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs6', 7)" onmouseover="showTip(event, 'fs6', 7)" class="i">echoOr42</span> <span class="o">=</span> 
+    <span class="k">new</span> <span onmouseout="hideTip(event, 'fs2', 8)" onmouseover="showTip(event, 'fs2', 8)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
+<span class="s">        </span><span class="s">SELECT</span><span class="s"> </span><span class="s">ISNULL</span><span class="s">(</span><span class="s">@</span><span class="s">x</span><span class="s">,</span><span class="s"> </span><span class="s">42</span><span class="s">)</span>
+<span class="s">    </span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 9)" onmouseover="showTip(event, 'fs3', 9)" class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span>, <span class="i">AllParametersOptional</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>()
 
-    <span class="c">// Pass parameter value. Specifying Some constructor is mandatrory.</span>
-    <span onmouseout="hideTip(event, 'fs1', 11)" onmouseover="showTip(event, 'fs1', 11)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs7', 12)" onmouseover="showTip(event, 'fs7', 12)" class="i">Execute</span>( <span onmouseout="hideTip(event, 'fs8', 13)" onmouseover="showTip(event, 'fs8', 13)" class="i">Some</span> <span class="n">1</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs6', 14)" onmouseover="showTip(event, 'fs6', 14)" class="i">stdout</span><span class="o">.</span><span class="i">WriteLine</span>
+<span class="c">// Pass parameter value. Specifying Some constructor is mandatrory.</span>
+<span onmouseout="hideTip(event, 'fs6', 10)" onmouseover="showTip(event, 'fs6', 10)" class="i">echoOr42</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs7', 11)" onmouseover="showTip(event, 'fs7', 11)" class="i">Execute</span>( <span onmouseout="hideTip(event, 'fs8', 12)" onmouseover="showTip(event, 'fs8', 12)" class="i">Some</span> <span class="n">1</span>) 
 
-    <span class="c">// Pass NULL by omitting parameter</span>
-    <span onmouseout="hideTip(event, 'fs1', 15)" onmouseover="showTip(event, 'fs1', 15)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs7', 16)" onmouseover="showTip(event, 'fs7', 16)" class="i">Execute</span>() <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs6', 17)" onmouseover="showTip(event, 'fs6', 17)" class="i">stdout</span><span class="o">.</span><span class="i">WriteLine</span>
+<span class="c">// Pass NULL by omitting parameter</span>
+<span onmouseout="hideTip(event, 'fs6', 13)" onmouseover="showTip(event, 'fs6', 13)" class="i">echoOr42</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs7', 14)" onmouseover="showTip(event, 'fs7', 14)" class="i">Execute</span>() 
 
-    <span class="c">//Pass NULL explicitly</span>
-    <span onmouseout="hideTip(event, 'fs1', 18)" onmouseover="showTip(event, 'fs1', 18)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs7', 19)" onmouseover="showTip(event, 'fs7', 19)" class="i">Execute</span>( <span onmouseout="hideTip(event, 'fs9', 20)" onmouseover="showTip(event, 'fs9', 20)" class="i">x</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs10', 21)" onmouseover="showTip(event, 'fs10', 21)" class="i">None</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs6', 22)" onmouseover="showTip(event, 'fs6', 22)" class="i">stdout</span><span class="o">.</span><span class="i">WriteLine</span></pre>
+<span class="c">//Pass NULL explicitly</span>
+<span onmouseout="hideTip(event, 'fs6', 15)" onmouseover="showTip(event, 'fs6', 15)" class="i">echoOr42</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs7', 16)" onmouseover="showTip(event, 'fs7', 16)" class="i">Execute</span>( <span onmouseout="hideTip(event, 'fs9', 17)" onmouseover="showTip(event, 'fs9', 17)" class="i">x</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs10', 18)" onmouseover="showTip(event, 'fs10', 18)" class="i">None</span>) </pre>
 </td>
 </tr>
 </table>
 
-<div class="tip" id="fs1">val cmd : SqlCommandProvider&lt;...&gt;</div>
+<h3>3. How do I do dynamic filter?</h3>
+
+<p>Dynamic filters is when your T-SQL command accepts multiple input arguments and is supposed 
+to determine which columns to filter, if at all, based on that input.</p>
+
+<p>Following command allows to filter dynamically information on sales people based on country and minimal sales amount.</p>
+
+<h3>4. Why do I get compile time error "� The undeclared parameter '@p1' is used more than once in the batch being analyzed."?</h3>
+
+<h3>5. Exposing types generated by SqlCommandProvider</h3>
+
+<div class="tip" id="fs1">val echoOnly : SqlCommandProvider&lt;...&gt;<br /><br />Full name: Faq.echoOnly</div>
 <div class="tip" id="fs2">type SqlCommandProvider<br /><br />Full name: FSharp.Data.SqlCommandProvider<br /><em><br /><br /><br />&lt;summary&gt;Typed representation of a T-SQL statement to execute against a SQL Server database.&lt;/summary&gt; <br />&lt;param name=&#39;CommandText&#39;&gt;Transact-SQL statement to execute at the data source.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.&lt;/param&gt;<br />&lt;param name=&#39;SingleRow&#39;&gt;If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;AllParametersOptional&#39;&gt;If set all parameters become optional. NULL input values must be handled inside T-SQL.&lt;/param&gt;<br />&lt;param name=&#39;ResolutionFolder&#39;&gt;A folder to be used to resolve relative file paths to *.sql script files at compile time. The default value is the folder that contains the project or script.&lt;/param&gt;<br />&lt;param name=&#39;DataDirectory&#39;&gt;The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.&lt;/param&gt;<br /></em></div>
 <div class="tip" id="fs3">val connectionString : string<br /><br />Full name: Faq.connectionString</div>
 <div class="tip" id="fs4">SqlCommandProvider&lt;...&gt;.Execute(x: int) : Option&lt;int&gt;</div>
 <div class="tip" id="fs5">argument x : int</div>
-<div class="tip" id="fs6">val stdout&lt;&#39;T&gt; : System.IO.TextWriter<br /><br />Full name: Microsoft.FSharp.Core.Operators.stdout</div>
+<div class="tip" id="fs6">val echoOr42 : SqlCommandProvider&lt;...&gt;<br /><br />Full name: Faq.echoOr42</div>
 <div class="tip" id="fs7">SqlCommandProvider&lt;...&gt;.Execute(?x: int) : Option&lt;int&gt;</div>
 <div class="tip" id="fs8">union case Option.Some: Value: &#39;T -&gt; Option&lt;&#39;T&gt;</div>
 <div class="tip" id="fs9">argument x : Option&lt;int&gt;</div>
@@ -149,13 +156,8 @@ No generics, no F# specific types/annotations which includes optional parameters
                     <li><a href="/FSharp.Data.SqlClient/transactions.html">Transactions</a></li>
                     <li class="divider"></li>
                     <li><a href="/FSharp.Data.SqlClient/comparison.html">Comparison</a></li>
-                    <li><a href="/FSharp.Data.SqlClient/reference architecture.html">Reference architecture</a></li>
                     <li><a href="/FSharp.Data.SqlClient/samples.html">Sample applications</a></li>
                     <li><a href="/FSharp.Data.SqlClient/dynamic local db.html">Dynamic local db</a></li>
-
-                    <li class="divider"></li>
-                    <li><a href="/FSharp.Data.SqlClient/sqlprogrammabilityprovider.quickstart.html">SqlProgrammability</a></li>
-
                     <li class="divider"></li>
                     <li><a href="/FSharp.Data.SqlClient/sqlenumprovider.quickstart.html">SqlEnumProvider</a></li>
 
