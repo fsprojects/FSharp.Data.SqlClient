@@ -181,3 +181,6 @@
 
 #### 1.7.4 - July 13, 2015
 	* Issue #145 - Stored Procedure and TVP params from diff schemas
+
+#### 1.7.5 - July 13, 2015
+	* Redeploy - because previous nuget package 1.7.4 contains binaries stamped with incorrect version (1.7.3).

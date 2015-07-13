@@ -23,7 +23,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>bin\Debug</OutputPath>
+    <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>
@@ -93,7 +93,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.Data.SqlClient">
-      <HintPath>..\SqlClient\bin\Debug\FSharp.Data.SqlClient.dll</HintPath>
+      <HintPath>..\..\bin\FSharp.Data.SqlClient.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Types, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91" />
     <Reference Include="mscorlib" />

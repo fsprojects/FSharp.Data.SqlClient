@@ -4,9 +4,9 @@ open System.Reflection
 [<assembly: AssemblyTitleAttribute("SqlClient")>]
 [<assembly: AssemblyProductAttribute("FSharp.Data.SqlClient")>]
 [<assembly: AssemblyDescriptionAttribute("SqlClient F# type providers")>]
-[<assembly: AssemblyVersionAttribute("1.7.4")>]
-[<assembly: AssemblyFileVersionAttribute("1.7.4")>]
+[<assembly: AssemblyVersionAttribute("1.7.5")>]
+[<assembly: AssemblyFileVersionAttribute("1.7.5")>]
 do ()
 
 module internal AssemblyVersionInformation =
-    let [<Literal>] Version = "1.7.4"
+    let [<Literal>] Version = "1.7.5"
