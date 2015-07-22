@@ -480,11 +480,11 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                     do 
                         let newRowMethod = ProvidedMethod("NewRow", parameters, dataRowType, InvokeCode = invokeCode)
-                        newRowMethod.AddXmlDoc methodXmlDoc
+                        if methodXmlDoc <> "" then newRowMethod.AddXmlDoc methodXmlDoc
                         dataTableType.AddMember newRowMethod
 
                         let addRowMethod = ProvidedMethod("AddRow", parameters, typeof<Void>)
-                        addRowMethod.AddXmlDoc methodXmlDoc
+                        if methodXmlDoc <> "" then addRowMethod.AddXmlDoc methodXmlDoc
                         addRowMethod.InvokeCode <- fun args -> 
                             let newRow = invokeCode args
                             <@@
