@@ -59,7 +59,6 @@ type DataTablesTests() =
             let now = DateTime.Now.Date
             t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some now)
             t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some now)
-
             //check type. Should DateTime not option<DateTime>
             Assert.Equal<DateTime>(now, t.Rows.[0].ModifiedDate)
 
@@ -73,15 +72,10 @@ type DataTablesTests() =
             Assert.Equal(t.Rows.Count, rowsAdded)
         finally
             //compenstating tran
-            let t2 = new ShiftTable()
-            use getShiftTableData = new GetShiftTableData()
-            getShiftTableData.Execute() |> t2.Load
-            for r in t2.Rows do
-                if r.Name = "French coffee break" || r.Name = "Spanish siesta"
-                then 
-                    r.Delete()
-            let rowsAffected = t2.Update()
-            assert (rowsAffected = 2)
+            use cmd = new SqlCommandProvider<"
+                DELETE FROM HumanResources.Shift WHERE Name IN ('French coffee break', 'Spanish siesta')
+            ", ConnectionStrings.AdventureWorksNamed>()
+            cmd.Execute() |> ignore
 
     [<Fact>]
     member __.AddRowAndBulkCopyWithConnOverride() = 
@@ -269,3 +263,9 @@ type DataTablesTests() =
             let rowsAffected = t2.Update()
             assert (rowsAffected = 2)
 
+    [<Fact>]
+    member __.ColumnWithSpaceInNameAndDefaultValue() =
+        use tran = new TransactionScope()
+        let t = new AdventureWorks.dbo.Tables.TableHavingColumnNamesWithSpaces()
+        t.AddRow()
+        t.Update()

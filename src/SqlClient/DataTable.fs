@@ -49,20 +49,21 @@ type DataTable<'T when 'T :> DataRow>(tableName, selectCommand) =
             then 
                 let columnsToRefresh = ResizeArray()
                 for c in this.Columns do
-                    if c.AutoIncrement 
-                    then columnsToRefresh.Add( "inserted." + c.ColumnName)
-                    elif c.AllowDBNull && args.Row.IsNull c.Ordinal
-                    then columnsToRefresh.Add( "inserted." + c.ColumnName)
+                    if c.AutoIncrement  
+                        || (c.AllowDBNull && args.Row.IsNull c.Ordinal)
+                    then 
+                        columnsToRefresh.Add( "inserted." + commandBuilder.QuoteIdentifier c.ColumnName)
 
                 if columnsToRefresh.Count > 0
                 then                        
                     let outputClause = columnsToRefresh |> String.concat "," |> sprintf " OUTPUT %s"
                     let cmd = args.Command
-                    cmd.CommandText <- 
-                        cmd.CommandText.Insert(
-                            cmd.CommandText.IndexOf( " VALUES"),
-                            outputClause
-                        )
+                    let sql = cmd.CommandText
+                    let insertOutputClauseAt = 
+                        match sql.IndexOf( " DEFAULT VALUES") with
+                        | -1 -> sql.IndexOf( " VALUES")
+                        | pos -> pos
+                    cmd.CommandText <- sql.Insert(insertOutputClauseAt, outputClause)
                     cmd.UpdatedRowSource <- UpdateRowSource.FirstReturnedRecord
         )
 

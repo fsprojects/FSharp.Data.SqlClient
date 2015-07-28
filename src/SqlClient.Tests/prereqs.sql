@@ -119,3 +119,9 @@ CREATE PROCEDURE dbo.EchoText(@in VARCHAR(max) = NULL)
 AS
 	SELECT ISNULL(@in, '<NULL>');
 GO
+
+CREATE TABLE dbo.TableHavingColumnNamesWithSpaces (
+    ID INT      IDENTITY (1, 1) NOT NULL,
+    [Modified Date 2] DATETIME     DEFAULT (getdate()) NOT NULL,
+);
+GO
