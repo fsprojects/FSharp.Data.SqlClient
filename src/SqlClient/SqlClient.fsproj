@@ -80,7 +80,8 @@
     <Compile Include="SqlCommandProvider.fs" />
     <Compile Include="SqlProgrammabilityProvider.fs" />
     <Compile Include="SqlEnumProvider.fs" />
-    <None Include="Scratchpad.fsx" />
+    <Compile Include="Scripts\Scratchpad.fsx" />
+    <Compile Include="Scripts\XE.fsx" />
     <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup>
