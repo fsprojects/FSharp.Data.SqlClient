@@ -30,6 +30,12 @@ go
 CREATE TYPE dbo.MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
 GO
 
+CREATE PROCEDURE dbo.MyProc @p1 dbo.MyTableType readonly AS
+BEGIN
+   SELECT * from @p1 p
+END
+GO
+
 CREATE TYPE Person.MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
 GO
 

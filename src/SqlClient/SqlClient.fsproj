@@ -81,7 +81,7 @@
     <Compile Include="SqlProgrammabilityProvider.fs" />
     <Compile Include="SqlEnumProvider.fs" />
     <Compile Include="Scripts\Scratchpad.fsx" />
-    <Compile Include="Scripts\XE.fsx" />
+    <None Include="Scripts\XE.fsx" />
     <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup>
