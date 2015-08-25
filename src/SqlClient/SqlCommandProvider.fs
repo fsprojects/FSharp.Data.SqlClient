@@ -40,6 +40,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             try  
                 if watcher <> null then watcher.Dispose()
                 cache.Dispose()
+                dataTypeMappings.Clear()
             with _ -> ()
 
     do 
@@ -104,7 +105,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             
         let designTimeConnectionString = 
             if isByName
-            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, config.ResolutionFolder, configFile)
+            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, config.ResolutionFolder, configFile) |> fst
             else connectionStringOrName
 
         let dataDirectoryFullPath = 
@@ -119,7 +120,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         conn.CheckVersion()
         conn.LoadDataTypesMap()
 
-        let parameters = DesignTime.ExtractParameters(conn, sqlStatement)
+        let parameters = DesignTime.ExtractParameters(conn, sqlStatement, allParametersOptional)
 
         let outputColumns = 
             if resultType <> ResultType.DataReader
@@ -157,7 +158,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 let ctor1Params = 
                     [ 
                         ProvidedParameter("connectionString", typeof<string>, optionalValue = "") 
-                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
+                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
                     ]
 
                 let ctor1Body(args: _ list) = 
@@ -177,34 +178,21 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     [ 
                         ProvidedParameter("connection", typeof<SqlConnection>)
                         ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
-                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
+                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
                     ]
 
                 let ctor2Body (args: _ list) = 
                     Expr.NewObject(ctorImpl, <@@ Connection.``Connection and-or Transaction``(%%args.[0], %%args.[1]) @@> :: args.[2] :: ctorArgsExceptConnection)
                     
-
-                let ctor2 = 
-                    ProvidedConstructor [ 
-                        ProvidedParameter("transaction", typeof<SqlTransaction>) 
-                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = defaultCommandTimeout) 
-                    ]
-
-                ctor2.InvokeCode <- 
-                    fun args -> Expr.NewObject(ctorImpl, <@@ let tran: SqlTransaction = %%args.[0] in Connection.``Connection and-or Transaction``(tran.Connection, tran) @@> :: args.[1] :: ctorArgsExceptConnection)
-
                 cmdProvidedType.AddMember <| ProvidedConstructor(ctor2Params, InvokeCode = ctor2Body)
                 cmdProvidedType.AddMember <| ProvidedMethod("Create", ctor2Params, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = ctor2Body)
 
         do  //AsyncExecute, Execute, and ToTraceString
 
-            let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, allParametersOptional, udtts = [])
+            let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, udttsPerSchema = null)
 
-            let interfaceType = typedefof<ISqlCommand>
-            let name = "Execute" + if outputColumns.IsEmpty && resultType <> ResultType.DataReader then "NonQuery" else ""
-            
             let addRedirectToISqlCommandMethod outputType name = 
-                DesignTime.AddGeneratedMethod(parameters, executeArgs, allParametersOptional, cmdProvidedType.BaseType, outputType, name) 
+                DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, outputType, name) 
                 |> cmdProvidedType.AddMember
 
             addRedirectToISqlCommandMethod output.ProvidedType "Execute" 

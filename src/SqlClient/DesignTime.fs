@@ -27,22 +27,22 @@ type internal ResultTypes = {
 
 type DesignTime private() = 
     static member internal AddGeneratedMethod
-        (sqlParameters: Parameter list, executeArgs: ProvidedParameter list, allParametersOptional, erasedType, providedOutputType, name) =
+        (sqlParameters: Parameter list, executeArgs: ProvidedParameter list, erasedType, providedOutputType, name) =
 
         let mappedParamValues (exprArgs: Expr list) = 
             (exprArgs.Tail, sqlParameters)
-            ||> List.map2 (fun expr info ->
+            ||> List.map2 (fun expr param ->
                 let value = 
-                    if allParametersOptional && not info.TypeInfo.TableType
+                    if param.Optional && not param.TypeInfo.TableType
                     then 
                         typeof<QuotationsFactory>
                             .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
-                            .MakeGenericMethod(info.TypeInfo.ClrType)
+                            .MakeGenericMethod(param.TypeInfo.ClrType)
                             .Invoke(null, [| box expr|])
                             |> unbox
                     else
                         expr
-                <@@ (%%Expr.Value(info.Name) : string), %%Expr.Coerce(value, typeof<obj>) @@>
+                <@@ (%%Expr.Value(param.Name) : string), %%Expr.Coerce(value, typeof<obj>) @@>
             )
 
         let m = ProvidedMethod(name, executeArgs, providedOutputType)
@@ -52,6 +52,19 @@ type DesignTime private() =
             let vals = mappedParamValues(exprArgs)
             let paramValues = Expr.NewArray(typeof<string*obj>, elements = vals)
             Expr.Call( Expr.Coerce(exprArgs.[0], erasedType), methodInfo, [paramValues])
+
+        let xmlDoc = 
+            sqlParameters
+            |> Seq.choose (fun p ->
+                if String.IsNullOrWhiteSpace p.Description
+                then None
+                else
+                    let defaultConstrain = if p.DefaultValue.IsSome then sprintf " Default value: %O." p.DefaultValue.Value else ""
+                    Some( sprintf "<param name='%s'>%O%s</param>" p.Name p.Description defaultConstrain)
+            )
+            |> String.concat "\n" 
+
+        if not(String.IsNullOrWhiteSpace xmlDoc) then m.AddXmlDoc xmlDoc
 
         m
 
@@ -64,22 +77,22 @@ type DesignTime private() =
         
         let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
         let properties, ctorParameters = 
-            [
-                for col in columns do
+            columns
+            |> List.mapi ( fun i col ->
+                let propertyName = col.Name
+
+                if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
                     
-                    let propertyName = col.Name
+                let propType = col.ClrTypeConsideringNullable
 
-                    if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
-                    
-                    let propType = col.ClrTypeConsideringNullable
+                let property = ProvidedProperty(propertyName, propType)
+                property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
 
-                    let property = ProvidedProperty(propertyName, propType)
-                    property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
+                let ctorParameter = ProvidedParameter(propertyName, propType)  
 
-                    let ctorParameter = ProvidedParameter(propertyName, propType)  
-
-                    yield property, ctorParameter
-            ] |> List.unzip
+                property, ctorParameter
+            )
+            |> List.unzip
 
         recordType.AddMembers properties
 
@@ -99,12 +112,12 @@ type DesignTime private() =
     static member internal GetDataRowType (columns: Column list) = 
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
 
-        columns |> List.map( fun col ->
+        columns |> List.mapi( fun i col ->
             let name = col.Name
-            if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." col.Ordinal
+            if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
 
             let propertyType = col.ClrTypeConsideringNullable
-            if col.IsNullable 
+            if col.Nullable 
             then
                 let property = ProvidedProperty(name, propertyType, GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", col.TypeInfo.ClrType, name))
                 if not col.ReadOnly
@@ -164,7 +177,7 @@ type DesignTime private() =
 
                     let tupleTypeName = tupleType.PartialAssemblyQualifiedName
                     //None, tupleType, <@@ FSharpValue.PreComputeTupleConstructor (Type.GetType (tupleTypeName))  @@>
-                    None, tupleType, <@@ fun values -> Type.GetType(tupleTypeName).GetConstructors().[0].Invoke(values) @@>
+                    None, tupleType, <@@ fun values -> Type.GetType(tupleTypeName, throwOnError = true).GetConstructors().[0].Invoke(values) @@>
             
             let nullsToOptions = QuotationsFactory.MapArrayNullableItems(outputColumns, "MapArrayObjItemToOption") 
             let combineWithNullsToOptions = typeof<QuotationsFactory>.GetMethod("GetMapperWithNullsToOptions") 
@@ -200,16 +213,14 @@ type DesignTime private() =
             with :? SqlException ->
                 raise why
 
-    static member internal ExtractParameters(connection, commandText: string) =  [
+    static member internal ExtractParameters(connection, commandText: string, allParametersOptional) =  
         use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", connection, CommandType = CommandType.StoredProcedure)
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
-        use reader = cmd.ExecuteReader()
-        while(reader.Read()) do
-
+        cmd.ExecuteQuery(fun reader ->
             let paramName = string reader.["name"]
             let sqlEngineTypeId = unbox<int> reader.["suggested_system_type_id"]
 
-            let userTypeId = reader |> SqlDataReader.getOption<int> "suggested_user_type_id"
+            let userTypeId = reader.TryGetValue "suggested_user_type_id"
             let direction = 
                 if unbox reader.["suggested_is_output"]
                 then 
@@ -220,15 +231,18 @@ type DesignTime private() =
                     
             let typeInfo = findTypeInfoBySqlEngineTypeId(connection.ConnectionString, sqlEngineTypeId, userTypeId)
 
-            yield { 
+            { 
                 Name = paramName
                 TypeInfo = typeInfo 
                 Direction = direction 
                 DefaultValue = None
+                Optional = allParametersOptional 
+                Description = null 
             }
-    ]
+        )
+        |> Seq.toList
 
-    static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, allParametersOptional, udtts: ProvidedTypeDefinition list) = 
+    static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, udttsPerSchema: System.Collections.Generic.Dictionary<_, ProvidedTypeDefinition>) = 
         [
             for p in sqlParameters do
                 assert p.Name.StartsWith("@")
@@ -237,7 +251,7 @@ type DesignTime private() =
                 yield 
                     if not p.TypeInfo.TableType 
                     then
-                        if allParametersOptional 
+                        if p.Optional 
                         then 
                             ProvidedParameter(parameterName, parameterType = typedefof<_ option>.MakeGenericType( p.TypeInfo.ClrType) , optionalValue = null)
                         else
@@ -246,21 +260,29 @@ type DesignTime private() =
                         assert(p.Direction = ParameterDirection.Input)
 
                         let userDefinedTableTypeRow = 
-                            match udtts |> List.tryFind (fun x -> x.Name = p.TypeInfo.UdttName) with
-                            | Some x -> x
-                            | None ->
+                            if udttsPerSchema = null
+                            then //SqlCommandProvider case
                                 let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<obj>, HideObjectMethods = true)
                                 cmdProvidedType.AddMember rowType
                                 let parameters = [ 
-                                    for p in p.TypeInfo.TableTypeColumns -> 
-                                        ProvidedParameter( p.Name, p.TypeInfo.ClrType, ?optionalValue = if p.IsNullable then Some null else None) 
+                                    for p in p.TypeInfo.TableTypeColumns.Value -> 
+                                        ProvidedParameter( p.Name, p.ClrTypeConsideringNullable, ?optionalValue = if p.Nullable then Some null else None) 
                                 ] 
 
                                 let ctor = ProvidedConstructor( parameters)
-                                ctor.InvokeCode <- fun args -> Expr.NewArray(typeof<obj>, [for a in args -> Expr.Coerce(a, typeof<obj>)])
+                                ctor.InvokeCode <- fun args -> 
+                                    let optionsToNulls = QuotationsFactory.MapArrayNullableItems(List.ofArray p.TypeInfo.TableTypeColumns.Value, "MapArrayOptionItemToObj") 
+                                    <@@
+                                        let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for a in args -> Expr.Coerce(a, typeof<obj>) ])
+                                        (%%optionsToNulls) values
+                                        values
+                                    @@>
                                 rowType.AddMember ctor
                             
                                 rowType
+                            else //SqlProgrammability
+                                let udtt = udttsPerSchema.[p.TypeInfo.Schema].GetNestedType(p.TypeInfo.UdttName)
+                                downcast udtt
 
                         ProvidedParameter(
                             parameterName, 

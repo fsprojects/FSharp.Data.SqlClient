@@ -160,3 +160,27 @@
 
 #### 1.6.2 - March 9, 2015
 	* Issue #119 fixed
+
+#### 1.7.0 - June 4, 2015
+	* Issue #126 - AsSqlCommand removed
+	* Issue #129 - ExecuteSingle/AsyncExecuteSingle method on SqlProgrammability stored procedure/function types
+	* Issue #131 - unify SqlProgrammabilityProvider and SqlCommandProvider ctors
+	* Issue #124 - DataTable ReadXmlSchema/WriteXmlSchema are not used anymore
+	* Issue #132 - Make value types parameters with default value NULL in SqlProgrammabilityProvider of type option<_>
+
+#### 1.7.1 - June 16, 2015
+	* Issue #136 - calling tvp sproc with nullable fields
+
+#### 1.7.2 - June 19, 2015
+	* Issue #136 - SqlProgrammabilityProvider does not update User-Defined Table Types on rebuild 
+
+#### 1.7.3 - July 6, 2015
+	* Issue #137 - support single column select in SqlEnumProvider - natural keys case
+	* Issue #135 - create xml doc from MS_Description ext.prop for routines and params
+	* Issue #130 - help section dedicated to database updates
+
+#### 1.7.4 - July 13, 2015
+	* Issue #145 - Stored Procedure and TVP params from diff schemas
+
+#### 1.7.5 - July 13, 2015
+	* Redeploy - because previous nuget package 1.7.4 contains binaries stamped with incorrect version (1.7.3).

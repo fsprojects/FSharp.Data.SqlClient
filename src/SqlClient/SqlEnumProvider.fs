@@ -15,6 +15,8 @@ open Microsoft.FSharp.Reflection
 
 open ProviderImplementation.ProvidedTypes
 
+open FSharp.Data.SqlClient
+
 [<TypeProvider>]
 type public SqlEnumProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces()
@@ -61,7 +63,13 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
         let providedEnumType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true, IsErased = false)
         tempAssembly.AddTypes [ providedEnumType ]
         
-        let connStr, providerName = SqlEnumProvider.GetConnectionSettings( connectionStringOrName, provider, config.ResolutionFolder, configFile)
+
+        let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
+            
+        let connStr, providerName = 
+            if isByName
+            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, config.ResolutionFolder, configFile)
+            else connectionStringOrName, provider
 
         let adoObjectsFactory = DbProviderFactories.GetFactory( providerName: string)
         use conn = adoObjectsFactory.CreateConnection() 
@@ -75,25 +83,29 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
 
         use reader = cmd.ExecuteReader()
         if not reader.HasRows then failwith "Resultset is empty. At least one row expected." 
-        if reader.FieldCount < 2 then failwith "At least two columns expected in result rowset. Received %i columns." reader.FieldCount
         let schema = reader.GetSchemaTable()
 
         let valueType, getValue = 
             
             let getValueType(row: DataRow) = 
-                let t = Type.GetType( typeName = string row.["DataType"])
+                let t = Type.GetType( typeName = string row.["DataType"], throwOnError = true)
                 if not( t.IsValueType || t = typeof<string>)
                 then 
                     failwithf "Invalid type %s of column %O for value part. Only .NET value types and strings supported as value." t.FullName row.["ColumnName"]
                 t
 
-            if schema.Rows.Count = 2
-            then
-                let valueType = getValueType schema.Rows.[1]
+            match schema.Rows.Count with
+            | 1 -> //natural keys case. Thanks Ami for introducing me to this idea.
+                let valueType = getValueType schema.Rows.[0]
                 let getValue (values : obj[]) = values.[0], Expr.Value (values.[0], valueType)
 
                 valueType, getValue
-            else
+            | 2 ->
+                let valueType = getValueType schema.Rows.[1]
+                let getValue (values : obj[]) = values.[1], Expr.Value (values.[1], valueType)
+
+                valueType, getValue
+            | _ ->
                 let tupleItemTypes = 
                     schema.Rows
                     |> Seq.cast<DataRow>
@@ -101,7 +113,7 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
                     |> Seq.map getValueType
                 
                 let tupleType = tupleItemTypes |> Seq.toArray |> FSharpType.MakeTupleType
-                let getValue = fun (values : obj[]) -> box values, (values, tupleItemTypes) ||> Seq.zip |> Seq.map Expr.Value |> Seq.toList |> Expr.NewTuple
+                let getValue = fun (values : obj[]) -> box values, (values, tupleItemTypes) ||> Seq.zip |> Seq.skip 1 |> Seq.map Expr.Value |> Seq.toList |> Expr.NewTuple
                 
                 tupleType, getValue
 
@@ -112,7 +124,7 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
                     let count = reader.GetValues( rowValues)
                     assert (count = rowValues.Length)
                     let label = string rowValues.[0]
-                    let value = Array.sub rowValues 1 (count - 1) |> getValue
+                    let value = getValue rowValues
                     yield label, value
             ] 
             |> List.unzip
@@ -279,42 +291,3 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
             <@@
                 %%items |> Array.tryPick (fun (name: string, value: 'Value) -> if Object.Equals(value, (%%args.[0]: 'Value)) then Some name else None) 
             @@>
-
-    //Config
-
-    static member internal GetConnectionSettings(s: string, provider: string, resolutionFolder, configFile) =
-        match s.Trim().Split([|'='|], 2, StringSplitOptions.RemoveEmptyEntries) with
-            | [| "" |] -> 
-                invalidArg "ConnectionStringOrName" "Value is empty!"
-
-            | [| prefix; tail |] when prefix.Trim().ToLower() = "name" -> 
-                SqlEnumProvider.ReadConnectionStringSettings( tail.Trim(), resolutionFolder, configFile)
-            | _ -> 
-                s, provider
-
-
-    static member internal ReadConnectionStringSettings(name: string, resolutionFolder, fileName) =
-
-        let configFilename = 
-            if fileName <> "" 
-            then
-                let path = Path.Combine(resolutionFolder, fileName)
-                if not <| File.Exists path 
-                then raise <| FileNotFoundException( sprintf "Could not find config file '%s'." path)
-                else path
-            else
-                let appConfig = Path.Combine(resolutionFolder, "app.config")
-                let webConfig = Path.Combine(resolutionFolder, "web.config")
-
-                if File.Exists appConfig then appConfig
-                elif File.Exists webConfig then webConfig
-                else failwithf "Cannot find either app.config or web.config."
-        
-        let map = ExeConfigurationFileMap()
-        map.ExeConfigFilename <- configFilename
-        let configSection = ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None).ConnectionStrings.ConnectionStrings
-        match configSection, lazy configSection.[name] with
-        | null, _ | _, Lazy null -> failwithf "Cannot find name %s in <connectionStrings> section of %s file." name configFilename
-        | _, Lazy x -> 
-            let providerName = if String.IsNullOrEmpty x.ProviderName then "System.Data.SqlClient" else x.ProviderName
-            x.ConnectionString, providerName

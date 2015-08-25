@@ -25,13 +25,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{4B60
 	ProjectSection(SolutionItems) = preProject
 		docs\content\comparison.fsx = docs\content\comparison.fsx
 		docs\content\configuration and input.fsx = docs\content\configuration and input.fsx
-		docs\content\data binding and updates.fsx = docs\content\data binding and updates.fsx
+		docs\content\data modification.fsx = docs\content\data modification.fsx
+		docs\content\faq.fsx = docs\content\faq.fsx
 		docs\content\index.fsx = docs\content\index.fsx
 		docs\content\output.fsx = docs\content\output.fsx
-		docs\content\reference architecture.fsx = docs\content\reference architecture.fsx
 		docs\content\samples.fsx = docs\content\samples.fsx
+		docs\content\setup.fsx = docs\content\setup.fsx
 		docs\content\SqlClientComparison.md = docs\content\SqlClientComparison.md
 		docs\content\sqlenumprovider.quickstart.fsx = docs\content\sqlenumprovider.quickstart.fsx
+		docs\content\transactions.fsx = docs\content\transactions.fsx
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{573DBBFB-0F97-4327-8614-6A4151CD70BF}"

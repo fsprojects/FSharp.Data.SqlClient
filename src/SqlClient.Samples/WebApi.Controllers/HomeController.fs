@@ -13,7 +13,7 @@ module SqlCommand =
         let designTimeConnectionString = (^a : (static member get_ConnectionStringOrName : unit -> string) ())
 
         match designTimeConnectionString with
-        | DataAccess.AdventureWorks2012 -> 
+        | DataAccess.AdventureWorks -> 
             //get connection string at run-time
             let adventureWorks = WebConfigurationManager.ConnectionStrings.["AdventureWorks2012"].ConnectionString
             //create command instance with connection string and command timeout override 

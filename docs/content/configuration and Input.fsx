@@ -1,6 +1,6 @@
 (*** hide ***)
-#r "../../bin/FSharp.Data.SqlClient.dll"
-#r "../../bin/Microsoft.SqlServer.Types.dll"
+#r @"..\..\src\SqlClient\bin\Debug\FSharp.Data.SqlClient.dll"
+#r "Microsoft.SqlServer.Types.dll"
 (**
 
 Configuration and Input
@@ -44,7 +44,7 @@ CommandText
 open FSharp.Data
 
 [<Literal>]
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
 
 //Inline T-SQL text convinient for short queries 
 type GetDate = SqlCommandProvider<"SELECT GETDATE() AS Now", connectionString>
@@ -135,7 +135,7 @@ For example, an attempt to use following query will fail:
     WHEN @x % 5 = 0 THEN 'Buzz' 
     ELSE CAST(@x AS NVARCHAR) 
 
-You can work around this by declaring a local intermediate variable in t-sql script and assigning a paramater in question to that variable.
+You can work around this by declaring a local intermediate variable in t-sql script and assigning a parameter in question to that variable.
 *)
     
 type FizzOrBuzz = SqlCommandProvider<"

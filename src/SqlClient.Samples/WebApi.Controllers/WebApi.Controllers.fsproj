@@ -58,13 +58,11 @@
     <Compile Include="DataAccess.fs" />
     <Compile Include="HomeController.fs" />
     <None Include="App.config" />
-    <None Include="SqlServerTypes\readme.htm" />
-    <None Include="SqlServerTypes\Loader.cs" />
     <None Include="App_Data\AdventureWorks2014_Data.mdf" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data.SqlClient">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.6.1\lib\net40\FSharp.Data.SqlClient.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.7.3\lib\net40\FSharp.Data.SqlClient.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />

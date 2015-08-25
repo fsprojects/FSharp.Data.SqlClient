@@ -13,8 +13,6 @@ open FSharp.Data
 
 type QuotationsFactory private() = 
     
-    static let setTypeName = typeof<SqlParameter>.GetMethod("set_TypeName")
-    
     static member internal GetBody(methodName, specialization, [<ParamArray>] bodyFactoryArgs : obj[]) =
         
         let bodyFactory =   
@@ -33,13 +31,13 @@ type QuotationsFactory private() =
         let tvpColumnNames, tvpColumnTypes = 
             if not p.TypeInfo.TableType 
             then [], []
-            else [ for c in p.TypeInfo.TableTypeColumns -> c.Name, c.TypeInfo.ClrType.FullName ] |> List.unzip
+            else [ for c in p.TypeInfo.TableTypeColumns.Value -> c.Name, c.TypeInfo.ClrType.FullName ] |> List.unzip
 
         <@@ 
             let x = SqlParameter(name, enum dbType, Direction = %%Expr.Value p.Direction )
             if x.SqlDbType = SqlDbType.Structured
             then 
-                let typeName: string =  sprintf "%s.%s" (%%Expr.Value p.TypeInfo.Schema) (%%Expr.Value p.TypeInfo.UdttName)
+                let typeName: string = sprintf "%s.%s" (%%Expr.Value p.TypeInfo.Schema) (%%Expr.Value p.TypeInfo.UdttName)
                 //done via reflection because not implemented on Mono
                 x.GetType().GetProperty("TypeName").SetValue(x, typeName, null)
 
@@ -51,7 +49,7 @@ type QuotationsFactory private() =
             then 
                 let table = new DataTable()
                 for name, typeName in List.zip tvpColumnNames tvpColumnTypes do
-                    let c = new DataColumn(name, Type.GetType typeName)
+                    let c = new DataColumn(name, Type.GetType( typeName, throwOnError = true))
                     table.Columns.Add c
                 x.Value <- table
             x
@@ -72,7 +70,7 @@ type QuotationsFactory private() =
         @> 
 
     static member internal MapArrayNullableItems(outputColumns : Column list, mapper : string) = 
-        let columnTypes, isNullableColumn = outputColumns |> List.map (fun c -> c.TypeInfo.ClrTypeFullName, c.IsNullable) |> List.unzip
+        let columnTypes, isNullableColumn = outputColumns |> List.map (fun c -> c.TypeInfo.ClrTypeFullName, c.Nullable) |> List.unzip
         QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, mapper)            
 
     static member internal MapArrayNullableItems(columnTypes : string list, isNullableColumn : bool list, mapper : string) = 
@@ -86,7 +84,7 @@ type QuotationsFactory private() =
                 then 
                     typeof<QuotationsFactory>
                         .GetMethod(mapper, BindingFlags.NonPublic ||| BindingFlags.Static)
-                        .MakeGenericMethod(Type.GetType typeName)
+                        .MakeGenericMethod( Type.GetType( typeName, throwOnError = true))
                         .Invoke(null, [| box(Expr.Var arr); box index |])
                         |> unbox
                         |> Some

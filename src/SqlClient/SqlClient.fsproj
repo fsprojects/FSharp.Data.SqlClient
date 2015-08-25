@@ -24,11 +24,13 @@
     <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\bin\FSharp.Data.SqlClient.XML</DocumentationFile>
+    <DocumentationFile>
+    </DocumentationFile>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE\devenv.exe</StartProgram>
     <StartArguments>..\Tests.sln</StartArguments>
     <NoWarn>101</NoWarn>
+    <OtherFlags>--warnon:1182</OtherFlags>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -52,10 +54,6 @@
       <HintPath>..\..\lib\Microsoft.SqlServer.TransactSql.ScriptDom.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Microsoft.SqlServer.Types">
-      <HintPath>..\..\packages\Microsoft.SqlServer.Types.11.0.0\lib\net20\Microsoft.SqlServer.Types.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
@@ -73,19 +71,18 @@
     <Compile Include="DebugProvidedTypes.fs" />
     <Compile Include="Configuration.fs" />
     <Compile Include="ProvidedTypesCache.fs" />
-    <Compile Include="DataTable.fs" />
     <Compile Include="DynamicRecord.fs" />
     <Compile Include="SqlClientExtensions.fs" />
+    <Compile Include="DataTable.fs" />
     <Compile Include="ISqlCommand.fs" />
     <Compile Include="QuotationsFactory.fs" />
     <Compile Include="DesignTime.fs" />
     <Compile Include="SqlCommandProvider.fs" />
     <Compile Include="SqlProgrammabilityProvider.fs" />
     <Compile Include="SqlEnumProvider.fs" />
-    <None Include="Scratchpad.fsx" />
+    <Compile Include="Scripts\Scratchpad.fsx" />
+    <None Include="Scripts\XE.fsx" />
     <None Include="packages.config" />
-    <None Include="SqlServerTypes\x86\SqlServerSpatial110.dll" />
-    <None Include="SqlServerTypes\x64\SqlServerSpatial110.dll" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>

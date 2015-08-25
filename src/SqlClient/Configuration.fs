@@ -79,13 +79,15 @@ type Configuration() =
         map.ExeConfigFilename <- configFilename
         let configSection = ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None).ConnectionStrings.ConnectionStrings
         match configSection, lazy configSection.[name] with
-        | null, _ | _, Lazy null -> failwithf "Cannot find name %s in <connectionStrings> section of %s file." name configFilename
-        | _, Lazy x -> x.ConnectionString
+        | null, _ | _, Lazy null -> raise <| KeyNotFoundException(message = sprintf "Cannot find name %s in <connectionStrings> section of %s file." name configFilename)
+        | _, Lazy x -> 
+            let providerName = if String.IsNullOrEmpty x.ProviderName then "System.Data.SqlClient" else x.ProviderName
+            x.ConnectionString, providerName
 
     static member GetConnectionStringAtRunTime(name: string) = 
         let section = ConfigurationManager.ConnectionStrings.[name]
         if section = null 
-        then failwithf "Cannot find name %s in <connectionStrings> section of config file." name
+        then raise <| KeyNotFoundException(message = sprintf "Cannot find name %s in <connectionStrings> section of config file." name)
         else section.ConnectionString
 
 

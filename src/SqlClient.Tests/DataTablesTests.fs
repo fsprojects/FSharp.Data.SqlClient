@@ -25,7 +25,6 @@ type DataTablesTests() =
 
     let adventureWorks = FSharp.Configuration.AppSettings<"app.config">.ConnectionStrings.AdventureWorks
     
-
     [<Fact>]
     member __.NewRowAndBulkCopy() = 
         let t = new ShiftTable()
@@ -53,35 +52,30 @@ type DataTablesTests() =
         //(Skip="")
     >]
     member __.AddRowAndBulkCopy() = 
-        let t = new ShiftTable()
+        try
+            let t = new ShiftTable()
     
-        //erased method to provide static typing
-        let now = DateTime.Now.Date
-        t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some now)
-        t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some now)
+            //erased method to provide static typing
+            let now = DateTime.Now.Date
+            t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some now)
+            t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some now)
+            //check type. Should DateTime not option<DateTime>
+            Assert.Equal<DateTime>(now, t.Rows.[0].ModifiedDate)
 
-        //check type. Should DateTime not option<DateTime>
-        Assert.Equal<DateTime>(now, t.Rows.[0].ModifiedDate)
-
-        use getRowsCount = new GetRowCount()
-        let rowsBefore = getRowsCount.Execute().Value.Value
+            use getRowsCount = new GetRowCount()
+            let rowsBefore = getRowsCount.Execute().Value.Value
         
-        //shortcut, convenience method
-        t.BulkCopy()
+            //shortcut, convenience method
+            t.BulkCopy()
 
-        let rowsAdded = getRowsCount.Execute().Value.Value - rowsBefore
-        Assert.Equal(t.Rows.Count, rowsAdded)
-
-        //compenstating tran
-        let t2 = new ShiftTable()
-        use getShiftTableData = new GetShiftTableData()
-        getShiftTableData.Execute() |> t2.Load
-        for r in t2.Rows do
-            if r.Name = "French coffee break" || r.Name = "Spanish siesta"
-            then 
-                r.Delete()
-        let rowsAffected = t2.Update()
-        assert (rowsAffected = 2)
+            let rowsAdded = getRowsCount.Execute().Value.Value - rowsBefore
+            Assert.Equal(t.Rows.Count, rowsAdded)
+        finally
+            //compenstating tran
+            use cmd = new SqlCommandProvider<"
+                DELETE FROM HumanResources.Shift WHERE Name IN ('French coffee break', 'Spanish siesta')
+            ", ConnectionStrings.AdventureWorksNamed>()
+            cmd.Execute() |> ignore
 
     [<Fact>]
     member __.AddRowAndBulkCopyWithConnOverride() = 
@@ -136,11 +130,27 @@ type DataTablesTests() =
     
         //ModifiedDate is not provided
         t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12.)
-        t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16.)
+        let yesterday = DateTime.Today.AddDays -1.
+        t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., ModifiedDate = Some yesterday)
 
         //removing ModifiedDate column is not required as oppose to bulk insert 
         let rowsInserted = t.Update(conn, tran)
+        let latestIdentity = 
+            use cmd = new SqlCommandProvider<"SELECT IDENT_CURRENT (@tableName)", ConnectionStrings.AdventureWorksNamed, SingleRow = true>()
+            cmd.Execute( t.TableName) |> Option.get |> Option.get |> Convert.ToByte
+
         Assert.Equal(t.Rows.Count, rowsInserted)
+
+        //identity values retrived
+        Assert.Equal(t.Rows.[1].ShiftID, latestIdentity)
+        Assert.Equal(t.Rows.[0].ShiftID, latestIdentity - 1uy)
+
+        //default values
+        Assert.Equal(t.Rows.[1].ModifiedDate, yesterday)
+        let serverDate = //because Azure in UTC
+            use cmd = new SqlCommandProvider<"SELECT GetDate()", ConnectionStrings.AdventureWorksNamed, SingleRow = true>()
+            cmd.Execute().Value
+        Assert.Equal(t.Rows.[0].ModifiedDate.Date, serverDate.Date)
 
     [<Fact>]
     member __.UpdatesPlusAmbientTransaction() = 
@@ -186,13 +196,76 @@ type DataTablesTests() =
 
         Assert.True(row.EndDate.IsNone)
 
+    [<Fact>]
+    member __.SqlCommandTableInsert() = 
+        use cmd = 
+            new SqlCommandProvider<"SELECT Name, StartTime, EndTime FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>()
+        let t = cmd.Execute()
+        use conn = new SqlConnection(connectionString = adventureWorks)
+        conn.Open()
+        use tran = conn.BeginTransaction()
+    
+        let row = t.NewRow()
+        row.Name <- "French coffee break"
+        row.StartTime <- TimeSpan.FromHours 10.
+        row.EndTime <- TimeSpan.FromHours 12.
+        t.Rows.Add row
+        let rowsInserted = t.Update(conn, tran)
+        Assert.Equal(1, rowsInserted)
 
+    [<Fact>]
+    member __.SqlCommandTableUpdate() = 
+        use cmd = 
+            new SqlCommandProvider<"SELECT ShiftID, Name, StartTime, EndTime, ModifiedDate FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>()
+        let t = cmd.Execute()
+        use conn = new SqlConnection(connectionString = adventureWorks)
+        conn.Open()
+        use tran = conn.BeginTransaction()
+    
+        let row = t.Rows.[0]
+        row.ModifiedDate <- DateTime.Now.Date
+        let rowsAffected = t.Update(conn, tran)
+        Assert.Equal(1, rowsAffected)
 
+    [<Fact>]
+    member __.NewRowAndBulkCopyWithTrsansactionScope() = 
+        try
+            use tran = new TransactionScope()
+            let t = new ShiftTable()
+    
+            //erased method to provide static typing
+            let now = DateTime.Now.Date
+            t.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some now)
+            t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some now)
 
+            //check type. Should DateTime not option<DateTime>
+            Assert.Equal<DateTime>(now, t.Rows.[0].ModifiedDate)
 
+            use getRowsCount = new GetRowCount()
+            let rowsBefore = getRowsCount.Execute().Value.Value
+        
+            //shortcut, convenience method
+            t.BulkCopy()
 
+            let rowsAdded = getRowsCount.Execute().Value.Value - rowsBefore
+            Assert.Equal(t.Rows.Count, rowsAdded)
+            
+            tran.Complete()
+        finally
+            //compenstating tran
+            let t2 = new ShiftTable()
+            use getShiftTableData = new GetShiftTableData()
+            getShiftTableData.Execute() |> t2.Load
+            for r in t2.Rows do
+                if r.Name = "French coffee break" || r.Name = "Spanish siesta"
+                then 
+                    r.Delete()
+            let rowsAffected = t2.Update()
+            assert (rowsAffected = 2)
 
-
-
-
-
+    [<Fact>]
+    member __.ColumnWithSpaceInNameAndDefaultValue() =
+        use tran = new TransactionScope()
+        let t = new AdventureWorks.dbo.Tables.TableHavingColumnNamesWithSpaces()
+        t.AddRow()
+        t.Update()

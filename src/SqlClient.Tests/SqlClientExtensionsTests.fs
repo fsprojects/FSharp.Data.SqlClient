@@ -10,7 +10,7 @@ open FSharp.Data
 
 type ExtensionsTest() = 
     
-    let conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
+    let conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     do
         conn.Open()
         conn.LoadDataTypesMap()
