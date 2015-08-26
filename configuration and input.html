@@ -642,10 +642,10 @@ END
 </td>
 <td class="snippet"><pre class="fssnip">
 <span class="k">type</span> <span onmouseout="hideTip(event, 'fs79', 179)" onmouseover="showTip(event, 'fs79', 179)" class="i">TableValuedSample</span> <span class="o">=</span> <span class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">exec</span><span class="s"> </span><span class="s">myProc</span><span class="s"> </span><span class="s">@</span><span class="s">x</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 180)" onmouseover="showTip(event, 'fs3', 180)" class="i">connectionString</span><span class="o">&gt;</span>
-<span class="k">type</span> <span onmouseout="hideTip(event, 'fs80', 181)" onmouseover="showTip(event, 'fs80', 181)" class="i">TVP</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs79', 182)" onmouseover="showTip(event, 'fs79', 182)" class="i">TableValuedSample</span><span class="o">.</span><span class="i">MyTableType</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs80', 181)" onmouseover="showTip(event, 'fs80', 181)" class="i">TVP</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs79', 182)" onmouseover="showTip(event, 'fs79', 182)" class="i">TableValuedSample</span><span class="o">.</span><span class="i">myTableType</span>
 <span class="k">let</span> <span onmouseout="hideTip(event, 'fs81', 183)" onmouseover="showTip(event, 'fs81', 183)" class="i">tvpSp</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs79', 184)" onmouseover="showTip(event, 'fs79', 184)" class="i">TableValuedSample</span>()
 <span class="c">//nullable columns mapped to optional ctor params</span>
-<span onmouseout="hideTip(event, 'fs81', 185)" onmouseover="showTip(event, 'fs81', 185)" class="i">tvpSp</span><span class="o">.</span><span class="i">Execute</span>(<span class="i">x</span> <span class="o">=</span> [ <span onmouseout="hideTip(event, 'fs80', 186)" onmouseover="showTip(event, 'fs80', 186)" class="i">TVP</span>(<span class="i">myId</span> <span class="o">=</span> <span class="n">1</span>, <span class="i">myName</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">monkey</span><span class="s">&quot;</span>); <span onmouseout="hideTip(event, 'fs80', 187)" onmouseover="showTip(event, 'fs80', 187)" class="i">TVP</span>(<span class="i">myId</span> <span class="o">=</span> <span class="n">2</span>) ]) </pre>
+<span onmouseout="hideTip(event, 'fs81', 185)" onmouseover="showTip(event, 'fs81', 185)" class="i">tvpSp</span><span class="o">.</span><span class="i">Execute</span>(<span class="i">x</span> <span class="o">=</span> [ <span onmouseout="hideTip(event, 'fs80', 186)" onmouseover="showTip(event, 'fs80', 186)" class="i">TVP</span>(<span class="i">myId</span> <span class="o">=</span> <span class="n">1</span>, <span class="i">myName</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs78', 187)" onmouseover="showTip(event, 'fs78', 187)" class="i">Some</span> <span class="s">&quot;</span><span class="s">monkey</span><span class="s">&quot;</span>); <span onmouseout="hideTip(event, 'fs80', 188)" onmouseover="showTip(event, 'fs80', 188)" class="i">TVP</span>(<span class="i">myId</span> <span class="o">=</span> <span class="n">2</span>) ]) </pre>
 </td>
 </tr>
 </table>
@@ -671,21 +671,21 @@ END
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">type</span> <span onmouseout="hideTip(event, 'fs82', 188)" onmouseover="showTip(event, 'fs82', 188)" class="i">myType</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs60', 189)" onmouseover="showTip(event, 'fs60', 189)" class="i">AdventureWorks2012</span><span class="o">.</span><span class="i">``User-Defined Table Types``</span><span class="o">.</span><span class="i">MyTableType</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs82', 189)" onmouseover="showTip(event, 'fs82', 189)" class="i">myType</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs60', 190)" onmouseover="showTip(event, 'fs60', 190)" class="i">AdventureWorks2012</span><span class="o">.</span><span class="i">``User-Defined Table Types``</span><span class="o">.</span><span class="i">MyTableType</span>
 
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs83', 190)" onmouseover="showTip(event, 'fs83', 190)" class="i">m</span> <span class="o">=</span> [ 
-    <span onmouseout="hideTip(event, 'fs82', 191)" onmouseover="showTip(event, 'fs82', 191)" class="i">myType</span>(<span class="i">myId</span> <span class="o">=</span> <span class="n">2</span>)
-    <span onmouseout="hideTip(event, 'fs82', 192)" onmouseover="showTip(event, 'fs82', 192)" class="i">myType</span>(<span class="i">myId</span> <span class="o">=</span> <span class="n">1</span>) 
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs83', 191)" onmouseover="showTip(event, 'fs83', 191)" class="i">m</span> <span class="o">=</span> [ 
+    <span onmouseout="hideTip(event, 'fs82', 192)" onmouseover="showTip(event, 'fs82', 192)" class="i">myType</span>(<span class="i">myId</span> <span class="o">=</span> <span class="n">2</span>)
+    <span onmouseout="hideTip(event, 'fs82', 193)" onmouseover="showTip(event, 'fs82', 193)" class="i">myType</span>(<span class="i">myId</span> <span class="o">=</span> <span class="n">1</span>) 
 ]
 
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs84', 193)" onmouseover="showTip(event, 'fs84', 193)" class="i">myArray</span> <span class="o">=</span> 
-    <span onmouseout="hideTip(event, 'fs65', 194)" onmouseover="showTip(event, 'fs65', 194)" class="i">db</span><span class="o">.</span><span class="i">``Stored Procedures``</span><span class="o">.</span><span class="i">``dbo.MyProc``</span><span class="o">.</span><span class="i">AsyncExecute</span>(<span onmouseout="hideTip(event, 'fs83', 195)" onmouseover="showTip(event, 'fs83', 195)" class="i">m</span>) 
-    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs63', 196)" onmouseover="showTip(event, 'fs63', 196)" class="i">Async</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs64', 197)" onmouseover="showTip(event, 'fs64', 197)" class="i">RunSynchronously</span> 
-    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs66', 198)" onmouseover="showTip(event, 'fs66', 198)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs67', 199)" onmouseover="showTip(event, 'fs67', 199)" class="i">ofSeq</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs84', 194)" onmouseover="showTip(event, 'fs84', 194)" class="i">myArray</span> <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs65', 195)" onmouseover="showTip(event, 'fs65', 195)" class="i">db</span><span class="o">.</span><span class="i">``Stored Procedures``</span><span class="o">.</span><span class="i">``dbo.MyProc``</span><span class="o">.</span><span class="i">AsyncExecute</span>(<span onmouseout="hideTip(event, 'fs83', 196)" onmouseover="showTip(event, 'fs83', 196)" class="i">m</span>) 
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs63', 197)" onmouseover="showTip(event, 'fs63', 197)" class="i">Async</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs64', 198)" onmouseover="showTip(event, 'fs64', 198)" class="i">RunSynchronously</span> 
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs66', 199)" onmouseover="showTip(event, 'fs66', 199)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs67', 200)" onmouseover="showTip(event, 'fs67', 200)" class="i">ofSeq</span>
 
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs85', 200)" onmouseover="showTip(event, 'fs85', 200)" class="i">myRes</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs84', 201)" onmouseover="showTip(event, 'fs84', 201)" class="i">myArray</span><span class="o">.</span>[<span class="n">0</span>]
-<span onmouseout="hideTip(event, 'fs85', 202)" onmouseover="showTip(event, 'fs85', 202)" class="i">myRes</span><span class="o">.</span><span class="i">myId</span>
-<span onmouseout="hideTip(event, 'fs85', 203)" onmouseover="showTip(event, 'fs85', 203)" class="i">myRes</span><span class="o">.</span><span class="i">myName</span></pre>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs85', 201)" onmouseover="showTip(event, 'fs85', 201)" class="i">myRes</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs84', 202)" onmouseover="showTip(event, 'fs84', 202)" class="i">myArray</span><span class="o">.</span>[<span class="n">0</span>]
+<span onmouseout="hideTip(event, 'fs85', 203)" onmouseover="showTip(event, 'fs85', 203)" class="i">myRes</span><span class="o">.</span><span class="i">myId</span>
+<span onmouseout="hideTip(event, 'fs85', 204)" onmouseover="showTip(event, 'fs85', 204)" class="i">myRes</span><span class="o">.</span><span class="i">myName</span></pre>
 </td>
 </tr>
 </table>
