@@ -204,7 +204,7 @@
 <ul>
 <li>.NET 4.0 and higher</li>
 <li><em>SqlCommandProvider and SqlProgrammabilityProvider only</em> SQL Server 2012 and up or SQL Azure Database at compile-time</li>
-<li>SqlEnumProvider works with any ADO.NET complain data-source</li>
+<li>SqlEnumProvider works with any ADO.NET compliant data-source</li>
 </ul>
 
 <h2>SqlCommandProvider and SqlProgrammabilityProvider features at glance</h2>
@@ -235,6 +235,7 @@
 <li>Inferred static type for output. Configurable choice of <code>seq&lt;Records&gt;</code>(default), <code>seq&lt;Tuples&gt;</code>,<code>DataTable</code>, or raw <code>SqlReader</code> for custom parsing. 
 For <code>seq&lt;Records&gt;</code> and <code>seq&lt;Tuples&gt;</code> each column mapped to corresponding property/item</li>
 <li>Nullable output columns translate to the F# Option type</li>
+<li>Stored Procedures returning a result set and Table Valued Functions have <code>ExecuteSingle</code> and <code>AsyncExecuteSingle</code> methods that return <code>Option&lt;'T&gt;</code> and <code>Async&lt;Option&lt;'T&gt;&gt;</code> respectively.</li>
 <li>Output parameters and return values for stored procedures are not supported. Open a GitHub project issue to request this support.</li>
 </ul></li>
 <li>Extra configuration options:
