@@ -384,10 +384,10 @@ END
 *)
 
 type TableValuedSample = SqlCommandProvider<"exec myProc @x", connectionString>
-type TVP = TableValuedSample.MyTableType
+type TVP = TableValuedSample.myTableType
 let tvpSp = new TableValuedSample()
 //nullable columns mapped to optional ctor params
-tvpSp.Execute(x = [ TVP(myId = 1, myName = "monkey"); TVP(myId = 2) ]) 
+tvpSp.Execute(x = [ TVP(myId = 1, myName = Some "monkey"); TVP(myId = 2) ]) 
 
 (**
 Same with `SqlProgrammabilityProvider<...>`
