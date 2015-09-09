@@ -199,6 +199,17 @@ to determine which columns to filter, if at all, based on that input.</p>
 </tr>
 </table>
 
+<h3>7. Why do I sometimes get ExecuteSingle and AsyncExecuteSingle options with the SqlProgrammabilityProvider?</h3>
+
+<p>There are two cases when you would get those extra methods.</p>
+
+<ul>
+<li>Referencing a stored procedure that returns some sort of result set you will get these extra methods.</li>
+<li>Referencing a Table Valued Function</li>
+</ul>
+
+<p>In both cases the methods return <code>Option&lt;'T&gt;</code> (or <code>Async&lt;Option&lt;'T&gt;&gt;</code>) rather than <code>Seq&lt;'T&gt;</code> (or <code>Async&lt;Seq&lt;'T&gt;&gt;</code>)</p>
+
 <div class="tip" id="fs1">val echoOnly : obj<br /><br />Full name: Faq.echoOnly</div>
 <div class="tip" id="fs2">val connectionString : string<br /><br />Full name: Faq.connectionString</div>
 <div class="tip" id="fs3">val echoOr42 : obj<br /><br />Full name: Faq.echoOr42</div>
