@@ -258,8 +258,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         tables.AddMembersDelayed <| fun() ->
             use __ = conn.UseLocally()
             let isSqlAzure = conn.IsSqlAzure
-            conn.GetTables(schema)
-            |> List.map (fun tableName -> 
+            conn.GetTables(schema, isSqlAzure)
+            |> List.map (fun (tableName, description) -> 
 
                 let twoPartTableName = sprintf "[%s].[%s]" schema tableName 
 
@@ -357,14 +357,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 let dataTableType = ProvidedTypeDefinition(tableName, baseType = Some( typedefof<_ DataTable>.MakeGenericType(dataRowType)))
                 tagProvidedType dataTableType
                 dataTableType.AddMember dataRowType
-
-                if not isSqlAzure
-                then 
-                    dataTableType.AddXmlDocDelayed <| fun() ->
-                        use __ = conn.UseLocally()
-                        let query = sprintf "SELECT value FROM fn_listextendedproperty ('MS_Description', 'schema', '%s', 'table', '%s', default, default)" schema tableName
-                        let cmd = new SqlCommand(query, conn) 
-                        cmd.ExecuteScalar() |> sprintf "<summary>%O</summary>"
+        
+                do
+                    description |> Option.iter (fun x -> dataTableType.AddXmlDoc( sprintf "<summary>%s</summary>" x))
 
                 do //ctor
                     let ctor = ProvidedConstructor []

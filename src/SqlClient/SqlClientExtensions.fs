@@ -232,8 +232,8 @@ type SqlConnection with
                 SPECIFIC_SCHEMA
                 ,SPECIFIC_NAME
                 ,DATA_TYPE
-                ,Definition = ISNULL( OBJECT_DEFINITION( OBJECT_ID( SPECIFIC_SCHEMA + '.' + SPECIFIC_NAME)), '')  
-	            ,Description = XProp.Value
+                ,DEFINITION = ISNULL( OBJECT_DEFINITION( OBJECT_ID( SPECIFIC_SCHEMA + '.' + SPECIFIC_NAME)), '')  
+	            ,DESCRIPTION = XProp.Value
             FROM 
                 INFORMATION_SCHEMA.ROUTINES 
                 OUTER APPLY %s AS XProp
@@ -243,8 +243,8 @@ type SqlConnection with
         use cmd = new SqlCommand(getRoutinesQuery, this)
         cmd.ExecuteQuery(fun x ->
             let schema, name = unbox x.["SPECIFIC_SCHEMA"], unbox x.["SPECIFIC_NAME"]
-            let definition = unbox x.["Definition"]
-            let description = x.TryGetValue( "Description")
+            let definition = unbox x.["DEFINITION"]
+            let description = x.TryGetValue( "DESCRIPTION")
             match x.["DATA_TYPE"] with
             | :? string as x when x = "TABLE" -> TableValuedFunction(schema, name, definition, description)
             | :? DBNull -> StoredProcedure(schema, name, definition, description)
@@ -326,11 +326,26 @@ type SqlConnection with
         )
         |> Seq.toList
 
-    member internal this.GetTables( schema) = 
+    member internal this.GetTables( schema, isSqlAzure) = 
         assert (this.State = ConnectionState.Open)
-        let getTablesQuery = sprintf "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = '%s'" schema
+        let descriptionSelector = 
+            if isSqlAzure 
+            then 
+                "(SELECT NULL AS Value)"
+            else 
+                "fn_listextendedproperty ('MS_Description', 'schema', TABLE_SCHEMA, 'TABLE', TABLE_NAME, default, default)" 
+
+        let getTablesQuery = sprintf "
+            SELECT 
+                TABLE_NAME 
+	            ,DESCRIPTION = XProp.Value
+            FROM 
+                INFORMATION_SCHEMA.TABLES 
+                OUTER APPLY %s AS XProp
+            WHERE 
+                TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = '%s'" descriptionSelector schema
         use cmd = new SqlCommand(getTablesQuery, this)
-        cmd.ExecuteQuery(fun x -> x.GetString 0) |> Seq.toList
+        cmd.ExecuteQuery(fun x -> x.GetString 0, x.TryGetValue( "DESCRIPTION") ) |> Seq.toList
 
     member internal this.GetFullQualityColumnInfo commandText = 
         assert (this.State = ConnectionState.Open)
