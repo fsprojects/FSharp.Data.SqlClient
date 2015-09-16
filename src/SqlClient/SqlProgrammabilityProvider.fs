@@ -149,18 +149,15 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         [
             use _ = conn.UseLocally()
             let isSqlAzure = conn.IsSqlAzure
-            let routines = conn.GetRoutines( schema) 
+            let routines = conn.GetRoutines( schema, isSqlAzure) 
             for routine in routines do
              
                 let cmdProvidedType = ProvidedTypeDefinition(snd routine.TwoPartName, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
-                cmdProvidedType.AddXmlDoc <| 
-                    match routine with 
-                    | StoredProcedure _ -> "Stored Procedure"
-                    | TableValuedFunction _ -> "Table-Valued Function"
-                    | ScalarValuedFunction _ -> "Scalar-Valued Function"
+
+                do
+                    routine.Description |> Option.iter cmdProvidedType.AddXmlDoc
                 
                 cmdProvidedType.AddMembersDelayed <| fun() ->
-                //cmdProvidedType.AddMembers
                     [
                         use __ = conn.UseLocally()
                         let parameters = conn.GetParameters( routine, isSqlAzure)

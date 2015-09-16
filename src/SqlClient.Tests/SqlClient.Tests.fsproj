@@ -66,7 +66,6 @@
     <Compile Include="TransactionTests.fs" />
     <Compile Include="ResultTypeTests.fs" />
     <Compile Include="TVPTests.fs" />
-    <Compile Include="SqlClientExtensionsTests.fs" />
     <Compile Include="ProgrammabilityTests.fs" />
     <Compile Include="DynamicRecordTests.fs" />
     <Compile Include="SqlEnumTests.fs" />

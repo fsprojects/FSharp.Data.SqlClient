@@ -156,17 +156,27 @@ let rec parseDefaultValue (definition: string) (expr: Microsoft.SqlServer.Transa
     | _ -> None 
 
 type Routine = 
-    | StoredProcedure of schema: string * name: string * definition: string
-    | TableValuedFunction of schema: string * name: string * definition: string
-    | ScalarValuedFunction of schema: string * name: string * definition: string
+    | StoredProcedure of schema: string * name: string * definition: string * description: string option
+    | TableValuedFunction of schema: string * name: string * definition: string * description: string option
+    | ScalarValuedFunction of schema: string * name: string * definition: string * description: string option
 
     member this.Definition = 
         match this with
-        | StoredProcedure(_, _, definition) | TableValuedFunction(_, _, definition) | ScalarValuedFunction(_, _, definition) -> definition
+        | StoredProcedure(_, _, definition, _) 
+        | TableValuedFunction(_, _, definition, _) 
+        | ScalarValuedFunction(_, _, definition, _) -> definition
+
+    member this.Description = 
+        match this with
+        | StoredProcedure(_, _, _, description) 
+        | TableValuedFunction(_, _, _, description) 
+        | ScalarValuedFunction(_, _, _, description) -> description
 
     member this.TwoPartName = 
         match this with
-        | StoredProcedure(schema, name, _) | TableValuedFunction(schema, name, _) | ScalarValuedFunction(schema, name, _) -> schema, name
+        | StoredProcedure(schema, name, _, _) 
+        | TableValuedFunction(schema, name, _, _) 
+        | ScalarValuedFunction(schema, name, _, _) -> schema, name
 
     member this.IsStoredProc = match this with StoredProcedure _ -> true | _ -> false
     
@@ -207,20 +217,38 @@ type SqlConnection with
         use cmd = new SqlCommand("SELECT name FROM sys.schemas WHERE principal_id = 1", this)
         cmd.ExecuteQuery(fun record -> record.GetString(0)) |> Seq.toList
 
-    member internal this.GetRoutines( schema) = 
+    member internal this.GetRoutines( schema, isSqlAzure) = 
         assert (this.State = ConnectionState.Open)
+
+        let descriptionSelector = 
+            if isSqlAzure 
+            then 
+                "(SELECT NULL AS Value)"
+            else 
+                "fn_listextendedproperty ('MS_Description', 'schema', SPECIFIC_SCHEMA, ROUTINE_TYPE, SPECIFIC_NAME, default, default)" 
+
         let getRoutinesQuery = sprintf "
-            SELECT SPECIFIC_SCHEMA, SPECIFIC_NAME, DATA_TYPE, ISNULL(OBJECT_DEFINITION(OBJECT_ID(SPECIFIC_SCHEMA + '.' + SPECIFIC_NAME)), '') AS Definition  
-            FROM INFORMATION_SCHEMA.ROUTINES 
-            WHERE ROUTINE_SCHEMA = '%s'" schema
+            SELECT 
+                SPECIFIC_SCHEMA
+                ,SPECIFIC_NAME
+                ,DATA_TYPE
+                ,Definition = ISNULL( OBJECT_DEFINITION( OBJECT_ID( SPECIFIC_SCHEMA + '.' + SPECIFIC_NAME)), '')  
+	            ,Description = XProp.Value
+            FROM 
+                INFORMATION_SCHEMA.ROUTINES 
+                OUTER APPLY %s AS XProp
+            WHERE 
+                ROUTINE_SCHEMA = '%s'" descriptionSelector schema
+
         use cmd = new SqlCommand(getRoutinesQuery, this)
         cmd.ExecuteQuery(fun x ->
             let schema, name = unbox x.["SPECIFIC_SCHEMA"], unbox x.["SPECIFIC_NAME"]
             let definition = unbox x.["Definition"]
+            let description = x.TryGetValue( "Description")
             match x.["DATA_TYPE"] with
-            | :? string as x when x = "TABLE" -> TableValuedFunction(schema, name, definition)
-            | :? DBNull -> StoredProcedure(schema, name, definition)
-            | _ -> ScalarValuedFunction(schema, name, definition)
+            | :? string as x when x = "TABLE" -> TableValuedFunction(schema, name, definition, description)
+            | :? DBNull -> StoredProcedure(schema, name, definition, description)
+            | _ -> ScalarValuedFunction(schema, name, definition, description)
         ) 
         |> Seq.toArray
             
@@ -261,7 +289,7 @@ type SqlConnection with
 	            ,user_type_id AS suggested_user_type_id
 	            ,is_output AS suggested_is_output
 	            ,CAST( IIF(is_output = 1, 0, 1) AS BIT) AS suggested_is_input
-	            ,description = ISNULL(XProp.Value, '')
+	            ,description = ISNULL( XProp.Value, '')
             FROM sys.all_parameters AS p
                 OUTER APPLY %s AS XProp
             WHERE
