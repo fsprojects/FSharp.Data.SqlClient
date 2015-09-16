@@ -173,3 +173,11 @@ let ``Setting the command timeout isn't overridden when giving ConnectionStrings
     let sqlCommand = (getDate :> ISqlCommand).Raw
     Assert.Equal(customTimeout, sqlCommand.CommandTimeout)
 
+[<Fact>]
+let ``The undeclared parameter 'X' is used more than once in the batch being analyzed.``() =
+    use cmd = new SqlCommandProvider<"
+        declare @x int = 42; --make bound vars handled properly
+        select * from HumanResources.Shift where @time >= StartTime and @time <= EndTime
+    ", ConnectionStrings.AdventureWorksNamed>()
+    let actual = [ for x in cmd.Execute( TimeSpan(16, 0, 0)) -> x.Name ]
+    Assert.Equal<_ list>([ "Evening" ], actual )

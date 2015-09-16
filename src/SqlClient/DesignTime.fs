@@ -213,26 +213,45 @@ type DesignTime private() =
             with :? SqlException ->
                 raise why
 
+    static member internal ParseParameterInfo(cmd: SqlCommand) = 
+        cmd.ExecuteQuery(fun cursor ->
+            string cursor.["name"], 
+            unbox<int> cursor.["suggested_system_type_id"], 
+            cursor.TryGetValue "suggested_user_type_id",
+            unbox cursor.["suggested_is_output"],
+            unbox cursor.["suggested_is_input"]
+        )        
+
     static member internal ExtractParameters(connection, commandText: string, allParametersOptional) =  
+        
         use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", connection, CommandType = CommandType.StoredProcedure)
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
-        cmd.ExecuteQuery(fun reader ->
-            let paramName = string reader.["name"]
-            let sqlEngineTypeId = unbox<int> reader.["suggested_system_type_id"]
 
-            let userTypeId = reader.TryGetValue "suggested_user_type_id"
+        let parameters = 
+            try
+                DesignTime.ParseParameterInfo( cmd) |> Seq.toArray
+            with 
+                | :? SqlException as why when why.Class = 16uy && why.Number = 11508 && why.State = 1uy && why.ErrorCode = -2146232060 ->
+                    match DesignTime.RewriteSqlStatementToEnableMoreThanOneParameterDeclaration(cmd, why) with
+                    | Some x -> x
+                    | None -> reraise()
+                | ex -> 
+                    reraise()
+
+        parameters
+        |> Seq.map(fun (name, sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input) ->
             let direction = 
-                if unbox reader.["suggested_is_output"]
+                if suggested_is_output
                 then 
-                    invalidArg paramName "Output parameters are not supported"
+                    invalidArg name "Output parameters are not supported"
                 else 
-                    assert(unbox reader.["suggested_is_input"])
+                    assert(suggested_is_input)
                     ParameterDirection.Input 
                     
             let typeInfo = findTypeInfoBySqlEngineTypeId(connection.ConnectionString, sqlEngineTypeId, userTypeId)
 
             { 
-                Name = paramName
+                Name = name
                 TypeInfo = typeInfo 
                 Direction = direction 
                 DefaultValue = None
@@ -242,6 +261,79 @@ type DesignTime private() =
         )
         |> Seq.toList
 
+    static member internal RewriteSqlStatementToEnableMoreThanOneParameterDeclaration(cmd: SqlCommand, why: SqlException) =  
+        
+        let getVariables tsql = 
+            let parser = Microsoft.SqlServer.TransactSql.ScriptDom.TSql120Parser( true)
+            let tsqlReader = new System.IO.StringReader(tsql)
+            let errors = ref Unchecked.defaultof<_>
+            let fragment = parser.Parse(tsqlReader, errors)
+
+            let allVars = ResizeArray()
+            let declaredVars = ResizeArray()
+
+            fragment.Accept {
+                new Microsoft.SqlServer.TransactSql.ScriptDom.TSqlFragmentVisitor() with
+                    member __.Visit(node : Microsoft.SqlServer.TransactSql.ScriptDom.VariableReference) = 
+                        base.Visit node
+                        allVars.Add(node.Name, node.StartOffset, node.FragmentLength)
+                    member __.Visit(node : Microsoft.SqlServer.TransactSql.ScriptDom.DeclareVariableElement) = 
+                        base.Visit node
+                        declaredVars.Add(node.VariableName.Value)
+            }
+            let unboundVars = 
+                allVars 
+                |> Seq.groupBy (fun (name, _, _)  -> name)
+                |> Seq.choose (fun (name, xs) -> 
+                    if declaredVars.Contains name 
+                    then None 
+                    else Some(name, xs |> Seq.mapi (fun i (_, start, length) -> sprintf "%s%i" name i, start, length)) 
+                )
+                |> dict
+
+            unboundVars, !errors
+
+        let mutable tsql = cmd.Parameters.["@tsql"].Value.ToString()
+        let unboundVars, parseErrors = getVariables tsql
+        assert(parseErrors.Count = 0)
+        let usedMoreThanOnceVariable = 
+            why.Message.Replace("The undeclared parameter '", "").Replace("' is used more than once in the batch being analyzed.", "")
+        assert(unboundVars.Keys.Contains( usedMoreThanOnceVariable))
+        let mutable startAdjustment = 0
+        for KeyValue(_, xs) in unboundVars do
+            for newName, start, len in xs do
+                let before = tsql
+                let start = start + startAdjustment
+                let after = before.Remove(start, len).Insert(start, newName)
+                tsql <- after
+                startAdjustment <- startAdjustment + (after.Length - before.Length)
+        cmd.Parameters.["@tsql"].Value <- tsql
+        let altered = DesignTime.ParseParameterInfo cmd
+        let mapBack = unboundVars |> Seq.collect(fun (KeyValue(name, xs)) -> [ for newName, _, _ in xs -> newName, name ]) |> dict
+        let unified = 
+            altered
+            |> Seq.map (fun (name, sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input) -> 
+                let oldName = 
+                    match mapBack.TryGetValue name with 
+                    | true, original -> original 
+                    | false, _ -> name
+                oldName, (sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input)
+            )
+            |> Seq.groupBy fst
+            |> Seq.map( fun (name, xs) -> name, xs |> Seq.map snd |> Seq.distinct |> Seq.toArray)
+            |> Seq.toArray
+
+        if unified |> Array.exists( fun (_, xs) -> xs.Length > 1)
+        then 
+            None
+        else
+            unified 
+            |> Array.map (fun (name, xs) -> 
+                let sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input = xs.[0] //|> Seq.exactlyOne
+                name, sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input
+            )
+            |> Some
+                
     static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, udttsPerSchema: System.Collections.Generic.Dictionary<_, ProvidedTypeDefinition>) = 
         [
             for p in sqlParameters do
