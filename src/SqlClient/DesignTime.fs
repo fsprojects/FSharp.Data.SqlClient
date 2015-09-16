@@ -4,6 +4,7 @@ open System
 open System.Reflection
 open System.Data
 open System.Data.SqlClient
+open System.Diagnostics
 open Microsoft.FSharp.Quotations
 //open Microsoft.FSharp.Reflection
 open ProviderImplementation.ProvidedTypes
@@ -235,7 +236,7 @@ type DesignTime private() =
                     match DesignTime.RewriteSqlStatementToEnableMoreThanOneParameterDeclaration(cmd, why) with
                     | Some x -> x
                     | None -> reraise()
-                | ex -> 
+                | _ -> 
                     reraise()
 
         parameters
@@ -295,44 +296,50 @@ type DesignTime private() =
 
         let mutable tsql = cmd.Parameters.["@tsql"].Value.ToString()
         let unboundVars, parseErrors = getVariables tsql
-        assert(parseErrors.Count = 0)
-        let usedMoreThanOnceVariable = 
-            why.Message.Replace("The undeclared parameter '", "").Replace("' is used more than once in the batch being analyzed.", "")
-        assert(unboundVars.Keys.Contains( usedMoreThanOnceVariable))
-        let mutable startAdjustment = 0
-        for KeyValue(_, xs) in unboundVars do
-            for newName, start, len in xs do
-                let before = tsql
-                let start = start + startAdjustment
-                let after = before.Remove(start, len).Insert(start, newName)
-                tsql <- after
-                startAdjustment <- startAdjustment + (after.Length - before.Length)
-        cmd.Parameters.["@tsql"].Value <- tsql
-        let altered = DesignTime.ParseParameterInfo cmd
-        let mapBack = unboundVars |> Seq.collect(fun (KeyValue(name, xs)) -> [ for newName, _, _ in xs -> newName, name ]) |> dict
-        let unified = 
-            altered
-            |> Seq.map (fun (name, sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input) -> 
-                let oldName = 
-                    match mapBack.TryGetValue name with 
-                    | true, original -> original 
-                    | false, _ -> name
-                oldName, (sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input)
-            )
-            |> Seq.groupBy fst
-            |> Seq.map( fun (name, xs) -> name, xs |> Seq.map snd |> Seq.distinct |> Seq.toArray)
-            |> Seq.toArray
-
-        if unified |> Array.exists( fun (_, xs) -> xs.Length > 1)
+        if parseErrors.Count = 0
         then 
-            None
-        else
-            unified 
-            |> Array.map (fun (name, xs) -> 
-                let sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input = xs.[0] //|> Seq.exactlyOne
-                name, sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input
+            let usedMoreThanOnceVariable = 
+                why.Message.Replace("The undeclared parameter '", "").Replace("' is used more than once in the batch being analyzed.", "")
+            Debug.Assert(
+                unboundVars.Keys.Contains( usedMoreThanOnceVariable), 
+                sprintf "Could not find %s among extracted unbound vars: %O" usedMoreThanOnceVariable (List.ofSeq unboundVars.Keys)
             )
-            |> Some
+            let mutable startAdjustment = 0
+            for xs in unboundVars.Values do
+                for newName, start, len in xs do
+                    let before = tsql
+                    let start = start + startAdjustment
+                    let after = before.Remove(start, len).Insert(start, newName)
+                    tsql <- after
+                    startAdjustment <- startAdjustment + (after.Length - before.Length)
+            cmd.Parameters.["@tsql"].Value <- tsql
+            let altered = DesignTime.ParseParameterInfo cmd
+            let mapBack = unboundVars |> Seq.collect(fun (KeyValue(name, xs)) -> [ for newName, _, _ in xs -> newName, name ]) |> dict
+            let tryUnify = 
+                altered
+                |> Seq.map (fun (name, sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input) -> 
+                    let oldName = 
+                        match mapBack.TryGetValue name with 
+                        | true, original -> original 
+                        | false, _ -> name
+                    oldName, (sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input)
+                )
+                |> Seq.groupBy fst
+                |> Seq.map( fun (name, xs) -> name, xs |> Seq.map snd |> Seq.distinct |> Seq.toArray)
+                |> Seq.toArray
+
+            if tryUnify |> Array.exists( fun (_, xs) -> xs.Length > 1)
+            then 
+                None
+            else
+                tryUnify 
+                |> Array.map (fun (name, xs) -> 
+                    let sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input = xs.[0] //|> Seq.exactlyOne
+                    name, sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input
+                )
+                |> Some
+        else
+            None
                 
     static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, udttsPerSchema: System.Collections.Generic.Dictionary<_, ProvidedTypeDefinition>) = 
         [

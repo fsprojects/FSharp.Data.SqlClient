@@ -173,11 +173,52 @@ let ``Setting the command timeout isn't overridden when giving ConnectionStrings
     let sqlCommand = (getDate :> ISqlCommand).Raw
     Assert.Equal(customTimeout, sqlCommand.CommandTimeout)
 
-[<Fact>]
-let ``The undeclared parameter 'X' is used more than once in the batch being analyzed.``() =
-    use cmd = new SqlCommandProvider<"
-        declare @x int = 42; --make bound vars handled properly
-        select * from HumanResources.Shift where @time >= StartTime and @time <= EndTime
-    ", ConnectionStrings.AdventureWorksNamed>()
-    let actual = [ for x in cmd.Execute( TimeSpan(16, 0, 0)) -> x.Name ]
-    Assert.Equal<_ list>([ "Evening" ], actual )
+module ``The undeclared parameter 'X' is used more than once in the batch being analyzed`` = 
+    [<Fact>]
+    let Basic() =
+        use cmd = new SqlCommandProvider<"
+            SELECT * 
+            FROM HumanResources.Shift 
+            WHERE 
+                @time >= StartTime 
+                AND @time <= EndTime
+        ", ConnectionStrings.AdventureWorksNamed>()
+        let actual = [ for x in cmd.Execute( TimeSpan(16, 0, 0)) -> x.Name ]
+        Assert.Equal<_ list>([ "Evening" ], actual )
+
+    [<Fact>]
+    let WithBoundDeclaration() =
+        use cmd = new SqlCommandProvider<"
+            DECLARE @x AS INT = 42; --make bound vars handled properly
+
+            SELECT * 
+            FROM HumanResources.Shift 
+            WHERE 
+                @time >= StartTime 
+                AND @time <= EndTime
+        ", ConnectionStrings.AdventureWorksNamed>()
+        let actual = [ for x in cmd.Execute( TimeSpan(16, 0, 0)) -> x.Name ]
+        Assert.Equal<_ list>([ "Evening" ], actual )
+
+    [<Fact>]
+    let WithUnboundDeclaration() =
+        use cmd = new SqlCommandProvider<"
+            DECLARE @x AS INT; --make bound vars handled properly
+            SELECT * 
+            FROM HumanResources.Shift 
+            WHERE 
+                @time >= StartTime 
+                AND @time <= EndTime
+        ", ConnectionStrings.AdventureWorksNamed>()
+        let actual = [ for x in cmd.Execute( TimeSpan(16, 0, 0)) -> x.Name ]
+        Assert.Equal<_ list>([ "Evening" ], actual )
+
+    [<Fact>]
+    let DynamicFiltering() =
+        use cmd = new SqlCommandProvider<"
+            SELECT * 
+            FROM HumanResources.Shift 
+            WHERE CAST(@time AS TIME) IS NULL OR @time BETWEEN StartTime AND EndTime
+        ", ConnectionStrings.AdventureWorksNamed>()
+        let actual = [ for x in cmd.Execute( TimeSpan(16, 0, 0)) -> x.Name ]
+        Assert.Equal<_ list>([ "Evening" ], actual )
