@@ -8,7 +8,7 @@ open System.Data
 open FSharp.Data
 open Xunit
 
-type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksNamed>
+type AdventureWorks = SqlClient<ConnectionStrings.AdventureWorksNamed>
 
 //Tables types structured as: [TypeAlias].[Namespace].Tables.[TableName]
 type ShiftTable = AdventureWorks.HumanResources.Tables.Shift

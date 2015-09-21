@@ -328,7 +328,8 @@ type DesignTime private() =
                 |> Seq.map( fun (name, xs) -> name, xs |> Seq.map snd |> Seq.distinct |> Seq.toArray)
                 |> Seq.toArray
 
-            if tryUnify |> Array.exists( fun (_, xs) -> xs.Length > 1)
+            let unificationFailed = tryUnify |> Array.exists( fun (_, xs) -> xs.Length > 1)
+            if unificationFailed
             then 
                 None
             else

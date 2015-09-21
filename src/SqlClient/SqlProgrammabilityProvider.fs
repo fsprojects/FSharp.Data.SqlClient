@@ -25,7 +25,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
     let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
     let nameSpace = this.GetType().Namespace
-    let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlProgrammabilityProvider", Some typeof<obj>, HideObjectMethods = true)
+    let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlClient", Some typeof<obj>, HideObjectMethods = true)
 
     let cache = new MemoryCache(name = this.GetType().Name)
 
@@ -39,19 +39,17 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         providerType.DefineStaticParameters(
             parameters = [ 
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
-                ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Records) 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
             instantiationFunction = (fun typeName args ->
-                cache.GetOrAdd(typeName, lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3]))
+                cache.GetOrAdd(typeName, lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2]))
             ) 
         )
 
         providerType.AddXmlDoc """
 <summary>Typed access to SQL Server programmable objects: stored procedures, functions and user defined table types.</summary> 
 <param name='ConnectionStringOrName'>String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&lt;connection string name&gt;”.</param>
-<param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
 <param name='DataDirectory'>The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.</param>
 """
@@ -63,7 +61,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         | Some x -> Assembly.LoadFrom x
         | None -> base.ResolveAssembly args
 
-    member internal this.CreateRootType( typeName, connectionStringOrName, resultType, configFile, dataDirectory) =
+    member internal this.CreateRootType( typeName, connectionStringOrName, configFile, dataDirectory) =
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         
         let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
@@ -110,7 +108,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
             schemaType.AddMembersDelayed <| fun() -> 
                 [
-                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, resultType, isByName, connectionStringName, connectionStringOrName)
+                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, isByName, connectionStringName, connectionStringOrName)
                     routines |> List.iter tagProvidedType
                     yield! routines
 
@@ -145,7 +143,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 yield rowType
     ]
 
-    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, isByName, connectionStringName, connectionStringOrName) = 
+    member internal __.Routines(conn, schema, uddtsPerSchema, isByName, connectionStringName, connectionStringOrName) = 
         [
             use _ = conn.UseLocally()
             let isSqlAzure = conn.IsSqlAzure
@@ -163,15 +161,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let parameters = conn.GetParameters( routine, isSqlAzure)
 
                         let commandText = routine.ToCommantText(parameters)
-                        let outputColumns = 
-                            if resultType <> ResultType.DataReader
-                            then 
-                                DesignTime.GetOutputColumns(conn, commandText, parameters, routine.IsStoredProc)
-                            else 
-                                []
+                        let outputColumns = DesignTime.GetOutputColumns(conn, commandText, parameters, routine.IsStoredProc)
 
                         let rank = match routine with ScalarValuedFunction _ -> ResultRank.ScalarValue | _ -> ResultRank.Sequence
-                        let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank)
+                        let output = DesignTime.GetOutputTypes(outputColumns, ResultType.Records, rank)
         
                         do  //Record
                             output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
@@ -183,7 +176,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             Expr.Value commandText           
                             Expr.Value(routine.IsStoredProc) 
                             sqlParameters                               
-                            Expr.Value resultType                       
+                            Expr.Value ResultType.Records                       
                             Expr.Value rank
                             output.RowMapping                           
                             Expr.Value output.ErasedToRowType.PartialAssemblyQualifiedName

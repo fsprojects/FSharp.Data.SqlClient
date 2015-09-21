@@ -4,7 +4,7 @@ open System
 open System.Data.SqlClient
 open Xunit
 
-type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksNamed>
+type AdventureWorks = SqlClient<ConnectionStrings.AdventureWorksNamed>
 
 type GetContactInformation = AdventureWorks.dbo.ufnGetContactInformation
 
