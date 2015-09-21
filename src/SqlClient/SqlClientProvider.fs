@@ -20,7 +20,7 @@ open ProviderImplementation.ProvidedTypes
 open FSharp.Data.SqlClient
 
 [<TypeProvider>]
-type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this = 
+type public SqlClientProvider(config: TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces()
 
     let assembly = Assembly.LoadFrom( config.RuntimeAssembly)

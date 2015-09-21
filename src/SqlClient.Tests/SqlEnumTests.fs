@@ -3,12 +3,12 @@
 open System
 open Xunit
     
-type EnumMapping = SqlEnumProvider<"SELECT * FROM (VALUES(('One'), 1), ('Two', 2)) AS T(Tag, Value)", ConnectionStrings.LocalHost, CLIEnum = true>
+type EnumMapping = SqlEnum<"SELECT * FROM (VALUES(('One'), 1), ('Two', 2)) AS T(Tag, Value)", ConnectionStrings.LocalHost, CLIEnum = true>
 
 [<Literal>]
 let connectionString = ConnectionStrings.LocalHost
 
-type TinyIntMapping = SqlEnumProvider<"SELECT * FROM (VALUES(('One'), CAST(1 AS tinyint)), ('Two', CAST(2 AS tinyint))) AS T(Tag, Value)", connectionString>
+type TinyIntMapping = SqlEnum<"SELECT * FROM (VALUES(('One'), CAST(1 AS tinyint)), ('Two', CAST(2 AS tinyint))) AS T(Tag, Value)", connectionString>
 
 [<Fact>]
 let tinyIntMapping() = 
@@ -38,7 +38,7 @@ let Name() =
     Assert.Equal(Some "One", TinyIntMapping.TryFindName value)
     Assert.Equal(None, TinyIntMapping.TryFindName Byte.MinValue)
 
-type SingleColumnSelect = SqlEnumProvider<"SELECT Name FROM Purchasing.ShipMethod", ConnectionStrings.AdventureWorksNamed>
+type SingleColumnSelect = SqlEnum<"SELECT Name FROM Purchasing.ShipMethod", ConnectionStrings.AdventureWorksNamed>
 
 [<Fact>]
 let SingleColumn() =
