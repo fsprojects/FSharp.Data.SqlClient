@@ -59,8 +59,9 @@ let localTransactionCtor() =
                 HumanResources.Employee 
             WHERE 
                 BusinessEntityID = @id
-            ", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples, SingleRow = true>(conn, tran)
-        jamesKramerId |> cmd.Execute |> Option.get
+            ", ConnectionStrings.AdventureWorksNamed, SingleRow = true>(conn, tran)
+        let result = jamesKramerId |> cmd.Execute |> Option.get
+        result.BusinessEntityID, result.JobTitle, result.HireDate
 
     Assert.Equal<string>("Production Technician - WC60", jobTitle)
     
@@ -105,8 +106,9 @@ let localTransactionCreateAndSingleton() =
                 HumanResources.Employee 
             WHERE 
                 BusinessEntityID = @id
-            ", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples, SingleRow = true>.Create(conn, tran)
-        jamesKramerId |> cmd.Execute |> Option.get
+            ", ConnectionStrings.AdventureWorksNamed, SingleRow = true>.Create(conn, tran)
+        let result = jamesKramerId |> cmd.Execute |> Option.get
+        result.BusinessEntityID, result.JobTitle, result.HireDate
 
     Assert.Equal<string>("Production Technician - WC60", jobTitle)
     

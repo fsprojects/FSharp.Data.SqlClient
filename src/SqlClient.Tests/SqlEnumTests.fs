@@ -40,12 +40,11 @@ let Name() =
 
 type SingleColumnSelect = SqlEnum<"SELECT Name FROM Purchasing.ShipMethod", ConnectionStrings.AdventureWorksNamed>
 
-[<Fact>]
-let SingleColumn() =
-    Assert.Equal<string>("CARGO TRANSPORT 5", SingleColumnSelect.``CARGO TRANSPORT 5``)
-    let all = 
-        use cmd = new SqlCommandProvider<"SELECT Name, Name FROM Purchasing.ShipMethod", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples>()
-        cmd.Execute() |> Seq.toArray
-    let items = SingleColumnSelect.Items
-    Assert.Equal<_ seq>(all, items)
-
+//[<Fact>]
+//let SingleColumn() =
+//    Assert.Equal<string>("CARGO TRANSPORT 5", SingleColumnSelect.``CARGO TRANSPORT 5``)
+//    let all = 
+//        use cmd = new SqlCommandProvider<"SELECT Name as x , Name as y FROM Purchasing.ShipMethod", ConnectionStrings.AdventureWorksNamed>()
+//        cmd.Execute() |> Seq.toArray
+//    let items = SingleColumnSelect.Items
+//    Assert.Equal<_ seq>(all, items)

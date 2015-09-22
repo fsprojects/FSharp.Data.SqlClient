@@ -4,7 +4,7 @@ open FSharp.Data
 open Xunit
 
 // If compile fails here, check prereqs.sql
-type TableValuedTuple = SqlCommandProvider<"exec Person.myProc @x", ConnectionStrings.AdventureWorksNamed, SingleRow = true, ResultType = ResultType.Tuples>
+type TableValuedTuple = SqlCommandProvider<"exec Person.myProc @x", ConnectionStrings.AdventureWorksNamed, SingleRow = true>
 type MyTableType = TableValuedTuple.MyTableType
 
 [<Fact>]
@@ -14,7 +14,9 @@ let Basic() =
         MyTableType(myId = 1, myName = Some "monkey")
         MyTableType(myId = 2, myName = Some "donkey")
     ]
-    Assert.Equal(Some(1, Some "monkey"), cmd.Execute(x = p))    
+    let actual = cmd.Execute(x = p).Value
+    Assert.Equal(1, actual.myId)
+    Assert.Equal(Some "monkey", actual.myName)
 
 [<Fact>] 
 let InputIsEnumeratedExactlyOnce() = 
@@ -35,7 +37,9 @@ let NullableColumn() =
         MyTableType(myId = 1)
         MyTableType(myId = 2, myName = Some "donkey")
     ]
-    Assert.Equal(Some(1, None), cmd.Execute p)    
+    let actual = cmd.Execute(p).Value
+    Assert.Equal(1, actual.myId)
+    Assert.Equal(None, actual.myName)
 
 
 type TableValuedSingle = SqlCommandProvider<"exec SingleElementProc @x", ConnectionStringOrName = ConnectionStrings.AdventureWorksNamed>
@@ -61,7 +65,7 @@ let tvpSqlParamCleanUp() =
     let result = cmd.Execute(x = p) |> List.ofSeq
     Assert.Equal<int list>([1;2], result)    
 
-type TableValuedSprocTuple  = SqlCommandProvider<"exec Person.myProc @x", ConnectionStringOrName = ConnectionStrings.AdventureWorksNamed, SingleRow = true, ResultType = ResultType.Tuples>
+type TableValuedSprocTuple  = SqlCommandProvider<"exec Person.myProc @x", ConnectionStringOrName = ConnectionStrings.AdventureWorksNamed, SingleRow = true>
 
 [<Fact>]
 let SprocTupleValue() = 
@@ -71,7 +75,8 @@ let SprocTupleValue() =
         TableValuedSprocTuple.MyTableType(myId = 2, myName = Some "donkey")
     ]
     let actual = cmd.Execute(p).Value
-    Assert.Equal((1, Some "monkey"), actual)    
+    Assert.Equal(1, actual.myId)
+    Assert.Equal(Some "monkey", actual.myName)
 
 type TableValuedTupleWithOptionalParams = SqlCommandProvider<"exec Person.myProc @x", ConnectionStrings.AdventureWorksNamed, AllParametersOptional = true>
 [<Fact>]

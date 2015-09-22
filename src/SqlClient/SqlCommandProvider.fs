@@ -48,7 +48,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             parameters = [ 
                 ProvidedStaticParameter("CommandText", typeof<string>) 
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
-                ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Records) 
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false)   
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
@@ -56,7 +55,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
             instantiationFunction = (fun typeName args ->
-                let value = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6], unbox args.[7])
+                let value = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6])
                 cache.GetOrAdd(typeName, value)
             ) 
             
@@ -76,12 +75,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         this.AddNamespace(nameSpace, [ providerType ])
 
-    member internal this.CreateRootType(typeName, sqlStatementOrFile, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, resolutionFolder, dataDirectory) = 
+    member internal this.CreateRootType(typeName, sqlStatementOrFile, connectionStringOrName: string, singleRow, configFile, allParametersOptional, resolutionFolder, dataDirectory) = 
 
-        if singleRow && not (resultType = ResultType.Records || resultType = ResultType.Tuples)
-        then 
-            invalidArg "singleRow" "singleRow can be set only for ResultType.Records or ResultType.Tuples."
-        
         let invalidator() =
             cache.Remove(typeName) |> ignore
             this.Invalidate()
@@ -122,13 +117,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         let parameters = DesignTime.ExtractParameters(conn, sqlStatement, allParametersOptional)
 
-        let outputColumns = 
-            if resultType <> ResultType.DataReader
-            then DesignTime.GetOutputColumns(conn, sqlStatement, parameters, isStoredProcedure = false)
-            else []
-
+        let outputColumns =  DesignTime.GetOutputColumns(conn, sqlStatement, parameters, isStoredProcedure = false)
         let rank = if singleRow then ResultRank.SingleRow else ResultRank.Sequence
-        let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank)
+        let output = DesignTime.GetOutputTypes(outputColumns, ResultType.Records, rank)
         
         let cmdProvidedType = ProvidedTypeDefinition(assembly, nameSpace, typeName, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
 
@@ -146,7 +137,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 Expr.Value sqlStatement; 
                 Expr.Value isStoredProcedure 
                 sqlParameters; 
-                Expr.Value resultType; 
                 Expr.Value rank
                 output.RowMapping; 
                 Expr.Value output.ErasedToRowType.PartialAssemblyQualifiedName

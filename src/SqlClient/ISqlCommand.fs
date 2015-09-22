@@ -59,7 +59,7 @@ type Connection =
         | ``Connection and-or Transaction``(conn, _) -> conn.ConnectionString 
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
-type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, isStoredProcedure, parameters, resultType, rank, rowMapping: RowMapping, itemTypeName) = 
+type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, isStoredProcedure, parameters, rank, rowMapping: RowMapping, itemTypeName) = 
 
     let cmd = new SqlCommand(sqlStatement)
 
@@ -99,19 +99,7 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
     let notImplemented _ : _ = raise <| NotImplementedException()
 
     let execute, asyncExecute, executeSingle, asyncExecuteSingle = 
-        match resultType with
-        | ResultType.DataReader -> 
-            ``ISqlCommand Implementation``.ExecuteReader >> box, 
-            ``ISqlCommand Implementation``.AsyncExecuteReader >> box,
-            notImplemented, 
-            notImplemented
-        | ResultType.DataTable ->
-            ``ISqlCommand Implementation``.ExecuteDataTable >> box, 
-            ``ISqlCommand Implementation``.AsyncExecuteDataTable >> box,
-            notImplemented,
-            notImplemented
-        | ResultType.Records | ResultType.Tuples ->
-            match box rowMapping, itemTypeName with
+        match box rowMapping, itemTypeName with
             | null, itemTypeName when Type.GetType(itemTypeName, throwOnError = true) = typeof<Void> ->
                 ``ISqlCommand Implementation``.ExecuteNonQuery privateConnection >> box, 
                 ``ISqlCommand Implementation``.AsyncExecuteNonQuery privateConnection >> box,
@@ -135,8 +123,6 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
                 asyncExecuteHandle.Invoke(null, [| rank; rowMapping |]) |> unbox >> box,
                 executeHandle.Invoke(null, [| ResultRank.SingleRow; rowMapping |]) |> unbox >> box, 
                 asyncExecuteHandle.Invoke(null, [| ResultRank.SingleRow; rowMapping |]) |> unbox >> box
-
-        | unexpected -> failwithf "Unexpected ResultType value: %O" unexpected
 
     member this.CommandTimeout = cmd.CommandTimeout
 
@@ -205,7 +191,7 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
                 | _ -> ()
 
 //Execute/AsyncExecute versions
-
+//
     static member internal ExecuteReader(cmd, getReaderBehavior, parameters) = 
         ``ISqlCommand Implementation``.SetParameters(cmd, parameters)
         cmd.ExecuteReader( getReaderBehavior())
@@ -213,20 +199,6 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
     static member internal AsyncExecuteReader(cmd, getReaderBehavior, parameters) = 
         ``ISqlCommand Implementation``.SetParameters(cmd, parameters)
         cmd.AsyncExecuteReader( getReaderBehavior())
-    
-    static member internal ExecuteDataTable(cmd, getReaderBehavior, parameters) = 
-        use reader = ``ISqlCommand Implementation``.ExecuteReader(cmd, getReaderBehavior, parameters) 
-        let result = new FSharp.Data.DataTable<DataRow>(null, cmd.Clone())
-        result.Load(reader)
-        result
-
-    static member internal AsyncExecuteDataTable(cmd, getReaderBehavior, parameters) = 
-        async {
-            use! reader = ``ISqlCommand Implementation``.AsyncExecuteReader(cmd, getReaderBehavior, parameters) 
-            let result = new FSharp.Data.DataTable<DataRow>(null, cmd.Clone())
-            result.Load(reader)
-            return result
-        }
 
     static member internal ExecuteSeq<'TItem> (rank, rowMapper) = fun(cmd, getReaderBehavior, parameters) -> 
         let xs = ``ISqlCommand Implementation``.ExecuteReader(cmd, getReaderBehavior, parameters) |> Seq.ofReader<'TItem> rowMapper
@@ -277,6 +249,3 @@ type ``ISqlCommand Implementation``(connection, commandTimeout, sqlStatement, is
             use _ = cmd.Connection.UseLocally(privateConnection )
             return! cmd.AsyncExecuteNonQuery() 
         }
-
-
-

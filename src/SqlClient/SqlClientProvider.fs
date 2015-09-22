@@ -179,7 +179,6 @@ type public SqlClientProvider(config: TypeProviderConfig) as this =
                             Expr.Value commandText           
                             Expr.Value(routine.IsStoredProc) 
                             sqlParameters                               
-                            Expr.Value ResultType.Records                       
                             Expr.Value rank
                             output.RowMapping                           
                             Expr.Value output.ErasedToRowType.PartialAssemblyQualifiedName

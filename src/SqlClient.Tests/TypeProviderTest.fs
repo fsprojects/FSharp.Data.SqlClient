@@ -40,9 +40,11 @@ let TinyIntConversion() =
 
 [<Fact>]
 let ConditionalQuery() = 
-    use cmd = new SqlCommandProvider<"IF @flag = 0 SELECT 1, 'monkey' ELSE SELECT 2, 'donkey'", ConnectionStrings.AdventureWorksNamed, SingleRow=true, ResultType = ResultType.Tuples>()
-    Assert.Equal(Some(1, "monkey"), cmd.Execute(flag = 0))    
-    Assert.Equal(Some(2, "donkey"), cmd.Execute(flag = 1))    
+    use cmd = new SqlCommandProvider<"IF @flag = 0 SELECT 1 as x , 'monkey' as y ELSE SELECT 2 as x, 'donkey' as y", ConnectionStrings.AdventureWorksNamed, SingleRow=true>()
+    let monkey =  cmd.Execute(flag = 0).Value
+    Assert.Equal((1, "monkey"), (monkey.x, monkey.y))    
+    let donkey =  cmd.Execute(flag = 1).Value
+    Assert.Equal((2, "donkey"), (donkey.x, donkey.y))    
 
 [<Fact>]
 let columnsShouldNotBeNull2() = 
@@ -51,9 +53,9 @@ let columnsShouldNotBeNull2() =
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_NAME = 'DatabaseLog' and numeric_precision is null
         ORDER BY ORDINAL_POSITION
-    ", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples, SingleRow = true>()
+    ", ConnectionStrings.AdventureWorksNamed, SingleRow = true>()
 
-    let _,_,_,_,precision = cmd.Execute().Value
+    let precision = cmd.Execute().Value.NUMERIC_PRECISION
     Assert.Equal(None, precision)    
 
 [<Literal>]
@@ -85,8 +87,8 @@ let singleRowOption() =
 let ToTraceString() =
     let now = DateTime.Now
     let num = 42
-    let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE), CAST(@Number AS INT)',N'@Date Date,@Number Int',@Date='%A',@Number='%d'" now num
-    let cmd = new SqlCommandProvider<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples>()
+    let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE) as d, CAST(@Number AS INT) as i',N'@Date Date,@Number Int',@Date='%A',@Number='%d'" now num
+    let cmd = new SqlCommandProvider<"SELECT CAST(@Date AS DATE) as d, CAST(@Number AS INT) as i", ConnectionStrings.AdventureWorksNamed>()
     Assert.Equal<string>(
         expected, 
         actual = cmd.ToTraceString( now, num)
