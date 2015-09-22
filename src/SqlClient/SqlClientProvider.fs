@@ -72,13 +72,13 @@ type public SqlClientProvider(config: TypeProviderConfig) as this =
             else connectionStringOrName
 
         let dataDirectoryFullPath = 
-            if dataDirectory = "" then  config.ResolutionFolder
+            if dataDirectory = "" then config.ResolutionFolder
             elif Path.IsPathRooted dataDirectory then dataDirectory
-            else Path.Combine (config.ResolutionFolder, dataDirectory)
+            else Path.Combine( config.ResolutionFolder, dataDirectory)
 
-        AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectoryFullPath)
+        AppDomain.CurrentDomain.SetData( "DataDirectory", dataDirectoryFullPath)
 
-        let conn = new SqlConnection(designTimeConnectionString)
+        let conn = new SqlConnection( designTimeConnectionString)
         use closeConn = conn.UseLocally()
         conn.CheckVersion()
         conn.LoadDataTypesMap()
@@ -87,6 +87,9 @@ type public SqlClientProvider(config: TypeProviderConfig) as this =
 
         let tagProvidedType(t: ProvidedTypeDefinition) =
             t.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
+
+//        do 
+//            let execute: ProvidedMethod = 
 
         let schemas = 
             conn.GetUserSchemas() 
@@ -488,4 +491,8 @@ type public SqlClientProvider(config: TypeProviderConfig) as this =
                 dataTableType
             )
         tables
-        
+
+//    member internal this.GetExecuteMethods(conn, sqlStatement, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, resolutionFolder, dataDirectory) = 
+//        let m = ProvidedMethod("Execute", [], typeof<obj>, IsStaticMethod = true)
+//        let parameters = DesignTime.ExtractParameters(conn, sqlStatement, allParametersOptional)
+//        m         
