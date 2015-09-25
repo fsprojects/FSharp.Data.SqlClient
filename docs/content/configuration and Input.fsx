@@ -120,7 +120,7 @@ type GetContactInformation =
     SqlCommandProvider<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString>
 
 (**
-### Syntax erros
+### Syntax errors
 
 The type provider shows fairly clear error message if there are any syntax errors in T-SQL. 
 An instantaneous feedback is one of the most handy features of `SqlCommandProvider`. 
