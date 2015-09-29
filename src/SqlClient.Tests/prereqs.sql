@@ -131,3 +131,8 @@ CREATE TABLE dbo.TableHavingColumnNamesWithSpaces (
     [Modified Date 2] DATETIME     DEFAULT (getdate()) NOT NULL,
 );
 GO
+
+
+CREATE FUNCTION dbo.MyFunc(@p1 dbo.MyTableType readonly)
+RETURNS TABLE 
+RETURN SELECT * from @p1 p

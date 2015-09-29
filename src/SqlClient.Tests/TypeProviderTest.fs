@@ -121,7 +121,7 @@ let ``ToTraceString double-quotes``() =
     )>]
 let CommandTimeout() =
     use cmd = 
-        new SqlCommandProvider<"WAITFOR DELAY '00:00:35'; SELECT 42", ConnectionStrings.AdventureWorksNamed, SingleRow = true>(commandTimeout = 60)
+        new SqlCommandProvider<"WAITFOR DELAY '00:00:06'; SELECT 42", ConnectionStrings.AdventureWorksNamed, SingleRow = true>(commandTimeout = 60)
     Assert.Equal(60, cmd.CommandTimeout)
     Assert.Equal(Some 42, cmd.Execute())     
 
