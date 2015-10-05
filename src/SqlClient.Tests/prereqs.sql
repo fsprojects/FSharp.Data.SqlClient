@@ -132,7 +132,7 @@ CREATE TABLE dbo.TableHavingColumnNamesWithSpaces (
 );
 GO
 
-
-CREATE FUNCTION dbo.MyFunc(@p1 dbo.MyTableType readonly)
+CREATE FUNCTION dbo.MyFunc(@p1 dbo.MyTableType readonly, @p2 dbo.MyTableType readonly)
 RETURNS TABLE 
-RETURN SELECT * from @p1 p
+RETURN (SELECT * from @p1 UNION SELECT * from @p2) 
+GO

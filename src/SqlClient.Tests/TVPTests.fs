@@ -85,16 +85,15 @@ The error: Value cannot be null.	C:\Users\mitekm\Documents\GitHub\FSharp.Data.Sq
 *)
    
 
-type MyFunc = SqlCommandProvider<"select * from dbo.MyFunc(@x)", ConnectionStrings.AdventureWorksNamed>
+type MyFunc = SqlCommandProvider<"select * from dbo.MyFunc(@x, @y)", ConnectionStrings.AdventureWorksNamed>
 
 [<Fact>]
-let TVPParameterToFunction() = 
+let TwoTVPParameterOfSameUDTT() = 
     let cmd = new MyFunc()
-    let xs = [
-        1, Some "monkey"
-        2, Some "donkey"
-    ]
-    let ps = [ for id, name in xs -> MyFunc.MyTableType(id, name) ]
-    let expected = [ for id, name  in xs -> MyFunc.Record(id, name) ]
-    Assert.Equal<_ list>(expected, cmd.Execute(ps) |> Seq.toList)    
+    let xs = [ 1, Some "monkey" ]
+    let ys = [ 2, Some "donkey" ]
+    let xs' = [ for id, name in xs -> MyFunc.MyTableType(id, name) ]
+    let ys' = [ for id, name in ys -> MyFunc.MyTableType(id, name) ]
+    let expected = [ for id, name in xs @ ys -> MyFunc.Record(id, name) ]
+    Assert.Equal<_ list>(expected, cmd.Execute(xs', ys') |> Seq.toList)    
 
