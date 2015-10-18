@@ -101,12 +101,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         if connectionStringOrName.Trim() = ""
         then invalidArg "ConnectionStringOrName" "Value is empty!" 
 
-        let connectionStringName, isByName = Configuration.ParseConnectionStringName connectionStringOrName
-            
-        let designTimeConnectionString = 
-            if isByName
-            then Configuration.ReadConnectionStringFromConfigFileByName(connectionStringName, config.ResolutionFolder, configFile) |> fst
-            else connectionStringOrName
+        let connectionString = ConnectionString.Parse connectionStringOrName
+        let designTimeConnectionString = connectionString.GetDesignTimeValueAndProvider(config.ResolutionFolder, configFile) |> fst 
 
         let dataDirectoryFullPath = 
             if dataDirectory = "" then  config.ResolutionFolder
@@ -139,53 +135,47 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
 
         do  //ctors
-            let sqlParameters = Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
-            
-            let isStoredProcedure = false
-            let ctorArgsExceptConnection = [
-                Expr.Value sqlStatement; 
-                Expr.Value isStoredProcedure 
-                sqlParameters; 
-                Expr.Value resultType; 
-                Expr.Value rank
-                output.RowMapping; 
-                Expr.Value output.ErasedToRowType.PartialAssemblyQualifiedName
-            ]
+            let designTimeConfig = 
+                <@@ {
+                    ConnectionString = %%connectionString.Expr
+                    SqlStatement = sqlStatement
+                    IsStoredProcedure = false
+                    Parameters = %%Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
+                    ResultType = resultType
+                    Rank = rank
+                    RowMapping = %%output.RowMapping
+                    ItemTypeName = %%Expr.Value( output.ErasedToRowType.PartialAssemblyQualifiedName)
+                } @@>
 
-            let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructors() |> Seq.exactlyOne
-
-            do //default ctor and create factory 
-                let ctor1Params = 
-                    [ 
-                        ProvidedParameter("connectionString", typeof<string>, optionalValue = "") 
-                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
-                    ]
-
-                let ctor1Body(args: _ list) = 
-                    let connArg =
-                        <@@ 
-                            if not( String.IsNullOrEmpty(%%args.[0])) then Connection.Literal %%args.[0] 
-                            elif isByName then Connection.NameInConfig connectionStringName
-                            else Connection.Literal connectionStringOrName
-                        @@>
-                    Expr.NewObject(ctorImpl, connArg :: args.[1] :: ctorArgsExceptConnection)
-
-                cmdProvidedType.AddMember <| ProvidedConstructor(ctor1Params, InvokeCode = ctor1Body)
-                cmdProvidedType.AddMember <| ProvidedMethod("Create", ctor1Params, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = ctor1Body)
+            do 
+                let impl = typeof<``ISqlCommand Implementation``>.GetConstructor( [| typeof<DesignTimeConfig>; typeof<string> |])
+                let parameters = [ ProvidedParameter("connectionString", typeof<string>) ]
+                let body args = Expr.NewObject(impl, designTimeConfig :: args )
+                cmdProvidedType.AddMember <| ProvidedConstructor(parameters, InvokeCode = body)
+                cmdProvidedType.AddMember <| ProvidedMethod("Create", parameters, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body)
            
-            do //ctor and create factory with explicit connection/transaction support
-                let ctor2Params = 
-                    [ 
-                        ProvidedParameter("connection", typeof<SqlConnection>)
-                        ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
-                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
-                    ]
+            do 
+                let impl = 
+                    typeof<``ISqlCommand Implementation``>
+                        .GetConstructor [| 
+                            typeof<DesignTimeConfig>
+                            typeof<Choice<string, SqlConnection>> 
+                            typeof<SqlTransaction>
+                            typeof<int>
+                        |]
 
-                let ctor2Body (args: _ list) = 
-                    Expr.NewObject(ctorImpl, <@@ Connection.``Connection and-or Transaction``(%%args.[0], %%args.[1]) @@> :: args.[2] :: ctorArgsExceptConnection)
+                let parameters = [ 
+                    ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
+                    ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
+                    ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
+                ]
+
+                let body (args: _ list) =
+                    let connArg = <@@ Choice2Of2(%%args.[0]): Choice<string, SqlConnection> @@>
+                    Expr.NewObject(impl, designTimeConfig :: connArg :: args.Tail )
                     
-                cmdProvidedType.AddMember <| ProvidedConstructor(ctor2Params, InvokeCode = ctor2Body)
-                cmdProvidedType.AddMember <| ProvidedMethod("Create", ctor2Params, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = ctor2Body)
+                cmdProvidedType.AddMember <| ProvidedConstructor(parameters, InvokeCode = body)
+                cmdProvidedType.AddMember <| ProvidedMethod("Create", parameters, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body)
 
         do  //AsyncExecute, Execute, and ToTraceString
 

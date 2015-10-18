@@ -14,4 +14,5 @@ let MasterDb = @"name=MasterDb"
 [<Literal>]
 let LocalHost = @"Data Source=" + server + ";Integrated Security=True"
 
-let AdventureWorks = FSharp.Data.SqlClient.Configuration.GetConnectionStringAtRunTime "AdventureWorks" 
+open FSharp.Configuration
+let AdventureWorks = AppSettings<"app.config">.ConnectionStrings.AdventureWorks

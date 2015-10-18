@@ -19,6 +19,61 @@ open System
 open System.Threading.Tasks
 open System.Collections.Generic
 
+
+[<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
+type ConnectionString = 
+    | Literal of string
+    | NameInConfig of string
+
+    static member Parse(s: string) =
+        match s.Trim().Split([|'='|], 2, StringSplitOptions.RemoveEmptyEntries) with
+            | [| "" |] -> invalidArg "ConnectionStringOrName" "Value is empty!"
+            | [| prefix; tail |] when prefix.Trim().ToLower() = "name" -> ConnectionString.NameInConfig( tail.Trim())
+            | _ -> ConnectionString.Literal s
+
+    member this.GetDesignTimeValueAndProvider(resolutionFolder, fileName, ?provider) = 
+        match this with
+        | Literal value -> value, defaultArg provider "System.Data.SqlClient"
+        | NameInConfig name -> 
+            let configFilename = 
+                if fileName <> "" 
+                then
+                    let path = Path.Combine(resolutionFolder, fileName)
+                    if not <| File.Exists path 
+                    then raise <| FileNotFoundException( sprintf "Could not find config file '%s'." path)
+                    else path
+                else
+                    let appConfig = Path.Combine(resolutionFolder, "app.config")
+                    let webConfig = Path.Combine(resolutionFolder, "web.config")
+
+                    if File.Exists appConfig then appConfig
+                    elif File.Exists webConfig then webConfig
+                    else failwithf "Cannot find either app.config or web.config."
+        
+            let map = ExeConfigurationFileMap()
+            map.ExeConfigFilename <- configFilename
+            let configSection = ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None).ConnectionStrings.ConnectionStrings
+            match configSection, lazy configSection.[name] with
+            | null, _ | _, Lazy null -> raise <| KeyNotFoundException(message = sprintf "Cannot find name %s in <connectionStrings> section of %s file." name configFilename)
+            | _, Lazy x -> 
+                let providerName = if String.IsNullOrEmpty x.ProviderName then "System.Data.SqlClient" else x.ProviderName
+                x.ConnectionString, providerName
+
+    member this.Value = 
+        match this with
+        | Literal value -> value 
+        | NameInConfig name -> 
+            let section = ConfigurationManager.ConnectionStrings.[name]
+            if section = null 
+            then raise <| KeyNotFoundException(message = sprintf "Cannot find name %s in <connectionStrings> section of config file." name)
+            else section.ConnectionString
+
+    member this.Expr = 
+        match this with
+        | Literal value -> <@@ Literal value @@>
+        | NameInConfig name -> <@@ NameInConfig name @@>
+
+[<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type Configuration() =    
     static let invalidPathChars = HashSet(Path.GetInvalidPathChars())
     static let invalidFileChars = HashSet(Path.GetInvalidFileNameChars())
@@ -52,43 +107,6 @@ type Configuration() =
                 task.Result, Some watcher 
         | _ -> commandTextOrPath, None
 
-    static member ParseConnectionStringName(s: string) =
-        match s.Trim().Split([|'='|], 2, StringSplitOptions.RemoveEmptyEntries) with
-            | [| "" |] -> invalidArg "ConnectionStringOrName" "Value is empty!"
-            | [| prefix; tail |] when prefix.Trim().ToLower() = "name" -> tail.Trim(), true
-            | _ -> s, false
-
-    static member ReadConnectionStringFromConfigFileByName(name: string, resolutionFolder, fileName) =
-
-        let configFilename = 
-            if fileName <> "" 
-            then
-                let path = Path.Combine(resolutionFolder, fileName)
-                if not <| File.Exists path 
-                then raise <| FileNotFoundException( sprintf "Could not find config file '%s'." path)
-                else path
-            else
-                let appConfig = Path.Combine(resolutionFolder, "app.config")
-                let webConfig = Path.Combine(resolutionFolder, "web.config")
-
-                if File.Exists appConfig then appConfig
-                elif File.Exists webConfig then webConfig
-                else failwithf "Cannot find either app.config or web.config."
-        
-        let map = ExeConfigurationFileMap()
-        map.ExeConfigFilename <- configFilename
-        let configSection = ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None).ConnectionStrings.ConnectionStrings
-        match configSection, lazy configSection.[name] with
-        | null, _ | _, Lazy null -> raise <| KeyNotFoundException(message = sprintf "Cannot find name %s in <connectionStrings> section of %s file." name configFilename)
-        | _, Lazy x -> 
-            let providerName = if String.IsNullOrEmpty x.ProviderName then "System.Data.SqlClient" else x.ProviderName
-            x.ConnectionString, providerName
-
-    static member GetConnectionStringAtRunTime(name: string) = 
-        let section = ConfigurationManager.ConnectionStrings.[name]
-        if section = null 
-        then raise <| KeyNotFoundException(message = sprintf "Cannot find name %s in <connectionStrings> section of config file." name)
-        else section.ConnectionString
 
 
 
