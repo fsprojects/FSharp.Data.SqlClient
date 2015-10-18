@@ -78,8 +78,8 @@ let localTransactionCtor() =
                 PayFrequency = 1uy, 
                 CurrentFlag = true 
             )
-        System.Diagnostics.Debug.WriteLine(recordsAffrected)
         //Assert.Equal(1, recordsAffrected)
+        ()
     
     let updatedJobTitle = 
         use cmd = new AdventureWorks.dbo.ufnGetContactInformation(conn, tran)
@@ -124,8 +124,8 @@ let localTransactionCreateAndSingleton() =
                 PayFrequency = 1uy, 
                 CurrentFlag = true 
             )
-        System.Diagnostics.Debug.WriteLine(recordsAffrected)
         //Assert.Equal(1, recordsAffrected)
+        ()
     
     let updatedJobTitle = 
         use cmd = AdventureWorks.dbo.ufnGetContactInformation.Create(conn, tran)

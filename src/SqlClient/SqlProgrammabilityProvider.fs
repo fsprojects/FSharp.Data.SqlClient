@@ -32,7 +32,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     do 
         this.Disposing.Add <| fun _ -> 
             cache.Dispose()
-            dataTypeMappings.Clear()
+            clearDataTypesMap()
     do 
         //this.RegisterRuntimeAssemblyLocationAsProbingFolder( config) 
 
@@ -120,7 +120,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         databaseRootType           
 
      member internal __.UDTTs( connStr, schema, tagProvidedType) = [
-        for t in dataTypeMappings.[connStr] do
+        for t in getTypes( connStr) do
             if t.TableType && t.Schema = schema
             then 
                 let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj>, HideObjectMethods = true)

@@ -173,6 +173,13 @@ let ``Setting the command timeout isn't overridden when giving ConnectionStrings
     let sqlCommand = (getDate :> ISqlCommand).Raw
     Assert.Equal(customTimeout, sqlCommand.CommandTimeout)
 
+[<Fact(Skip = "Thread safe execution is not supported yet")>]
+let ConcurrentReaders() =
+    let cmd = new GetEvenNumbers(ConnectionStrings.AdventureWorksLiteralMultipleActiveResults)
+    let expected  = [| 2, 2; 4,4; 8,8; 24, 24 |]
+    let actual = (cmd.Execute(), cmd.Execute()) ||> Seq.zip |> Seq.toArray
+    Assert.Equal<_[]>(expected, actual)
+
 module ``The undeclared parameter 'X' is used more than once in the batch being analyzed`` = 
     [<Fact>]
     let Basic() =

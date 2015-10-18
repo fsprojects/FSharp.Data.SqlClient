@@ -112,7 +112,11 @@ type Parameter = {
     Description: string
 }
 
-let internal dataTypeMappings = Dictionary<string, TypeInfo[]>()
+let private dataTypeMappings = Dictionary<string, TypeInfo[]>()
+
+let internal clearDataTypesMap() = dataTypeMappings.Clear()
+
+let internal getTypes( connectionString: string) = dataTypeMappings.[connectionString]
 
 let internal findTypeInfoBySqlEngineTypeId (connStr, system_type_id, user_type_id : int option) = 
     assert (dataTypeMappings.ContainsKey connStr)
@@ -509,5 +513,3 @@ type SqlConnection with
 
             dataTypeMappings.Add( this.ConnectionString, typeInfos)
 
-    member this.ClearDataTypesMap() = 
-        dataTypeMappings.Clear()
