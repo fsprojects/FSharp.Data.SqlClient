@@ -264,7 +264,14 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transacti
     static member internal ExecuteNonQuery manageConnection (cmd, _, parameters) = 
         ``ISqlCommand Implementation``.SetParameters(cmd, parameters)  
         use openedConnection = cmd.Connection.UseLocally(manageConnection )
-        cmd.ExecuteNonQuery() 
+        let recordsAffected = cmd.ExecuteNonQuery() 
+        for i = 0 to parameters.Length - 1 do
+            let name, _ = parameters.[i]
+            let p = cmd.Parameters.[name]
+            if p.Direction = ParameterDirection.Output
+            then 
+                parameters.[i] <- name, p.Value
+        recordsAffected
 
     static member internal AsyncExecuteNonQuery manageConnection (cmd, _, parameters) = 
         ``ISqlCommand Implementation``.SetParameters(cmd, parameters)  

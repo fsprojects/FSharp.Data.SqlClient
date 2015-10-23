@@ -307,7 +307,7 @@ type SqlConnection with
             let direction = 
                 if unbox record.["suggested_is_output"]
                 then 
-                    invalidArg name "Output parameters are not supported"
+                    ParameterDirection.Output
                 else 
                     assert(unbox record.["suggested_is_input"])
                     ParameterDirection.Input 

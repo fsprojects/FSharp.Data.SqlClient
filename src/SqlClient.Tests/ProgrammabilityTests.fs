@@ -210,3 +210,10 @@ let SpAndTVPinDiffSchema() =
         [| 1, None; 2, Some "donkey" |],
         [| for x in cmd.Execute( p) -> x.myId, x.myName |]
     )
+
+[<Fact>]
+let OutParam() = 
+    let swap = new AdventureWorks.dbo.Swap()
+    let output = ref Int32.MinValue
+    let x = swap.Execute(12, output)
+    Assert.Equal(12, !output)

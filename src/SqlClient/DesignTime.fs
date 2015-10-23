@@ -31,19 +31,25 @@ type DesignTime private() =
     static member internal AddGeneratedMethod
         (sqlParameters: Parameter list, executeArgs: ProvidedParameter list, erasedType, providedOutputType, name) =
 
-        let mappedParamValues (exprArgs: Expr list) = 
+        let mappedInputParamValues (exprArgs: Expr list) = 
             (exprArgs.Tail, sqlParameters)
             ||> List.map2 (fun expr param ->
                 let value = 
-                    if param.Optional && not param.TypeInfo.TableType
+                    if param.Direction = ParameterDirection.Input
                     then 
-                        typeof<QuotationsFactory>
-                            .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
-                            .MakeGenericMethod(param.TypeInfo.ClrType)
-                            .Invoke(null, [| box expr|])
-                            |> unbox
+                        if param.Optional && not param.TypeInfo.TableType 
+                        then 
+                            typeof<QuotationsFactory>
+                                .GetMethod("OptionToObj", BindingFlags.NonPublic ||| BindingFlags.Static)
+                                .MakeGenericMethod(param.TypeInfo.ClrType)
+                                .Invoke(null, [| box expr|])
+                                |> unbox
+                        else
+                            expr
                     else
-                        expr
+                        let t = param.TypeInfo.ClrType
+                        Expr.Value(Activator.CreateInstance(t), t)
+
                 <@@ (%%Expr.Value(param.Name) : string), %%Expr.Coerce(value, typeof<obj>) @@>
             )
 
@@ -51,9 +57,42 @@ type DesignTime private() =
         
         m.InvokeCode <- fun exprArgs ->
             let methodInfo = typeof<ISqlCommand>.GetMethod(name)
-            let vals = mappedParamValues(exprArgs)
-            let paramValues = Expr.NewArray(typeof<string*obj>, elements = vals)
-            Expr.Call( Expr.Coerce(exprArgs.[0], erasedType), methodInfo, [paramValues])
+            let vals = mappedInputParamValues(exprArgs)
+            let paramValues = Expr.NewArray( typeof<string * obj>, elements = vals)
+            let inputParametersOnly = sqlParameters |> List.forall (fun x -> x.Direction = ParameterDirection.Input)
+            if inputParametersOnly
+            then 
+                Expr.Call( Expr.Coerce( exprArgs.[0], erasedType), methodInfo, [ paramValues ])    
+            else
+                let mapOutParamValues = 
+                    let arr = Var("parameters", typeof<(string * obj)[]>)
+                    let body = 
+                        (sqlParameters, exprArgs.Tail)
+                        ||> List.zip
+                        |> List.mapi (fun index (sqlParam, argExpr) ->
+                            if sqlParam.Direction = ParameterDirection.Output
+                            then 
+                                let mi = 
+                                    typeof<DesignTime>
+                                        .GetMethod("SetRef")
+                                        .MakeGenericMethod( sqlParam.TypeInfo.ClrType)
+                                Expr.Call(mi, [ argExpr; Expr.Var arr; Expr.Value index ]) |> Some
+                            else 
+                                None
+                        ) 
+                        |> List.choose id
+                        |> List.fold (fun acc x -> Expr.Sequential(acc, x)) <@@ () @@>
+
+                    Expr.Lambda(arr, body)
+
+                let xs = Var("parameters", typeof<(string * obj)[]>)
+                let execute = Expr.Lambda(xs , Expr.Call( Expr.Coerce( exprArgs.[0], erasedType), methodInfo, [ Expr.Var xs ]))
+                <@@
+                    let ps: (string * obj)[] = %%paramValues
+                    let result = (%%execute) ps
+                    ps |> %%mapOutParamValues
+                    result
+                @@>
 
         let xmlDoc = 
             sqlParameters
@@ -69,6 +108,9 @@ type DesignTime private() =
         if not(String.IsNullOrWhiteSpace xmlDoc) then m.AddXmlDoc xmlDoc
 
         m
+
+    static member SetRef<'t>(r : byref<'t>, arr: (string * obj)[], i) = 
+        r <- arr.[i] |> snd |> unbox
 
     static member internal GetRecordType(columns: Column list) =
         
@@ -353,9 +395,14 @@ type DesignTime private() =
                     then
                         if p.Optional 
                         then 
+                            assert(p.Direction = ParameterDirection.Input)
                             ProvidedParameter(parameterName, parameterType = typedefof<_ option>.MakeGenericType( p.TypeInfo.ClrType) , optionalValue = null)
                         else
-                            ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType, ?optionalValue = p.DefaultValue)
+                            if p.Direction = ParameterDirection.Output
+                            then
+                                ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType.MakeByRefType(), isOut = true)
+                            else                                 
+                                ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType, ?optionalValue = p.DefaultValue)
                     else
                         assert(p.Direction = ParameterDirection.Input)
 

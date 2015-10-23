@@ -14,12 +14,12 @@ BEGIN
 END
 GO
 
-create procedure [dbo].[Swap]
-	@input int = 4 ,
-	@bitWithDefault bit = 1,
-    @output int output,
-	@nullOutput bit output,
-	@nullStringOutput varchar output
+create procedure dbo.Swap
+	@input int
+	--,@bitWithDefault bit = 1
+    ,@output int output
+	--,@nullOutput bit output
+	--,@nullStringOutput varchar output
 as
 begin
 	set @output = @input

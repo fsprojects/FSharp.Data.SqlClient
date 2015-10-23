@@ -158,6 +158,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     [
                         use __ = conn.UseLocally()
                         let parameters = conn.GetParameters( routine, isSqlAzure)
+                        let inputParamsOnly = parameters |> List.forall (fun x -> x.Direction = ParameterDirection.Input)
 
                         let commandText = routine.ToCommantText(parameters)
                         let outputColumns = 
@@ -223,9 +224,11 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, uddtsPerSchema)
 
                         yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, output.ProvidedType, "Execute") 
-                            
-                        let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
-                        yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, asyncReturnType, "AsyncExecute")
+
+                        if inputParamsOnly
+                        then                              
+                            let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
+                            yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, asyncReturnType, "AsyncExecute")
 
                         if output.ErasedToRowType <> typeof<Void>
                         then 
@@ -242,7 +245,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 ) 
 
                             yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, providedReturnType, "ExecuteSingle") 
-                            yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, providedAsyncReturnType, "AsyncExecuteSingle")
+
+                            if inputParamsOnly
+                            then                              
+                                yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, providedAsyncReturnType, "AsyncExecuteSingle")
                     ]
 
                 yield cmdProvidedType
