@@ -210,15 +210,26 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transacti
         cmd.AsyncExecuteReader( getReaderBehavior())
     
     static member internal ExecuteDataTable(cmd, getReaderBehavior, parameters) = 
-        use reader = ``ISqlCommand Implementation``.ExecuteReader(cmd, getReaderBehavior, parameters) 
-        let result = new FSharp.Data.DataTable<DataRow>(null, cmd.Clone())
-        result.Load(reader)
+        use cursor = ``ISqlCommand Implementation``.ExecuteReader(cmd, getReaderBehavior, parameters) 
+        let result = new FSharp.Data.DataTable<DataRow>(null, cmd)
+        result.Load( cursor)
+
+        let hasOutputParameters = cmd.Parameters |> Seq.cast<SqlParameter> |> Seq.exists (fun x -> x.Direction.HasFlag( ParameterDirection.Output))
+
+        if hasOutputParameters
+        then
+            for i = 0 to parameters.Length - 1 do
+                let name, _ = parameters.[i]
+                let p = cmd.Parameters.[name]
+                if p.Direction = ParameterDirection.Output
+                then 
+                    parameters.[i] <- name, p.Value
         result
 
     static member internal AsyncExecuteDataTable(cmd, getReaderBehavior, parameters) = 
         async {
             use! reader = ``ISqlCommand Implementation``.AsyncExecuteReader(cmd, getReaderBehavior, parameters) 
-            let result = new FSharp.Data.DataTable<DataRow>(null, cmd.Clone())
+            let result = new FSharp.Data.DataTable<DataRow>(null, cmd)
             result.Load(reader)
             return result
         }

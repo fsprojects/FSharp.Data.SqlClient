@@ -158,7 +158,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     [
                         use __ = conn.UseLocally()
                         let parameters = conn.GetParameters( routine, isSqlAzure)
-                        let inputParamsOnly = parameters |> List.forall (fun x -> x.Direction = ParameterDirection.Input)
 
                         let commandText = routine.ToCommantText(parameters)
                         let outputColumns = 
@@ -169,6 +168,13 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 []
 
                         let rank = match routine with ScalarValuedFunction _ -> ResultRank.ScalarValue | _ -> ResultRank.Sequence
+
+                        let hasOutputParameters = parameters |> List.exists (fun x -> x.Direction.HasFlag( ParameterDirection.Output))
+                        let resultType = 
+                            if hasOutputParameters && not outputColumns.IsEmpty
+                            then ResultType.DataTable //force materialized output because output parameters is in second result set
+                            else resultType
+
                         let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank)
         
                         do  //Record
@@ -176,7 +182,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         //ctors
                         let sqlParameters = Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
-                        let rank = match routine with | ScalarValuedFunction _ -> ResultRank.ScalarValue | _ -> ResultRank.Sequence
 
                         let designTimeConfig = 
                             <@@ {
@@ -223,12 +228,12 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, uddtsPerSchema)
 
-                        yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, output.ProvidedType, "Execute") 
+                        yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, output.ProvidedType, "Execute") 
 
-                        if inputParamsOnly
+                        if not hasOutputParameters
                         then                              
                             let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
-                            yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, asyncReturnType, "AsyncExecute")
+                            yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, asyncReturnType, "AsyncExecute")
 
                         if output.ErasedToRowType <> typeof<Void>
                         then 
@@ -244,11 +249,11 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                     [ providedReturnType ]
                                 ) 
 
-                            yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, providedReturnType, "ExecuteSingle") 
+                            yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, providedReturnType, "ExecuteSingle") 
 
-                            if inputParamsOnly
+                            if not hasOutputParameters
                             then                              
-                                yield upcast DesignTime.AddGeneratedMethod(parameters, executeArgs, cmdProvidedType.BaseType, providedAsyncReturnType, "AsyncExecuteSingle")
+                                yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, providedAsyncReturnType, "AsyncExecuteSingle")
                     ]
 
                 yield cmdProvidedType

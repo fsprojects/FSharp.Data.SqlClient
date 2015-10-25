@@ -40,6 +40,10 @@ GO
 IF OBJECT_ID('dbo.HowMany') IS NOT NULL
 	DROP FUNCTION dbo.HowMany;
 GO
+IF OBJECT_ID('dbo.HowManyRows') IS NOT NULL
+	DROP PROCEDURE dbo.HowManyRows;
+GO
+
 --TYPES
 IF TYPE_ID(N'dbo.MyTableType') IS NOT NULL
 	DROP TYPE dbo.MyTableType
@@ -57,13 +61,13 @@ IF OBJECT_ID(N'dbo.TableHavingColumnNamesWithSpaces') IS NOT NULL
 	DROP TABLE dbo.TableHavingColumnNamesWithSpaces
 GO
 
+
 CREATE PROCEDURE dbo.AddRef @x AS INT, @y AS INT, @result AS INT OUTPUT 
 AS
 BEGIN
 	SET @result = @x + @y
 END
 GO
-
 
 CREATE TYPE dbo.MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
 GO
@@ -92,10 +96,8 @@ END
 
 GO
 
-
 CREATE TYPE dbo.SingleElementType AS TABLE (myId int not null)
 GO
-
 
 CREATE PROCEDURE dbo.SingleElementProc @p1 SingleElementType readonly AS
 BEGIN
@@ -182,9 +184,11 @@ RETURNS TABLE
 RETURN (SELECT * from @p1 UNION SELECT * from @p2) 
 GO
 
+CREATE PROCEDURE dbo.HowManyRows @p1 dbo.MyTableType readonly, @total AS INT OUT AS
+BEGIN
+	SET @total = (SELECT COUNT(*) FROM @p1)
+	SELECT myName FROM @p1 WHERE myName IS NOT NULL
+END
 
---CREATE PROCEDURE dbo.HowMany(@p1 dbo.MyTableType readonly, @p2 dbo.MyTableType readonly)
---RETURNS TABLE 
---RETURN (SELECT * from @p1 UNION SELECT * from @p2) 
---GO
+GO
 

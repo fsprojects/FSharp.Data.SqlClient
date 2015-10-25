@@ -29,7 +29,7 @@ type internal ResultTypes = {
 
 type DesignTime private() = 
     static member internal AddGeneratedMethod
-        (sqlParameters: Parameter list, executeArgs: ProvidedParameter list, erasedType, providedOutputType, name) =
+        (sqlParameters: Parameter list, hasOutputParameters, executeArgs: ProvidedParameter list, erasedType, providedOutputType, name) =
 
         let mappedInputParamValues (exprArgs: Expr list) = 
             (exprArgs.Tail, sqlParameters)
@@ -59,8 +59,7 @@ type DesignTime private() =
             let methodInfo = typeof<ISqlCommand>.GetMethod(name)
             let vals = mappedInputParamValues(exprArgs)
             let paramValues = Expr.NewArray( typeof<string * obj>, elements = vals)
-            let inputParametersOnly = sqlParameters |> List.forall (fun x -> x.Direction = ParameterDirection.Input)
-            if inputParametersOnly
+            if not hasOutputParameters
             then 
                 Expr.Call( Expr.Coerce( exprArgs.[0], erasedType), methodInfo, [ paramValues ])    
             else
