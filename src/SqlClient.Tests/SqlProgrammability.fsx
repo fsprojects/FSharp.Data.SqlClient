@@ -18,8 +18,8 @@ type AdventureWorks = SqlProgrammabilityProvider<"Data Source=.;Initial Catalog 
 type dbo = AdventureWorks.dbo
 
 let swap = new dbo.Swap()
-let mutable output = 42
+let output = ref 42
 //let mutable outputBit = true
 //let mutable outputStr = ""
-let x = swap.Execute(12, &output)
+let x = swap.Execute(12, output)
 output
