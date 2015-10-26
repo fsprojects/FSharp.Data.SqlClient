@@ -227,10 +227,10 @@ let ResultSetAndOutParam() =
         DboMyTableType(myId = 1)
         DboMyTableType(myId = 2, myName = Some "donkey")
     ]
-    let total = ref 0
+    let total = ref 0L
     let result = cmd.Execute(p, total) 
     Assert.Equal<_ list>(
         [ Some "donkey" ], 
         [ for row in result.Rows -> row.myName ]
     )
-    Assert.Equal(2, !total)
+    Assert.Equal(2L, !total)

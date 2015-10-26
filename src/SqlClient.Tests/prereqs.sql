@@ -184,9 +184,9 @@ RETURNS TABLE
 RETURN (SELECT * from @p1 UNION SELECT * from @p2) 
 GO
 
-CREATE PROCEDURE dbo.HowManyRows @p1 dbo.MyTableType readonly, @total AS INT OUT AS
+CREATE PROCEDURE dbo.HowManyRows @p1 dbo.MyTableType READONLY, @total AS BIGINT OUTPUT AS
 BEGIN
-	SET @total = (SELECT COUNT(*) FROM @p1)
+	SET @total = (SELECT COUNT_BIG(*) FROM @p1)
 	SELECT myName FROM @p1 WHERE myName IS NOT NULL
 END
 
