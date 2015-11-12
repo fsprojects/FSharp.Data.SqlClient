@@ -14,12 +14,17 @@ open FSharp.Data
 //[<Literal>] 
 //let prodConnectionString = ConnectionStrings.MasterDb
 
-type AdventureWorks = SqlProgrammabilityProvider<"Data Source=.;Initial Catalog = AdventureWorks2014;Integrated Security=True">
-type dbo = AdventureWorks.dbo
+//type AdventureWorks = SqlProgrammabilityProvider<"Data Source=.;Initial Catalog = AdventureWorks2014;Integrated Security=True">
+//type dbo = AdventureWorks.dbo
 
-let swap = new dbo.Swap()
-let output = ref 42
-//let mutable outputBit = true
-//let mutable outputStr = ""
-let x = swap.Execute(12, output)
-output
+let cmd = new SqlCommandProvider<"
+    SELECT X.* 
+    FROM Sales.SpecialOfferProduct X
+	    JOIN Sales.SalesOrderDetail Y ON X.ProductID = Y.ProductID 
+    WHERE X.ProductID = @specialOfferProductProductid 
+	    AND Y.ProductID = @salesOrderDetailProductid
+	    AND (X.SpecialOfferID IS NOT NULL 
+		    OR Y.SpecialOfferID IS NOT NULL)
+	     ", "Data Source=.;Initial Catalog = AdventureWorks2014;Integrated Security=True">()
+
+//let cmd = new Thermion.Thermion.GetWellTestsSinceRTP()
