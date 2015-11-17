@@ -211,7 +211,14 @@ type DesignTime private() =
                     let names = Expr.NewArray(typeof<string>, outputColumns |> List.map (fun x -> Expr.Value(x.Name))) 
                     Some r,
                     typeof<obj>,
-                    <@@ fun values -> let data = (%%names, values) ||> Array.zip |> dict in DynamicRecord( data) |> box @@>
+                    <@@ 
+                        fun (values: obj[]) -> 
+                            let data = Dictionary()
+                            let names: string[] = %%names
+                            for i = 0 to names.Length - 1 do 
+                                data.Add(names.[i], values.[i])
+                            DynamicRecord( data) |> box 
+                    @@>
                 else 
                     let tupleType = 
                         match outputColumns with
@@ -219,8 +226,8 @@ type DesignTime private() =
                         | xs -> Microsoft.FSharp.Reflection.FSharpType.MakeTupleType [| for x in xs -> x.ClrTypeConsideringNullable|]
 
                     let tupleTypeName = tupleType.PartialAssemblyQualifiedName
-                    //None, tupleType, <@@ FSharpValue.PreComputeTupleConstructor (Type.GetType (tupleTypeName))  @@>
-                    None, tupleType, <@@ fun values -> Type.GetType(tupleTypeName, throwOnError = true).GetConstructors().[0].Invoke(values) @@>
+                    None, tupleType, <@@ Microsoft.FSharp.Reflection.FSharpValue.PreComputeTupleConstructor (Type.GetType (tupleTypeName))  @@>
+                    //None, tupleType, <@@ fun values -> Type.GetType(tupleTypeName, throwOnError = true).GetConstructors().[0].Invoke(values) @@>
             
             let nullsToOptions = QuotationsFactory.MapArrayNullableItems(outputColumns, "MapArrayObjItemToOption") 
             let combineWithNullsToOptions = typeof<QuotationsFactory>.GetMethod("GetMapperWithNullsToOptions") 

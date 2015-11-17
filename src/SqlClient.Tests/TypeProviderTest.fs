@@ -180,6 +180,34 @@ let ConcurrentReaders() =
     let actual = (cmd.Execute(), cmd.Execute()) ||> Seq.zip |> Seq.toArray
     Assert.Equal<_[]>(expected, actual)
 
+[<Fact>]
+let ResultsetExtendedWithTrailingColumn() =
+    let cmd = new SqlCommandProvider<"
+        WITH XS AS
+        (
+	        SELECT 
+                Value
+                ,GETDATE() AS Now
+	        FROM (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) as T(Value)
+        )
+        SELECT * FROM XS
+    ", ConnectionStrings.AdventureWorksNamed>()
+
+    Assert.Equal<_ list>([0..9], [ for x in cmd.Execute() -> x.Value ])
+    
+    (cmd :> ISqlCommand).Raw.CommandText <-"
+        WITH XS AS
+        (
+	        SELECT 
+                Value
+                ,GETDATE() AS Now
+	            ,SUM(Value) OVER (ORDER BY Value) AS Total
+	        FROM (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) as T(Value)
+        )
+        SELECT * FROM XS
+    "
+    Assert.Equal<_ list>([0..9], [ for x in cmd.Execute() -> x.Value ])
+
 module ``The undeclared parameter 'X' is used more than once in the batch being analyzed`` = 
     [<Fact>]
     let Basic() =
