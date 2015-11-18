@@ -20,7 +20,7 @@ open FSharp.Data.SqlClient
 open ProviderImplementation.ProvidedTypes
 
 [<assembly:TypeProviderAssembly()>]
-[<assembly:InternalsVisibleTo("SqlClient.Tests")>]
+//[<assembly:InternalsVisibleTo("SqlClient.Tests")>]
 do()
 
 [<TypeProvider>]

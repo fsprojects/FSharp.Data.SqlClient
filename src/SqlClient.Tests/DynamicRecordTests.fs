@@ -54,14 +54,19 @@ let ``Not equal with different values``() =
     let condition = recordWithNulls = DynamicRecord(dict ["DBNull", box DBNull.Value; "foo", box "foo"])
     Assert.False condition
 
+let getData(x: DynamicRecord) = 
+    dict [ for name in x.GetDynamicMemberNames() -> name, x.[name] ]
+
 [<Fact>] 
 let Equal() = 
-    let condition = recordWithNulls = DynamicRecord(Dictionary<_,_>(recordWithNulls.Data))
+    let data = getData recordWithNulls
+    let condition = recordWithNulls = DynamicRecord(data)
     Assert.True condition
 
 [<Fact>] 
 let ``GetHashCode is same when equal``() = 
-    let clone = DynamicRecord( Dictionary<_,_>( recordWithNulls.Data))
+    let data = getData recordWithNulls
+    let clone = DynamicRecord( data)
     if recordWithNulls = clone //did if to make assertion more granular
     then 
         let condition = recordWithNulls.GetHashCode() = clone.GetHashCode() 
