@@ -31,12 +31,15 @@ type QuotationsFactory private() =
             then [], []
             else [ for c in p.TypeInfo.TableTypeColumns.Value -> c.Name, c.TypeInfo.ClrType.FullName ] |> List.unzip
 
+        let name = p.Name
+        let sqlDbType = enum p.TypeInfo.SqlDbTypeId
+        let isFixedLength = p.TypeInfo.IsFixedLength
+
         <@@ 
-            let x = SqlParameter()
-            x.ParameterName <- %%Expr.Value p.Name
-            x.SqlDbType <- enum(%%Expr.Value p.TypeInfo.SqlDbTypeId)
-            x.Direction <- %%Expr.Value p.Direction 
-            x.Size <- %%Expr.Value p.Size 
+            let x = SqlParameter(name, sqlDbType, Direction = %%Expr.Value p.Direction)
+
+            if not isFixedLength then x.Size <- %%Expr.Value p.Size 
+
             x.Precision <- %%Expr.Value p.Precision
             x.Scale <- %%Expr.Value p.Scale
 

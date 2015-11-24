@@ -93,7 +93,7 @@ and TypeInfo = {
     SqlEngineTypeId: int
     UserTypeId: int
     SqlDbTypeId: int
-    IsFixedLength: bool option
+    IsFixedLength: bool 
     ClrTypeFullName: string
     UdttName: string 
     TableTypeColumns: Column[] Lazy
@@ -430,8 +430,8 @@ type SqlConnection with
 
                         let isFixedLength = 
                             if row.IsNull("IsFixedLength") 
-                            then None 
-                            else row.["IsFixedLength"] |> unbox |> Some
+                            then false 
+                            else row.["IsFixedLength"] |> unbox 
 
                         let providedType = unbox row.["ProviderDbType"]
                         if providedType <> int SqlDbType.Structured
@@ -475,7 +475,7 @@ type SqlConnection with
                                 |> Array.pick (fun (typename', _, system_type_id', _, _, _, is_user_defined') -> if system_type_id = system_type_id' && not is_user_defined' then Some typename' else None)
                             providerTypes.[system_type_name]
                         | false, _ when is_table_type -> 
-                            int SqlDbType.Structured, "", None
+                            int SqlDbType.Structured, "", false
                         | _ -> failwith ("Unexpected type: " + full_name)
 
                     let clrTypeFixed = if system_type_id = 48 (*tinyint*) then typeof<byte>.FullName else clrType
