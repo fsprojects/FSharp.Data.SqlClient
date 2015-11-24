@@ -9,12 +9,9 @@ open System.Data.SqlTypes
 
 [<Literal>]
 let connStr = "Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
-do 
-    use conn = new SqlConnection(connStr)
-    conn.Open()
-    use tran = conn.BeginTransaction()
-    use cmd = new SqlCommand("select * from sys.types", conn)
-    let track = SqlDependency(cmd)
-    track.OnChange.Add(fun args ->
-        printfn "Change: %A" args
-    )
+let conn = new SqlConnection(connStr)
+conn.Open()
+let cmd = new SqlCommand("uspLogError", conn, CommandType = CommandType.StoredProcedure)
+SqlCommandBuilder.DeriveParameters(cmd)
+for p in cmd.Parameters do
+    printfn "Name: %s, type: %A, direction: %A" p.ParameterName p.SqlDbType p.Direction

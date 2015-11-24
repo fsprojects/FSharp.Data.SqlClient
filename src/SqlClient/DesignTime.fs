@@ -269,7 +269,10 @@ type DesignTime private() =
             unbox<int> cursor.["suggested_system_type_id"], 
             cursor.TryGetValue "suggested_user_type_id",
             unbox cursor.["suggested_is_output"],
-            unbox cursor.["suggested_is_input"]
+            unbox cursor.["suggested_is_input"],
+            cursor.["suggested_max_length"] |> unbox<int16> |> int,
+            unbox cursor.["suggested_precision"] |> unbox<byte>,
+            unbox cursor.["suggested_scale"] |> unbox<byte>
         )        
 
     static member internal ExtractParameters(connection, commandText: string, allParametersOptional) =  
@@ -289,13 +292,13 @@ type DesignTime private() =
                     reraise()
 
         parameters
-        |> Seq.map(fun (name, sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input) ->
+        |> Seq.map(fun (name, sqlEngineTypeId, userTypeId, is_output, is_input, max_length, precision, scale) ->
             let direction = 
-                if suggested_is_output
+                if is_output
                 then 
                     invalidArg name "Output parameters are not supported"
                 else 
-                    assert(suggested_is_input)
+                    assert(is_input)
                     ParameterDirection.Input 
                     
             let typeInfo = findTypeInfoBySqlEngineTypeId(connection.ConnectionString, sqlEngineTypeId, userTypeId)
@@ -304,6 +307,9 @@ type DesignTime private() =
                 Name = name
                 TypeInfo = typeInfo 
                 Direction = direction 
+                MaxLength = max_length 
+                Precision = precision 
+                Scale = scale 
                 DefaultValue = None
                 Optional = allParametersOptional 
                 Description = null 
@@ -366,12 +372,12 @@ type DesignTime private() =
             let mapBack = unboundVars |> Seq.collect(fun (KeyValue(name, xs)) -> [ for newName, _, _ in xs -> newName, name ]) |> dict
             let tryUnify = 
                 altered
-                |> Seq.map (fun (name, sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input) -> 
+                |> Seq.map (fun (name, sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input, max_length, precision, scale) -> 
                     let oldName = 
                         match mapBack.TryGetValue name with 
                         | true, original -> original 
                         | false, _ -> name
-                    oldName, (sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input)
+                    oldName, (sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input, max_length, precision, scale)
                 )
                 |> Seq.groupBy fst
                 |> Seq.map( fun (name, xs) -> name, xs |> Seq.map snd |> Seq.distinct |> Seq.toArray)
@@ -383,8 +389,8 @@ type DesignTime private() =
             else
                 tryUnify 
                 |> Array.map (fun (name, xs) -> 
-                    let sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input = xs.[0] //|> Seq.exactlyOne
-                    name, sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input
+                    let sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input, max_length, precision, scale = xs.[0] //|> Seq.exactlyOne
+                    name, sqlEngineTypeId, userTypeId, suggested_is_output, suggested_is_input, max_length, precision, scale
                 )
                 |> Some
         else

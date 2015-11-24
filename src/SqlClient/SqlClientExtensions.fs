@@ -107,10 +107,18 @@ type Parameter = {
     Name: string
     TypeInfo: TypeInfo
     Direction: ParameterDirection 
+    MaxLength: int
+    Precision: byte
+    Scale : byte
     DefaultValue: obj option
     Optional: bool
     Description: string
-}
+}   with
+    
+    member this.Size = 
+        match this.TypeInfo.SqlDbType with
+        | SqlDbType.NChar | SqlDbType.NText | SqlDbType.NVarChar -> this.MaxLength / 2
+        | _ -> this.MaxLength
 
 let private dataTypeMappings = Dictionary<string, TypeInfo[]>()
 
@@ -293,8 +301,11 @@ type SqlConnection with
 	            ,user_type_id AS suggested_user_type_id
 	            ,is_output AS suggested_is_output
 	            ,CAST( IIF(is_output = 1, 0, 1) AS BIT) AS suggested_is_input
+                ,max_length
+                ,precision
+                ,scale
 	            ,description = ISNULL( XProp.Value, '')
-            FROM sys.all_parameters AS p
+            FROM sys.parameters AS p
                 OUTER APPLY %s AS XProp
             WHERE
                 p.Name <> '' 
@@ -323,6 +334,9 @@ type SqlConnection with
                 Name = name
                 TypeInfo = typeInfo
                 Direction = direction
+                MaxLength = record.["max_length"] |> unbox<int16> |> int
+                Precision = unbox record.["precision"]
+                Scale = unbox record.["scale"]
                 DefaultValue = defaultValue
                 Optional = valueTypeWithNullDefault 
                 Description = string record.["description"]

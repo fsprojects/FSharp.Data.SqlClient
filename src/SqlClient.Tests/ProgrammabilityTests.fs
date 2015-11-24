@@ -215,10 +215,12 @@ let SpAndTVPinDiffSchema() =
 let OutParam() = 
     let cmd = new AdventureWorks.dbo.AddRef()
     let x, y = 12, -1
-    let result = ref 0
+    let result = ref Int32.MinValue
     cmd.Execute(x, y, result) |> ignore
     Assert.Equal(x + y, !result)
-
+    //tupled syntax
+    let _, sum = cmd.Execute(x, y)
+    Assert.Equal(x + y, sum)
 
 [<Fact>]
 let ResultSetAndOutParam() = 

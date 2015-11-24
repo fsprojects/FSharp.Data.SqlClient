@@ -179,25 +179,20 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transacti
             
             let p = cmd.Parameters.[name]            
 
-            if value = null 
+            if p.Direction.HasFlag(ParameterDirection.Input)
             then 
-                p.Value <- DBNull.Value 
-            else
-                if not( p.SqlDbType = SqlDbType.Structured)
+                if value = null 
                 then 
-                    p.Value <- value
+                    p.Value <- DBNull.Value 
                 else
-                    let table : DataTable = unbox p.Value
-                    table.Rows.Clear()
-                    for rowValues in unbox<seq<obj>> value do
-                        table.Rows.Add( rowValues :?> obj[]) |> ignore
-
-            if Convert.IsDBNull p.Value 
-            then 
-                match p.SqlDbType with
-                | SqlDbType.NVarChar -> p.Size <- 4000
-                | SqlDbType.VarChar -> p.Size <- 8000
-                | _ -> ()
+                    if not( p.SqlDbType = SqlDbType.Structured)
+                    then 
+                        p.Value <- value
+                    else
+                        let table : DataTable = unbox p.Value
+                        table.Rows.Clear()
+                        for rowValues in unbox<seq<obj>> value do
+                            table.Rows.Add( rowValues :?> obj[]) |> ignore
 
 //Execute/AsyncExecute versions
 

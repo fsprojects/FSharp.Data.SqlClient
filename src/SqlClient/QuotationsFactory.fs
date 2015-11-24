@@ -25,8 +25,6 @@ type QuotationsFactory private() =
             bodyFactory.Invoke(null, parameters) |> unbox
 
     static member internal ToSqlParam(p : Parameter) = 
-        let name = p.Name
-        let dbType = p.TypeInfo.SqlDbTypeId
 
         let tvpColumnNames, tvpColumnTypes = 
             if not p.TypeInfo.TableType 
@@ -34,7 +32,14 @@ type QuotationsFactory private() =
             else [ for c in p.TypeInfo.TableTypeColumns.Value -> c.Name, c.TypeInfo.ClrType.FullName ] |> List.unzip
 
         <@@ 
-            let x = SqlParameter(name, enum dbType, Direction = %%Expr.Value p.Direction )
+            let x = SqlParameter()
+            x.ParameterName <- %%Expr.Value p.Name
+            x.SqlDbType <- enum(%%Expr.Value p.TypeInfo.SqlDbTypeId)
+            x.Direction <- %%Expr.Value p.Direction 
+            x.Size <- %%Expr.Value p.Size 
+            x.Precision <- %%Expr.Value p.Precision
+            x.Scale <- %%Expr.Value p.Scale
+
             if x.SqlDbType = SqlDbType.Structured
             then 
                 let typeName: string = sprintf "%s.%s" (%%Expr.Value p.TypeInfo.Schema) (%%Expr.Value p.TypeInfo.UdttName)
