@@ -25,7 +25,7 @@ let ScalarValuedFunction() =
 
 [<Fact>]
 let ConnectionObject() =
-    let conn = new SqlConnection(ConnectionStrings.AdventureWorks)
+    let _ = new SqlConnection(ConnectionStrings.AdventureWorks)
     let cmd = new AdventureWorks.dbo.ufnLeadingZeros()
     let x = 42
     Assert.Equal( Some(sprintf "%08i" x), cmd.Execute(x))
@@ -68,7 +68,7 @@ let localTransactionCtor() =
     do
         //let get
         use updatedJobTitle = new AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo(conn, tran)
-        let recordsAffrected = 
+        let _ = 
             updatedJobTitle.Execute(
                 businessEntityID, 
                 newJobTitle, 
@@ -114,7 +114,7 @@ let localTransactionCreateAndSingleton() =
     do
         //let get
         use updatedJobTitle = AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo.Create(conn, tran)
-        let recordsAffrected = 
+        let _ = 
             updatedJobTitle.Execute(
                 businessEntityID, 
                 newJobTitle, 
@@ -177,7 +177,6 @@ let SpWithParamOfTvpWithNullableColumns() =
         DboMyTableType(myId = 1)
         DboMyTableType(myId = 2, myName = Some "donkey")
     ]
-    let actual = [| for x in cmd.Execute( p) -> x.myId, x.myName |]
     Assert.Equal<_ []>(
         [| 1, None; 2, Some "donkey" |],
         [| for x in cmd.Execute( p) -> x.myId, x.myName |]
@@ -192,7 +191,6 @@ let SpWithParamOfTvpWithNullableColumns2() =
         PersonMyTableType(myId = 1)
         PersonMyTableType(myId = 2, myName = Some "donkey")
     ]
-    let actual = [| for x in cmd.Execute( p) -> x.myId, x.myName |]
     Assert.Equal<_ []>(
         [| 1, None; 2, Some "donkey" |],
         [| for x in cmd.Execute( p) -> x.myId, x.myName |]
@@ -205,7 +203,6 @@ let SpAndTVPinDiffSchema() =
         DboMyTableType(myId = 1)
         DboMyTableType(myId = 2, myName = Some "donkey")
     ]
-    let actual = [| for x in cmd.Execute( p) -> x.myId, x.myName |]
     Assert.Equal<_ []>(
         [| 1, None; 2, Some "donkey" |],
         [| for x in cmd.Execute( p) -> x.myId, x.myName |]

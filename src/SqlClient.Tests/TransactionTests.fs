@@ -104,17 +104,29 @@ let notCloseExternalConnInCaseOfError2() =
 let donNotOpenConnectionOnObject() =
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     use cmd = new SqlCommandProvider<"SELECT 42", ConnectionStrings.AdventureWorksNamed>(conn)
-    Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> ignore)    
+    Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
 
 type NonQuery = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", ConnectionStrings.AdventureWorksNamed>
 
 [<Fact>]
-let donNotOpenConnectionOnObjectForNonQuery() =
+let doNotOpenConnectionOnObjectForNonQuery() =
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
-    Assert.Throws<InvalidOperationException>(fun() -> NonQuery.Create(conn).Execute()|> ignore)    
+    use cmd = new NonQuery(conn)
+    Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> ignore)    
     
 [<Fact>]
-let donNotOpenConnectionOnObjectForAsyncNonQuery() =
+let doNotOpenConnectionOnObjectForAsyncNonQuery() =
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
-    Assert.Throws<InvalidOperationException>(fun() -> NonQuery.Create(conn).AsyncExecute() |> Async.RunSynchronously |> ignore)    
+    use cmd = new NonQuery(conn)
+    Assert.Throws<InvalidOperationException>(fun() -> cmd.AsyncExecute() |> Async.RunSynchronously |> ignore)    
+    
+[<Fact>]
+let prematurelyOpenConnection() =
+    let cmd = new SqlCommandProvider<"SELECT 42", ConnectionStrings.AdventureWorksNamed>() 
+    let _ = cmd.Execute()
+
+    Assert.Equal(
+        ConnectionState.Closed, 
+        (cmd :> ISqlCommand).Raw.Connection.State
+    )
     

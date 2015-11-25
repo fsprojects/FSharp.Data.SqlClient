@@ -230,7 +230,9 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transacti
         }
 
     static member internal ExecuteSeq<'TItem> (rank, rowMapper) = fun(cmd, getReaderBehavior, parameters) -> 
-        let xs = ``ISqlCommand Implementation``.ExecuteReader(cmd, getReaderBehavior, parameters) |> Seq.ofReader<'TItem> rowMapper
+        let xs = Seq.delay <| fun() -> 
+            ``ISqlCommand Implementation``.ExecuteReader(cmd, getReaderBehavior, parameters) 
+            |> Seq.ofReader<'TItem> rowMapper
 
         if rank = ResultRank.SingleRow 
         then 

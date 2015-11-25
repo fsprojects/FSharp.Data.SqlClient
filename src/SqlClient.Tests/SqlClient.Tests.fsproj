@@ -29,6 +29,7 @@
     <DocumentationFile>
     </DocumentationFile>
     <NoWarn>101</NoWarn>
+    <OtherFlags>--warnon:1182</OtherFlags>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
