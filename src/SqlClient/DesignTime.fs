@@ -69,7 +69,7 @@ type DesignTime private() =
                         (sqlParameters, exprArgs.Tail)
                         ||> List.zip
                         |> List.mapi (fun index (sqlParam, argExpr) ->
-                            if sqlParam.Direction = ParameterDirection.Output
+                            if sqlParam.Direction.HasFlag( ParameterDirection.Output)
                             then 
                                 let mi = 
                                     typeof<DesignTime>
@@ -410,7 +410,7 @@ type DesignTime private() =
                             assert(p.Direction = ParameterDirection.Input)
                             ProvidedParameter(parameterName, parameterType = typedefof<_ option>.MakeGenericType( p.TypeInfo.ClrType) , optionalValue = null)
                         else
-                            if p.Direction = ParameterDirection.Output
+                            if p.Direction.HasFlag(ParameterDirection.Output)
                             then
                                 ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType.MakeByRefType(), isOut = true)
                             else                                 

@@ -108,7 +108,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
             schemaType.AddMembersDelayed <| fun() -> 
                 [
-                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, resultType, connectionString)
+                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, resultType, connectionString, useReturnValue)
                     routines |> List.iter tagProvidedType
                     yield! routines
 
@@ -143,7 +143,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 yield rowType
     ]
 
-    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, connectionString) = 
+    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, connectionString, useReturnValue) = 
         [
             use _ = conn.UseLocally()
             let isSqlAzure = conn.IsSqlAzure
@@ -158,7 +158,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 cmdProvidedType.AddMembersDelayed <| fun() ->
                     [
                         use __ = conn.UseLocally()
-                        let parameters = conn.GetParameters( routine, isSqlAzure)
+                        let parameters = conn.GetParameters( routine, isSqlAzure, useReturnValue)
 
                         let commandText = routine.ToCommantText(parameters)
                         let outputColumns = 

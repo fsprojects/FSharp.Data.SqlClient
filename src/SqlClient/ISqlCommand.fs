@@ -216,7 +216,7 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transacti
             for i = 0 to parameters.Length - 1 do
                 let name, _ = parameters.[i]
                 let p = cmd.Parameters.[name]
-                if p.Direction = ParameterDirection.Output
+                if p.Direction.HasFlag( ParameterDirection.Output)
                 then 
                     parameters.[i] <- name, p.Value
         result
@@ -274,7 +274,7 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transacti
         for i = 0 to parameters.Length - 1 do
             let name, _ = parameters.[i]
             let p = cmd.Parameters.[name]
-            if p.Direction = ParameterDirection.Output
+            if p.Direction.HasFlag( ParameterDirection.Output)
             then 
                 parameters.[i] <- name, p.Value
         recordsAffected

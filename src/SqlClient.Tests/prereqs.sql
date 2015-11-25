@@ -62,10 +62,11 @@ IF OBJECT_ID(N'dbo.TableHavingColumnNamesWithSpaces') IS NOT NULL
 GO
 
 
-CREATE PROCEDURE dbo.AddRef @x AS INT, @y AS INT, @result AS INT OUTPUT 
+CREATE PROCEDURE dbo.AddRef @x AS INT, @y AS INT, @sum AS INT OUTPUT 
 AS
 BEGIN
-	SET @result = @x + @y
+	SET @sum = @x + @y
+	RETURN (@x + @y)
 END
 GO
 
