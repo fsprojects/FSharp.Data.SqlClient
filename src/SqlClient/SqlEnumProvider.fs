@@ -31,8 +31,13 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
 
     static let allowedTypesForEnum = 
         HashSet [| 
-            typeof<sbyte>; typeof<byte>; typeof<int16>; typeof<uint16>; typeof<int32>; typeof<uint32>; typeof<int64>; typeof<uint16>; typeof<uint64>; typeof<char> 
+            typeof<sbyte>; typeof<byte>; typeof<int16>; typeof<uint16>; typeof<int32>; typeof<uint32>; typeof<int64>; typeof<uint64>; typeof<char> 
         |]
+
+    static let allowedTypesForLiteral = 
+        let xs = HashSet [| typeof<float32>; typeof<float>; typeof<bigint>; typeof<decimal>; typeof<string> |]
+        xs.UnionWith( allowedTypesForEnum)
+        xs
 
     do 
         this.Disposing.Add <| fun _ -> cache.Dispose()
@@ -149,9 +154,13 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
         else
             let valueFields, setFieldValues = 
                 (names, values) ||> List.map2 (fun name value -> 
-                    let field = ProvidedField( name, valueType)
-                    field.SetFieldAttributes( FieldAttributes.Public ||| FieldAttributes.InitOnly ||| FieldAttributes.Static)
-                    field, Expr.FieldSet(field, snd value)
+                    if allowedTypesForLiteral.Contains valueType
+                    then 
+                        ProvidedLiteralField(name, valueType, fst value) :> FieldInfo, <@@ () @@>
+                    else
+                        let field = ProvidedField( name, valueType)
+                        field.SetFieldAttributes( FieldAttributes.Public ||| FieldAttributes.InitOnly ||| FieldAttributes.Static)
+                        field :> _, Expr.FieldSet(field, snd value)
                 ) 
                 |> List.unzip
 
