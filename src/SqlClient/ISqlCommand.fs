@@ -27,15 +27,6 @@ module Seq =
         | [| x |] -> Some x
         | _ -> invalidArg "source" "The input sequence contains more than one element."
 
-    let internal ofReader<'TItem> rowMapping (reader : SqlDataReader) = 
-        seq {
-            use _ = reader
-            while reader.Read() do
-                let values = Array.zeroCreate reader.FieldCount
-                reader.GetValues(values) |> ignore
-                yield values |> rowMapping |> unbox<'TItem>
-        }
-
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 [<RequireQualifiedAccess>]
 type ResultRank = 
@@ -231,8 +222,9 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transacti
 
     static member internal ExecuteSeq<'TItem> (rank, rowMapper) = fun(cmd, getReaderBehavior, parameters) -> 
         let xs = Seq.delay <| fun() -> 
-            ``ISqlCommand Implementation``.ExecuteReader(cmd, getReaderBehavior, parameters) 
-            |> Seq.ofReader<'TItem> rowMapper
+            ``ISqlCommand Implementation``
+                .ExecuteReader(cmd, getReaderBehavior, parameters)
+                .MapRowValues<'TItem>( rowMapper)
 
         if rank = ResultRank.SingleRow 
         then 
@@ -248,7 +240,7 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transacti
         let xs = 
             async {
                 let! reader = ``ISqlCommand Implementation``.AsyncExecuteReader(cmd, getReaderBehavior, parameters)
-                return reader |> Seq.ofReader<'TItem> rowMapper
+                return reader.MapRowValues<'TItem>( rowMapper)
             }
 
         if rank = ResultRank.SingleRow

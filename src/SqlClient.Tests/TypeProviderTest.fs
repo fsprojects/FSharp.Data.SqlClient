@@ -13,6 +13,11 @@ let asyncSinlgeColumn() =
     Assert.Equal<int[]>([| 2; 4; 8; 24 |], cmd.AsyncExecute() |> Async.RunSynchronously |> Seq.toArray)    
 
 [<Fact>]
+let emptyResultset() = 
+    use cmd = new SqlCommandProvider<"SELECT 42 WHERE 0 > 1", ConnectionStrings.AdventureWorksNamed>()
+    Assert.Equal<_ []>( Array.empty, cmd.Execute() |> Seq.toArray)    
+
+[<Fact>]
 let ConnectionClose() = 
     use cmd = new GetEvenNumbers()
     let untypedCmd : ISqlCommand = upcast cmd

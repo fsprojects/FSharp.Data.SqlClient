@@ -31,6 +31,16 @@ type SqlCommand with
         }
 
 type SqlDataReader with
+    member internal this.MapRowValues<'TItem>( rowMapping) = 
+        seq {
+            use _ = this
+            let values = Array.zeroCreate this.FieldCount
+            while this.Read() do
+                this.GetValues(values) |> ignore
+                yield values |> rowMapping |> unbox<'TItem>
+        }
+
+type SqlDataReader with
     member internal this.TryGetValue(name: string) = 
         let value = this.[name] 
         if Convert.IsDBNull value then None else Some(unbox<'a> value)
