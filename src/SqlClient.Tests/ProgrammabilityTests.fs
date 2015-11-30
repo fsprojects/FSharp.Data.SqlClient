@@ -113,7 +113,7 @@ let localTransactionCreateAndSingleton() =
     let newJobTitle = "Uber " + jobTitle
     do
         //let get
-        use updatedJobTitle = AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo.Create(conn, tran)
+        use updatedJobTitle = new AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo(conn, tran)
         let _ = 
             updatedJobTitle.Execute(
                 businessEntityID, 
@@ -128,7 +128,7 @@ let localTransactionCreateAndSingleton() =
         ()
     
     let updatedJobTitle = 
-        use cmd = AdventureWorks.dbo.ufnGetContactInformation.Create(conn, tran)
+        use cmd = new AdventureWorks.dbo.ufnGetContactInformation(conn, tran)
         let result = cmd.ExecuteSingle(PersonID = jamesKramerId) 
         result.Value.JobTitle.Value
 
@@ -136,37 +136,24 @@ let localTransactionCreateAndSingleton() =
 
 [<Fact>]
 let FunctionWithParamOfValueTypeWithNullDefault() = 
-    Assert.Equal(
-        AdventureWorks.dbo.ufnGetStock.Create().Execute(1),
-        AdventureWorks.dbo.ufnGetStock2.Create().Execute(Some 1)
-    )
-    Assert.Equal(
-        Some 83173,
-        AdventureWorks.dbo.ufnGetStock2.Create().Execute()
-    )
+    use cmd1 = new AdventureWorks.dbo.ufnGetStock()
+    use cmd2 = new AdventureWorks.dbo.ufnGetStock2()
+    Assert.Equal(cmd1.Execute(1), cmd2.Execute(Some 1))
+
+    Assert.Equal(Some 83173, cmd2.Execute())
 
 [<Fact>]
 let SpWithParamOfRefTypeWithNullDefault() = 
-    Assert.Equal(
-        Some (Some (box "Empty")),
-        AdventureWorks.dbo.Echo.Create().ExecuteSingle()
-    )
+    use echo = new AdventureWorks.dbo.Echo()
+    Assert.Equal( Some (Some (box "Empty")), echo.ExecuteSingle())
 
-    Assert.Equal(
-        Some(Some (box 42)),
-        AdventureWorks.dbo.Echo.Create().ExecuteSingle 42
-    )
+    Assert.Equal( Some(Some (box 42)), echo.ExecuteSingle 42)
 
-    Assert.Equal<string seq>(
-        [| "<NULL>" |],
-        AdventureWorks.dbo.EchoText.Create().Execute() |> Seq.toArray
-    )
+    use echoText = new AdventureWorks.dbo.EchoText()
+    Assert.Equal<string[]>([| "<NULL>" |], echoText.Execute() |> Seq.toArray)
 
     let param = "Hello, world!"
-    Assert.Equal<string seq>(
-        [| param |],
-        AdventureWorks.dbo.EchoText.Create().Execute param |> Seq.toArray
-    )
+    Assert.Equal<string[]>([| param |], echoText.Execute( param) |> Seq.toArray)
 
 type DboMyTableType = AdventureWorks.dbo.``User-Defined Table Types``.MyTableType 
 

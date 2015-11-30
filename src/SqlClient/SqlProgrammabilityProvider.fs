@@ -198,34 +198,29 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         
                         //ctor 1
-                        let ctor1Impl = typeof<``ISqlCommand Implementation``>.GetConstructor( [| typeof<DesignTimeConfig>; typeof<string> |])
-                        let ctor1Params = [ ProvidedParameter("connectionString", typeof<string>) ]
-                        let ctor1Body args = Expr.NewObject(ctor1Impl, designTimeConfig :: args )
-                        yield ProvidedConstructor(ctor1Params, InvokeCode = ctor1Body) :> MemberInfo
-                        yield upcast ProvidedMethod("Create", ctor1Params, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = ctor1Body)
+                        let ctor1 = ProvidedConstructor [ ProvidedParameter("connectionString", typeof<string>) ] 
+                        ctor1.InvokeCode <- 
+                            let impl =  typeof<``ISqlCommand Implementation``>.GetConstructor( [| typeof<DesignTimeConfig>; typeof<string> |])
+                            fun args -> Expr.NewObject(impl, designTimeConfig :: args )
+                        yield ctor1 :> MemberInfo
 
                         //ctor 2
-                        let ctor2Impl = 
-                            typeof<``ISqlCommand Implementation``>
-                                .GetConstructor [| 
-                                    typeof<DesignTimeConfig>
-                                    typeof<Choice<string, SqlConnection>> 
-                                    typeof<SqlTransaction>
-                                    typeof<int>
-                                |]
+                        let ctor2 = 
+                            ProvidedConstructor(
+                                [ 
+                                    ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
+                                    ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
+                                    ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
+                                ]
+                            )
+                        ctor2.InvokeCode <-
+                            let impl = 
+                                typeof<``ISqlCommand Implementation``>.GetConstructor [| typeof<DesignTimeConfig>; typeof<Choice<string, SqlConnection>>; typeof<SqlTransaction>; typeof<int> |]
+                            fun args -> 
+                                let connArg = <@@ Choice2Of2(%%args.[0]): Choice<string, SqlConnection> @@>
+                                Expr.NewObject(impl, designTimeConfig :: connArg :: args.Tail )
 
-                        let ctor2Params = [ 
-                            ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
-                            ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
-                            ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
-                        ]
-
-                        let ctor2Body (args: _ list) =
-                            let connArg = <@@ Choice2Of2(%%args.[0]): Choice<string, SqlConnection> @@>
-                            Expr.NewObject(ctor2Impl, designTimeConfig :: connArg :: args.Tail )
-
-                        yield upcast ProvidedConstructor(ctor2Params, InvokeCode = ctor2Body)
-                        yield upcast ProvidedMethod("Create", ctor2Params, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = ctor2Body)
+                        yield upcast ctor2
 
                         let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, uddtsPerSchema)
 
