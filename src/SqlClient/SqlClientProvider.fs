@@ -39,14 +39,13 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         providerType.DefineStaticParameters(
             parameters = [ 
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
-                ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Records) 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
                 ProvidedStaticParameter("UseReturnValue", typeof<bool>, false) 
                 ProvidedStaticParameter("HideDataRowMembers", typeof<bool>, false) 
             ],             
             instantiationFunction = (fun typeName args ->
-                let root = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5])
+                let root = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4])
                 cache.GetOrAdd(typeName, root)
             ) 
         )
@@ -66,7 +65,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         | Some x -> Assembly.LoadFrom x
         | None -> base.ResolveAssembly args
 
-    member internal this.CreateRootType( typeName, connectionStringOrName, resultType, configFile, dataDirectory, useReturnValue, hideDataRowMembers) =
+    member internal this.CreateRootType( typeName, connectionStringOrName, configFile, dataDirectory, useReturnValue, hideDataRowMembers) =
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         
         let connectionString = ConnectionString.Parse connectionStringOrName
@@ -110,7 +109,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
             schemaType.AddMembersDelayed <| fun() -> 
                 [
-                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, resultType, connectionString, useReturnValue, hideDataRowMembers)
+                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, ResultType.Records, connectionString, useReturnValue, hideDataRowMembers)
                     routines |> List.iter tagProvidedType
                     yield! routines
 
@@ -163,13 +162,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let parameters = conn.GetParameters( routine, isSqlAzure, useReturnValue)
 
                         let commandText = routine.ToCommantText(parameters)
-                        let outputColumns = 
-                            if resultType <> ResultType.DataReader
-                            then 
-                                DesignTime.GetOutputColumns(conn, commandText, parameters, routine.IsStoredProc)
-                            else 
-                                []
-
+                        let outputColumns = DesignTime.GetOutputColumns(conn, commandText, parameters, routine.IsStoredProc)
                         let rank = match routine with ScalarValuedFunction _ -> ResultRank.ScalarValue | _ -> ResultRank.Sequence
 
                         let hasOutputParameters = parameters |> List.exists (fun x -> x.Direction.HasFlag( ParameterDirection.Output))
