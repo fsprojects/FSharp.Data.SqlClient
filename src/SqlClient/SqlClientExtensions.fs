@@ -70,7 +70,7 @@ type Column = {
     member this.HasDefaultConstraint = this.DefaultConstraint <> ""
     member this.NullableParameter = this.Nullable || this.HasDefaultConstraint
 
-    static member Parse(cursor: SqlDataReader, typeLookup: int * int option -> TypeInfo) = {
+    static member Parse(cursor: SqlDataReader, typeLookup: int * int option -> TypeInfo, ?defaultValue, ?description) = {
         Name = unbox cursor.["name"]
         TypeInfo = 
             let system_type_id = unbox<byte> cursor.["system_type_id"] |> int
@@ -81,8 +81,8 @@ type Column = {
         ReadOnly = not( cursor.GetValueOrDefault("is_updateable", false))
         Identity = cursor.GetValueOrDefault( "is_identity_column", false)
         PartOfUniqueKey = unbox cursor.["is_part_of_unique_key"]
-        DefaultConstraint = ""
-        Description = ""
+        DefaultConstraint = defaultArg defaultValue ""
+        Description = defaultArg description ""
     }
 
     override this.ToString() = 

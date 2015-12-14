@@ -268,4 +268,4 @@ type DataTablesTests() =
         use tran = new TransactionScope()
         let t = new AdventureWorks.dbo.Tables.TableHavingColumnNamesWithSpaces()
         t.AddRow()
-        t.Update()
+        Assert.Equal(1, t.Update())

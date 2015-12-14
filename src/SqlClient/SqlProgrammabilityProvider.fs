@@ -43,9 +43,11 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
                 ProvidedStaticParameter("UseReturnValue", typeof<bool>, false) 
+                ProvidedStaticParameter("HideDataRowMembers", typeof<bool>, false) 
             ],             
             instantiationFunction = (fun typeName args ->
-                cache.GetOrAdd(typeName, lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4]))
+                let root = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5])
+                cache.GetOrAdd(typeName, root)
             ) 
         )
 
@@ -64,7 +66,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         | Some x -> Assembly.LoadFrom x
         | None -> base.ResolveAssembly args
 
-    member internal this.CreateRootType( typeName, connectionStringOrName, resultType, configFile, dataDirectory, useReturnValue) =
+    member internal this.CreateRootType( typeName, connectionStringOrName, resultType, configFile, dataDirectory, useReturnValue, hideDataRowMembers) =
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         
         let connectionString = ConnectionString.Parse connectionStringOrName
@@ -108,7 +110,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
             schemaType.AddMembersDelayed <| fun() -> 
                 [
-                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, resultType, connectionString, useReturnValue)
+                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, resultType, connectionString, useReturnValue, hideDataRowMembers)
                     routines |> List.iter tagProvidedType
                     yield! routines
 
@@ -143,7 +145,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 yield rowType
     ]
 
-    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, connectionString, useReturnValue) = 
+    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, connectionString, useReturnValue, hideDataRowMembers) = 
         [
             use _ = conn.UseLocally()
             let isSqlAzure = conn.IsSqlAzure
@@ -309,8 +311,19 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                 let columns =  
                     cmd.ExecuteQuery( fun x ->
-                        let c = Column.Parse(x, fun(system_type_id, user_type_id) -> findTypeInfoBySqlEngineTypeId(conn.ConnectionString, system_type_id, user_type_id)) 
-                        { c with DefaultConstraint = string x.["default_constraint"]; Description = string x.["description"]}
+                        let c = 
+                            Column.Parse(
+                                x, 
+                                (fun(system_type_id, user_type_id) -> findTypeInfoBySqlEngineTypeId(conn.ConnectionString, system_type_id, user_type_id)),
+                                ?defaultValue = x.TryGetValue("default_constraint"), 
+                                ?description = x.TryGetValue("description")
+                            ) 
+                        if c.DefaultConstraint <> "" && c.PartOfUniqueKey 
+                        then 
+                            { c with PartOfUniqueKey = false } 
+                            //ADO.NET doesn't allow nullable columns as part of promary key
+                            //remove from PK if default value provided by DB on insert.
+                        else c
                     )
                     |> Seq.toArray
 
