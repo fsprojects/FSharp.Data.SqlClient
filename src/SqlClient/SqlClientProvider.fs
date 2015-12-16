@@ -42,10 +42,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
                 ProvidedStaticParameter("UseReturnValue", typeof<bool>, false) 
-                ProvidedStaticParameter("HideDataRowMembers", typeof<bool>, false) 
             ],             
             instantiationFunction = (fun typeName args ->
-                let root = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4])
+                let root = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3])
                 cache.GetOrAdd(typeName, root)
             ) 
         )
@@ -65,7 +64,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         | Some x -> Assembly.LoadFrom x
         | None -> base.ResolveAssembly args
 
-    member internal this.CreateRootType( typeName, connectionStringOrName, configFile, dataDirectory, useReturnValue, hideDataRowMembers) =
+    member internal this.CreateRootType( typeName, connectionStringOrName, configFile, dataDirectory, useReturnValue) =
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         
         let connectionString = ConnectionString.Parse connectionStringOrName
@@ -109,7 +108,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
             schemaType.AddMembersDelayed <| fun() -> 
                 [
-                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, ResultType.Records, connectionString, useReturnValue, hideDataRowMembers)
+                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, ResultType.Records, connectionString, useReturnValue)
                     routines |> List.iter tagProvidedType
                     yield! routines
 
@@ -144,7 +143,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 yield rowType
     ]
 
-    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, connectionString, useReturnValue, hideDataRowMembers) = 
+    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, connectionString, useReturnValue) = 
         [
             use _ = conn.UseLocally()
             let isSqlAzure = conn.IsSqlAzure
@@ -180,6 +179,12 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let sqlParameters = Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
 
                         let designTimeConfig = 
+                            let expectedDataReaderColumns = 
+                                Expr.NewArray(
+                                    typeof<string * string>, 
+                                    [ for c in outputColumns -> Expr.NewTuple [ Expr.Value c.Name; Expr.Value c.TypeInfo.ClrTypeFullName ] ]
+                                )
+
                             <@@ {
                                 ConnectionString = %%connectionString.Expr
                                 SqlStatement = commandText
@@ -189,6 +194,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 Rank = rank
                                 RowMapping = %%output.RowMapping
                                 ItemTypeName = %%Expr.Value( output.ErasedToRowType.PartialAssemblyQualifiedName)
+                                ExpectedDataReaderColumns = %%expectedDataReaderColumns
                             } @@>
 
                         
@@ -314,7 +320,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         if c.DefaultConstraint <> "" && c.PartOfUniqueKey 
                         then 
                             { c with PartOfUniqueKey = false } 
-                            //ADO.NET doesn't allow nullable columns as part of promary key
+                            //ADO.NET doesn't allow nullable columns as part of primary key
                             //remove from PK if default value provided by DB on insert.
                         else c
                     )

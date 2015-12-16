@@ -136,6 +136,12 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         do  //ctors
             let designTimeConfig = 
+                let expectedDataReaderColumns = 
+                    Expr.NewArray(
+                        typeof<string * string>, 
+                        [ for c in outputColumns -> Expr.NewTuple [ Expr.Value c.Name; Expr.Value c.TypeInfo.ClrTypeFullName ] ]
+                    )
+
                 <@@ {
                     ConnectionString = %%connectionString.Expr
                     SqlStatement = sqlStatement
@@ -145,6 +151,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     Rank = rank
                     RowMapping = %%output.RowMapping
                     ItemTypeName = %%Expr.Value( output.ErasedToRowType.PartialAssemblyQualifiedName)
+                    ExpectedDataReaderColumns = %%expectedDataReaderColumns
                 } @@>
 
             do 

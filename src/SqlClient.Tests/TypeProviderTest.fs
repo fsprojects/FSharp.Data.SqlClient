@@ -213,6 +213,70 @@ let ResultsetExtendedWithTrailingColumn() =
     "
     Assert.Equal<_ list>([0..9], [ for x in cmd.Execute() -> x.Value ])
 
+[<Fact>]
+let ResultsetRuntimeVerificationLessThanExpectedColumns() =
+    let cmd = new SqlCommandProvider<"
+        WITH XS AS
+        (
+	        SELECT 
+                Value
+                ,GETDATE() AS Now
+	            ,SUM(Value) OVER (ORDER BY Value) AS Total
+	        FROM (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) as T(Value)
+        )
+        SELECT * FROM XS
+    ", ConnectionStrings.AdventureWorksNamed>()
+
+    Assert.Equal<_ list>([0..9], [ for x in cmd.Execute() -> x.Value ])
+    
+    (cmd :> ISqlCommand).Raw.CommandText <-"
+        WITH XS AS
+        (
+	        SELECT 
+                Value
+                ,GETDATE() AS Now
+	        FROM (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) as T(Value)
+        )
+        SELECT * FROM XS
+    "
+    let err = Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
+    Assert.Equal<string>(
+        "Expected at least 3 columns in result set but received only 2.",
+        err.Message
+    )
+
+[<Fact>]
+let ResultsetRuntimeVerificationDiffColumnTypes() =
+    let cmd = new SqlCommandProvider<"
+        WITH XS AS
+        (
+	        SELECT 
+                Value
+	            ,SUM(Value) OVER (ORDER BY Value) AS Total
+	        FROM (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) as T(Value)
+        )
+        SELECT * FROM XS
+    ", ConnectionStrings.AdventureWorksNamed>()
+
+    Assert.Equal<_ list>([0..9], [ for x in cmd.Execute() -> x.Value ])
+    
+    (cmd :> ISqlCommand).Raw.CommandText <-"
+        WITH XS AS
+        (
+	        SELECT 
+                Value
+                ,GETDATE() AS Now
+	        FROM (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) as T(Value)
+        )
+        SELECT * FROM XS
+    "
+
+    let err = Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
+    Assert.Equal<string>(
+        """Expected column [Total] of type "System.Int32" at position 1 (0-based indexing) but received column [Now] of type "System.DateTime".""",
+        err.Message
+    )
+
 module ``The undeclared parameter 'X' is used more than once in the batch being analyzed`` = 
     [<Fact>]
     let Basic() =
