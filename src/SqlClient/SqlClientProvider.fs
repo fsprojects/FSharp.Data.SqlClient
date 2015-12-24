@@ -160,12 +160,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let rank = match routine with ScalarValuedFunction _ -> ResultRank.ScalarValue | _ -> ResultRank.Sequence
 
                         let hasOutputParameters = parameters |> List.exists (fun x -> x.Direction.HasFlag( ParameterDirection.Output))
-                        let resultType = 
-                            if hasOutputParameters && not outputColumns.IsEmpty
-                            then ResultType.DataTable //force materialized output because output parameters is in second result set
-                            else resultType
 
-                        let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank)
+                        let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters)
         
                         do  //Record
                             output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
@@ -241,10 +237,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                     [ providedReturnType ]
                                 ) 
 
-                            yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, providedReturnType, "ExecuteSingle") 
-
                             if not hasOutputParameters
                             then                              
+                                yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, providedReturnType, "ExecuteSingle") 
                                 yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, providedAsyncReturnType, "AsyncExecuteSingle")
                     ]
 

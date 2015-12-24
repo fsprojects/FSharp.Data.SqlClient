@@ -215,10 +215,7 @@ let ResultSetAndOutParam() =
     ]
     let total = ref 0L
     let result = cmd.Execute(p, total) 
-    Assert.Equal<_ list>(
-        [ Some "donkey" ], 
-        [ for row in result.Rows -> row.myName ]
-    )
+    Assert.Equal<_ list>([ Some "donkey" ], [ for x in result -> x.myName ] )
     Assert.Equal(2L, !total)
 
 module ReturnValues = 
@@ -249,13 +246,19 @@ module ReturnValues =
             DboMyTableType(myId = 1)
             DboMyTableType(myId = 2, myName = Some "donkey")
         ]
-        let total = ref Int64.MinValue
-        let returnValue = ref Int32.MaxValue
-        let result = cmd.Execute(p, total, returnValue) 
-        Assert.Equal<_ list>(
-            [ Some "donkey" ], 
-            [ for row in result.Rows -> row.myName ]
-        )
-        Assert.Equal(2L, !total)
-        Assert.Equal(0, !returnValue) //default return value
+
+        do //explicit refs
+            let total = ref Int64.MinValue
+            let returnValue = ref Int32.MaxValue
+            let result = cmd.Execute(p, total, returnValue) 
+            Assert.Equal<_ list>( [ 2, Some "donkey" ], [ for x in result -> x.myId, x.myName ] )
+            Assert.Equal(2L, !total)
+            Assert.Equal(0, !returnValue) //default return value
+
+        do //tupled response syntax
+            let result, total, returnValue = cmd.Execute(p) 
+            Assert.Equal<_ list>( [ 2, Some "donkey" ], [ for x in result -> x.myId, x.myName ] )
+            Assert.Equal(2L, total)
+            Assert.Equal(0, returnValue) //default return value
+
 

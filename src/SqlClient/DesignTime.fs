@@ -176,7 +176,7 @@ type DesignTime private() =
 
         rowType
 
-    static member internal GetOutputTypes (outputColumns: Column list, resultType: ResultType, rank: ResultRank) =    
+    static member internal GetOutputTypes (outputColumns: Column list, resultType, rank: ResultRank, hasOutputParameters) =    
         if resultType = ResultType.DataReader 
         then 
             ResultTypes.SingleTypeResult typeof<SqlDataReader>
@@ -235,7 +235,8 @@ type DesignTime private() =
             let genericOutputType, erasedToType = 
                 if rank = ResultRank.Sequence 
                 then 
-                    Some( typedefof<_ seq>), typedefof<_ seq>.MakeGenericType([| erasedToRowType |])
+                    let resultsetType = if hasOutputParameters then typedefof<_ list> else typedefof<_ seq>
+                    Some( resultsetType), resultsetType.MakeGenericType([| erasedToRowType |])
                 elif rank = ResultRank.SingleRow 
                 then
                     Some( typedefof<_ option>), typedefof<_ option>.MakeGenericType([| erasedToRowType |])

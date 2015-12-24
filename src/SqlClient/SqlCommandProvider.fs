@@ -123,7 +123,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             else []
 
         let rank = if singleRow then ResultRank.SingleRow else ResultRank.Sequence
-        let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank)
+        let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters = false)
         
         let cmdProvidedType = ProvidedTypeDefinition(assembly, nameSpace, typeName, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
 

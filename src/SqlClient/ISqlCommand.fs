@@ -233,17 +233,6 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transacti
         use cursor = ``ISqlCommand Implementation``.ExecuteReader(cmd, getReaderBehavior, parameters, expectedDataReaderColumns) 
         let result = new FSharp.Data.DataTable<DataRow>(null, cmd)
         result.Load( cursor)
-
-        let hasOutputParameters = cmd.Parameters |> Seq.cast<SqlParameter> |> Seq.exists (fun x -> x.Direction.HasFlag( ParameterDirection.Output))
-
-        if hasOutputParameters
-        then
-            for i = 0 to parameters.Length - 1 do
-                let name, _ = parameters.[i]
-                let p = cmd.Parameters.[name]
-                if p.Direction.HasFlag( ParameterDirection.Output)
-                then 
-                    parameters.[i] <- name, p.Value
         result
 
     static member internal AsyncExecuteDataTable(cmd, getReaderBehavior, parameters, expectedDataReaderColumns) = 
@@ -254,21 +243,43 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transacti
             return result
         }
 
-    static member internal ExecuteSeq<'TItem> (rank, rowMapper) = fun(cmd, getReaderBehavior, parameters, expectedDataReaderColumns) -> 
-        let xs = Seq.delay <| fun() -> 
-            ``ISqlCommand Implementation``
-                .ExecuteReader(cmd, getReaderBehavior, parameters, expectedDataReaderColumns)
-                .MapRowValues<'TItem>( rowMapper)
+    static member internal ExecuteSeq<'TItem> (rank, rowMapper) = fun(cmd: SqlCommand, getReaderBehavior, parameters, expectedDataReaderColumns) -> 
+        let hasOutputParameters = cmd.Parameters |> Seq.cast<SqlParameter> |> Seq.exists (fun x -> x.Direction.HasFlag( ParameterDirection.Output))
 
-        if rank = ResultRank.SingleRow 
+        if not hasOutputParameters
         then 
-            xs |> Seq.toOption |> box
-        elif rank = ResultRank.ScalarValue 
-        then 
-            xs |> Seq.exactlyOne |> box
-        else 
-            assert (rank = ResultRank.Sequence)
-            box xs 
+            let xs = Seq.delay <| fun() -> 
+                ``ISqlCommand Implementation``
+                    .ExecuteReader(cmd, getReaderBehavior, parameters, expectedDataReaderColumns)
+                    .MapRowValues<'TItem>( rowMapper)
+
+            if rank = ResultRank.SingleRow 
+            then 
+                xs |> Seq.toOption |> box
+            elif rank = ResultRank.ScalarValue 
+            then 
+                xs |> Seq.exactlyOne |> box
+            else 
+                assert (rank = ResultRank.Sequence)
+                box xs 
+        else
+            let resultset = 
+                ``ISqlCommand Implementation``
+                    .ExecuteReader(cmd, getReaderBehavior, parameters, expectedDataReaderColumns)
+                    .MapRowValues<'TItem>( rowMapper)
+                    |> Seq.toList
+
+
+            if hasOutputParameters
+            then
+                for i = 0 to parameters.Length - 1 do
+                    let name, _ = parameters.[i]
+                    let p = cmd.Parameters.[name]
+                    if p.Direction.HasFlag( ParameterDirection.Output)
+                    then 
+                        parameters.[i] <- name, p.Value
+
+            box resultset
             
     static member internal AsyncExecuteSeq<'TItem> (rank, rowMapper) = fun(cmd, getReaderBehavior, parameters, expectedDataReaderColumns) ->
         let xs = 
