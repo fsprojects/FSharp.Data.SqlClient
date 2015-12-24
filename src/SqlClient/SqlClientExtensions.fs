@@ -102,14 +102,13 @@ and TypeInfo = {
     Schema: string
     SqlEngineTypeId: int
     UserTypeId: int
-    SqlDbTypeId: int
+    SqlDbType: SqlDbType
     IsFixedLength: bool 
-    ClrTypeFullName: string
+    ClrType: Type
     UdttName: string 
     TableTypeColumns: Column[] Lazy
 }   with
-    member this.SqlDbType : SqlDbType = enum this.SqlDbTypeId
-    member this.ClrType : Type = Type.GetType( this.ClrTypeFullName, throwOnError = true)
+    member this.ClrTypeFullName = this.ClrType.PartialAssemblyQualifiedName
     member this.TableType = this.SqlDbType = SqlDbType.Structured
     member this.IsValueType = not this.TableType && this.ClrType.IsValueType
 
@@ -210,6 +209,65 @@ type Routine =
             parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT * FROM %s(%s)" twoPartNameIdentifier
         | ScalarValuedFunction _ ->     
             parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT %s(%s)" twoPartNameIdentifier
+
+let internal providerTypes = 
+    dict [
+        // exact numerics
+        "bigint", (SqlDbType.BigInt, lazy Type.GetType "System.Int64", true)
+        "bit", (SqlDbType.Bit, lazy Type.GetType "System.Boolean", true) 
+        "decimal", (SqlDbType.Decimal, lazy Type.GetType "System.Decimal", true) 
+        "int", (SqlDbType.Int, lazy Type.GetType "System.Int32", true)
+        "money", (SqlDbType.Money, lazy Type.GetType "System.Decimal", true) 
+        "numeric", (SqlDbType.Decimal, lazy Type.GetType "System.Decimal", true) 
+        "smallint", (SqlDbType.SmallInt, lazy Type.GetType "System.Int16", true)
+        "smallmoney", (SqlDbType.SmallMoney, lazy Type.GetType "System.Decimal", true) 
+        "tinyint", (SqlDbType.TinyInt, lazy Type.GetType "System.Byte", true)
+
+        // approximate numerics
+        "float", (SqlDbType.Float, lazy Type.GetType "System.Double", true) // This is correct. SQL Server 'float' type maps to double
+        "real", (SqlDbType.Real, lazy Type.GetType "System.Single", true)
+
+        // date and time
+        "date", (SqlDbType.Date, lazy Type.GetType "System.DateTime", true)
+        "datetime", (SqlDbType.DateTime, lazy Type.GetType "System.DateTime", true)
+        "datetime2", (SqlDbType.DateTime2, lazy Type.GetType "System.DateTime", true)
+        "datetimeoffset", (SqlDbType.DateTimeOffset, lazy Type.GetType "System.DateTimeOffset", true)
+        "smalldatetime", (SqlDbType.SmallDateTime,  lazy Type.GetType "System.DateTime", true)
+        "time", (SqlDbType.Time, lazy Type.GetType "System.TimeSpan", true)
+
+        // character strings
+        "char", (SqlDbType.Char, lazy Type.GetType "System.String", true)
+        "text", (SqlDbType.Text, lazy Type.GetType "System.String", false)
+        "varchar", (SqlDbType.VarChar, lazy Type.GetType "System.String", false)
+
+        // unicode character strings
+        "nchar", (SqlDbType.NChar, lazy Type.GetType "System.String", true)
+        "ntext", (SqlDbType.NText, lazy Type.GetType "System.String", false)
+        "nvarchar", (SqlDbType.NVarChar, lazy Type.GetType "System.String", false)
+        "sysname", (SqlDbType.NVarChar, lazy Type.GetType "System.String", false)
+
+        // binary
+        "binary", (SqlDbType.Binary, lazy Type.GetType "System.Byte[]", true)
+        "image", (SqlDbType.Image, lazy Type.GetType "System.Byte[]", false)
+        "varbinary", (SqlDbType.VarBinary, lazy Type.GetType "System.Byte[]", false)
+
+        //spatial
+        "geography", (SqlDbType.Udt, lazy Type.GetType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types", throwOnError = true), false)
+        "geometry", (SqlDbType.Udt, lazy Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types", throwOnError = true), false)
+
+        //other
+        "hierarchyid", (SqlDbType.Udt, lazy Type.GetType("Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types", throwOnError = true), false)
+        "sql_variant", (SqlDbType.Variant, lazy Type.GetType "System.Object", false)
+
+        "timestamp", (SqlDbType.Timestamp, lazy Type.GetType "System.Byte[]", true)  // note: rowversion is a synonym but SQL Server stores the data type as 'timestamp'
+        "uniqueidentifier", (SqlDbType.UniqueIdentifier, lazy Type.GetType "System.Guid", true)
+        "xml", (SqlDbType.Xml, lazy Type.GetType "System.String", false)
+
+        //TODO 
+        //"cursor", typeof<TODO>
+        //"table", typeof<TODO>
+    ]
+
 
 type SqlConnection with
 
@@ -442,34 +500,13 @@ type SqlConnection with
         if not <| dataTypeMappings.ContainsKey this.ConnectionString
         then
             assert (this.State = ConnectionState.Open)
-            let providerTypes = 
-                dict [| 
-                    for row in this.GetSchema("DataTypes").Rows do
-                        let fullTypeName = string row.["TypeName"]
-                        let typeName, clrType = 
-                            match fullTypeName.Split(',') |> List.ofArray with
-                            | [name] -> name, string row.["DataType"]
-                            | name::_ -> name, fullTypeName
-                            | [] -> failwith "Unaccessible"
-
-                        let isFixedLength = 
-                            if row.IsNull("IsFixedLength") 
-                            then false 
-                            else row.["IsFixedLength"] |> unbox 
-
-                        let providedType = unbox row.["ProviderDbType"]
-                        if providedType <> int SqlDbType.Structured
-                        then 
-                            yield typeName, (providedType, clrType, isFixedLength)
-                |]
 
             let runningOnMono = try System.Type.GetType("Mono.Runtime") <> null with e -> false 
             let sqlEngineTypes = [|
                 use cmd = new SqlCommand("
-                    SELECT t.name, ISNULL(assembly_class, t.name) as full_name, t.system_type_id, t.user_type_id, t.is_table_type, s.name as schema_name, t.is_user_defined
+                    SELECT t.name, t.system_type_id, t.user_type_id, t.is_table_type, s.name as schema_name, t.is_user_defined
                     FROM sys.types AS t
 	                    JOIN sys.schemas AS s ON t.schema_id = s.schema_id
-	                    LEFT JOIN sys.assembly_types ON t.user_type_id = sys.assembly_types.user_type_id
                     ", this) 
                 use reader = cmd.ExecuteReader()
                 while reader.Read() do
@@ -478,7 +515,6 @@ type SqlConnection with
                     if not runningOnMono || systemTypeId <> 240uy then
                       yield 
                         string reader.["name"], 
-                        string reader.["full_name"], 
                         int systemTypeId, 
                         unbox<int> reader.["user_type_id"], 
                         unbox reader.["is_table_type"], 
@@ -487,22 +523,18 @@ type SqlConnection with
             |]
 
             let typeInfos = [|
-                for name, full_name, system_type_id, user_type_id, is_table_type, schema_name, is_user_defined in sqlEngineTypes do
+                for name, system_type_id, user_type_id, is_table_type, schema_name, is_user_defined in sqlEngineTypes do
                     let providerdbtype, clrType, isFixedLength = 
-                        match providerTypes.TryGetValue(full_name) with
+                        match providerTypes.TryGetValue(name) with
                         | true, value -> value
-                        | false, _ when full_name = "sysname" -> 
-                            providerTypes.["nvarchar"]
                         | false, _ when is_user_defined && not is_table_type ->
                             let system_type_name = 
                                 sqlEngineTypes 
-                                |> Array.pick (fun (typename', _, system_type_id', _, _, _, is_user_defined') -> if system_type_id = system_type_id' && not is_user_defined' then Some typename' else None)
-                            providerTypes.[system_type_name]
+                                |> Array.pick (fun (typename', system_type_id', _, _, _, is_user_defined') -> if system_type_id = system_type_id' && not is_user_defined' then Some typename' else None)
+                            providerTypes.[system_type_name]                        
                         | false, _ when is_table_type -> 
-                            int SqlDbType.Structured, "", false
-                        | _ -> failwith ("Unexpected type: " + full_name)
-
-                    let clrTypeFixed = if system_type_id = 48 (*tinyint*) then typeof<byte>.FullName else clrType
+                            SqlDbType.Structured, lazy null, false
+                        | _ -> failwith ("Unexpected type: " + name)
 
                     let columns = 
                         lazy 
@@ -541,10 +573,10 @@ type SqlConnection with
                         Schema = schema_name
                         SqlEngineTypeId = system_type_id
                         UserTypeId = user_type_id
-                        SqlDbTypeId = providerdbtype
+                        SqlDbType = providerdbtype
                         IsFixedLength = isFixedLength
-                        ClrTypeFullName = clrTypeFixed
-                        UdttName = if is_table_type then full_name else ""
+                        ClrType = clrType.Value
+                        UdttName = if is_table_type then name else ""
                         TableTypeColumns = columns
                     }
             |]

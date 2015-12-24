@@ -59,7 +59,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 let value = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6], unbox args.[7])
                 cache.GetOrAdd(typeName, value)
             ) 
-            
         )
 
         providerType.AddXmlDoc """

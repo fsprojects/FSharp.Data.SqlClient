@@ -213,6 +213,13 @@ let ResultsetExtendedWithTrailingColumn() =
     "
     Assert.Equal<_ list>([0..9], [ for x in cmd.Execute() -> x.Value ])
 
+let resultsetRuntimeVerificationEnabled = 
+    lazy 
+        match Configuration.ConfigurationManager.GetSection("FSharp.Data.SqlClient") with
+        | :? System.Collections.Specialized.NameValueCollection as xs ->
+            string xs.["ResultsetRuntimeVerification"] = "true"
+        | _ -> false
+
 [<Fact>]
 let ResultsetRuntimeVerificationLessThanExpectedColumns() =
     let cmd = new SqlCommandProvider<"
@@ -239,11 +246,19 @@ let ResultsetRuntimeVerificationLessThanExpectedColumns() =
         )
         SELECT * FROM XS
     "
-    let err = Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
-    Assert.Equal<string>(
-        "Expected at least 3 columns in result set but received only 2.",
-        err.Message
-    )
+    if resultsetRuntimeVerificationEnabled.Value
+    then 
+        let err = Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
+        Assert.Equal<string>(
+            "Expected at least 3 columns in result set but received only 2.",
+            err.Message
+        )
+    else
+        let err = Assert.Throws<IndexOutOfRangeException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
+        Assert.Equal<string>(
+            "Index was outside the bounds of the array.",
+            err.Message
+        )
 
 [<Fact>]
 let ResultsetRuntimeVerificationDiffColumnTypes() =
@@ -271,11 +286,19 @@ let ResultsetRuntimeVerificationDiffColumnTypes() =
         SELECT * FROM XS
     "
 
-    let err = Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
-    Assert.Equal<string>(
-        """Expected column [Total] of type "System.Int32" at position 1 (0-based indexing) but received column [Now] of type "System.DateTime".""",
-        err.Message
-    )
+    if resultsetRuntimeVerificationEnabled.Value
+    then 
+        let err = Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
+        Assert.Equal<string>(
+            """Expected column [Total] of type "System.Int32" at position 1 (0-based indexing) but received column [Now] of type "System.DateTime".""",
+            err.Message
+        )
+    else
+        let err = Assert.Throws<InvalidCastException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
+        Assert.Equal<string>(
+            "Specified cast is not valid.",
+            err.Message
+        )
 
 module ``The undeclared parameter 'X' is used more than once in the batch being analyzed`` = 
     [<Fact>]

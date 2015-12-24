@@ -32,7 +32,7 @@ type QuotationsFactory private() =
             else [ for c in p.TypeInfo.TableTypeColumns.Value -> c.Name, c.TypeInfo.ClrType.FullName ] |> List.unzip
 
         let name = p.Name
-        let sqlDbType = enum p.TypeInfo.SqlDbTypeId
+        let sqlDbType = p.TypeInfo.SqlDbType
         let isFixedLength = p.TypeInfo.IsFixedLength
 
         <@@ 

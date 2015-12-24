@@ -1,5 +1,5 @@
 (*** hide ***)
-#r @"..\..\src\SqlClient\bin\Debug\FSharp.Data.SqlClient.dll"
+#r @"..\..\bin\FSharp.Data.SqlClient.dll"
 
 (**
 Not your grandfather's ORM
@@ -131,8 +131,7 @@ SqlCommandProvider and SqlProgrammabilityProvider features at glance
     * Inferred static type for output. Configurable choice of `seq<Records>`(default), `seq<Tuples>`,`DataTable`, or raw `SqlReader` for custom parsing. 
         For `seq<Records>` and `seq<Tuples>` each column mapped to corresponding property/item
     * Nullable output columns translate to the F# Option type
-    * Stored Procedures returning a result set and Table Valued Functions have `ExecuteSingle` and `AsyncExecuteSingle` methods that return `Option<'T>` and `Async<Option<'T>>` respectively.
-    * Output parameters and return values for stored procedures are not supported. Open a GitHub project issue to request this support.
+    * Stored Procedures returning a result set and Table Valued Functions have `ExecuteSingle` and `AsyncExecuteSingle` methods that return `Option<'T>` and `Async<Option<'T>>` respectively. Use it only if result set has zero or one row.
 * Extra configuration options:
     * `SingleRow` hint forces singleton output instead of sequence
 

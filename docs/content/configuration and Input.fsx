@@ -1,5 +1,5 @@
 (*** hide ***)
-#r @"..\..\src\SqlClient\bin\Debug\FSharp.Data.SqlClient.dll"
+#r @"..\..\bin\FSharp.Data.SqlClient.dll"
 #r "Microsoft.SqlServer.Types.dll"
 (**
 
@@ -19,6 +19,7 @@ SqlCommandProvider parameters
   <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>Valid file name</td></tr>
   <tr><td class="title">AllParametersOptional</td><td>false</td><td>true/false</td></tr>
   <tr><td class="title">ResolutionFolder</td><td>The folder that contains the project or script.</td><td>Valid file system path. Absolute or relative.</td></tr>
+  <tr><td class="title">DataDirectory</td><td>The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.</td><td>Valid file system path.</td></tr>
 </tbody>
 </table>
 
@@ -29,9 +30,10 @@ SqlProgrammabilityProvider parameters
 <thead><tr><td>Name</td><td>Default</td><td>Accepted values</td></tr></thead>
 <tbody>
   <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr>
-  <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable, or DataReader</td></tr>
   <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>valid file name</td></tr>
   <tr><td class="title">ResolutionFolder</td><td>The folder that contains the project or script.</td><td>Valid file system path. Absolute or relative.</td></tr>
+  <tr><td class="title">DataDirectory</td><td>The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.</td><td>Valid file system path.</td></tr>
+  <tr><td class="title">UseReturnValue</td><td>false</td><td>Support for stored procedure return value.</td></tr>
 </tbody>
 </table>
 
@@ -163,8 +165,7 @@ Connection string can be provided either via literal (all examples above) or inl
 
 //Inline 
 type Get42 = 
-    SqlCommandProvider<"SELECT 42", 
-                       @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True">
+    SqlCommandProvider<"SELECT 42", @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True">
 
 (**
 
@@ -176,10 +177,10 @@ The other option is to supply connection string name from config file.
 *)
 
 //default config file name is app.config or web.config
-type Get43 = SqlCommandProvider<"SELECT 43", "name=AdventureWorks2012">
+type Get43 = SqlCommandProvider<"SELECT 43", "name=AdventureWorks2014">
 
 //specify ANY other file name (including web.config) explicitly
-type Get44 = SqlCommandProvider<"SELECT 44", "name=AdventureWorks2012", ConfigFile = "user.config">
+type Get44 = SqlCommandProvider<"SELECT 44", "name=AdventureWorks2014", ConfigFile = "user.config">
 
 (**
 I would like to emphasize that `ConfigFile` is about ***design time only*. 
@@ -223,29 +224,29 @@ let get42 = new Get42(runTimeConnStr)
 //Factory or IOC of choice to avoid logic duplication. Use F# ctor static constraints.
 module DB = 
     [<Literal>]
-    let connStr = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+    let connStr = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
 
     type MyCmd1 = SqlCommandProvider<"SELECT 42", connStr>
     type MyCmd2 = SqlCommandProvider<"SELECT 42", connStr>
 
     let inline createCommand() : 'a = 
-        let connStr = "..." //somehow get connection string at run-time
+        let runtimeConnStr = "..." //somehow get connection string at run-time
         //invoke ctor
-        (^a : (new : string * int -> ^a) (connStr, 30)) 
+        (^a : (new : string -> ^a) (runtimeConnStr)) 
         //or
         //(^a : (static member Create: string * int -> ^a) (connStr, 30)) 
 
 let dbCmd1: DB.MyCmd1 = DB.createCommand()
 let dbCmd2: DB.MyCmd2 = DB.createCommand()
 
-//Case 3: multiple databases
-//It gets tricky because we need to distinguish between command types associated with different databases. 
-//Static type property ConnectionStringOrName that has exactly same value as passed into SqlCommandProvider helps.
+Case 3: multiple databases
+It gets tricky because we need to distinguish between command types associated with different databases. 
+Static type property ConnectionStringOrName that has exactly same value as passed into SqlCommandProvider helps.
 module DataAccess = 
     [<Literal>]
-    let adventureWorks = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+    let adventureWorks = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
     [<Literal>]
-    let master = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
+    let master = @"Data Source=.;Initial Catalog=master;Integrated Security=True"
 
     type MyCmd1 = SqlCommandProvider<"SELECT 42", adventureWorks>
     type MyCmd2 = SqlCommandProvider<"SELECT 42", master>
@@ -285,14 +286,21 @@ type GetBitCoin =
     SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code"
                         , connectionString>
 
-(new DeleteBitCoin()).Execute(bitCoinCode) |> ignore
-let conn = new System.Data.SqlClient.SqlConnection(connectionString)
-conn.Open()
-let tran = conn.BeginTransaction()
-(new InsertBitCoin(tran)).Execute(bitCoinCode, bitCoinName) = 1
-((new GetBitCoin(tran)).Execute(bitCoinCode) |> Seq.length) = 1
-tran.Rollback()
-((new GetBitCoin(tran)).Execute(bitCoinCode) |> Seq.length) = 0
+do 
+    let cmd = new DeleteBitCoin() in cmd.Execute(bitCoinCode) |> ignore
+    let conn = new System.Data.SqlClient.SqlConnection(connectionString)
+    conn.Open()
+    let tran = conn.BeginTransaction()
+
+    use insert = InsertBitCoin.Create(transaction = tran) 
+    assert(insert.Execute(bitCoinCode, bitCoinName) = 1)
+
+    use get = new GetBitCoin(transaction = tran)
+    assert( get.Execute(bitCoinCode) |> Seq.length = 1)
+
+    tran.Rollback()
+
+    assert( GetBitCoin.Create().Execute(bitCoinCode) |> Seq.length = 0)
 
 (**
 
@@ -302,14 +310,11 @@ to create command instances.
 `SqlProgrammabilityProvider<...>` supports connection name syntax as well. 
 It is also possible to pass run-time connection string to database constructor:
 *)
-type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
 
 open System
 
-let dbRuntime = AdventureWorks2012(runTimeConnStr)
+type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
 
-dbRuntime.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(DateTime(2013,1,1), 1) 
-|> Async.RunSynchronously
 
 (**  
 ### Stored procedures
@@ -317,28 +322,47 @@ dbRuntime.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(Da
   Stored procedures are supported by `SqlProgrammabilityProvider<...>`
 *)
 
-let db = AdventureWorks2012()
+do 
+    use cmd = new AdventureWorks2012.dbo.uspGetWhereUsedProductID()
 
-db.``Stored Procedures``.``dbo.uspGetWhereUsedProductID``.AsyncExecute(DateTime(2013,1,1), 1) 
-|> Async.RunSynchronously 
-|> Array.ofSeq
+    //sync
+    cmd.Execute( StartProductID = 1, CheckDate = DateTime(2013,1,1)) |> printfn "%A"
+
+    //async
+    cmd.AsyncExecute( StartProductID = 1, CheckDate = DateTime(2013,1,1)) 
+    |> Async.RunSynchronously 
+    |> Array.ofSeq
+    |> printfn "%A"
 
 (**
    If Stored Procedure contains any output parameters, the result of the call is a record with all output parameters and return value. 
    Note that SqlServer-specific types are also supported.
 *)
+
+//CREATE PROCEDURE dbo.AddRef @x AS INT, @y AS INT, @sum AS INT OUTPUT 
+//AS
+//BEGIN
+//	SET @sum = @x + @y
+//	RETURN (@x + @y)
+//END
+
 open Microsoft.SqlServer.Types
 open System.Data
 
-let res = db.``Stored Procedures``.``HumanResources.uspUpdateEmployeeLogin``
-            .AsyncExecute(  291, 
-                            true, 
-                            DateTime(2013,1,1), 
-                            "gatekeeper", 
-                            "adventure-works\gat0", 
-                            SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")))
-            |> Async.RunSynchronously 
-res.ReturnValue
+do 
+    use cmd = new SqlProgrammabilityProvider<connectionString, UseReturnValue = true>.HumanResources.uspUpdateEmployeeLogin()
+    let recordsAffected, returnValue = 
+        cmd.Execute(
+            BusinessEntityID = 291, 
+            OrganizationNode = SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/")),
+            LoginID = "adventure-works\gat0", 
+            JobTitle = "gatekeeper", 
+            HireDate = DateTime(2013,1,1), 
+            CurrentFlag = true
+        )
+
+    printfn "Return value: %i" returnValue
+
 
 (**
 
