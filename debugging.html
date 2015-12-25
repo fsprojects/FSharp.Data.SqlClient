@@ -99,22 +99,16 @@ Up until now this resulted in confusion runtime exception: InvalidCastException(
 <p>To improve diagnostics without hurting performance a new configuration section/switch is introduced.</p>
 
 <p>First, define custom sectoin in app.config/web.config
-<pre>
-<code>
+    [lang=xml]
     <configSections>
         <section name="FSharp.Data.SqlClient" type="System.Configuration.NameValueSectionHandler" />
-    </configSections>
-</code>
-</pre></p>
+    </configSections></p>
 
 <p>Second, set on <code>ResultsetRuntimeVerification</code> switch
-<pre>
-<code>
+    [lang=xml]
     <FSharp.Data.SqlClient>
         <add key="ResultsetRuntimeVerification" value="true"/>
-    </FSharp.Data.SqlClient>
-</code>
-</pre></p>
+    </FSharp.Data.SqlClient></p>
 
 <h2>Other debugging/instrumentation tools to consider:</h2>
 
