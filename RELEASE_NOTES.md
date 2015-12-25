@@ -193,3 +193,10 @@
 #### 1.7.7 - October 4, 2015
 	* Issue #170 
 
+#### 1.8 - December 25, 2015
+	* Issue #172
+	* Issue #174
+	* Issue #176 - Support for SP output params and return values	
+	* Issue #177 - SqlEnumProvider generates const fields when possible.
+	* Issue #179 
+	* Issue #180

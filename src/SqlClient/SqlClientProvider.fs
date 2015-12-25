@@ -59,6 +59,13 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         this.AddNamespace(nameSpace, [ providerType ])
     
+    override this.ResolveAssembly args = 
+        config.ReferencedAssemblies 
+        |> Array.tryFind (fun x -> AssemblyName.ReferenceMatchesDefinition(AssemblyName.GetAssemblyName x, AssemblyName args.Name)) 
+        |> Option.map Assembly.LoadFrom
+        |> defaultArg 
+        <| base.ResolveAssembly args
+
     member internal this.CreateRootType( typeName, connectionStringOrName, configFile, dataDirectory, useReturnValue) =
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         

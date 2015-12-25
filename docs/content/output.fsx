@@ -1,5 +1,6 @@
 (*** hide ***)
-#r @"..\..\src\SqlClient\bin\Debug\FSharp.Data.SqlClient.dll"
+#r @"..\..\bin\FSharp.Data.SqlClient.dll"
+#r "Microsoft.SqlServer.Types.dll"
 open FSharp.Data
 [<Literal>]
 let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
@@ -37,6 +38,7 @@ records |> Seq.iter (printfn "%A")
 
  * Sync execution
  * Seq of tuples as result set type
+ * Consider ResultType.Tuples to work around unique column name limitation for ResultType.Records.  
 *)
 
 type QueryProductSync = SqlCommandProvider<productsSql, connectionString, ResultType = ResultType.Tuples>
@@ -48,19 +50,14 @@ for productName, sellStartDate, size in tuples do
 
 (**
  * Typed data table as result set
- * DataTable result type is an enabler for update scenarios. Look at [data binding and updates](data binding and updates.html) for details.
+ * DataTable result type is an enabler for data binding and update scenarios. Look at [data modification](data modification.html) for details.
 *)
 
-type QueryProductDataTable = 
-    SqlCommandProvider<productsSql, connectionString, ResultType = ResultType.DataTable>
-
-QueryProductDataTable
-    .Create()
-    .Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") 
-    .Rows
-    |> Seq.iter (fun row -> 
+do 
+    use cmd = new SqlCommandProvider<productsSql, connectionString, ResultType = ResultType.DataTable>()
+    let table = cmd.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") 
+    for row in table.Rows do
         printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size
-    )
 
 (**
  * Single row hint. Must be provided explicitly. Cannot be inferred
@@ -119,17 +116,16 @@ for row in table.Rows do
 (**
 
  * Same as previous but using `SqlProgrammabilityProvider<...>`
-
+ * Worth noting that Stored Procedure/Function generated command instances have explicit ExecuteSingle/ AsyncExecuteSingle methods because there is no single place to specify SingleRow=true as for SqlCommandProvider. 
 *)
 
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
-
-type GetContactInformation = AdventureWorks2012.dbo.ufnGetContactInformation
-let f = 
-    (new GetContactInformation()).AsyncExecute(1) 
-    |> Async.RunSynchronously 
-    |> Seq.exactlyOne
-printfn "Person info:Id - %i,FirstName - %O,LastName - %O" f.PersonID f.FirstName f.LastName 
+do
+    use cmd = new AdventureWorks2012.dbo.ufnGetContactInformation()
+    cmd.ExecuteSingle(1) //opt-in for explicit call to 
+    |> Option.iter(fun x ->  
+        printfn "Person info:Id - %i,FirstName - %O,LastName - %O" x.PersonID x.FirstName x.LastName 
+    )
 
 (**
 
@@ -144,10 +140,10 @@ type QueryPersonInfoSingleValue =
         connectionString, 
         SingleRow=true>
 
-let personId = 2
-QueryPersonInfoSingleValue
-    .Create()
-    .Execute(personId)
+do 
+    let personId = 2
+    use cmd = new QueryPersonInfoSingleValue()
+    cmd.Execute( personId)
     |> Option.iter (fun name -> printf "Person with id %i has name %s" personId name.Value)
 
 (**
@@ -195,24 +191,22 @@ let rowsAffected =
  * Non-query with MS SQL HierarchyId using `SqlProgrammabilityProvider<...>`
 
 *)
-#r "../../bin/Microsoft.SqlServer.Types.dll"
-
 open System
 open System.Data
 open Microsoft.SqlServer.Types
 
-let hierarchyId = SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/"))
-type UpdateEmployeeLogin = AdventureWorks2012.HumanResources.uspUpdateEmployeeLogin
-let res = 
-    (new UpdateEmployeeLogin()).AsyncExecute(
+do 
+    use cmd = new AdventureWorks2012.HumanResources.uspUpdateEmployeeLogin()
+    let hierarchyId = SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/"))
+    cmd.Execute(
         BusinessEntityID = 291, 
         CurrentFlag = true, 
         HireDate = DateTime(2013,1,1), 
         JobTitle = "gatekeeper", 
         LoginID = "adventure-works\gat0", 
-        OrganizationNode = hierarchyId)
-    |> Async.RunSynchronously 
-res
+        OrganizationNode = hierarchyId
+    )
+    |> printfn "Records afftected: %i"
 
 (**
 ### Result sequence is un-buffered by default 

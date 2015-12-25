@@ -269,7 +269,6 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transacti
                     .MapRowValues<'TItem>( rowMapper)
                     |> Seq.toList
 
-
             if hasOutputParameters
             then
                 for i = 0 to parameters.Length - 1 do

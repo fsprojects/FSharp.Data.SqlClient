@@ -1,5 +1,5 @@
 (*** hide ***)
-#r @"..\..\src\SqlClient\bin\Debug\FSharp.Data.SqlClient.dll"
+#r @"..\..\bin\FSharp.Data.SqlClient.dll"
 #r "System.Transactions"
 open FSharp.Data
 
@@ -83,7 +83,7 @@ To work around this limitation, you can declare another variable in your script:
 let echoOk = new SqlCommandProvider< @"
 declare @theName nvarchar(max)
 set @theName = @name
-select 'hello' + @theName, 'your name is :' @theName", connectionString, SingleRow = true>()
+select 'hello' + @theName, 'your name is :' + @theName", connectionString, ResultType.Tuples, SingleRow = true>()
 
 
 (**

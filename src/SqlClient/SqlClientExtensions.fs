@@ -104,11 +104,11 @@ and TypeInfo = {
     UserTypeId: int
     SqlDbType: SqlDbType
     IsFixedLength: bool 
-    ClrType: Type
+    ClrTypeFullName: string
     UdttName: string 
     TableTypeColumns: Column[] Lazy
 }   with
-    member this.ClrTypeFullName = this.ClrType.PartialAssemblyQualifiedName
+    member this.ClrType: Type = Type.GetType( this.ClrTypeFullName, throwOnError = true)
     member this.TableType = this.SqlDbType = SqlDbType.Structured
     member this.IsValueType = not this.TableType && this.ClrType.IsValueType
 
@@ -213,55 +213,55 @@ type Routine =
 let internal providerTypes = 
     dict [
         // exact numerics
-        "bigint", (SqlDbType.BigInt, lazy Type.GetType "System.Int64", true)
-        "bit", (SqlDbType.Bit, lazy Type.GetType "System.Boolean", true) 
-        "decimal", (SqlDbType.Decimal, lazy Type.GetType "System.Decimal", true) 
-        "int", (SqlDbType.Int, lazy Type.GetType "System.Int32", true)
-        "money", (SqlDbType.Money, lazy Type.GetType "System.Decimal", true) 
-        "numeric", (SqlDbType.Decimal, lazy Type.GetType "System.Decimal", true) 
-        "smallint", (SqlDbType.SmallInt, lazy Type.GetType "System.Int16", true)
-        "smallmoney", (SqlDbType.SmallMoney, lazy Type.GetType "System.Decimal", true) 
-        "tinyint", (SqlDbType.TinyInt, lazy Type.GetType "System.Byte", true)
+        "bigint", (SqlDbType.BigInt, "System.Int64", true)
+        "bit", (SqlDbType.Bit, "System.Boolean", true) 
+        "decimal", (SqlDbType.Decimal, "System.Decimal", true) 
+        "int", (SqlDbType.Int, "System.Int32", true)
+        "money", (SqlDbType.Money, "System.Decimal", true) 
+        "numeric", (SqlDbType.Decimal, "System.Decimal", true) 
+        "smallint", (SqlDbType.SmallInt, "System.Int16", true)
+        "smallmoney", (SqlDbType.SmallMoney, "System.Decimal", true) 
+        "tinyint", (SqlDbType.TinyInt, "System.Byte", true)
 
         // approximate numerics
-        "float", (SqlDbType.Float, lazy Type.GetType "System.Double", true) // This is correct. SQL Server 'float' type maps to double
-        "real", (SqlDbType.Real, lazy Type.GetType "System.Single", true)
+        "float", (SqlDbType.Float, "System.Double", true) // This is correct. SQL Server 'float' type maps to double
+        "real", (SqlDbType.Real, "System.Single", true)
 
         // date and time
-        "date", (SqlDbType.Date, lazy Type.GetType "System.DateTime", true)
-        "datetime", (SqlDbType.DateTime, lazy Type.GetType "System.DateTime", true)
-        "datetime2", (SqlDbType.DateTime2, lazy Type.GetType "System.DateTime", true)
-        "datetimeoffset", (SqlDbType.DateTimeOffset, lazy Type.GetType "System.DateTimeOffset", true)
-        "smalldatetime", (SqlDbType.SmallDateTime,  lazy Type.GetType "System.DateTime", true)
-        "time", (SqlDbType.Time, lazy Type.GetType "System.TimeSpan", true)
+        "date", (SqlDbType.Date, "System.DateTime", true)
+        "datetime", (SqlDbType.DateTime, "System.DateTime", true)
+        "datetime2", (SqlDbType.DateTime2, "System.DateTime", true)
+        "datetimeoffset", (SqlDbType.DateTimeOffset, "System.DateTimeOffset", true)
+        "smalldatetime", (SqlDbType.SmallDateTime,  "System.DateTime", true)
+        "time", (SqlDbType.Time, "System.TimeSpan", true)
 
         // character strings
-        "char", (SqlDbType.Char, lazy Type.GetType "System.String", true)
-        "text", (SqlDbType.Text, lazy Type.GetType "System.String", false)
-        "varchar", (SqlDbType.VarChar, lazy Type.GetType "System.String", false)
+        "char", (SqlDbType.Char, "System.String", true)
+        "text", (SqlDbType.Text, "System.String", false)
+        "varchar", (SqlDbType.VarChar, "System.String", false)
 
         // unicode character strings
-        "nchar", (SqlDbType.NChar, lazy Type.GetType "System.String", true)
-        "ntext", (SqlDbType.NText, lazy Type.GetType "System.String", false)
-        "nvarchar", (SqlDbType.NVarChar, lazy Type.GetType "System.String", false)
-        "sysname", (SqlDbType.NVarChar, lazy Type.GetType "System.String", false)
+        "nchar", (SqlDbType.NChar, "System.String", true)
+        "ntext", (SqlDbType.NText, "System.String", false)
+        "nvarchar", (SqlDbType.NVarChar, "System.String", false)
+        "sysname", (SqlDbType.NVarChar, "System.String", false)
 
         // binary
-        "binary", (SqlDbType.Binary, lazy Type.GetType "System.Byte[]", true)
-        "image", (SqlDbType.Image, lazy Type.GetType "System.Byte[]", false)
-        "varbinary", (SqlDbType.VarBinary, lazy Type.GetType "System.Byte[]", false)
+        "binary", (SqlDbType.Binary, "System.Byte[]", true)
+        "image", (SqlDbType.Image, "System.Byte[]", false)
+        "varbinary", (SqlDbType.VarBinary, "System.Byte[]", false)
 
         //spatial
-        "geography", (SqlDbType.Udt, lazy Type.GetType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types", throwOnError = true), false)
-        "geometry", (SqlDbType.Udt, lazy Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types", throwOnError = true), false)
+        "geography", (SqlDbType.Udt, "Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types", false)
+        "geometry", (SqlDbType.Udt, "Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types", false)
 
         //other
-        "hierarchyid", (SqlDbType.Udt, lazy Type.GetType("Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types", throwOnError = true), false)
-        "sql_variant", (SqlDbType.Variant, lazy Type.GetType "System.Object", false)
+        "hierarchyid", (SqlDbType.Udt, "Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types", false)
+        "sql_variant", (SqlDbType.Variant, "System.Object", false)
 
-        "timestamp", (SqlDbType.Timestamp, lazy Type.GetType "System.Byte[]", true)  // note: rowversion is a synonym but SQL Server stores the data type as 'timestamp'
-        "uniqueidentifier", (SqlDbType.UniqueIdentifier, lazy Type.GetType "System.Guid", true)
-        "xml", (SqlDbType.Xml, lazy Type.GetType "System.String", false)
+        "timestamp", (SqlDbType.Timestamp, "System.Byte[]", true)  // note: rowversion is a synonym but SQL Server stores the data type as 'timestamp'
+        "uniqueidentifier", (SqlDbType.UniqueIdentifier, "System.Guid", true)
+        "xml", (SqlDbType.Xml, "System.String", false)
 
         //TODO 
         //"cursor", typeof<TODO>
@@ -524,7 +524,7 @@ type SqlConnection with
 
             let typeInfos = [|
                 for name, system_type_id, user_type_id, is_table_type, schema_name, is_user_defined in sqlEngineTypes do
-                    let providerdbtype, clrType, isFixedLength = 
+                    let providerdbtype, clrTypeFullName, isFixedLength = 
                         match providerTypes.TryGetValue(name) with
                         | true, value -> value
                         | false, _ when is_user_defined && not is_table_type ->
@@ -533,7 +533,7 @@ type SqlConnection with
                                 |> Array.pick (fun (typename', system_type_id', _, _, _, is_user_defined') -> if system_type_id = system_type_id' && not is_user_defined' then Some typename' else None)
                             providerTypes.[system_type_name]                        
                         | false, _ when is_table_type -> 
-                            SqlDbType.Structured, lazy null, false
+                            SqlDbType.Structured, null, false
                         | _ -> failwith ("Unexpected type: " + name)
 
                     let columns = 
@@ -575,7 +575,7 @@ type SqlConnection with
                         UserTypeId = user_type_id
                         SqlDbType = providerdbtype
                         IsFixedLength = isFixedLength
-                        ClrType = clrType.Value
+                        ClrTypeFullName = clrTypeFullName
                         UdttName = if is_table_type then name else ""
                         TableTypeColumns = columns
                     }

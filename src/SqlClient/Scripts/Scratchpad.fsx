@@ -9,37 +9,14 @@ open System.Data
 open System.Data.SqlTypes
 
 [<Literal>]
-let connStr = "Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+let connStr = "Data Source=.;Initial Catalog=SEN-QA-2015-12-10-11-13;Integrated Security=True"
 let conn = new SqlConnection(connStr)
 conn.Open()
-//let cmd = new SqlCommand("select * from dbo.TableHavingColumnNamesWithSpaces", conn)
-//let adapter = new SqlDataAdapter(cmd)
-//let t = adapter.FillSchema(new DataTable(), SchemaType.Source)
-//[ for c in t.Columns -> c.ColumnName, c.DataType.FullName, c.AllowDBNull ]
-//
-//let r = t.NewRow()
-//r.["ID"] <- DBNull.Value
-//t.Rows.Add r
-//adapter.Update(t)
+let cmd = new SqlCommand("ThermalModel.GetFields", conn)
+cmd.CommandType <- CommandType.StoredProcedure
+let t = new DataTable()
+do 
+    use cursor = cmd.ExecuteReader(CommandBehavior.SingleRow)
+    t.Load cursor
 
-[| 
-    for row in conn.GetSchema("DataTypes").Rows do
-        let fullTypeName = string row.["TypeName"]
-        let typeName, clrType = 
-            match fullTypeName.Split(',') |> List.ofArray with
-            | [name] -> name, string row.["DataType"]
-            | name::_ -> 
-                name, fullTypeName
-            | [] -> failwith "Unaccessible"
-
-        let isFixedLength = 
-            if row.IsNull("IsFixedLength") 
-            then false 
-            else row.["IsFixedLength"] |> unbox 
-
-        let providedType = unbox row.["ProviderDbType"]
-        if providedType <> int SqlDbType.Structured
-        then 
-            yield typeName, (providedType, clrType, isFixedLength)
-|]
-
+t.Rows.Count

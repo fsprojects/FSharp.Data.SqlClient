@@ -75,6 +75,13 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         this.AddNamespace(nameSpace, [ providerType ])
 
+    override this.ResolveAssembly args = 
+        config.ReferencedAssemblies 
+        |> Array.tryFind (fun x -> AssemblyName.ReferenceMatchesDefinition(AssemblyName.GetAssemblyName x, AssemblyName args.Name)) 
+        |> Option.map Assembly.LoadFrom
+        |> defaultArg 
+        <| base.ResolveAssembly args
+
     member internal this.CreateRootType(typeName, sqlStatementOrFile, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, resolutionFolder, dataDirectory) = 
 
         if singleRow && not (resultType = ResultType.Records || resultType = ResultType.Tuples)

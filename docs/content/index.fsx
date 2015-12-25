@@ -1,4 +1,5 @@
 (*** hide ***)
+#r "Microsoft.SqlServer.Types.dll"
 #r @"..\..\bin\FSharp.Data.SqlClient.dll"
 
 (**
