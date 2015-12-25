@@ -74,7 +74,7 @@
 
 <p>If you feel that getting your hands on underlying ADO.NET SqlCommand can help to address a problem that can be done. 
 Expect to see a warning because this is not intended for public use and subject for change. 
-Avoid tempering state of this SqlCommand instance � otherwise all bets are off.</p>
+Avoid tempering state of this SqlCommand instance otherwise all bets are off.</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
@@ -112,10 +112,12 @@ Up until now this resulted in confusion runtime exception: InvalidCastException(
 
 <h2>Other debugging/instrumentation tools to consider:</h2>
 
-<p><a href="https://msdn.microsoft.com/en-us/library/ms181091.aspx">Sql Profiler</a>
-<a href="https://msdn.microsoft.com/en-us/library/cc765421.aspx">ADO.NET tracing</a>
-<a href="https://azure.microsoft.com/en-us/documentation/articles/sql-database-monitoring-with-dmvs/">Dynamic views</a> 
-<a href="https://azure.microsoft.com/en-us/blog/query-store-a-flight-data-recorder-for-your-database/">Query store</a></p>
+<ul>
+<li><a href="https://msdn.microsoft.com/en-us/library/ms181091.aspx">Sql Profiler</a></li>
+<li><a href="https://msdn.microsoft.com/en-us/library/cc765421.aspx">ADO.NET tracing</a></li>
+<li><a href="https://azure.microsoft.com/en-us/documentation/articles/sql-database-monitoring-with-dmvs/">Dynamic views</a></li>
+<li><a href="https://azure.microsoft.com/en-us/blog/query-store-a-flight-data-recorder-for-your-database/">Query store</a></li>
+</ul>
 
 <div class="tip" id="fs1">val cmd : SqlCommandProvider&lt;...&gt;<br /><br />Full name: Debugging.cmd</div>
 <div class="tip" id="fs2">type SqlCommandProvider<br /><br />Full name: FSharp.Data.SqlCommandProvider<br /><em><br /><br /><br />&lt;summary&gt;Typed representation of a T-SQL statement to execute against a SQL Server database.&lt;/summary&gt; <br />&lt;param name=&#39;CommandText&#39;&gt;Transact-SQL statement to execute at the data source.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.&lt;/param&gt;<br />&lt;param name=&#39;SingleRow&#39;&gt;If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;AllParametersOptional&#39;&gt;If set all parameters become optional. NULL input values must be handled inside T-SQL.&lt;/param&gt;<br />&lt;param name=&#39;ResolutionFolder&#39;&gt;A folder to be used to resolve relative file paths to *.sql script files at compile time. The default value is the folder that contains the project or script.&lt;/param&gt;<br />&lt;param name=&#39;DataDirectory&#39;&gt;The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.&lt;/param&gt;<br /></em></div>
