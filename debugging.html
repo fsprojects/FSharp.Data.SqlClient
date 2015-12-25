@@ -68,8 +68,6 @@
 </tr>
 </table>
 
-<p>Type providers</p>
-
 <h2>Direct access to underlying SqlCommand instance.</h2>
 
 <p>If you feel that getting your hands on underlying ADO.NET SqlCommand can help to address a problem that can be done. 
@@ -101,14 +99,22 @@ Up until now this resulted in confusion runtime exception: InvalidCastException(
 <p>To improve diagnostics without hurting performance a new configuration section/switch is introduced.</p>
 
 <p>First, define custom sectoin in app.config/web.config
+<pre>
+<code>
     <configSections>
         <section name="FSharp.Data.SqlClient" type="System.Configuration.NameValueSectionHandler" />
-    </configSections></p>
+    </configSections>
+</code>
+</pre></p>
 
 <p>Second, set on <code>ResultsetRuntimeVerification</code> switch
+<pre>
+<code>
     <FSharp.Data.SqlClient>
         <add key="ResultsetRuntimeVerification" value="true"/>
-    </FSharp.Data.SqlClient></p>
+    </FSharp.Data.SqlClient>
+</code>
+</pre></p>
 
 <h2>Other debugging/instrumentation tools to consider:</h2>
 
