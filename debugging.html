@@ -98,23 +98,17 @@ Up until now this resulted in confusion runtime exception: InvalidCastException(
 
 <p>To improve diagnostics without hurting performance a new configuration section/switch is introduced.</p>
 
-<p>First, define custom sectoin in app.config/web.config
-<pre>
-<code>
-<configSections>
-    <section name="FSharp.Data.SqlClient" type="System.Configuration.NameValueSectionHandler" />
-</configSections>
-</code>
-</pre></p>
+<p>First, define custom sectoin in app.config/web.config</p>
 
-<p>Second, set on <code>ResultsetRuntimeVerification</code> switch
-<pre>
-<code>
-<FSharp.Data.SqlClient>
-    <add key="ResultsetRuntimeVerification" value="true"/>
-</FSharp.Data.SqlClient>
-</code>
-</pre></p>
+<pre lang="xml"><span class="k">&lt;</span><span class="i">configSections</span><span class="k">&gt;</span>
+    <span class="k">&lt;</span><span class="i">section</span> <span class="o">name</span><span class="k">="FSharp.Data.SqlClient"</span> <span class="o">type</span><span class="k">="System.Configuration.NameValueSectionHandler"</span> <span class="k">/&gt;</span>
+<span class="k">&lt;/</span><span class="i">configSections</span><span class="k">&gt;</span></pre>
+
+<p>Second, set on <code>ResultsetRuntimeVerification</code> switch</p>
+
+<pre lang="xml"><span class="k">&lt;</span><span class="i">FSharp.Data.SqlClient</span><span class="k">&gt;</span>
+    <span class="k">&lt;</span><span class="i">add</span> <span class="o">key</span><span class="k">="ResultsetRuntimeVerification"</span> <span class="o">value</span><span class="k">="true"</span><span class="k">/&gt;</span>
+<span class="k">&lt;/</span><span class="i">FSharp.Data.SqlClient</span><span class="k">&gt;</span></pre>
 
 <h2>Other debugging/instrumentation tools to consider:</h2>
 
