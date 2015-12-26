@@ -32,13 +32,11 @@ cmd.ToTraceString(topN = 3L, regionName = "United States", salesMoreThan = 10000
 
 (**
 
-Type providers 
-
 Direct access to underlying SqlCommand instance. 
 -------------------------------------
 If you feel that getting your hands on underlying ADO.NET SqlCommand can help to address a problem that can be done. 
 Expect to see a warning because this is not intended for public use and subject for change. 
-Avoid tempering state of this SqlCommand instance – otherwise all bets are off.
+Avoid tempering state of this SqlCommand instance otherwise all bets are off.
 *)
 
 let adonetCmd = (cmd :> ISqlCommand).Raw
@@ -57,11 +55,15 @@ Up until now this resulted in confusion runtime exception: InvalidCastException(
 To improve diagnostics without hurting performance a new configuration section/switch is introduced. 
 
 First, define custom sectoin in app.config/web.config
+
+    [lang=xml]
     <configSections>
         <section name="FSharp.Data.SqlClient" type="System.Configuration.NameValueSectionHandler" />
     </configSections>
 
 Second, set on `ResultsetRuntimeVerification` switch
+
+    [lang=xml]
     <FSharp.Data.SqlClient>
         <add key="ResultsetRuntimeVerification" value="true"/>
     </FSharp.Data.SqlClient>
@@ -69,9 +71,9 @@ Second, set on `ResultsetRuntimeVerification` switch
 Other debugging/instrumentation tools to consider:
 -------------------------------------
 
-[Sql Profiler](https://msdn.microsoft.com/en-us/library/ms181091.aspx)
-[ADO.NET tracing](https://msdn.microsoft.com/en-us/library/cc765421.aspx)
-[Dynamic views](https://azure.microsoft.com/en-us/documentation/articles/sql-database-monitoring-with-dmvs/) 
-[Query store](https://azure.microsoft.com/en-us/blog/query-store-a-flight-data-recorder-for-your-database/)
+ - [Sql Profiler](https://msdn.microsoft.com/en-us/library/ms181091.aspx)
+ - [ADO.NET tracing](https://msdn.microsoft.com/en-us/library/cc765421.aspx)
+ - [Dynamic views](https://azure.microsoft.com/en-us/documentation/articles/sql-database-monitoring-with-dmvs/) 
+ - [Query store](https://azure.microsoft.com/en-us/blog/query-store-a-flight-data-recorder-for-your-database/)
 
 *)
