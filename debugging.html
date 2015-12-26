@@ -94,7 +94,7 @@ Avoid tempering state of this SqlCommand instance otherwise all bets are off.</p
 
 <p>While enjoying all benefits of static types at design time one can easily end up in a situation 
 when runtime Sql Server database schema is different from compile time. 
-Up until now this resulted in confusion runtime exception: InvalidCastException("Specified cast is not valid.").</p>
+Up until now this resulted in confusion runtime exception: <code>InvalidCastException("Specified cast is not valid.")</code>.</p>
 
 <p>To improve diagnostics without hurting performance a new configuration section/switch is introduced.</p>
 
@@ -109,6 +109,11 @@ Up until now this resulted in confusion runtime exception: InvalidCastException(
 <pre lang="xml"><span class="k">&lt;</span><span class="i">FSharp.Data.SqlClient</span><span class="k">&gt;</span>
     <span class="k">&lt;</span><span class="i">add</span> <span class="o">key</span><span class="k">="ResultsetRuntimeVerification"</span> <span class="o">value</span><span class="k">="true"</span><span class="k">/&gt;</span>
 <span class="k">&lt;/</span><span class="i">FSharp.Data.SqlClient</span><span class="k">&gt;</span></pre>
+
+<p>Now expect to see more informative error messages like:</p>
+
+<p><em>Expected column [Total] of type "System.Int32" at position 1 (0-based indexing) 
+but received column [Now] of type "System.DateTime"</em>.</p>
 
 <h2>Other debugging/instrumentation tools to consider:</h2>
 

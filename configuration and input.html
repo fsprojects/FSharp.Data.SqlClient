@@ -731,59 +731,59 @@ See [http://stackoverflow.com/questions/65662/output-parameters-not-readable-whe
 <div class="tip" id="fs1">namespace FSharp</div>
 <div class="tip" id="fs2">namespace FSharp.Data</div>
 <div class="tip" id="fs3">Multiple items<br />type LiteralAttribute =<br />&#160;&#160;inherit Attribute<br />&#160;&#160;new : unit -&gt; LiteralAttribute<br /><br />Full name: Microsoft.FSharp.Core.LiteralAttribute<br /><br />--------------------<br />new : unit -&gt; LiteralAttribute</div>
-<div class="tip" id="fs4">val connectionString : string<br /><br />Full name: Configuration and input.connectionString</div>
-<div class="tip" id="fs5">type GetDate = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.GetDate</div>
+<div class="tip" id="fs4">val connectionString : string<br /><br />Full name: Configuration and Input.connectionString</div>
+<div class="tip" id="fs5">type GetDate = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.GetDate</div>
 <div class="tip" id="fs6">type SqlCommandProvider<br /><br />Full name: FSharp.Data.SqlCommandProvider<br /><em><br /><br /><br />&lt;summary&gt;Typed representation of a T-SQL statement to execute against a SQL Server database.&lt;/summary&gt; <br />&lt;param name=&#39;CommandText&#39;&gt;Transact-SQL statement to execute at the data source.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.&lt;/param&gt;<br />&lt;param name=&#39;SingleRow&#39;&gt;If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;AllParametersOptional&#39;&gt;If set all parameters become optional. NULL input values must be handled inside T-SQL.&lt;/param&gt;<br />&lt;param name=&#39;ResolutionFolder&#39;&gt;A folder to be used to resolve relative file paths to *.sql script files at compile time. The default value is the folder that contains the project or script.&lt;/param&gt;<br />&lt;param name=&#39;DataDirectory&#39;&gt;The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.&lt;/param&gt;<br /></em></div>
-<div class="tip" id="fs7">val fibonacci : string<br /><br />Full name: Configuration and input.fibonacci</div>
-<div class="tip" id="fs8">type FibonacciQuery = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.FibonacciQuery</div>
+<div class="tip" id="fs7">val fibonacci : string<br /><br />Full name: Configuration and Input.fibonacci</div>
+<div class="tip" id="fs8">type FibonacciQuery = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.FibonacciQuery</div>
 <div class="tip" id="fs9">module Seq<br /><br />from Microsoft.FSharp.Collections</div>
 <div class="tip" id="fs10">val map : mapping:(&#39;T -&gt; &#39;U) -&gt; source:seq&lt;&#39;T&gt; -&gt; seq&lt;&#39;U&gt;<br /><br />Full name: Microsoft.FSharp.Collections.Seq.map</div>
 <div class="tip" id="fs11">module Option<br /><br />from Microsoft.FSharp.Core</div>
 <div class="tip" id="fs12">val get : option:&#39;T option -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.Option.get</div>
 <div class="tip" id="fs13">val toArray : source:seq&lt;&#39;T&gt; -&gt; &#39;T []<br /><br />Full name: Microsoft.FSharp.Collections.Seq.toArray</div>
 <div class="tip" id="fs14">val printfn : format:Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.ExtraTopLevelOperators.printfn</div>
-<div class="tip" id="fs15">val cmd : SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.cmd</div>
+<div class="tip" id="fs15">val cmd : SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.cmd</div>
 <div class="tip" id="fs16">SqlCommandProvider&lt;...&gt;.Execute() : System.Collections.Generic.IEnumerable&lt;System.DateTime&gt;</div>
 <div class="tip" id="fs17">val ignore : value:&#39;T -&gt; unit<br /><br />Full name: Microsoft.FSharp.Core.Operators.ignore</div>
-<div class="tip" id="fs18">type GetContactInformation = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.GetContactInformation</div>
-<div class="tip" id="fs19">type FizzOrBuzz = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.FizzOrBuzz</div>
-<div class="tip" id="fs20">val fizzOrBuzz : FizzOrBuzz<br /><br />Full name: Configuration and input.fizzOrBuzz</div>
+<div class="tip" id="fs18">type GetContactInformation = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.GetContactInformation</div>
+<div class="tip" id="fs19">type FizzOrBuzz = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.FizzOrBuzz</div>
+<div class="tip" id="fs20">val fizzOrBuzz : FizzOrBuzz<br /><br />Full name: Configuration and Input.fizzOrBuzz</div>
 <div class="tip" id="fs21">val i : int</div>
 <div class="tip" id="fs22">SqlCommandProvider&lt;...&gt;.Execute(xVal: int) : System.Collections.Generic.IEnumerable&lt;string&gt;</div>
-<div class="tip" id="fs23">type Get42 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.Get42</div>
-<div class="tip" id="fs24">type Get43 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.Get43</div>
-<div class="tip" id="fs25">type Get44 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.Get44</div>
-<div class="tip" id="fs26">val runTimeConnStr : string<br /><br />Full name: Configuration and input.runTimeConnStr</div>
-<div class="tip" id="fs27">val get42 : Get42<br /><br />Full name: Configuration and input.get42</div>
-<div class="tip" id="fs28">val connStr : string<br /><br />Full name: Configuration and input.DB.connStr</div>
+<div class="tip" id="fs23">type Get42 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.Get42</div>
+<div class="tip" id="fs24">type Get43 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.Get43</div>
+<div class="tip" id="fs25">type Get44 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.Get44</div>
+<div class="tip" id="fs26">val runTimeConnStr : string<br /><br />Full name: Configuration and Input.runTimeConnStr</div>
+<div class="tip" id="fs27">val get42 : Get42<br /><br />Full name: Configuration and Input.get42</div>
+<div class="tip" id="fs28">val connStr : string<br /><br />Full name: Configuration and Input.DB.connStr</div>
 <div class="tip" id="fs29">namespace System</div>
 <div class="tip" id="fs30">namespace System.Data</div>
 <div class="tip" id="fs31">namespace System.Data.SqlClient</div>
-<div class="tip" id="fs32">type MyCmd1 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.DB.MyCmd1</div>
-<div class="tip" id="fs33">type MyCmd2 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.DB.MyCmd2</div>
-<div class="tip" id="fs34">val createCommand : unit -&gt; &#39;a (requires member ( .ctor ))<br /><br />Full name: Configuration and input.DB.createCommand</div>
+<div class="tip" id="fs32">type MyCmd1 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.DB.MyCmd1</div>
+<div class="tip" id="fs33">type MyCmd2 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.DB.MyCmd2</div>
+<div class="tip" id="fs34">val createCommand : unit -&gt; &#39;a (requires member ( .ctor ))<br /><br />Full name: Configuration and Input.DB.createCommand</div>
 <div class="tip" id="fs35">val runtimeConnStr : string</div>
 <div class="tip" id="fs36">Multiple items<br />val string : value:&#39;T -&gt; string<br /><br />Full name: Microsoft.FSharp.Core.Operators.string<br /><br />--------------------<br />type string = System.String<br /><br />Full name: Microsoft.FSharp.Core.string</div>
-<div class="tip" id="fs37">val dbCmd1 : DB.MyCmd1<br /><br />Full name: Configuration and input.dbCmd1</div>
-<div class="tip" id="fs38">module DB<br /><br />from Configuration and input</div>
-<div class="tip" id="fs39">val dbCmd2 : DB.MyCmd2<br /><br />Full name: Configuration and input.dbCmd2</div>
-<div class="tip" id="fs40">val adventureWorks : string<br /><br />Full name: Configuration and input.DataAccess.adventureWorks</div>
-<div class="tip" id="fs41">val master : string<br /><br />Full name: Configuration and input.DataAccess.master</div>
-<div class="tip" id="fs42">type MyCmd1 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.DataAccess.MyCmd1</div>
-<div class="tip" id="fs43">type MyCmd2 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.DataAccess.MyCmd2</div>
-<div class="tip" id="fs44">val createCommand : unit -&gt; &#39;a (requires member get_ConnectionStringOrName and member ( .ctor ))<br /><br />Full name: Configuration and input.DataAccess.createCommand</div>
+<div class="tip" id="fs37">val dbCmd1 : DB.MyCmd1<br /><br />Full name: Configuration and Input.dbCmd1</div>
+<div class="tip" id="fs38">module DB<br /><br />from Configuration and Input</div>
+<div class="tip" id="fs39">val dbCmd2 : DB.MyCmd2<br /><br />Full name: Configuration and Input.dbCmd2</div>
+<div class="tip" id="fs40">val adventureWorks : string<br /><br />Full name: Configuration and Input.DataAccess.adventureWorks</div>
+<div class="tip" id="fs41">val master : string<br /><br />Full name: Configuration and Input.DataAccess.master</div>
+<div class="tip" id="fs42">type MyCmd1 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.DataAccess.MyCmd1</div>
+<div class="tip" id="fs43">type MyCmd2 = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.DataAccess.MyCmd2</div>
+<div class="tip" id="fs44">val createCommand : unit -&gt; &#39;a (requires member get_ConnectionStringOrName and member ( .ctor ))<br /><br />Full name: Configuration and Input.DataAccess.createCommand</div>
 <div class="tip" id="fs45">val designTimeConnectionString : string</div>
 <div class="tip" id="fs46">type unit = Unit<br /><br />Full name: Microsoft.FSharp.Core.unit</div>
 <div class="tip" id="fs47">val connStr : string</div>
 <div class="tip" id="fs48">val failwith : message:string -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.Operators.failwith</div>
-<div class="tip" id="fs49">val adventureWorksCmd : DataAccess.MyCmd1<br /><br />Full name: Configuration and input.adventureWorksCmd</div>
-<div class="tip" id="fs50">module DataAccess<br /><br />from Configuration and input</div>
-<div class="tip" id="fs51">val masterCmd : DataAccess.MyCmd2<br /><br />Full name: Configuration and input.masterCmd</div>
-<div class="tip" id="fs52">val bitCoinCode : string<br /><br />Full name: Configuration and input.bitCoinCode</div>
-<div class="tip" id="fs53">val bitCoinName : string<br /><br />Full name: Configuration and input.bitCoinName</div>
-<div class="tip" id="fs54">type DeleteBitCoin = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.DeleteBitCoin</div>
-<div class="tip" id="fs55">type InsertBitCoin = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.InsertBitCoin</div>
-<div class="tip" id="fs56">type GetBitCoin = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.GetBitCoin</div>
+<div class="tip" id="fs49">val adventureWorksCmd : DataAccess.MyCmd1<br /><br />Full name: Configuration and Input.adventureWorksCmd</div>
+<div class="tip" id="fs50">module DataAccess<br /><br />from Configuration and Input</div>
+<div class="tip" id="fs51">val masterCmd : DataAccess.MyCmd2<br /><br />Full name: Configuration and Input.masterCmd</div>
+<div class="tip" id="fs52">val bitCoinCode : string<br /><br />Full name: Configuration and Input.bitCoinCode</div>
+<div class="tip" id="fs53">val bitCoinName : string<br /><br />Full name: Configuration and Input.bitCoinName</div>
+<div class="tip" id="fs54">type DeleteBitCoin = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.DeleteBitCoin</div>
+<div class="tip" id="fs55">type InsertBitCoin = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.InsertBitCoin</div>
+<div class="tip" id="fs56">type GetBitCoin = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.GetBitCoin</div>
 <div class="tip" id="fs57">val cmd : DeleteBitCoin</div>
 <div class="tip" id="fs58">SqlCommandProvider&lt;...&gt;.Execute(Code: string) : int</div>
 <div class="tip" id="fs59">val conn : System.Data.SqlClient.SqlConnection</div>
@@ -797,19 +797,19 @@ See [http://stackoverflow.com/questions/65662/output-parameters-not-readable-whe
 <div class="tip" id="fs67">SqlCommandProvider&lt;...&gt;.Execute(code: string) : System.Collections.Generic.IEnumerable&lt;SqlCommandProvider&lt;...&gt;.Record&gt;</div>
 <div class="tip" id="fs68">val length : source:seq&lt;&#39;T&gt; -&gt; int<br /><br />Full name: Microsoft.FSharp.Collections.Seq.length</div>
 <div class="tip" id="fs69">System.Data.SqlClient.SqlTransaction.Rollback() : unit<br />System.Data.SqlClient.SqlTransaction.Rollback(transactionName: string) : unit</div>
-<div class="tip" id="fs70">type AdventureWorks2012 = SqlProgrammabilityProvider&lt;...&gt;<br /><br />Full name: Configuration and input.AdventureWorks2012</div>
+<div class="tip" id="fs70">type AdventureWorks2012 = SqlProgrammabilityProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.AdventureWorks2012</div>
 <div class="tip" id="fs71">type SqlProgrammabilityProvider<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider<br /><em><br /><br /><br />&lt;summary&gt;Typed access to SQL Server programmable objects: stored procedures, functions and user defined table types.&lt;/summary&gt; <br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;DataDirectory&#39;&gt;The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.&lt;/param&gt;<br /></em></div>
-<div class="tip" id="fs72">type IncrBy = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.IncrBy</div>
-<div class="tip" id="fs73">val incrBy : IncrBy<br /><br />Full name: Configuration and input.incrBy</div>
+<div class="tip" id="fs72">type IncrBy = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.IncrBy</div>
+<div class="tip" id="fs73">val incrBy : IncrBy<br /><br />Full name: Configuration and Input.incrBy</div>
 <div class="tip" id="fs74">SqlCommandProvider&lt;...&gt;.Execute(?x: int, ?y: int) : Option&lt;Option&lt;int&gt;&gt;</div>
 <div class="tip" id="fs75">union case Option.Some: Value: &#39;T -&gt; Option&lt;&#39;T&gt;</div>
-<div class="tip" id="fs76">type TableValuedSample = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and input.TableValuedSample</div>
-<div class="tip" id="fs77">type TVP = SqlCommandProvider&lt;...&gt;.MyTableType<br /><br />Full name: Configuration and input.TVP</div>
+<div class="tip" id="fs76">type TableValuedSample = SqlCommandProvider&lt;...&gt;<br /><br />Full name: Configuration and Input.TableValuedSample</div>
+<div class="tip" id="fs77">type TVP = SqlCommandProvider&lt;...&gt;.MyTableType<br /><br />Full name: Configuration and Input.TVP</div>
 <div class="tip" id="fs78">type MyTableType =<br />&#160;&#160;new : myId: int * ?myName: string -&gt; MyTableType<br /><br />Full name: FSharp.Data.SqlCommandProvider,CommandText=&quot;exec myProc @x&quot;,ConnectionStringOrName=&quot;Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True&quot;.MyTableType</div>
-<div class="tip" id="fs79">val tvpSp : TableValuedSample<br /><br />Full name: Configuration and input.tvpSp</div>
+<div class="tip" id="fs79">val tvpSp : TableValuedSample<br /><br />Full name: Configuration and Input.tvpSp</div>
 <div class="tip" id="fs80">SqlCommandProvider&lt;...&gt;.Execute(x: Collections.Generic.IEnumerable&lt;SqlCommandProvider&lt;...&gt;.MyTableType&gt;) : Collections.Generic.IEnumerable&lt;SqlCommandProvider&lt;...&gt;.Record&gt;</div>
 <div class="tip" id="fs81">argument x : Collections.Generic.IEnumerable&lt;SqlCommandProvider&lt;...&gt;.MyTableType&gt;</div>
-<div class="tip" id="fs82">type T = SqlProgrammabilityProvider&lt;...&gt;.dbo.User-Defined Table Types.MyTableType<br /><br />Full name: Configuration and input.T</div>
+<div class="tip" id="fs82">type T = SqlProgrammabilityProvider&lt;...&gt;.dbo.User-Defined Table Types.MyTableType<br /><br />Full name: Configuration and Input.T</div>
 <div class="tip" id="fs83">type dbo =<br />&#160;&#160;nested type AddRef<br />&#160;&#160;nested type Echo<br />&#160;&#160;nested type EchoText<br />&#160;&#160;nested type Get<br />&#160;&#160;nested type HowManyRows<br />&#160;&#160;nested type Init<br />&#160;&#160;nested type MyFunc<br />&#160;&#160;nested type MyProc<br />&#160;&#160;nested type SingleElementProc<br />&#160;&#160;nested type Tables<br />&#160;&#160;...<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider,ConnectionStringOrName=&quot;Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True&quot;.dbo</div>
 <div class="tip" id="fs84">val cmd : SqlProgrammabilityProvider&lt;...&gt;.dbo.MyProc</div>
 <div class="tip" id="fs85">type MyProc =<br />&#160;&#160;inherit ISqlCommand Implementation<br />&#160;&#160;new : connectionString: string -&gt; MyProc + 1 overload<br />&#160;&#160;member AsyncExecute : p1: IEnumerable&lt;MyTableType&gt; -&gt; Async&lt;IEnumerable&lt;Record&gt;&gt;<br />&#160;&#160;member AsyncExecuteSingle : p1: IEnumerable&lt;MyTableType&gt; -&gt; Async&lt;Option&lt;Record&gt;&gt;<br />&#160;&#160;member CommandTimeout : int<br />&#160;&#160;member Execute : p1: IEnumerable&lt;MyTableType&gt; -&gt; IEnumerable&lt;Record&gt;<br />&#160;&#160;member ExecuteSingle : p1: IEnumerable&lt;MyTableType&gt; -&gt; Option&lt;Record&gt;<br />&#160;&#160;static member ConnectionStringOrName : string<br />&#160;&#160;nested type Record<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider,ConnectionStringOrName=&quot;Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True&quot;.dbo.MyProc</div>
