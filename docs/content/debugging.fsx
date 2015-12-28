@@ -50,7 +50,7 @@ Result set runtime verification.
 -------------------------------------
 While enjoying all benefits of static types at design time one can easily end up in a situation 
 when runtime Sql Server database schema is different from compile time. 
-Up until now this resulted in confusion runtime exception: InvalidCastException("Specified cast is not valid."). 
+Up until now this resulted in confusion runtime exception: `InvalidCastException("Specified cast is not valid.")`. 
 
 To improve diagnostics without hurting performance a new configuration section/switch is introduced. 
 
@@ -67,6 +67,10 @@ Second, set on `ResultsetRuntimeVerification` switch
     <FSharp.Data.SqlClient>
         <add key="ResultsetRuntimeVerification" value="true"/>
     </FSharp.Data.SqlClient>
+
+Now expect to see more descriptive error like:
+`InvalidOperationException(Expected column [Total] of type "System.Int32" at position 1 (0-based indexing) 
+but received column [Now] of type "System.DateTime")`.  
 
 Other debugging/instrumentation tools to consider:
 -------------------------------------
