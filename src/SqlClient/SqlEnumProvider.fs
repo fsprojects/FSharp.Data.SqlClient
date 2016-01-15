@@ -73,8 +73,10 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
         let providedEnumType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true, IsErased = false)
         tempAssembly.AddTypes [ providedEnumType ]
         
-        let connectionString = ConnectionString.Parse connectionStringOrName
-        let connStr, providerName = connectionString.GetDesignTimeValueAndProvider(config.ResolutionFolder, configFile, provider)  
+        let connStr, providerName = 
+            match DesignTimeConnectionString.Parse(connectionStringOrName, config.ResolutionFolder, configFile) with
+            | Literal value -> value, provider
+            | NameInConfig(_, value, provider) -> value, provider
 
         let adoObjectsFactory = DbProviderFactories.GetFactory( providerName: string)
         use conn = adoObjectsFactory.CreateConnection() 

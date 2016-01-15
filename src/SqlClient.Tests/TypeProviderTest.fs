@@ -170,12 +170,19 @@ let DeleteStatement() =
         ", ConnectionStrings.AdventureWorksNamed>(ConnectionStrings.AdventureWorks)
     Assert.Equal(2, cmd.Execute())
 
+type GetDate = SqlCommandProvider<"select getdate()", ConnectionStrings.AdventureWorksNamed>
 [<Fact>]
 let ``Setting the command timeout isn't overridden when giving ConnectionStrings.AdventureWorksNamed context``() =
     let customTimeout = (Random()).Next(512, 1024)
-    let getDate = new SqlCommandProvider<"select getdate()", ConnectionStrings.AdventureWorksNamed>(commandTimeout = customTimeout)
+    let getDate = new GetDate(commandTimeout = customTimeout)
     Assert.Equal(customTimeout, getDate.CommandTimeout)
     let sqlCommand = (getDate :> ISqlCommand).Raw
+    Assert.Equal(customTimeout, sqlCommand.CommandTimeout)
+
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
+    let getDate2 = new GetDate(conn, commandTimeout = customTimeout)
+    Assert.Equal(customTimeout, getDate2.CommandTimeout)
+    let sqlCommand = (getDate2 :> ISqlCommand).Raw
     Assert.Equal(customTimeout, sqlCommand.CommandTimeout)
 
 [<Fact(Skip = "Thread safe execution is not supported yet")>]

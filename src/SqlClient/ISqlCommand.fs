@@ -42,7 +42,6 @@ type RowMapping = obj[] -> obj
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type DesignTimeConfig = {
-    ConnectionString: ConnectionString
     SqlStatement: string
     IsStoredProcedure: bool 
     Parameters: SqlParameter[]
@@ -62,7 +61,6 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transacti
         else 
             match connection with
             | Choice1Of2 connectionString -> new SqlConnection( connectionString), true
-            | Choice2Of2 null -> new SqlConnection(cfg.ConnectionString.Value), true
             | Choice2Of2 instance -> instance, false
 
     do
@@ -131,8 +129,6 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transacti
                 asyncExecuteHandle.Invoke(null, [| ResultRank.SingleRow; cfg.RowMapping |]) |> unbox >> box
 
         | unexpected -> failwithf "Unexpected ResultType value: %O" unexpected
-
-    new(cfg, connectionString) = new ``ISqlCommand Implementation``(cfg, Choice1Of2 connectionString, null, SqlCommand.DefaultTimeout)
 
     member this.CommandTimeout = cmd.CommandTimeout
 

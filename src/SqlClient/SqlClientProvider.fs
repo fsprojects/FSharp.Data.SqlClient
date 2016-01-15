@@ -69,9 +69,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     member internal this.CreateRootType( typeName, connectionStringOrName, configFile, dataDirectory, useReturnValue) =
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         
-        let connectionString = ConnectionString.Parse connectionStringOrName
-
-        let designTimeConnectionString = connectionString.GetDesignTimeValueAndProvider( config.ResolutionFolder, configFile) |> fst
+        let designTimeConnectionString = DesignTimeConnectionString.Parse(connectionStringOrName, config.ResolutionFolder, configFile)
 
         let dataDirectoryFullPath = 
             if dataDirectory = "" then  config.ResolutionFolder
@@ -80,7 +78,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectoryFullPath)
 
-        let conn = new SqlConnection(designTimeConnectionString)
+        let conn = new SqlConnection(designTimeConnectionString.Value)
         use closeConn = conn.UseLocally()
         conn.CheckVersion()
         conn.LoadDataTypesMap()
@@ -110,11 +108,11 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
             schemaType.AddMembersDelayed <| fun() -> 
                 [
-                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, ResultType.Records, connectionString, useReturnValue)
+                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, ResultType.Records, designTimeConnectionString, useReturnValue)
                     routines |> List.iter tagProvidedType
                     yield! routines
 
-                    yield this.Tables(conn, schemaType.Name, connectionString, tagProvidedType)
+                    yield this.Tables(conn, schemaType.Name, designTimeConnectionString, tagProvidedType)
                 ]
 
         databaseRootType           
@@ -184,7 +182,6 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 )
 
                             <@@ {
-                                ConnectionString = %%connectionString.Expr
                                 SqlStatement = commandText
                                 IsStoredProcedure = %%Expr.Value( routine.IsStoredProc)
                                 Parameters = %%sqlParameters
@@ -196,28 +193,47 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             } @@>
 
                         
+                        let ctorImpl = 
+                            typeof<``ISqlCommand Implementation``>
+                                .GetConstructor [| 
+                                    typeof<DesignTimeConfig>
+                                    typeof<Choice<string, SqlConnection>> 
+                                    typeof<SqlTransaction>
+                                    typeof<int>
+                                |]
+
                         //ctor 1
-                        let ctor1 = ProvidedConstructor [ ProvidedParameter("connectionString", typeof<string>) ] 
-                        ctor1.InvokeCode <- 
-                            let impl =  typeof<``ISqlCommand Implementation``>.GetConstructor( [| typeof<DesignTimeConfig>; typeof<string> |])
-                            fun args -> Expr.NewObject(impl, designTimeConfig :: args )
+                        let ctor1 = 
+                            ProvidedConstructor [ 
+                                ProvidedParameter("connectionString", typeof<string>, optionalValue = "") 
+                                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
+                            ] 
+
+                        ctor1.InvokeCode <- fun args -> 
+                            let connArg = 
+                                <@@
+                                    let s = 
+                                        if String.IsNullOrEmpty(%%args.[0]) 
+                                        then %%connectionString.RunTimeValueExpr
+                                        else %%args.[0] 
+                                    Choice<string, SqlConnection>.Choice1Of2(s)
+                                @@>
+                            Expr.NewObject(ctorImpl, designTimeConfig :: connArg :: <@@ null: SqlTransaction @@> :: args.Tail)
+
                         yield ctor1 :> MemberInfo
 
                         //ctor 2
                         let ctor2 = 
                             ProvidedConstructor(
                                 [ 
-                                    ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
+                                    ProvidedParameter("connection", typeof<SqlConnection>)
                                     ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
                                     ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
                                 ]
                             )
-                        ctor2.InvokeCode <-
-                            let impl = 
-                                typeof<``ISqlCommand Implementation``>.GetConstructor [| typeof<DesignTimeConfig>; typeof<Choice<string, SqlConnection>>; typeof<SqlTransaction>; typeof<int> |]
-                            fun args -> 
-                                let connArg = <@@ Choice2Of2(%%args.[0]): Choice<string, SqlConnection> @@>
-                                Expr.NewObject(impl, designTimeConfig :: connArg :: args.Tail )
+                        ctor2.InvokeCode <- fun args -> 
+                            let connArg = <@@ Choice<string, SqlConnection>.Choice2Of2(%%args.[0])  @@>
+                            Expr.NewObject(ctorImpl, designTimeConfig :: connArg :: args.Tail )
 
                         yield upcast ctor2
 
@@ -387,8 +403,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         <@@ 
                             let selectCommand = new SqlCommand("SELECT * FROM " + twoPartTableName)
-                            let connectionString: ConnectionString = %%connectionString.Expr
-                            selectCommand.Connection <- new SqlConnection( connectionString.Value)
+                            selectCommand.Connection <- new SqlConnection( %%connectionString.RunTimeValueExpr)
 
                             let table = new DataTable<DataRow>(twoPartTableName, selectCommand) 
 

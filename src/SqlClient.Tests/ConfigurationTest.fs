@@ -9,19 +9,25 @@ let adventureWorks = FSharp.Configuration.AppSettings<"app.config">.ConnectionSt
 
 [<Fact>]
 let ``Wrong config file name`` () = 
-    let connStr = ConnectionString.NameInConfig ""
-    Assert.Throws<FileNotFoundException>(fun() -> connStr.GetDesignTimeValueAndProvider(resolutionFolder = "", fileName = "non_existent") |> box) |> ignore
+    Assert.Throws<FileNotFoundException>(
+        fun() -> 
+            DesignTimeConnectionString.Parse("name=AdventureWorks", resolutionFolder = "", fileName = "non_existent") |> box
+    ) |> ignore
 
 [<Fact>]
 let ``From config file`` () = 
-    let connStr = ConnectionString.NameInConfig "AdventureWorks"
-    let connStr, _ = connStr.GetDesignTimeValueAndProvider(resolutionFolder = __SOURCE_DIRECTORY__,  fileName = "app.config") 
-    Assert.Equal<string>(adventureWorks, connStr)
+    let x = DesignTimeConnectionString.Parse("name=AdventureWorks", __SOURCE_DIRECTORY__, "app.config")
+    match x with
+    | NameInConfig(name, value, _) ->
+        Assert.Equal<string>("AdventureWorks", name)
+        Assert.Equal<string>(adventureWorks, value)
+    | _ -> failwith "Unexpected"
 
 [<Fact>]
 let RuntimeConfig() = 
-    let connStr = ConnectionString.NameInConfig "AdventureWorks"
-    Assert.Equal<string>(expected = adventureWorks, actual = connStr.Value)
+    let x = DesignTimeConnectionString.Parse("name=AdventureWorks", __SOURCE_DIRECTORY__, "app.config")
+    let actual = Linq.RuntimeHelpers.LeafExpressionConverter.EvaluateQuotation( x.RunTimeValueExpr) |> unbox
+    Assert.Equal<string>( adventureWorks, actual)
 
 [<Fact>]
 let CheckValidFileName() = 

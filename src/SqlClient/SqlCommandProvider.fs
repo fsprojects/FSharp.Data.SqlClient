@@ -20,7 +20,9 @@ open FSharp.Data.SqlClient
 open ProviderImplementation.ProvidedTypes
 
 [<assembly:TypeProviderAssembly()>]
-//[<assembly:InternalsVisibleTo("SqlClient.Tests")>]
+#if DEBUG
+[<assembly:InternalsVisibleTo("SqlClient.Tests")>]
+#endif
 do()
 
 [<TypeProvider>]
@@ -107,8 +109,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         if connectionStringOrName.Trim() = ""
         then invalidArg "ConnectionStringOrName" "Value is empty!" 
 
-        let connectionString = ConnectionString.Parse connectionStringOrName
-        let designTimeConnectionString = connectionString.GetDesignTimeValueAndProvider(config.ResolutionFolder, configFile) |> fst 
+        let designTimeConnectionString = DesignTimeConnectionString.Parse(connectionStringOrName, config.ResolutionFolder, configFile)
 
         let dataDirectoryFullPath = 
             if dataDirectory = "" then  config.ResolutionFolder
@@ -117,7 +118,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectoryFullPath)
 
-        let conn = new SqlConnection(designTimeConnectionString)
+        let conn = new SqlConnection(designTimeConnectionString.Value)
         use closeConn = conn.UseLocally()
         conn.CheckVersion()
         conn.LoadDataTypesMap()
@@ -149,7 +150,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     )
 
                 <@@ {
-                    ConnectionString = %%connectionString.Expr
                     SqlStatement = sqlStatement
                     IsStoredProcedure = false
                     Parameters = %%Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
@@ -160,32 +160,44 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     ExpectedDataReaderColumns = %%expectedDataReaderColumns
                 } @@>
 
+            let ctorImpl = 
+                typeof<``ISqlCommand Implementation``>
+                    .GetConstructor [| 
+                        typeof<DesignTimeConfig>
+                        typeof<Choice<string, SqlConnection>> 
+                        typeof<SqlTransaction>
+                        typeof<int>
+                    |]
             do 
-                let impl = typeof<``ISqlCommand Implementation``>.GetConstructor( [| typeof<DesignTimeConfig>; typeof<string> |])
-                let parameters = [ ProvidedParameter("connectionString", typeof<string>) ]
-                let body args = Expr.NewObject(impl, designTimeConfig :: args )
+                let parameters = [ 
+                    ProvidedParameter("connectionString", typeof<string>, optionalValue = "") 
+                    ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
+                ]
+
+                let body (args: _ list) = 
+                    let connArg = 
+                        <@@
+                            let s = 
+                                if String.IsNullOrEmpty(%%args.[0]) 
+                                then %%designTimeConnectionString.RunTimeValueExpr
+                                else %%args.[0] 
+                            Choice<string, SqlConnection>.Choice1Of2(s)
+                        @@>
+                    Expr.NewObject(ctorImpl, designTimeConfig :: connArg :: <@@ null: SqlTransaction @@> :: args.Tail)
+
                 cmdProvidedType.AddMember <| ProvidedConstructor(parameters, InvokeCode = body)
                 cmdProvidedType.AddMember <| ProvidedMethod("Create", parameters, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body)
            
             do 
-                let impl = 
-                    typeof<``ISqlCommand Implementation``>
-                        .GetConstructor [| 
-                            typeof<DesignTimeConfig>
-                            typeof<Choice<string, SqlConnection>> 
-                            typeof<SqlTransaction>
-                            typeof<int>
-                        |]
-
                 let parameters = [ 
-                    ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
+                    ProvidedParameter("connection", typeof<SqlConnection>)
                     ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
                     ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
                 ]
 
                 let body (args: _ list) =
-                    let connArg = <@@ Choice2Of2(%%args.[0]): Choice<string, SqlConnection> @@>
-                    Expr.NewObject(impl, designTimeConfig :: connArg :: args.Tail )
+                    let connArg = <@@ Choice<string, SqlConnection>.Choice2Of2(%%args.[0]) @@>
+                    Expr.NewObject(ctorImpl, designTimeConfig :: connArg :: args.Tail )
                     
                 cmdProvidedType.AddMember <| ProvidedConstructor(parameters, InvokeCode = body)
                 cmdProvidedType.AddMember <| ProvidedMethod("Create", parameters, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body)
