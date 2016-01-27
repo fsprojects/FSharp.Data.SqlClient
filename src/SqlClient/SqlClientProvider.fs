@@ -94,26 +94,30 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         
         databaseRootType.AddMembers schemas
 
-        let uddtsPerSchema = Dictionary()
+        let udttsPerSchema = Dictionary()
 
         for schemaType in schemas do
             let udttsRoot = ProvidedTypeDefinition("User-Defined Table Types", Some typeof<obj>)
             udttsRoot.AddMembersDelayed <| fun () -> 
                 this.UDTTs (conn.ConnectionString, schemaType.Name, tagProvidedType)
 
-            uddtsPerSchema.Add( schemaType.Name, udttsRoot)
+            udttsPerSchema.Add( schemaType.Name, udttsRoot)
             schemaType.AddMember udttsRoot
                 
         for schemaType in schemas do
 
             schemaType.AddMembersDelayed <| fun() -> 
                 [
-                    let routines = this.Routines(conn, schemaType.Name, uddtsPerSchema, ResultType.Records, designTimeConnectionString, useReturnValue)
+                    let routines = this.Routines(conn, schemaType.Name, udttsPerSchema, ResultType.Records, designTimeConnectionString, useReturnValue)
                     routines |> List.iter tagProvidedType
                     yield! routines
 
                     yield this.Tables(conn, schemaType.Name, designTimeConnectionString, tagProvidedType)
                 ]
+
+        let commands = ProvidedTypeDefinition( "Commands", None)
+        databaseRootType.AddMember commands
+        this.AddCreateCommandMethod(conn, designTimeConnectionString, databaseRootType, udttsPerSchema, commands, connectionStringOrName)
 
         databaseRootType           
 
@@ -502,3 +506,96 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             )
         tables
         
+    member internal this.AddCreateCommandMethod(conn, designTimeConnectionString, rootType: ProvidedTypeDefinition, udttsPerSchema, commands: ProvidedTypeDefinition, tag) = 
+        let staticParams = [
+            ProvidedStaticParameter("CommandText", typeof<string>) 
+            ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Records) 
+            ProvidedStaticParameter("SingleRow", typeof<bool>, false)   
+            ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
+            ProvidedStaticParameter("TypeName", typeof<string>, "") 
+        ]
+        let m = ProvidedMethod("CreateCommand", [], typeof<obj>, IsStaticMethod = true)
+        m.DefineStaticParameters(staticParams, (fun methodName args ->
+
+            let sqlStatement, resultType, singleRow, allParametersOptional, typename = 
+                unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4]
+            
+            if singleRow && not (resultType = ResultType.Records || resultType = ResultType.Tuples)
+            then 
+                invalidArg "singleRow" "singleRow can be set only for ResultType.Records or ResultType.Tuples."
+
+            use __ = conn.UseLocally()
+            let parameters = DesignTime.ExtractParameters(conn, sqlStatement, allParametersOptional)
+
+            let outputColumns = 
+                if resultType <> ResultType.DataReader
+                then DesignTime.GetOutputColumns(conn, sqlStatement, parameters, isStoredProcedure = false)
+                else []
+
+            let rank = if singleRow then ResultRank.SingleRow else ResultRank.Sequence
+            let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters = false)
+
+            let commandTypeName = if typename <> "" then typename else methodName.Replace("=", "").Replace("@", "")
+            let cmdProvidedType = ProvidedTypeDefinition(commandTypeName, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
+
+            do  
+                cmdProvidedType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ tag @@>))
+
+            do  //AsyncExecute, Execute, and ToTraceString
+
+                let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, udttsPerSchema)
+
+                let addRedirectToISqlCommandMethod outputType name = 
+                    let hasOutputParameters = false
+                    DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, outputType, name) 
+                    |> cmdProvidedType.AddMember
+
+                addRedirectToISqlCommandMethod output.ProvidedType "Execute" 
+                            
+                let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
+                addRedirectToISqlCommandMethod asyncReturnType "AsyncExecute" 
+
+                addRedirectToISqlCommandMethod typeof<string> "ToTraceString" 
+
+            commands.AddMember cmdProvidedType
+            output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
+
+            let designTimeConfig = 
+                let expectedDataReaderColumns = 
+                    Expr.NewArray(
+                        typeof<string * string>, 
+                        [ for c in outputColumns -> Expr.NewTuple [ Expr.Value c.Name; Expr.Value c.TypeInfo.ClrTypeFullName ] ]
+                    )
+
+                <@@ {
+                    SqlStatement = sqlStatement
+                    IsStoredProcedure = false
+                    Parameters = %%Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
+                    ResultType = resultType
+                    Rank = rank
+                    RowMapping = %%output.RowMapping
+                    ItemTypeName = %%Expr.Value( output.ErasedToRowType.PartialAssemblyQualifiedName)
+                    ExpectedDataReaderColumns = %%expectedDataReaderColumns
+                } @@>
+
+            let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructor [| typeof<DesignTimeConfig>; typeof<Connection>; typeof<int> |]
+
+            let parameters = [ 
+                ProvidedParameter("connection", typeof<Connection>, optionalValue = null)
+                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
+            ]
+
+            let m = ProvidedMethod(methodName, parameters, cmdProvidedType, IsStaticMethod = true)
+            m.InvokeCode <- fun args -> 
+                let connArg = 
+                    <@@ 
+                        if box (%%args.Head: Connection) = null 
+                        then Connection.String( %%designTimeConnectionString.RunTimeValueExpr(config.IsHostedExecution))
+                        else %%args.Head 
+                    @@>
+                Expr.NewObject(ctorImpl, designTimeConfig :: connArg :: args.Tail )
+
+            rootType.AddMember m
+            m
+        ))
+        rootType.AddMember m

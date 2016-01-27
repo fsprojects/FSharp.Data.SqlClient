@@ -1,6 +1,6 @@
-#r "../../bin/Fsharp.Data.SqlClient.dll"
+#r "../../../bin/Fsharp.Data.SqlClient.dll"
 #r "Microsoft.SqlServer.Types.dll"
-#r @"..\..\packages\FSharp.Configuration.0.5.3\lib\net40\FSharp.Configuration.dll"
+#r @"..\..\..\packages\FSharp.Configuration.0.5.3\lib\net40\FSharp.Configuration.dll"
 //#load "ConnectionStrings.fs"
 open System
 open System.Data

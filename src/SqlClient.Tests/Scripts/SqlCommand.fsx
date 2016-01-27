@@ -2,12 +2,16 @@
     Use cases
 *)
 #r "System.Configuration"
-#r "../../bin/FSharp.Data.SqlClient.dll"
+#r "../../../bin/FSharp.Data.SqlClient.dll"
 open System
 open FSharp.Data
 
 [<Literal>] 
-let connectionString = "name=AdventureWorks"
+let connectionString = "Server=.;Database=AdventureWorks2014;Trusted_Connection=yes"
+[<Literal>] 
+let connectionStringName = "name=AdventureWorks"
+[<LiteralAttribute>]
+let appConfig = __SOURCE_DIRECTORY__ + @"\..\app.config"
 
 [<Literal>]
 let queryProductsSql = "
@@ -17,7 +21,7 @@ WHERE SellStartDate > @SellStartDate
 "
 
 //Custom record types and connection string override
-type QueryProducts = SqlCommandProvider<queryProductsSql, connectionString>
+type QueryProducts = SqlCommandProvider<queryProductsSql, connectionStringName, ConfigFile = @"..\app.config">
 let cmd1 = new QueryProducts()
 let result1 : Async<QueryProducts.Record seq> = cmd1.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 result1 |> Async.RunSynchronously |> Seq.iter (fun x -> printfn "Product name: %s. Sells start date %A, size: %A" x.ProductName x.SellStartDate x.Size)
@@ -30,7 +34,8 @@ let newrecord = QueryProducts.Record("foo", System.DateTime(2000,1,1), Some "bar
 record <> newrecord
 
 //Two parallel executions
-type cmdType = SqlCommandProvider<queryProductsSql, connectionString>
+
+type cmdType = SqlCommandProvider<queryProductsSql, connectionStringName, ConfigFile = appConfig>
 let par = new cmdType()
 let reader1 = par.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
 let reader2 = par.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
@@ -100,7 +105,7 @@ let cmd45 = new UpdateEmplInfoCommand()
 cmd45.Execute(BusinessEntityID = 2, NationalIDNumber = "245797967", BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "M")
 
 //Command from file
-type q = SqlCommandProvider<"sampleCommand.sql", connectionString>
+type q = SqlCommandProvider<"../sampleCommand.sql", connectionString>
 let cmdFromFile = new q()
 cmdFromFile.Execute() |> Seq.toArray
 
@@ -132,11 +137,11 @@ let getEmployeeByLevel = new GetEmployeeByLevel()
 getEmployeeByLevel.Execute(2s)
 
 
-type MyCommand1 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow",  ConnectionStrings.LocalHost>
+type MyCommand1 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow", connectionString>
 type MyRecord1 = MyCommand1.Record
 let r1 = MyCommand1.Record(DateTime.Now, DateTime.UtcNow)
 
-type MyCommand2 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow",  ConnectionStrings.LocalHost>
+type MyCommand2 = SqlCommandProvider<"SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow", connectionString>
 let r2 = MyCommand2.Record(DateTime.Now, DateTime.UtcNow)
 
 type MyRecord = { Now: DateTime; UtcNow: DateTime }
