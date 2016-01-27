@@ -3,6 +3,7 @@
 open System
 open System.Data.SqlClient
 open Xunit
+open FSharp.Data.SqlClient
 
 type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksNamed>
 
@@ -51,15 +52,10 @@ let localTransactionCtor() =
 
     let businessEntityID, jobTitle, hireDate = 
         use cmd = new SqlCommandProvider<"
-            SELECT 
-	            BusinessEntityID
-	            ,JobTitle
-	            ,HireDate
-            FROM 
-                HumanResources.Employee 
-            WHERE 
-                BusinessEntityID = @id
-            ", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples, SingleRow = true>(conn, tran)
+            SELECT BusinessEntityID, JobTitle, HireDate
+            FROM HumanResources.Employee 
+            WHERE BusinessEntityID = @id
+            ", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples, SingleRow = true>(Connection.OfTransaction tran)
         jamesKramerId |> cmd.Execute |> Option.get
 
     Assert.Equal<string>("Production Technician - WC60", jobTitle)
@@ -67,7 +63,7 @@ let localTransactionCtor() =
     let newJobTitle = "Uber " + jobTitle
     do
         //let get
-        use updatedJobTitle = new AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo(conn, tran)
+        use updatedJobTitle = new AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo(Connection.OfTransaction tran)
         let _ = 
             updatedJobTitle.Execute(
                 businessEntityID, 
@@ -82,7 +78,7 @@ let localTransactionCtor() =
         ()
     
     let updatedJobTitle = 
-        use cmd = new AdventureWorks.dbo.ufnGetContactInformation(conn, tran)
+        use cmd = new AdventureWorks.dbo.ufnGetContactInformation(connection = Connection.OfTransaction tran)
         let result = cmd.Execute(PersonID = jamesKramerId) |> Seq.exactlyOne
         result.JobTitle.Value
 
@@ -105,7 +101,7 @@ let localTransactionCreateAndSingleton() =
                 HumanResources.Employee 
             WHERE 
                 BusinessEntityID = @id
-            ", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples, SingleRow = true>.Create(conn, tran)
+            ", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples, SingleRow = true>.Create(Connection.OfTransaction tran)
         jamesKramerId |> cmd.Execute |> Option.get
 
     Assert.Equal<string>("Production Technician - WC60", jobTitle)
@@ -113,7 +109,7 @@ let localTransactionCreateAndSingleton() =
     let newJobTitle = "Uber " + jobTitle
     do
         //let get
-        use updatedJobTitle = new AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo(conn, tran)
+        use updatedJobTitle = new AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo(Connection.OfTransaction tran)
         let _ = 
             updatedJobTitle.Execute(
                 businessEntityID, 
@@ -128,7 +124,7 @@ let localTransactionCreateAndSingleton() =
         ()
     
     let updatedJobTitle = 
-        use cmd = new AdventureWorks.dbo.ufnGetContactInformation(conn, tran)
+        use cmd = new AdventureWorks.dbo.ufnGetContactInformation(Connection.OfTransaction tran)
         let result = cmd.ExecuteSingle(PersonID = jamesKramerId) 
         result.Value.JobTitle.Value
 

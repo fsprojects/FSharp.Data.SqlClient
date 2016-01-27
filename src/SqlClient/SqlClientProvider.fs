@@ -143,7 +143,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 yield rowType
     ]
 
-    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, connectionString, useReturnValue) = 
+    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, designTimeConnectionString, useReturnValue) = 
         [
             use _ = conn.UseLocally()
             let isSqlAzure = conn.IsSqlAzure
@@ -192,33 +192,12 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 ExpectedDataReaderColumns = %%expectedDataReaderColumns
                             } @@>
 
-                        
-                        let ctorImpl = 
-                            typeof<``ISqlCommand Implementation``>
-                                .GetConstructor [| 
-                                    typeof<DesignTimeConfig>
-                                    typeof<Choice<string, SqlConnection>> 
-                                    typeof<SqlTransaction>
-                                    typeof<int>
-                                |]
+                        let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructor [| typeof<DesignTimeConfig>; typeof<Connection>; typeof<int> |]
 
                         //ctor 1
-                        let ctor1 = 
-                            ProvidedConstructor [ 
-                                ProvidedParameter("connectionString", typeof<string>, optionalValue = "") 
-                                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
-                            ] 
-
+                        let ctor1 = ProvidedConstructor [ ProvidedParameter("connectionString", typeof<string>) ] 
                         ctor1.InvokeCode <- fun args -> 
-                            let connArg = 
-                                <@@
-                                    let s = 
-                                        if String.IsNullOrEmpty(%%args.[0]) 
-                                        then %%connectionString.RunTimeValueExpr
-                                        else %%args.[0] 
-                                    Choice<string, SqlConnection>.Choice1Of2(s)
-                                @@>
-                            Expr.NewObject(ctorImpl, designTimeConfig :: connArg :: <@@ null: SqlTransaction @@> :: args.Tail)
+                            Expr.NewObject(ctorImpl, [ designTimeConfig; <@@ Connection.String %%args.Head @@>; Expr.Value(SqlCommand.DefaultTimeout) ])
 
                         yield ctor1 :> MemberInfo
 
@@ -226,13 +205,18 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         let ctor2 = 
                             ProvidedConstructor(
                                 [ 
-                                    ProvidedParameter("connection", typeof<SqlConnection>)
-                                    ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
+                                    ProvidedParameter("connection", typeof<Connection>, optionalValue = null)
                                     ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
                                 ]
                             )
+
                         ctor2.InvokeCode <- fun args -> 
-                            let connArg = <@@ Choice<string, SqlConnection>.Choice2Of2(%%args.[0])  @@>
+                            let connArg = 
+                                <@@ 
+                                    if box (%%args.Head: Connection) = null 
+                                    then Connection.String %%designTimeConnectionString.RunTimeValueExpr 
+                                    else %%args.Head 
+                                @@>
                             Expr.NewObject(ctorImpl, designTimeConfig :: connArg :: args.Tail )
 
                         yield upcast ctor2

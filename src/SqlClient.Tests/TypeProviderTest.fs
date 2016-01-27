@@ -30,7 +30,7 @@ let ConnectionClose() =
 let ExternalInstanceConnection() = 
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
-    use cmd = new GetEvenNumbers(conn)
+    use cmd = new GetEvenNumbers(SqlClient.Connection.Instance conn)
     let untypedCmd : ISqlCommand = upcast cmd
     let underlyingConnection = untypedCmd.Raw.Connection
     Assert.Equal(ConnectionState.Open, underlyingConnection.State)
@@ -180,7 +180,7 @@ let ``Setting the command timeout isn't overridden when giving ConnectionStrings
     Assert.Equal(customTimeout, sqlCommand.CommandTimeout)
 
     use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
-    let getDate2 = new GetDate(conn, commandTimeout = customTimeout)
+    let getDate2 = new GetDate(SqlClient.Connection.Instance conn, commandTimeout = customTimeout)
     Assert.Equal(customTimeout, getDate2.CommandTimeout)
     let sqlCommand = (getDate2 :> ISqlCommand).Raw
     Assert.Equal(customTimeout, sqlCommand.CommandTimeout)

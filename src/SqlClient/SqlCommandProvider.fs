@@ -160,43 +160,29 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     ExpectedDataReaderColumns = %%expectedDataReaderColumns
                 } @@>
 
-            let ctorImpl = 
-                typeof<``ISqlCommand Implementation``>
-                    .GetConstructor [| 
-                        typeof<DesignTimeConfig>
-                        typeof<Choice<string, SqlConnection>> 
-                        typeof<SqlTransaction>
-                        typeof<int>
-                    |]
+            let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructor [| typeof<DesignTimeConfig>; typeof<Connection>; typeof<int> |]
             do 
-                let parameters = [ 
-                    ProvidedParameter("connectionString", typeof<string>, optionalValue = "") 
-                    ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
-                ]
+                let parameters = [ ProvidedParameter("connectionString", typeof<string>) ]
 
                 let body (args: _ list) = 
-                    let connArg = 
-                        <@@
-                            let s = 
-                                if String.IsNullOrEmpty(%%args.[0]) 
-                                then %%designTimeConnectionString.RunTimeValueExpr
-                                else %%args.[0] 
-                            Choice<string, SqlConnection>.Choice1Of2(s)
-                        @@>
-                    Expr.NewObject(ctorImpl, designTimeConfig :: connArg :: <@@ null: SqlTransaction @@> :: args.Tail)
+                    Expr.NewObject(ctorImpl, [ designTimeConfig; <@@ Connection.String %%args.Head @@>; Expr.Value(SqlCommand.DefaultTimeout) ])
 
                 cmdProvidedType.AddMember <| ProvidedConstructor(parameters, InvokeCode = body)
                 cmdProvidedType.AddMember <| ProvidedMethod("Create", parameters, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body)
            
             do 
                 let parameters = [ 
-                    ProvidedParameter("connection", typeof<SqlConnection>)
-                    ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
+                    ProvidedParameter("connection", typeof<Connection>, optionalValue = null)
                     ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
                 ]
 
                 let body (args: _ list) =
-                    let connArg = <@@ Choice<string, SqlConnection>.Choice2Of2(%%args.[0]) @@>
+                    let connArg = 
+                        <@@ 
+                            if box (%%args.Head: Connection) = null 
+                            then Connection.String %%designTimeConnectionString.RunTimeValueExpr 
+                            else %%args.Head 
+                        @@>
                     Expr.NewObject(ctorImpl, designTimeConfig :: connArg :: args.Tail )
                     
                 cmdProvidedType.AddMember <| ProvidedConstructor(parameters, InvokeCode = body)

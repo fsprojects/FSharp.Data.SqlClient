@@ -27,6 +27,3 @@ open FSharp.Data
 //		    OR Y.SpecialOfferID IS NOT NULL)
 //	     ", "Data Source=.;Initial Catalog = AdventureWorks2014;Integrated Security=True">()
 
-type Thermion = SqlProgrammabilityProvider<"Data Source=.;Initial Catalog = SEN-QA-2015-12-10-11-13;Integrated Security=True">
-let t = new Thermion.Data.Tables.WorkoverDetails()
-t.rowIDColumn

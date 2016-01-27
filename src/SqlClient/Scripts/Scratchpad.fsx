@@ -9,11 +9,10 @@ open System.Data
 open System.Data.SqlTypes
 
 [<Literal>]
-let connStr = "Data Source=.;Initial Catalog=SEN-QA-2015-12-10-11-13;Integrated Security=True"
+let connStr = "Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
 let conn = new SqlConnection(connStr)
 conn.Open()
-let cmd = new SqlCommand("ThermalModel.GetFields", conn)
-cmd.CommandType <- CommandType.StoredProcedure
+let cmd = new SqlCommand("SELECT 42", conn)
 let t = new DataTable()
 do 
     use cursor = cmd.ExecuteReader(CommandBehavior.SingleRow)

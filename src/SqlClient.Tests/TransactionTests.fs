@@ -34,8 +34,8 @@ let implicitWithConnInstance() =
         use tran = new TransactionScope() 
         use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
         conn.Open()
-        Assert.Equal(1, InsertBitCoin.Create(conn).Execute(bitCoinCode, bitCoinName))
-        Assert.Equal(1, GetBitCoin.Create(conn).Execute(bitCoinCode) |> Seq.length)
+        Assert.Equal(1, InsertBitCoin.Create(Connection.Instance conn).Execute(bitCoinCode, bitCoinName))
+        Assert.Equal(1, GetBitCoin.Create(Connection.Instance conn).Execute(bitCoinCode) |> Seq.length)
         Assert.Equal( Guid.Empty, Transaction.Current.TransactionInformation.DistributedIdentifier)
     end
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
@@ -60,8 +60,8 @@ let implicitAsyncNETBefore451() =
         conn.Open()
         conn.EnlistTransaction(Transaction.Current)
         let localTran = conn.BeginTransaction()
-        Assert.Equal(1, (new InsertBitCoin(conn, localTran)).AsyncExecute(bitCoinCode, bitCoinName) |> Async.RunSynchronously)
-        Assert.Equal(1, (new GetBitCoin(conn, localTran)).AsyncExecute(bitCoinCode) |> Async.RunSynchronously |> Seq.length)
+        Assert.Equal(1, (new InsertBitCoin(Connection.OfTransaction localTran)).AsyncExecute(bitCoinCode, bitCoinName) |> Async.RunSynchronously)
+        Assert.Equal(1, (new GetBitCoin(Connection.OfTransaction localTran)).AsyncExecute(bitCoinCode) |> Async.RunSynchronously |> Seq.length)
         Assert.Equal( Guid.Empty, Transaction.Current.TransactionInformation.DistributedIdentifier)
     end
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
@@ -72,8 +72,8 @@ let local() =
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
     let tran = conn.BeginTransaction()
-    Assert.Equal(1, (new InsertBitCoin(conn, tran)).Execute(bitCoinCode, bitCoinName))
-    Assert.Equal(1, (new GetBitCoin(conn, tran)).Execute(bitCoinCode) |> Seq.length)
+    Assert.Equal(1, (new InsertBitCoin(Connection.OfTransaction tran)).Execute(bitCoinCode, bitCoinName))
+    Assert.Equal(1, (new GetBitCoin(Connection.OfTransaction tran)).Execute(bitCoinCode) |> Seq.length)
     tran.Rollback()
     Assert.Equal(0, (new GetBitCoin()).Execute(bitCoinCode) |> Seq.length)
 
@@ -84,7 +84,7 @@ let notCloseExternalConnInCaseOfError() =
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
     let tran = conn.BeginTransaction()
-    use cmd = new RaiseError(conn, tran)
+    use cmd = new RaiseError(Connection.OfTransaction tran)
     try
         cmd.Execute() |> Seq.toArray |> ignore
     with _ ->
@@ -94,7 +94,7 @@ let notCloseExternalConnInCaseOfError() =
 let notCloseExternalConnInCaseOfError2() =
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
-    use cmd = new RaiseError(conn)
+    use cmd = new RaiseError(Connection.Instance conn)
     try
         cmd.Execute() |> Seq.toArray |> ignore
     with _ ->
@@ -103,7 +103,8 @@ let notCloseExternalConnInCaseOfError2() =
 [<Fact>]
 let donNotOpenConnectionOnObject() =
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
-    use cmd = new SqlCommandProvider<"SELECT 42", ConnectionStrings.AdventureWorksNamed>(conn)
+    //use cmd = new SqlCommandProvider<"SELECT 42", ConnectionStrings.AdventureWorksNamed>(Connection.Instance conn)
+    use cmd = new SqlCommandProvider<"SELECT 42", ConnectionStrings.AdventureWorksNamed>(Connection.Instance conn)
     Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
 
 type NonQuery = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RESEED, 4)", ConnectionStrings.AdventureWorksNamed>
@@ -111,13 +112,13 @@ type NonQuery = SqlCommandProvider<"DBCC CHECKIDENT ('HumanResources.Shift', RES
 [<Fact>]
 let doNotOpenConnectionOnObjectForNonQuery() =
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
-    use cmd = new NonQuery(conn)
+    use cmd = new NonQuery(Connection.Instance conn)
     Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> ignore)    
     
 [<Fact>]
 let doNotOpenConnectionOnObjectForAsyncNonQuery() =
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
-    use cmd = new NonQuery(conn)
+    use cmd = new NonQuery(Connection.Instance conn)
     Assert.Throws<InvalidOperationException>(fun() -> cmd.AsyncExecute() |> Async.RunSynchronously |> ignore)    
     
 [<Fact>]

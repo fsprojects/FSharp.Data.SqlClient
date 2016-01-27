@@ -53,18 +53,23 @@ type DesignTimeConfig = {
 }
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
-type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection, transaction, commandTimeout) = 
+type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connection, commandTimeout) = 
 
-    let cmd = new SqlCommand(cfg.SqlStatement, Transaction = transaction, CommandTimeout = commandTimeout)
-    let connection, manageConnection = 
-        if transaction <> null then transaction.Connection, false
-        else 
-            match connection with
-            | Choice1Of2 connectionString -> new SqlConnection( connectionString), true
-            | Choice2Of2 instance -> instance, false
+    let cmd = new SqlCommand(cfg.SqlStatement, CommandTimeout = commandTimeout)
+    let manageConnection = 
+        match connection with
+        | Connection.String str -> 
+            cmd.Connection <- new SqlConnection(str)
+            true
+        | Connection.Instance conn -> 
+            cmd.Connection <- conn
+            false
+        | Connection.OfTransaction tran -> 
+            cmd.Transaction <- tran 
+            cmd.Connection <- tran.Connection
+            false
 
     do
-        cmd.Connection <- connection
         cmd.CommandType <- if cfg.IsStoredProcedure then CommandType.StoredProcedure else CommandType.Text
         cmd.Parameters.AddRange( cfg.Parameters)
 
