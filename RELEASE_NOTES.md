@@ -200,3 +200,7 @@
 	* Issue #177 - SqlEnumProvider generates const fields when possible.
 	* Issue #179 
 	* Issue #180
+
+#### 1.8.1 - January 26, 2016
+	* Issue #185 
+	
