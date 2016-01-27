@@ -26,7 +26,7 @@ let ``From config file`` () =
 [<Fact>]
 let RuntimeConfig() = 
     let x = DesignTimeConnectionString.Parse("name=AdventureWorks", __SOURCE_DIRECTORY__, "app.config")
-    let actual = Linq.RuntimeHelpers.LeafExpressionConverter.EvaluateQuotation( x.RunTimeValueExpr) |> unbox
+    let actual = Linq.RuntimeHelpers.LeafExpressionConverter.EvaluateQuotation( x.RunTimeValueExpr(isHostedExecution = false)) |> unbox
     Assert.Equal<string>( adventureWorks, actual)
 
 [<Fact>]

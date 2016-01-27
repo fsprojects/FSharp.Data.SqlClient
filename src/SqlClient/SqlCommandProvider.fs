@@ -180,7 +180,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     let connArg = 
                         <@@ 
                             if box (%%args.Head: Connection) = null 
-                            then Connection.String %%designTimeConnectionString.RunTimeValueExpr 
+                            then Connection.String( %%designTimeConnectionString.RunTimeValueExpr(config.IsHostedExecution))
                             else %%args.Head 
                         @@>
                     Expr.NewObject(ctorImpl, designTimeConfig :: connArg :: args.Tail )

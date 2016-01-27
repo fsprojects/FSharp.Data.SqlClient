@@ -214,7 +214,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             let connArg = 
                                 <@@ 
                                     if box (%%args.Head: Connection) = null 
-                                    then Connection.String %%designTimeConnectionString.RunTimeValueExpr 
+                                    then Connection.String( %%designTimeConnectionString.RunTimeValueExpr(config.IsHostedExecution)) 
                                     else %%args.Head 
                                 @@>
                             Expr.NewObject(ctorImpl, designTimeConfig :: connArg :: args.Tail )
@@ -387,7 +387,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         <@@ 
                             let selectCommand = new SqlCommand("SELECT * FROM " + twoPartTableName)
-                            selectCommand.Connection <- new SqlConnection( %%connectionString.RunTimeValueExpr)
+                            selectCommand.Connection <- new SqlConnection( %%connectionString.RunTimeValueExpr(config.IsHostedExecution))
 
                             let table = new DataTable<DataRow>(twoPartTableName, selectCommand) 
 

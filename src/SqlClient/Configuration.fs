@@ -70,15 +70,19 @@ type internal DesignTimeConnectionString =
         | Literal value -> value
         | NameInConfig(_, value, _) -> value
 
-    member this.RunTimeValueExpr = 
+    member this.RunTimeValueExpr isHostedExecution = 
         match this with
         | Literal value -> <@@ value @@>
-        | NameInConfig(name, _, _) -> 
+        | NameInConfig(name, value, _) -> 
             <@@ 
-                let section = ConfigurationManager.ConnectionStrings.[name]
-                if section = null 
-                then raise <| KeyNotFoundException(message = sprintf "Cannot find name %s in <connectionStrings> section of config file." name)
-                else section.ConnectionString
+                if isHostedExecution
+                then 
+                    value
+                else
+                    let section = ConfigurationManager.ConnectionStrings.[name]
+                    if section = null 
+                    then raise <| KeyNotFoundException(message = sprintf "Cannot find name %s in <connectionStrings> section of config file." name)
+                    else section.ConnectionString
             @@>
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
