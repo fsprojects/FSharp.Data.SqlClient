@@ -2,13 +2,22 @@
 
 open System
 open Xunit
-    
+
 type EnumMapping = SqlEnumProvider<"SELECT * FROM (VALUES(('One'), 1), ('Two', 2)) AS T(Tag, Value)", ConnectionStrings.LocalHost, CLIEnum = true>
 
 [<Literal>]
 let connectionString = ConnectionStrings.LocalHost
 
 type TinyIntMapping = SqlEnumProvider<"SELECT * FROM (VALUES(('One'), CAST(1 AS tinyint)), ('Two', CAST(2 AS tinyint))) AS T(Tag, Value)", connectionString>
+
+type MoreThan2Columns = SqlEnumProvider< @"
+ select * from (
+values 
+  ('a', 1, 'this is a')
+  , ('b', 2, 'this is b')
+  , ('c', 3, 'this is c')
+) as v(code, id, description)
+", connectionString>
 
 [<Fact>]
 let tinyIntMapping() = 
@@ -67,3 +76,16 @@ let PatternMatchingOn() =
         SingleColumnSelect.Items |> Seq.map fst,
         actual
     )    
+
+[<Fact>]
+let MoreThan2ColumnReturnsCorrectTuples() =
+    let actual = MoreThan2Columns.a
+    Assert.Equal((1, "this is a"), actual)
+    Assert.Equal<_ seq>(
+      [ 
+      ("a", (1, "this is a"))
+      ("b", (2, "this is b"))
+      ("c", (3, "this is c"))
+      ]
+      , MoreThan2Columns.Items
+    )
