@@ -120,8 +120,15 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
                     |> Seq.map getValueType
                 
                 let tupleType = tupleItemTypes |> Seq.toArray |> FSharpType.MakeTupleType
-                let getValue = fun (values : obj[]) -> box values, (values, tupleItemTypes) ||> Seq.zip |> Seq.skip 1 |> Seq.map Expr.Value |> Seq.toList |> Expr.NewTuple
-                
+                let getValue (values : obj[]) =
+                    let boxedValues = box values
+                    let tupleExpression = 
+                        (values |> Seq.skip 1, tupleItemTypes) 
+                        ||> Seq.zip 
+                        |> Seq.map Expr.Value 
+                        |> Seq.toList 
+                        |> Expr.NewTuple
+                    boxedValues, tupleExpression
                 tupleType, getValue
 
         let names, values = 
