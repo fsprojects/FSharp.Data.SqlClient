@@ -157,6 +157,40 @@
 </tr>
 </table>
 
+<p>Starting version 1.8.1 SqlProgrammabilityProvider leverages (<a href="https://github.com/fsharp/FSharpLangDesign/blob/master/FSharp-4.0/StaticMethodArgumentsDesignAndSpec.md)[a">https://github.com/fsharp/FSharpLangDesign/blob/master/FSharp-4.0/StaticMethodArgumentsDesignAndSpec.md)[a</a> new F# 4.0 feature] 
+to support inline T-SQL.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+<span class="l">5: </span>
+<span class="l">6: </span>
+<span class="l">7: </span>
+<span class="l">8: </span>
+<span class="l">9: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">do</span>
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs25', 37)" onmouseover="showTip(event, 'fs25', 37)" class="i">cmd</span> <span class="o">=</span> 
+        <span onmouseout="hideTip(event, 'fs9', 38)" onmouseover="showTip(event, 'fs9', 38)" class="i">AdventureWorks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs26', 39)" onmouseover="showTip(event, 'fs26', 39)" class="i">CreateCommand</span><span class="o">&lt;</span><span class="s">&quot;</span>
+<span class="s">            </span><span class="s">SELECT</span><span class="s"> </span><span class="s">TOP</span><span class="s">(</span><span class="s">@</span><span class="s">topN</span><span class="s">)</span><span class="s"> </span><span class="s">FirstName</span><span class="s">,</span><span class="s"> </span><span class="s">LastName</span><span class="s">,</span><span class="s"> </span><span class="s">SalesYTD</span><span class="s"> </span>
+<span class="s">            </span><span class="s">FROM</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">vSalesPerson</span>
+<span class="s">            </span><span class="s">WHERE</span><span class="s"> </span><span class="s">CountryRegionName</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">@</span><span class="s">regionName</span><span class="s"> </span><span class="s">AND</span><span class="s"> </span><span class="s">SalesYTD</span><span class="s"> </span><span class="s">&gt;</span><span class="s"> </span><span class="s">@</span><span class="s">salesMoreThan</span><span class="s"> </span>
+<span class="s">            </span><span class="s">ORDER</span><span class="s"> </span><span class="s">BY</span><span class="s"> </span><span class="s">SalesYTD</span>
+<span class="s">        </span><span class="s">&quot;</span><span class="o">&gt;</span>()
+    <span onmouseout="hideTip(event, 'fs25', 40)" onmouseover="showTip(event, 'fs25', 40)" class="i">cmd</span><span class="o">.</span><span class="i">Execute</span>(<span class="i">topN</span> <span class="o">=</span> <span class="n">3L</span>, <span class="i">regionName</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">United</span><span class="s"> </span><span class="s">States</span><span class="s">&quot;</span>, <span class="i">salesMoreThan</span> <span class="o">=</span> <span class="n">1000000M</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs8', 41)" onmouseover="showTip(event, 'fs8', 41)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">%</span><span class="s">A</span><span class="s">&quot;</span></pre>
+</td>
+</tr>
+</table>
+
+<p>This makes SqlProgrammabilityProvider as one stop shop for both executing inline T-SQL statements 
+and accessing to built-in objects like stored procedures, functoins and tables. 
+Connectivity information (connection string and/or config file name) is defined in one place 
+and doesn't have be carried around like in SqlCommandProvider case.</p>
+
 <h2>SqlEnumProvider</h2>
 
 <p>Let's say we need to retrieve number of orders shipped by a certain shipping method since specific date.</p>
@@ -181,18 +215,18 @@
 </td>
 <td class="snippet"><pre class="fssnip">
 <span class="c">//by convention: first column is Name, second is Value</span>
-<span class="k">type</span> <span onmouseout="hideTip(event, 'fs25', 37)" onmouseover="showTip(event, 'fs25', 37)" class="i">ShipMethod</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs26', 38)" onmouseover="showTip(event, 'fs26', 38)" class="i">SqlEnumProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
-<span class="s">    </span><span class="s">SELECT</span><span class="s"> </span><span class="s">Name</span><span class="s">,</span><span class="s"> </span><span class="s">ShipMethodID</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">Purchasing</span><span class="s">.</span><span class="s">ShipMethod</span><span class="s"> </span><span class="s">ORDER</span><span class="s"> </span><span class="s">BY</span><span class="s"> </span><span class="s">ShipMethodID</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs4', 39)" onmouseover="showTip(event, 'fs4', 39)" class="i">connectionString</span><span class="o">&gt;</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs27', 42)" onmouseover="showTip(event, 'fs27', 42)" class="i">ShipMethod</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs28', 43)" onmouseover="showTip(event, 'fs28', 43)" class="i">SqlEnumProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
+<span class="s">    </span><span class="s">SELECT</span><span class="s"> </span><span class="s">Name</span><span class="s">,</span><span class="s"> </span><span class="s">ShipMethodID</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">Purchasing</span><span class="s">.</span><span class="s">ShipMethod</span><span class="s"> </span><span class="s">ORDER</span><span class="s"> </span><span class="s">BY</span><span class="s"> </span><span class="s">ShipMethodID</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs4', 44)" onmouseover="showTip(event, 'fs4', 44)" class="i">connectionString</span><span class="o">&gt;</span>
 
 <span class="c">//Combine with SqlCommandProvider</span>
 <span class="k">do</span> 
-    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs5', 40)" onmouseover="showTip(event, 'fs5', 40)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs6', 41)" onmouseover="showTip(event, 'fs6', 41)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs5', 45)" onmouseover="showTip(event, 'fs5', 45)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs6', 46)" onmouseover="showTip(event, 'fs6', 46)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
 <span class="s">        </span><span class="s">SELECT</span><span class="s"> </span><span class="s">COUNT</span><span class="s">(</span><span class="s">*</span><span class="s">)</span><span class="s"> </span>
 <span class="s">        </span><span class="s">FROM</span><span class="s"> </span><span class="s">Purchasing</span><span class="s">.</span><span class="s">PurchaseOrderHeader</span><span class="s"> </span>
 <span class="s">        </span><span class="s">WHERE</span><span class="s"> </span><span class="s">ShipDate</span><span class="s"> </span><span class="s">&gt;</span><span class="s"> </span><span class="s">@</span><span class="s">shippedLaterThan</span><span class="s"> </span><span class="s">AND</span><span class="s"> </span><span class="s">ShipMethodID</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">@</span><span class="s">shipMethodId</span>
-<span class="s">    </span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs4', 42)" onmouseover="showTip(event, 'fs4', 42)" class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>() 
+<span class="s">    </span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs4', 47)" onmouseover="showTip(event, 'fs4', 47)" class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>() 
     <span class="c">//overnight orders shipped since Jan 1, 2008 </span>
-    <span onmouseout="hideTip(event, 'fs5', 43)" onmouseover="showTip(event, 'fs5', 43)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs27', 44)" onmouseover="showTip(event, 'fs27', 44)" class="i">Execute</span>( <span onmouseout="hideTip(event, 'fs16', 45)" onmouseover="showTip(event, 'fs16', 45)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs17', 46)" onmouseover="showTip(event, 'fs17', 46)" class="i">DateTime</span>( <span class="n">2008</span>, <span class="n">1</span>, <span class="n">1</span>), <span onmouseout="hideTip(event, 'fs25', 47)" onmouseover="showTip(event, 'fs25', 47)" class="i">ShipMethod</span><span class="o">.</span><span class="i">``OVERNIGHT J-FAST``</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs8', 48)" onmouseover="showTip(event, 'fs8', 48)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">%</span><span class="s">A</span><span class="s">&quot;</span>
+    <span onmouseout="hideTip(event, 'fs5', 48)" onmouseover="showTip(event, 'fs5', 48)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs29', 49)" onmouseover="showTip(event, 'fs29', 49)" class="i">Execute</span>( <span onmouseout="hideTip(event, 'fs16', 50)" onmouseover="showTip(event, 'fs16', 50)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs17', 51)" onmouseover="showTip(event, 'fs17', 51)" class="i">DateTime</span>( <span class="n">2008</span>, <span class="n">1</span>, <span class="n">1</span>), <span onmouseout="hideTip(event, 'fs27', 52)" onmouseover="showTip(event, 'fs27', 52)" class="i">ShipMethod</span><span class="o">.</span><span class="i">``OVERNIGHT J-FAST``</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs8', 53)" onmouseover="showTip(event, 'fs8', 53)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">%</span><span class="s">A</span><span class="s">&quot;</span>
     <span class="c">//output</span>
     <span class="c">//Some (Some 1085)</span></pre>
 </td>
@@ -276,9 +310,11 @@ and <a href="http://technet.microsoft.com/en-us/library/ff878602.aspx">sys.sp_de
 <div class="tip" id="fs22">val prodAsmId : int</div>
 <div class="tip" id="fs23">val cost : decimal</div>
 <div class="tip" id="fs24">val qty : decimal</div>
-<div class="tip" id="fs25">type ShipMethod =<br />&#160;&#160;static val ``CARGO TRANSPORT 5`` : int<br />&#160;&#160;static val Items : IEnumerable&lt;string * int&gt;<br />&#160;&#160;static val ``OVERNIGHT J-FAST`` : int<br />&#160;&#160;static val ``OVERSEAS - DELUXE`` : int<br />&#160;&#160;static member Parse : value: string * ignoreCase: bool -&gt; int + 1 overload<br />&#160;&#160;static member TryFindName : value: int -&gt; Option&lt;string&gt;<br />&#160;&#160;static member TryParse : value: string * ignoreCase: bool -&gt; Option&lt;int&gt; + 1 overload<br />&#160;&#160;static val ``XRQ - TRUCK GROUND`` : int<br />&#160;&#160;static val ``ZY - EXPRESS`` : int<br /><br />Full name: Index.ShipMethod</div>
-<div class="tip" id="fs26">type SqlEnumProvider<br /><br />Full name: FSharp.Data.SqlEnumProvider<br /><em><br /><br /><br />&lt;summary&gt;Enumeration based on SQL query.&lt;/summary&gt; <br />&lt;param name=&#39;Query&#39;&gt;SQL used to get the enumeration labels and values. A result set must have at least two columns. The first one is a label.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionString&#39;&gt;String used to open a data connection.&lt;/param&gt;<br />&lt;param name=&#39;Provider&#39;&gt;Invariant name of a ADO.NET provider. Default is &quot;System.Data.SqlClient&quot;.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;CLIEnum&#39;&gt;Generate standard CLI Enum. Default is false.&lt;/param&gt;<br /></em></div>
-<div class="tip" id="fs27">SqlCommandProvider&lt;...&gt;.Execute(shippedLaterThan: System.DateTime, shipMethodId: int) : Option&lt;Option&lt;int&gt;&gt;</div>
+<div class="tip" id="fs25">val cmd : System.IDisposable</div>
+<div class="tip" id="fs26">SqlProgrammabilityProvider&lt;...&gt;.CreateCommand() : obj</div>
+<div class="tip" id="fs27">type ShipMethod =<br />&#160;&#160;static val ``CARGO TRANSPORT 5`` : int<br />&#160;&#160;static val Items : IEnumerable&lt;string * int&gt;<br />&#160;&#160;static val ``OVERNIGHT J-FAST`` : int<br />&#160;&#160;static val ``OVERSEAS - DELUXE`` : int<br />&#160;&#160;static member Parse : value: string * ignoreCase: bool -&gt; int + 1 overload<br />&#160;&#160;static member TryFindName : value: int -&gt; Option&lt;string&gt;<br />&#160;&#160;static member TryParse : value: string * ignoreCase: bool -&gt; Option&lt;int&gt; + 1 overload<br />&#160;&#160;static val ``XRQ - TRUCK GROUND`` : int<br />&#160;&#160;static val ``ZY - EXPRESS`` : int<br /><br />Full name: Index.ShipMethod</div>
+<div class="tip" id="fs28">type SqlEnumProvider<br /><br />Full name: FSharp.Data.SqlEnumProvider<br /><em><br /><br /><br />&lt;summary&gt;Enumeration based on SQL query.&lt;/summary&gt; <br />&lt;param name=&#39;Query&#39;&gt;SQL used to get the enumeration labels and values. A result set must have at least two columns. The first one is a label.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionString&#39;&gt;String used to open a data connection.&lt;/param&gt;<br />&lt;param name=&#39;Provider&#39;&gt;Invariant name of a ADO.NET provider. Default is &quot;System.Data.SqlClient&quot;.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;CLIEnum&#39;&gt;Generate standard CLI Enum. Default is false.&lt;/param&gt;<br /></em></div>
+<div class="tip" id="fs29">SqlCommandProvider&lt;...&gt;.Execute(shippedLaterThan: System.DateTime, shipMethodId: int) : Option&lt;Option&lt;int&gt;&gt;</div>
 
             </div>
 
