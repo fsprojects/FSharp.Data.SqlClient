@@ -2621,13 +2621,11 @@ type TypeProviderForNamespaces(namespacesAndTypes : list<(string * list<Provided
     member this.Invalidate() = invalidateE.Trigger(this,EventArgs())
 
     member __.GetStaticParametersForMethod(mb: MethodBase) =
-        printfn "In GetStaticParametersForMethod"
         match mb with
         | :? ProvidedMethod as t -> t.GetStaticParameters()
         | _ -> [| |]
 
     member __.ApplyStaticArgumentsForMethod(mb: MethodBase, mangledName, objs) = 
-        printfn "In ApplyStaticArgumentsForMethod"
         match mb with
         | :? ProvidedMethod as t -> t.ApplyStaticArguments(mangledName, objs) :> MethodBase
         | _ -> failwith (sprintf "ApplyStaticArguments: static parameters for method %s are unexpected" mb.Name)
