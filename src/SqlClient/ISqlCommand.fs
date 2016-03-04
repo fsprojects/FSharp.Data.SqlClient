@@ -52,19 +52,21 @@ type DesignTimeConfig = {
     ExpectedDataReaderColumns: (string * string)[]
 }
 
+type internal Connection = Choice<string, SqlConnection, SqlTransaction>
+
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connection, commandTimeout) = 
 
     let cmd = new SqlCommand(cfg.SqlStatement, CommandTimeout = commandTimeout)
     let manageConnection = 
         match connection with
-        | Connection.String str -> 
-            cmd.Connection <- new SqlConnection(str)
+        | Choice1Of3 connectionString -> 
+            cmd.Connection <- new SqlConnection(connectionString)
             true
-        | Connection.Instance conn -> 
-            cmd.Connection <- conn
+        | Choice2Of3 instance -> 
+            cmd.Connection <- instance
             false
-        | Connection.OfTransaction tran -> 
+        | Choice3Of3 tran -> 
             cmd.Transaction <- tran 
             cmd.Connection <- tran.Connection
             false

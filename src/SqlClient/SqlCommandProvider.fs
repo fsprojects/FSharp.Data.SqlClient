@@ -162,28 +162,34 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
             let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructor [| typeof<DesignTimeConfig>; typeof<Connection>; typeof<int> |]
             do 
-                let parameters = [ ProvidedParameter("connectionString", typeof<string>) ]
+                let parameters = [ 
+                    ProvidedParameter("connectionString", typeof<string>) 
+                    ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
+                ]
 
                 let body (args: _ list) = 
-                    Expr.NewObject(ctorImpl, [ designTimeConfig; <@@ Connection.String %%args.Head @@>; Expr.Value(SqlCommand.DefaultTimeout) ])
+                    Expr.NewObject(ctorImpl, designTimeConfig :: <@@ Connection.Choice1Of3 %%args.Head @@> :: args.Tail)
 
                 cmdProvidedType.AddMember <| ProvidedConstructor(parameters, InvokeCode = body)
                 cmdProvidedType.AddMember <| ProvidedMethod("Create", parameters, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body)
            
             do 
                 let parameters = [ 
-                    ProvidedParameter("connection", typeof<Connection>, optionalValue = null)
+                    ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
+                    ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
                     ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
                 ]
 
                 let body (args: _ list) =
                     let connArg = 
                         <@@ 
-                            if box (%%args.Head: Connection) = null 
-                            then Connection.String( %%designTimeConnectionString.RunTimeValueExpr(config.IsHostedExecution))
-                            else %%args.Head 
+                            if box (%%args.[1]: SqlTransaction) <> null 
+                            then Connection.Choice3Of3 %%args.[1]
+                            elif box (%%args.[0]: SqlConnection) <> null 
+                            then Connection.Choice2Of3 %%args.Head 
+                            else Connection.Choice1Of3( %%designTimeConnectionString.RunTimeValueExpr(config.IsHostedExecution))
                         @@>
-                    Expr.NewObject(ctorImpl, designTimeConfig :: connArg :: args.Tail )
+                    Expr.NewObject(ctorImpl, [ designTimeConfig ; connArg; args.[2] ])
                     
                 cmdProvidedType.AddMember <| ProvidedConstructor(parameters, InvokeCode = body)
                 cmdProvidedType.AddMember <| ProvidedMethod("Create", parameters, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body)

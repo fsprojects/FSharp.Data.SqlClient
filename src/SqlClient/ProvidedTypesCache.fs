@@ -5,11 +5,11 @@ open System
 open System.Runtime.Caching
 
 type MemoryCache with 
-    member this.GetOrAdd(key, value: Lazy<_>, ?expiration) = 
+    member this.GetOrAdd<'T>(key, value: Lazy<'T>, ?expiration): 'T = 
         let policy = CacheItemPolicy()
         policy.SlidingExpiration <- defaultArg expiration <| TimeSpan.FromHours 24.
         match this.AddOrGetExisting(key, value, policy) with
-        | :? Lazy<ProvidedTypeDefinition> as item -> 
+        | :? Lazy<'T> as item -> 
             item.Value
         | x -> 
             assert(x = null)

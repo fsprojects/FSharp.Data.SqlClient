@@ -19,12 +19,6 @@ open System
 open System.Threading.Tasks
 open System.Collections.Generic
 
-[<RequireQualifiedAccess>]
-type Connection =  
-    | String of string
-    | Instance of System.Data.SqlClient.SqlConnection
-    | OfTransaction of System.Data.SqlClient.SqlTransaction
-
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type internal DesignTimeConnectionString = 
     | Literal of string
