@@ -65,12 +65,12 @@ to support inline T-SQL.</p>
 </tr>
 </table>
 
-<p>This makes SqlProgrammabilityProvider as one stop shop for both executing inline T-SQL statements 
+<p>This makes <code></code>`SqlProgrammabilityProvider as one stop shop for both executing inline T-SQL statements 
 and accessing to built-in objects like stored procedures, functoins and tables. 
 Connectivity information (connection string and/or config file name) is defined in one place 
 and doesn't have be carried around like in SqlCommandProvider case.</p>
 
-<p>CreateCommand optionally accepts connection, transaction and command timeout parameters. 
+<p><code></code>`CreateCommand optionally accepts connection, transaction and command timeout parameters. 
 Any one of then can be ommited.</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
@@ -113,15 +113,21 @@ Any one of then can be ommited.</p>
 </tr>
 </table>
 
-<p>Unfortunate downside of this amazing feature is absent of intellisense for both static method parameters and actual method parameters. 
-The issue is tracked here</p>
+<div class="well well-small" style="margin:0px 70px 0px 20px;">
 
-<p>https://github.com/Microsoft/visualfsharp/issues/642
-https://github.com/Microsoft/visualfsharp/pull/705
-https://github.com/Microsoft/visualfsharp/issues/640</p>
+<p><strong>Note</strong> Unfortunate downside of this amazing feature is absent of intellisense for 
+both static method parameters and actual method parameters. The issue is tracked here:</p>
+
+<p>https://github.com/Microsoft/visualfsharp/issues/642</p>
+
+<p>https://github.com/Microsoft/visualfsharp/pull/705</p>
+
+<p>https://github.com/Microsoft/visualfsharp/issues/640</p>
 
 <p>Please help to improve quality of F# compiler and tooling by providing feedback to <a href="https://twitter.com/VisualFSharp">F# team</a> 
 or <a href="https://twitter.com/VisualFSharp">Don Syme</a>.</p>
+
+</p></div>
 
 <div class="tip" id="fs1">val cmd : System.IDisposable</div>
 <div class="tip" id="fs2">type DB = SqlProgrammabilityProvider&lt;...&gt;<br /><br />Full name: Whatsnew.DB</div>
