@@ -70,7 +70,8 @@ and accessing to built-in objects like stored procedures, functoins and tables.
 Connectivity information (connection string and/or config file name) is defined in one place 
 and doesn't have be carried around like in SqlCommandProvider case.</p>
 
-<p>CreateCommand accepts all optional connection, transaction and command timeout parameters.</p>
+<p>CreateCommand optionally accepts connection, transaction and command timeout parameters. 
+Any one of then can be ommited.</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
@@ -87,6 +88,8 @@ and doesn't have be carried around like in SqlCommandProvider case.</p>
 <span class="l">12: </span>
 <span class="l">13: </span>
 <span class="l">14: </span>
+<span class="l">15: </span>
+<span class="l">16: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
@@ -97,16 +100,28 @@ and doesn't have be carried around like in SqlCommandProvider case.</p>
     <span onmouseout="hideTip(event, 'fs5', 12)" onmouseover="showTip(event, 'fs5', 12)" class="i">conn</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs11', 13)" onmouseover="showTip(event, 'fs11', 13)" class="i">Open</span>()
     <span class="k">use</span> <span onmouseout="hideTip(event, 'fs12', 14)" onmouseover="showTip(event, 'fs12', 14)" class="i">tran</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs5', 15)" onmouseover="showTip(event, 'fs5', 15)" class="i">conn</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs13', 16)" onmouseover="showTip(event, 'fs13', 16)" class="i">BeginTransaction</span>()
     <span class="k">use</span> <span onmouseout="hideTip(event, 'fs1', 17)" onmouseover="showTip(event, 'fs1', 17)" class="i">cmd</span> <span class="o">=</span> 
-        <span onmouseout="hideTip(event, 'fs2', 18)" onmouseover="showTip(event, 'fs2', 18)" class="i">DB</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs3', 19)" onmouseover="showTip(event, 'fs3', 19)" class="i">CreateCommand</span><span class="o">&lt;</span><span class="s">&quot;</span>
-<span class="s">            </span><span class="s">INSERT</span><span class="s"> </span><span class="s">INTO</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">Currency</span><span class="s"> </span><span class="s">VALUES</span><span class="s">(</span><span class="s">@</span><span class="s">Code</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">Name</span><span class="s">,</span><span class="s"> </span><span class="s">GETDATE</span><span class="s">(</span><span class="s">)</span><span class="s">)</span>
-<span class="s">        </span><span class="s">&quot;</span><span class="o">&gt;</span>(<span class="i">connection</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs5', 20)" onmouseover="showTip(event, 'fs5', 20)" class="i">conn</span>, <span class="i">transaction</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs12', 21)" onmouseover="showTip(event, 'fs12', 21)" class="i">tran</span>, <span class="i">commandTimeout</span> <span class="o">=</span> <span class="n">120</span>)
+        <span onmouseout="hideTip(event, 'fs2', 18)" onmouseover="showTip(event, 'fs2', 18)" class="i">DB</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs3', 19)" onmouseover="showTip(event, 'fs3', 19)" class="i">CreateCommand</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">INSERT</span><span class="s"> </span><span class="s">INTO</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">Currency</span><span class="s"> </span><span class="s">VALUES</span><span class="s">(</span><span class="s">@</span><span class="s">Code</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">Name</span><span class="s">,</span><span class="s"> </span><span class="s">GETDATE</span><span class="s">(</span><span class="s">)</span><span class="s">)</span><span class="s">&quot;</span><span class="o">&gt;</span>(
+            <span class="i">connection</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs5', 20)" onmouseover="showTip(event, 'fs5', 20)" class="i">conn</span>, 
+            <span class="i">transaction</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs12', 21)" onmouseover="showTip(event, 'fs12', 21)" class="i">tran</span>, 
+            <span class="i">commandTimeout</span> <span class="o">=</span> <span class="n">120</span>
+        )
 
     <span onmouseout="hideTip(event, 'fs1', 22)" onmouseover="showTip(event, 'fs1', 22)" class="i">cmd</span><span class="o">.</span><span class="i">Execute</span>( <span class="i">Code</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">BTC</span><span class="s">&quot;</span>, <span class="i">Name</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">Bitcoin</span><span class="s">&quot;</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs4', 23)" onmouseover="showTip(event, 'fs4', 23)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Records</span><span class="s"> </span><span class="s">affected</span><span class="s"> </span><span class="s">%</span><span class="s">i</span><span class="s">&quot;</span>
-    <span class="c">//Rollback by default. Uncomment the line below to commit the change.</span>
+    <span class="c">//Rollback by default. Uncomment a line below to commit the change.</span>
     <span class="c">//tran.Commit()</span></pre>
 </td>
 </tr>
 </table>
+
+<p>Unfortunate downside of this amazing feature is absent of intellisense for both static method parameters and actual method parameters. 
+The issue is tracked here</p>
+
+<p>https://github.com/Microsoft/visualfsharp/issues/642
+https://github.com/Microsoft/visualfsharp/pull/705
+https://github.com/Microsoft/visualfsharp/issues/640</p>
+
+<p>Please help to improve quality of F# compiler and tooling by providing feedback to <a href="https://twitter.com/VisualFSharp">F# team</a> 
+or <a href="https://twitter.com/VisualFSharp">Don Syme</a>.</p>
 
 <div class="tip" id="fs1">val cmd : System.IDisposable</div>
 <div class="tip" id="fs2">type DB = SqlProgrammabilityProvider&lt;...&gt;<br /><br />Full name: Whatsnew.DB</div>
