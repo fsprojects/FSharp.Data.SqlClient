@@ -233,7 +233,7 @@ module DB =
     let inline createCommand() : 'a = 
         let runtimeConnStr = "..." //somehow get connection string at run-time
         //invoke ctor
-        (^a : (new : string -> ^a) runtimeConnStr) 
+        (^a : (new : string * int -> ^a) (runtimeConnStr, 30)) 
         //or
         //(^a : (static member Create: string -> ^a) runtimeConnStr) 
 
@@ -261,7 +261,7 @@ module DataAccess =
             then "..." //somehow get master connection string at run-time
             else failwith "Unexpected"
         //invoke ctor
-        (^a : (new : string -> ^a) connStr) 
+        (^a : (new : string * int -> ^a) (connStr, 30)) 
 
 let adventureWorksCmd: DataAccess.MyCmd1 = DataAccess.createCommand()
 let masterCmd: DataAccess.MyCmd2 = DataAccess.createCommand()
@@ -293,7 +293,10 @@ do
     conn.Open()
     let tran = conn.BeginTransaction()
 
-    use insert = InsertBitCoin.Create(transaction = tran) 
+    let cmd = new SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())"
+                        , connectionString>()
+
+    use insert = InsertBitCoin. Create(transaction = tran) 
     assert(insert.Execute(bitCoinCode, bitCoinName) = 1)
 
     use get = new GetBitCoin(transaction = tran)

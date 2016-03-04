@@ -1,6 +1,6 @@
 (*** hide ***)
 #r "Microsoft.SqlServer.Types.dll"
-#r @"..\..\bin\FSharp.Data.SqlClient.dll"
+#r @"..\..\bin\FSharp.Data.SqlClient.dll"   
 
 (**
 Not your grandfather's ORM

@@ -1,5 +1,5 @@
 (*** hide ***)
-#r @"..\..\src\SqlClient\bin\Debug\FSharp.Data.SqlClient.dll"
+#r @"..\..\bin\FSharp.Data.SqlClient.dll"
 #r "System.Transactions"
 open FSharp.Data
 
@@ -123,7 +123,7 @@ do
         // Static Create factory method can also be used to pass connection and/or transaction
         // It provides better intellisense. See a link below
         // https://github.com/Microsoft/visualfsharp/issues/449
-        use cmd = AdventureWorks.dbo.ufnGetContactInformation.Create(conn, tran)
+        use cmd = new AdventureWorks.dbo.ufnGetContactInformation(conn, tran)
         //Use ExecuteSingle if you're sure it return 0 or 1 rows
         let result = cmd.ExecuteSingle(PersonID = jamesKramerId) 
         result.Value.JobTitle.Value
