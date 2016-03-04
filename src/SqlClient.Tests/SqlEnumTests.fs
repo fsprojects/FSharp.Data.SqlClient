@@ -10,15 +10,6 @@ let connectionString = ConnectionStrings.LocalHost
 
 type TinyIntMapping = SqlEnumProvider<"SELECT * FROM (VALUES(('One'), CAST(1 AS tinyint)), ('Two', CAST(2 AS tinyint))) AS T(Tag, Value)", connectionString>
 
-type MoreThan2Columns = SqlEnumProvider< @"
- select * from (
-values 
-  ('a', 1, 'this is a')
-  , ('b', 2, 'this is b')
-  , ('c', 3, 'this is c')
-) as v(code, id, description)
-", connectionString>
-
 [<Fact>]
 let tinyIntMapping() = 
     Assert.Equal<(string * byte) seq>([| "One", 1uy; "Two", 2uy |], TinyIntMapping.Items)
@@ -77,15 +68,23 @@ let PatternMatchingOn() =
         actual
     )    
 
+type MoreThan2Columns = SqlEnumProvider< @"
+ select * from (
+values 
+  ('a', 1, 'this is a')
+  , ('b', 2, 'this is b')
+  , ('c', 3, 'this is c')
+) as v(code, id, description)
+", connectionString>
+
 [<Fact>]
 let MoreThan2ColumnReturnsCorrectTuples() =
-    let actual = MoreThan2Columns.a
-    Assert.Equal((1, "this is a"), actual)
-    Assert.Equal<_ seq>(
-      [ 
-      ("a", (1, "this is a"))
-      ("b", (2, "this is b"))
-      ("c", (3, "this is c"))
-      ]
-      , MoreThan2Columns.Items
+    Assert.Equal((1, "this is a"), MoreThan2Columns.a)
+    Assert.Equal<_[]>(
+      expected = [| 
+          ("a", (1, "this is a"))
+          ("b", (2, "this is b"))
+          ("c", (3, "this is c"))
+      |], 
+      actual = Array.ofSeq MoreThan2Columns.Items
     )
