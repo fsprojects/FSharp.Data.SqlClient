@@ -198,43 +198,11 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 ExpectedDataReaderColumns = %%expectedDataReaderColumns
                             } @@>
 
-                        let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructor [| typeof<DesignTimeConfig>; typeof<Connection>; typeof<int> |]
-
-                        //ctor 1
-                        let ctor1 = 
-                            ProvidedConstructor(
-                                [ 
-                                    ProvidedParameter("connectionString", typeof<string>) 
-                                    ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
-                                ]
-                            )
-                        ctor1.InvokeCode <- fun args -> 
-                            Expr.NewObject(ctorImpl, designTimeConfig :: <@@ Connection.Choice1Of3 %%args.Head @@> :: args.Tail)
-
-                        yield ctor1 :> MemberInfo
-
-                        //ctor 2
-                        let ctor2 = 
-                            ProvidedConstructor(
-                                [ 
-                                    ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
-                                    ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
-                                    ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
-                                ]
-                            )
-
-                        ctor2.InvokeCode <- fun args -> 
-                            let connArg = 
-                                <@@ 
-                                    if box (%%args.[1]: SqlTransaction) <> null 
-                                    then Connection.Choice3Of3 %%args.[1]
-                                    elif box (%%args.[0]: SqlConnection) <> null 
-                                    then Connection.Choice2Of3 %%args.Head 
-                                    else Connection.Choice1Of3( %%designTimeConnectionString.RunTimeValueExpr(config.IsHostedExecution))
-                                @@>
-                            Expr.NewObject(ctorImpl, [ designTimeConfig ; connArg; args.[2] ])
-
-                        yield upcast ctor2
+                        yield! DesignTime.GetCommandCtors(
+                            cmdProvidedType, 
+                            designTimeConfig, 
+                            designTimeConnectionString.RunTimeValueExpr(config.IsHostedExecution)
+                        )
 
                         let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, uddtsPerSchema)
 
@@ -591,24 +559,16 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             ExpectedDataReaderColumns = %%expectedDataReaderColumns
                         } @@>
 
-                    let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructor [| typeof<DesignTimeConfig>; typeof<Connection>; typeof<int> |]
 
-                    let parameters = [ 
-                        ProvidedParameter("connectionString", typeof<string>, optionalValue = null) 
-                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
-                    ]
-
-                    let m = ProvidedMethod(methodName, parameters, cmdProvidedType, IsStaticMethod = true)
-                    m.InvokeCode <- fun args -> 
-                        let connArg = 
-                            <@@
-                                let connectionString = 
-                                    if (%%args.[0]: string) = null
-                                    then %%designTimeConnectionString.RunTimeValueExpr(config.IsHostedExecution)
-                                    else %%args.[0] 
-                                Connection.Choice1Of3 connectionString
-                            @@>                
-                        Expr.NewObject(ctorImpl, designTimeConfig :: connArg :: args.Tail)
+                    let ctorsAndFactories = 
+                        DesignTime.GetCommandCtors(
+                            cmdProvidedType, 
+                            designTimeConfig, 
+                            designTimeConnectionString.RunTimeValueExpr(config.IsHostedExecution),
+                            factoryMethodName = methodName
+                        )
+                    assert (ctorsAndFactories.Length = 4)
+                    let m: ProvidedMethod = downcast ctorsAndFactories.[3] 
                     rootType.AddMember m
                     m
 

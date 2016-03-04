@@ -7,7 +7,6 @@ open System.Data.SqlClient
 open System.Collections.Generic
 open System.Diagnostics
 open Microsoft.FSharp.Quotations
-//open Microsoft.FSharp.Reflection
 open ProviderImplementation.ProvidedTypes
 open FSharp.Data
 
@@ -455,3 +454,43 @@ type DesignTime private() =
 
         ]
 
+    static member GetCommandCtors(cmdProvidedType: ProvidedTypeDefinition, designTimeConfig, designTimeConnectionString, ?factoryMethodName) = 
+        [
+            let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructor [| typeof<DesignTimeConfig>; typeof<Connection>; typeof<int> |]
+
+            let parameters1 = [ 
+                ProvidedParameter("connectionString", typeof<string>) 
+                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
+            ]
+
+            let body1 (args: _ list) = 
+                Expr.NewObject(ctorImpl, designTimeConfig :: <@@ Connection.Choice1Of3 %%args.Head @@> :: args.Tail)
+
+            yield ProvidedConstructor(parameters1, InvokeCode = body1) :> MemberInfo
+            
+            if factoryMethodName.IsSome
+            then 
+                yield upcast ProvidedMethod(factoryMethodName.Value, parameters1, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body1)
+           
+            let parameters2 = [ 
+                ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
+                ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
+                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
+            ]
+
+            let body2 (args: _ list) =
+                let connArg = 
+                    <@@ 
+                        if box (%%args.[1]: SqlTransaction) <> null 
+                        then Connection.Choice3Of3 %%args.[1]
+                        elif box (%%args.[0]: SqlConnection) <> null 
+                        then Connection.Choice2Of3 %%args.Head 
+                        else Connection.Choice1Of3( %%designTimeConnectionString)
+                    @@>
+                Expr.NewObject(ctorImpl, [ designTimeConfig ; connArg; args.[2] ])
+                    
+            yield upcast ProvidedConstructor(parameters2, InvokeCode = body2)
+            if factoryMethodName.IsSome
+            then 
+                yield upcast ProvidedMethod(factoryMethodName.Value, parameters2, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body2)
+        ]
