@@ -37,7 +37,7 @@ Connectivity information (connection string and/or config file name) is defined 
 and doesn't have be carried around like in SqlCommandProvider case.
 
 `CreateCommand` optionally accepts connection, transaction and command timeout parameters. 
-Any one of then can be ommited.  
+Any of these parameters can be ommited.  
 *)
 
 #r "System.Transactions"
