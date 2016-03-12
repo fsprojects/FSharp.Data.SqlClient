@@ -149,10 +149,14 @@ A type located under Commands nested type.</p>
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
 <span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">type</span> <span onmouseout="hideTip(event, 'fs20', 35)" onmouseover="showTip(event, 'fs20', 35)" class="i">Cmd1Command</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs2', 36)" onmouseover="showTip(event, 'fs2', 36)" class="i">DB</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs21', 37)" onmouseover="showTip(event, 'fs21', 37)" class="i">Commands</span><span class="o">.</span><span class="i">``CreateCommand,CommandText&quot;SELECT name, create_date FROM sys.databases&quot;``</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs20', 35)" onmouseover="showTip(event, 'fs20', 35)" class="i">Cmd1Command</span> <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs2', 36)" onmouseover="showTip(event, 'fs2', 36)" class="i">DB</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs21', 37)" onmouseover="showTip(event, 'fs21', 37)" class="i">Commands</span><span class="o">.</span><span class="i">``CreateCommand,CommandText&quot;SELECT name, create_date FROM sys.databases&quot;``</span>
+
 <span class="k">type</span> <span onmouseout="hideTip(event, 'fs22', 38)" onmouseover="showTip(event, 'fs22', 38)" class="i">Cmd1Record</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs20', 39)" onmouseover="showTip(event, 'fs20', 39)" class="i">Cmd1Command</span><span class="o">.</span><span class="i">Record</span></pre>
 </td>
 </tr>
@@ -162,7 +166,7 @@ A type located under Commands nested type.</p>
 The type provider knows to remove illegal '=' and '@' characters 
 but auto-competition still chokes on multi-line definitions.</p>
 
-<p>A workaround is provide explicit name for generated command type</p>
+<p>A workaround is to provide explicit name for generated command type</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
