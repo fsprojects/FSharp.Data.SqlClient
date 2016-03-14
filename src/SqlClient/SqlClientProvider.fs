@@ -568,10 +568,11 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             factoryMethodName = methodName
                         )
                     assert (ctorsAndFactories.Length = 4)
-                    let m: ProvidedMethod = downcast ctorsAndFactories.[3] 
-                    rootType.AddMember m
-                    m
+                    let impl: ProvidedMethod = downcast ctorsAndFactories.[3] 
+                    rootType.AddMember impl
+                    impl
 
             methodsCache.GetOrAdd(methodName, getMethodImpl)
         ))
         rootType.AddMember m
+

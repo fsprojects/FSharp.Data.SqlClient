@@ -34,6 +34,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{4B60
 		docs\content\SqlClientComparison.md = docs\content\SqlClientComparison.md
 		docs\content\sqlenumprovider.quickstart.fsx = docs\content\sqlenumprovider.quickstart.fsx
 		docs\content\transactions.fsx = docs\content\transactions.fsx
+		docs\content\unit-testing.fsx = docs\content\unit-testing.fsx
 		docs\content\whatsnew.fsx = docs\content\whatsnew.fsx
 	EndProjectSection
 EndProject
