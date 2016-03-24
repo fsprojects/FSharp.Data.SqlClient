@@ -106,10 +106,6 @@ Target "DeployTestDB" (fun() ->
 
     conn.Open()
 
-    let dataFileName = "AdventureWorks2012_Data"
-    //unzip
-    ZipFile.ExtractToDirectory(testsSourceRoot @@ (dataFileName + ".zip"), testsSourceRoot)
-
     do //attach
         let dbIsMissing = 
             let query = sprintf "SELECT COUNT(*) FROM sys.databases WHERE name = '%s'" database
@@ -118,14 +114,22 @@ Target "DeployTestDB" (fun() ->
 
         if dbIsMissing
         then 
+            let dataFileName = "AdventureWorks2012_Data"
+            //unzip
+            let sourceMdf = testsSourceRoot @@ (dataFileName + ".mdf")
+    
+            if File.Exists(sourceMdf) then File.Delete(sourceMdf)
+    
+            ZipFile.ExtractToDirectory(testsSourceRoot @@ (dataFileName + ".zip"), testsSourceRoot)
+
+
             let dataPath = 
                 use cmd = new SqlCommand("SELECT SERVERPROPERTY('InstanceDefaultDataPath')", conn)
                 cmd.ExecuteScalar() |> string
             do
-                let mdf = dataFileName + ".mdf"
-                let destFileName = dataPath @@ mdf 
-                File.Copy(testsSourceRoot @@ mdf, destFileName, overwrite = true)
-       
+                let destFileName = dataPath @@ Path.GetFileName(sourceMdf) 
+                File.Copy(sourceMdf, destFileName, overwrite = true)
+                File.Delete( sourceMdf)
                 use cmd = new SqlCommand(Connection = conn)
                 cmd.CommandText <- sprintf "CREATE DATABASE [%s] ON ( FILENAME = N'%s' ) FOR ATTACH" database destFileName
                 cmd.ExecuteNonQuery() |> ignore

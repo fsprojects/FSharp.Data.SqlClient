@@ -31,6 +31,8 @@
     <StartArguments>..\Tests.sln</StartArguments>
     <NoWarn>101</NoWarn>
     <OtherFlags>--warnon:1182</OtherFlags>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -45,6 +47,8 @@
     <StartArguments>..\Tests.sln</StartArguments>
     <StartWorkingDirectory>
     </StartWorkingDirectory>
+    <NoWarn>101</NoWarn>
+    <OtherFlags>--warnon:1182</OtherFlags>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
