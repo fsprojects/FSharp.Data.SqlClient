@@ -6,7 +6,7 @@ open FSharp.Data
 open System.Data.SqlClient
 
 [<Literal>] 
-let connectionString = "Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+let connectionString = "Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 type DB = SqlProgrammabilityProvider<connectionString>
 type dbo = DB.dbo

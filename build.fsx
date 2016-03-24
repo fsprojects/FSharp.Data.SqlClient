@@ -76,6 +76,67 @@ Target "Build" (fun _ ->
     |> ignore
 )
 
+#r "System.Data"
+#r "System.Transactions"
+#r "System.Configuration"
+#r "System.IO.Compression"
+#r "System.IO.Compression.FileSystem"
+
+open System.Data.SqlClient
+open System.Configuration
+open System.IO.Compression
+
+Target "DeployTestDB" (fun() ->
+    let testsSourceRoot = Path.GetFullPath(@"src\SqlClient.Tests")
+    let map = ExeConfigurationFileMap()
+    map.ExeConfigFilename <- testsSourceRoot @@ "app.config"
+    let connStr = 
+        let x = 
+            ConfigurationManager
+                .OpenMappedExeConfiguration(map, ConfigurationUserLevel.None)
+                .ConnectionStrings
+                .ConnectionStrings.["AdventureWorks"]
+                .ConnectionString
+        SqlConnectionStringBuilder(x)
+
+    let database = connStr.InitialCatalog
+    use conn = 
+        connStr.InitialCatalog <- ""
+        new SqlConnection(string connStr)
+
+    conn.Open()
+
+    let dataFileName = "AdventureWorks2012_Data"
+    //unzip
+    ZipFile.ExtractToDirectory(testsSourceRoot @@ (dataFileName + ".zip"), testsSourceRoot)
+
+    do //attach
+        let dbIsMissing = 
+            let query = sprintf "SELECT COUNT(*) FROM sys.databases WHERE name = '%s'" database
+            use cmd = new SqlCommand(query, conn)
+            cmd.ExecuteScalar() = box 0
+
+        if dbIsMissing
+        then 
+            let dataPath = 
+                use cmd = new SqlCommand("SELECT SERVERPROPERTY('InstanceDefaultDataPath')", conn)
+                cmd.ExecuteScalar() |> string
+            do
+                let mdf = dataFileName + ".mdf"
+                let destFileName = dataPath @@ mdf 
+                File.Copy(testsSourceRoot @@ mdf, destFileName, overwrite = true)
+       
+                use cmd = new SqlCommand(Connection = conn)
+                cmd.CommandText <- sprintf "CREATE DATABASE [%s] ON ( FILENAME = N'%s' ) FOR ATTACH" database destFileName
+                cmd.ExecuteNonQuery() |> ignore
+
+    do //create extra object to test corner case
+        let script = File.ReadAllText(testsSourceRoot @@ "extensions.sql")
+        for batch in script.Split([|"GO"|], StringSplitOptions.RemoveEmptyEntries) do
+            use cmd = new SqlCommand(batch, conn)
+            cmd.ExecuteNonQuery() |> ignore
+)
+
 Target "BuildTests" (fun _ ->
     files ["Tests.sln"]
     |> MSBuildReleaseExt "" ([]) "Rebuild"
@@ -148,6 +209,7 @@ Target "All" DoNothing
   ==> "RestorePackages"
   ==> "AssemblyInfo"
   ==> "Build"
+  ==> "DeployTestDB"
   ==> "BuildTests"
   ==> "RunTests"
   ==> "All"

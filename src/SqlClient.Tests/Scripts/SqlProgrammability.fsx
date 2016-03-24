@@ -15,7 +15,7 @@ open FSharp.Data
 //[<Literal>] 
 //let prodConnectionString = ConnectionStrings.MasterDb
 
-//type AdventureWorks = SqlProgrammabilityProvider<"Data Source=.;Initial Catalog = AdventureWorks2014;Integrated Security=True">
+//type AdventureWorks = SqlProgrammabilityProvider<"Data Source=.;Initial Catalog = AdventureWorks2012;Integrated Security=True">
 //type dbo = AdventureWorks.dbo
 
 
@@ -27,7 +27,7 @@ open FSharp.Data
 //	    AND Y.ProductID = @salesOrderDetailProductid
 //	    AND (X.SpecialOfferID IS NOT NULL 
 //		    OR Y.SpecialOfferID IS NOT NULL)
-//	     ", "Data Source=.;Initial Catalog = AdventureWorks2014;Integrated Security=True">()
+//	     ", "Data Source=.;Initial Catalog = AdventureWorks2012;Integrated Security=True">()
 
 //#r @"Newtonsoft.Json.8.0.2\lib\net45\Newtonsoft.Json.dll"
 //

@@ -73,7 +73,7 @@
     <Compile Include="DataTablesTests.fs" />
     <Compile Include="CreateCommand.fs" />
     <None Include="sampleCommand.sql" />
-    <None Include="prereqs.sql" />
+    <None Include="extensions.sql" />
     <None Include="Scripts\SqlCommand.fsx" />
     <None Include="Scripts\SqlProgrammability.fsx" />
     <None Include="Scripts\CreateCommand.fsx" />

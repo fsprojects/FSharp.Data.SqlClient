@@ -7,7 +7,7 @@ open System
 open FSharp.Data
 
 [<Literal>] 
-let connectionString = "Server=.;Database=AdventureWorks2014;Trusted_Connection=yes"
+let connectionString = "Server=.;Database=AdventureWorks2012;Trusted_Connection=yes"
 [<Literal>] 
 let connectionStringName = "name=AdventureWorks"
 [<LiteralAttribute>]
