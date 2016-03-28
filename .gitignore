@@ -225,3 +225,4 @@ pip-log.txt
 vagrantfile
 *.userprefs
 /sqlclientmonosample
+.fake/
