@@ -4,15 +4,35 @@ open System
 open System.Data
 open System.Data.SqlClient
 open System.Collections.Generic
-
 open FSharp.Data.SqlClient
 
 [<Sealed>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
-type DataTable<'T when 'T :> DataRow>(tableName, selectCommand) = 
+type DataTable<'T when 'T :> DataRow> private (tableName, knownSelectCommand, getDesignTimeConnection:Lazy<_>) = 
     inherit DataTable(tableName)
 
     let rows = base.Rows
+    let getSelectCommand maybeRuntimeConnection maybeRuntimeTransaction =
+        let makeSelectCommand connection = 
+            let selectCommand = new SqlCommand("SELECT * FROM " + tableName)
+            selectCommand.Connection <- connection
+            selectCommand
+
+        if Option.isSome knownSelectCommand
+        then 
+            knownSelectCommand.Value
+        else
+            match maybeRuntimeTransaction, maybeRuntimeConnection with
+            | Some (tran:SqlTransaction), _ -> 
+                let command = makeSelectCommand tran.Connection
+                command.Transaction <- tran
+                command
+            | None, Some connection ->  
+                makeSelectCommand connection
+            | _ -> makeSelectCommand (getDesignTimeConnection.Value)
+
+    new (tableName, getDesignTimeConnection) = new DataTable<'T>(tableName, None, getDesignTimeConnection)
+    new (createCommand) = new DataTable<'T>(null, Some createCommand, lazy(createCommand.Connection))
 
     member __.Rows : IList<'T> = {
         new IList<'T> with
@@ -41,10 +61,11 @@ type DataTable<'T when 'T :> DataRow>(tableName, selectCommand) =
 
     member this.Update(?connection, ?transaction, ?batchSize) = 
         
+        let selectCommand = getSelectCommand connection transaction
         use dataAdapter = new SqlDataAdapter(selectCommand)
         use commandBuilder = new SqlCommandBuilder(dataAdapter) 
         use __ = dataAdapter.RowUpdating.Subscribe(fun args ->
-            if args.StatementType = StatementType.Insert
+            if  args.Errors = null && args.StatementType = StatementType.Insert
                 && defaultArg batchSize dataAdapter.UpdateBatchSize = 1
             then 
                 let columnsToRefresh = ResizeArray()
@@ -75,6 +96,7 @@ type DataTable<'T when 'T :> DataRow>(tableName, selectCommand) =
 
     member this.BulkCopy(?connection, ?copyOptions, ?transaction, ?batchSize, ?timeout: TimeSpan) = 
         
+        let selectCommand = getSelectCommand connection transaction
         let connection = defaultArg connection selectCommand.Connection
         use __ = connection.UseLocally()
         use bulkCopy = 
@@ -87,5 +109,3 @@ type DataTable<'T when 'T :> DataRow>(tableName, selectCommand) =
         batchSize |> Option.iter bulkCopy.set_BatchSize
         timeout |> Option.iter (fun x -> bulkCopy.BulkCopyTimeout <- int x.TotalSeconds)
         bulkCopy.WriteToServer this
-
-

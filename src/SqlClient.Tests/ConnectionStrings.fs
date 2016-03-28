@@ -6,6 +6,8 @@ let server = @"."
 [<Literal>]
 let AdventureWorksLiteral = @"Data Source=" + server + ";Initial Catalog=AdventureWorks2012;Integrated Security=True"
 [<Literal>]
+let AdventureWorksDesignOnly = @"name=AdventureWorksDesignOnly"
+[<Literal>]
 let AdventureWorksLiteralMultipleActiveResults = AdventureWorksLiteral + ";MultipleActiveResultSets=True"
 [<Literal>]
 let AdventureWorksNamed = @"name=AdventureWorks"

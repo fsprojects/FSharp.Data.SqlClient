@@ -369,10 +369,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             |> String.concat "\n"
 
                         <@@ 
-                            let selectCommand = new SqlCommand("SELECT * FROM " + twoPartTableName)
-                            selectCommand.Connection <- new SqlConnection( %%connectionString.RunTimeValueExpr(config.IsHostedExecution))
-
-                            let table = new DataTable<DataRow>(twoPartTableName, selectCommand) 
+                            
+                            let connection = lazy 
+                                                 new SqlConnection( %%connectionString.RunTimeValueExpr(config.IsHostedExecution))
+                            let table = new DataTable<DataRow>(twoPartTableName, connection)
 
                             let primaryKey = ResizeArray()
                             for line in serializedSchema.Split('\n') do
