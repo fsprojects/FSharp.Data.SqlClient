@@ -7,17 +7,6 @@ open FSharp.Data
 
 let adventureWorks = FSharp.Configuration.AppSettings<"app.config">.ConnectionStrings.AdventureWorks
 
-[<Fact>]
-let CheckValidFileName() = 
-    let expected = Some "c:\\mysqlfiles\\test.sql"
-    Assert.Equal(expected, Configuration.GetValidFileName("test.sql", "c:\\mysqlfiles"))
-
-    Assert.Equal(expected, Configuration.GetValidFileName("test.sql", "c:\\mysqlfiles"))
-    Assert.Equal(expected, Configuration.GetValidFileName("../test.sql", "c:\\mysqlfiles\\subfolder"))
-    Assert.Equal(expected, Configuration.GetValidFileName("c:\\mysqlfiles/test.sql", "d:\\otherdrive"))
-    Assert.Equal(expected, Configuration.GetValidFileName("../mysqlfiles/test.sql", "c:\\otherfolder"))
-    Assert.Equal(expected, Configuration.GetValidFileName("a/b/c/../../../test.sql", "c:\\mysqlfiles"))
-
 type Get42RelativePath = SqlCommandProvider<"sampleCommand.sql", ConnectionStrings.AdventureWorksNamed, ResolutionFolder="MySqlFolder">
 
 type Get42 = SqlCommandProvider<"SELECT 42", ConnectionStrings.AdventureWorksNamed, ConfigFile = "appWithInclude.config">
@@ -28,6 +17,17 @@ type LongQuery = SqlCommandProvider<"
 ", ConnectionStrings.AdventureWorksNamed>
 
 #if DEBUG
+[<Fact>]
+let CheckValidFileName() = 
+    let expected = Some "c:\\mysqlfiles\\test.sql"
+    Assert.Equal(expected, SqlCommandProvider.GetValidFileName("test.sql", "c:\\mysqlfiles"))
+
+    Assert.Equal(expected, SqlCommandProvider.GetValidFileName("test.sql", "c:\\mysqlfiles"))
+    Assert.Equal(expected, SqlCommandProvider.GetValidFileName("../test.sql", "c:\\mysqlfiles\\subfolder"))
+    Assert.Equal(expected, SqlCommandProvider.GetValidFileName("c:\\mysqlfiles/test.sql", "d:\\otherdrive"))
+    Assert.Equal(expected, SqlCommandProvider.GetValidFileName("../mysqlfiles/test.sql", "c:\\otherfolder"))
+    Assert.Equal(expected, SqlCommandProvider.GetValidFileName("a/b/c/../../../test.sql", "c:\\mysqlfiles"))
+
 [<Fact>]
 let ``Wrong config file name`` () = 
     Assert.Throws<FileNotFoundException>(

@@ -29,6 +29,9 @@ do()
 type public SqlCommandProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces()
 
+    static let invalidPathChars = HashSet(Path.GetInvalidPathChars())
+    static let invalidFileChars = HashSet(Path.GetInvalidFileNameChars())
+
     let mutable watcher = null : IDisposable
 
     let nameSpace = this.GetType().Namespace
@@ -102,7 +105,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 then resolutionFolder
                 else Path.Combine (config.ResolutionFolder, resolutionFolder)
 
-            Configuration.ParseTextAtDesignTime(sqlStatementOrFile, sqlScriptResolutionFolder, invalidator)
+            SqlCommandProvider.ParseTextAtDesignTime(sqlStatementOrFile, sqlScriptResolutionFolder, invalidator)
 
         watcher' |> Option.iter (fun x -> watcher <- x)
 
@@ -187,3 +190,31 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
 
         cmdProvidedType
 
+    static member internal GetValidFileName (file:string, resolutionFolder:string) = 
+        try 
+            if (file.Contains "\n") || (resolutionFolder.Contains "\n") then None else
+            let f = Path.Combine(resolutionFolder, file)
+            if invalidPathChars.Overlaps (Path.GetDirectoryName f) ||
+               invalidFileChars.Overlaps (Path.GetFileName f) then None 
+            else 
+               // Canonicalizing the path may throw on bad input, the check above does not cover every error.
+               Some (Path.GetFullPath f) 
+        with _ -> 
+            None
+
+    static member ParseTextAtDesignTime(commandTextOrPath : string, resolutionFolder, invalidateCallback) =
+        match SqlCommandProvider.GetValidFileName (commandTextOrPath, resolutionFolder) with
+        | Some path when File.Exists path ->
+                if Path.GetExtension(path) <> ".sql" then failwith "Only files with .sql extension are supported"
+                let watcher = new FileSystemWatcher(Filter = Path.GetFileName path, Path = Path.GetDirectoryName path)
+                watcher.Changed.Add(fun _ -> invalidateCallback())
+                watcher.Renamed.Add(fun _ -> invalidateCallback())
+                watcher.Deleted.Add(fun _ -> invalidateCallback())
+                watcher.EnableRaisingEvents <- true   
+                let task = System.Threading.Tasks.Task.Factory.StartNew(fun () -> 
+                        use stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                        use reader = new StreamReader(stream)
+                        reader.ReadToEnd())
+                if not (task.Wait(TimeSpan.FromSeconds(1.))) then failwithf "Couldn't read command from file %s" path
+                task.Result, Some watcher 
+        | _ -> commandTextOrPath, None

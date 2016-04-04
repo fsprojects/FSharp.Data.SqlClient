@@ -90,13 +90,6 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
 
     let notImplemented _ : _ = raise <| NotImplementedException()
 
-    static let resultsetRuntimeVerification = 
-        lazy 
-            match ConfigurationManager.GetSection("FSharp.Data.SqlClient") with
-            | :? NameValueCollection as xs ->    
-                match xs.["ResultsetRuntimeVerification"] with | null -> false | s -> s.ToLower() = "true"
-            | _ -> false
-
     let execute, asyncExecute, executeSingle, asyncExecuteSingle = 
         match cfg.ResultType with
         | ResultType.DataReader -> 
@@ -201,7 +194,7 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
 //Execute/AsyncExecute versions
 
     static member internal VerifyResultsetColumns(cursor: SqlDataReader, expected) = 
-        if resultsetRuntimeVerification.Value
+        if Configuration.Current.ResultsetRuntimeVerification
         then 
             if cursor.FieldCount < Array.length expected
             then 
