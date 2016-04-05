@@ -52,26 +52,24 @@ While enjoying all benefits of static types at design time one can easily end up
 when runtime Sql Server database schema is different from compile time. 
 Up until now this resulted in confusion runtime exception: `InvalidCastException("Specified cast is not valid.")`. 
 
-To improve diagnostics without hurting performance a new configuration section/switch is introduced. 
+To improve diagnostics without hurting performance a new global singleton configuration object is introduced. 
+To access Configuration type open up FSharp.Data.SqlClient namespace. 
+*)
 
-First, define custom sectoin in app.config/web.config
+open FSharp.Data.SqlClient
+assert(Configuration.Current.ResultsetRuntimeVerification = false) 
 
-    [lang=xml]
-    <configSections>
-        <section name="FSharp.Data.SqlClient" type="System.Configuration.NameValueSectionHandler" />
-    </configSections>
+(**
+So far it has only one property ResultsetRuntimeVerification which set to false by default.
+Set it to true to see more descriptive error like:
 
-Second, set on `ResultsetRuntimeVerification` switch
-
-    [lang=xml]
-    <FSharp.Data.SqlClient>
-        <add key="ResultsetRuntimeVerification" value="true"/>
-    </FSharp.Data.SqlClient>
-
-Now expect to see more descriptive error like:
 `InvalidOperationException(Expected column [Total] of type "System.Int32" at position 1 (0-based indexing) 
 but received column [Now] of type "System.DateTime")`.  
+*)
 
+Configuration.Current <- { Configuration.Current with ResultsetRuntimeVerification = true }
+
+(**
 Other debugging/instrumentation tools to consider:
 -------------------------------------
 
