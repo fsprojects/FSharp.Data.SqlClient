@@ -79,42 +79,20 @@ type internal DesignTimeConnectionString =
                     else section.ConnectionString
             @@>
 
-[<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
-type Configuration() =    
-    static let invalidPathChars = HashSet(Path.GetInvalidPathChars())
-    static let invalidFileChars = HashSet(Path.GetInvalidFileNameChars())
+//this is mess. Clean up later.
+type Configuration = {
+    ResultsetRuntimeVerification: bool
+}   
 
-    static member GetValidFileName (file:string, resolutionFolder:string) = 
-        try 
-            if (file.Contains "\n") || (resolutionFolder.Contains "\n") then None else
-            let f = Path.Combine(resolutionFolder, file)
-            if invalidPathChars.Overlaps (Path.GetDirectoryName f) ||
-               invalidFileChars.Overlaps (Path.GetFileName f) then None 
-            else 
-               // Canonicalizing the path may throw on bad input, the check above does not cover every error.
-               Some (Path.GetFullPath f) 
-        with _ -> 
-            None
+namespace FSharp.Data
 
-    static member ParseTextAtDesignTime(commandTextOrPath : string, resolutionFolder, invalidateCallback) =
-        match Configuration.GetValidFileName (commandTextOrPath, resolutionFolder) with
-        | Some path when File.Exists path ->
-                if Path.GetExtension(path) <> ".sql" then failwith "Only files with .sql extension are supported"
-                let watcher = new FileSystemWatcher(Filter = Path.GetFileName path, Path = Path.GetDirectoryName path)
-                watcher.Changed.Add(fun _ -> invalidateCallback())
-                watcher.Renamed.Add(fun _ -> invalidateCallback())
-                watcher.Deleted.Add(fun _ -> invalidateCallback())
-                watcher.EnableRaisingEvents <- true   
-                let task = Task.Factory.StartNew(fun () -> 
-                        use stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
-                        use reader = new StreamReader(stream)
-                        reader.ReadToEnd())
-                if not (task.Wait(TimeSpan.FromSeconds(1.))) then failwithf "Couldn't read command from file %s" path
-                task.Result, Some watcher 
-        | _ -> commandTextOrPath, None
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+[<AutoOpen>]
+module Configuration = 
+    let private guard = obj()
+    let private current = ref { SqlClient.Configuration.ResultsetRuntimeVerification = false }
 
-
-
-
-            
-  
+    type SqlClient.Configuration with
+        static member Current 
+            with get() = lock guard <| fun() -> !current
+            and set value = lock guard <| fun() -> current := value
