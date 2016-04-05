@@ -53,14 +53,14 @@ when runtime Sql Server database schema is different from compile time.
 Up until now this resulted in confusion runtime exception: `InvalidCastException("Specified cast is not valid.")`. 
 
 To improve diagnostics without hurting performance a new global singleton configuration object is introduced. 
-To access Configuration type open up FSharp.Data.SqlClient namespace. 
+To access `Configuration` type open up `FSharp.Data.SqlClient` namespace. 
 *)
 
 open FSharp.Data.SqlClient
 assert(Configuration.Current.ResultsetRuntimeVerification = false) 
 
 (**
-So far it has only one property ResultsetRuntimeVerification which set to false by default.
+So far it has only one property `ResultsetRuntimeVerification` which set to false by default.
 Set it to true to see more descriptive error like:
 
 `InvalidOperationException(Expected column [Total] of type "System.Int32" at position 1 (0-based indexing) 
