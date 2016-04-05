@@ -1,21 +1,29 @@
 
-#r "System.Transactions"
-open System.Data.SqlClient
-open System.Data
-
-open System
 open System.IO
-open System.Data
-open System.Data.SqlTypes
 
-[<Literal>]
-let connStr = "Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
-let conn = new SqlConnection(connStr)
-conn.Open()
-let cmd = new SqlCommand("SELECT 42", conn)
-let t = new DataTable()
-do 
-    use cursor = cmd.ExecuteReader(CommandBehavior.SingleRow)
-    t.Load cursor
+let releaseNotesfile = 
+    [| __SOURCE_DIRECTORY__; "..\..\.."; "RELEASE_NOTES.md" |]
+    |> Path.Combine    
+    |> Path.GetFullPath
 
-t.Rows.Count
+let release xs = 
+    let isStart(s: string) = s.StartsWith("####")
+
+    match xs with
+    | h :: t when isStart h -> 
+        let current = t |> List.takeWhile (not << isStart)
+        let upcoming = t |> List.skipWhile (not << isStart)
+        Some(h::current, upcoming)
+    | _ -> None
+
+let splitUpByRelease =
+    releaseNotesfile 
+    |> File.ReadAllLines 
+    |> Array.toList
+    |> Array.unfold release
+
+let reversed = splitUpByRelease |> Array.rev |> Array.collect Array.ofList
+    
+
+File.WriteAllLines(releaseNotesfile, reversed)
+
