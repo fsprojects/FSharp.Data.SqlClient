@@ -8,9 +8,10 @@ open FSharp.Data.SqlClient
 
 [<Sealed>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
-type DataTable<'T when 'T :> DataRow> private (tableName, knownSelectCommand, getDesignTimeConnection:Lazy<_>) = 
-    inherit DataTable(tableName)
+type DataTable<'T when 'T :> DataRow> (knownSelectCommandOrDesignTimeInfo) = 
+    inherit DataTable(match knownSelectCommandOrDesignTimeInfo with | Choice1Of2 (tableName, _) -> tableName | _ -> null)
 
+    let tableName = base.TableName
     let rows = base.Rows
     let getSelectCommand maybeRuntimeConnection maybeRuntimeTransaction =
         let makeSelectCommand connection = 
@@ -18,21 +19,17 @@ type DataTable<'T when 'T :> DataRow> private (tableName, knownSelectCommand, ge
             selectCommand.Connection <- connection
             selectCommand
 
-        if Option.isSome knownSelectCommand
-        then 
-            knownSelectCommand.Value
-        else
+        match knownSelectCommandOrDesignTimeInfo with
+        | Choice1Of2 (_, (getDesignTimeConnection:Lazy<_>)) ->
             match maybeRuntimeTransaction, maybeRuntimeConnection with
             | Some (tran:SqlTransaction), _ -> 
                 let command = makeSelectCommand tran.Connection
                 command.Transaction <- tran
                 command
             | None, Some connection ->  
-                makeSelectCommand connection
+                makeSelectCommand connection 
             | _ -> makeSelectCommand (getDesignTimeConnection.Value)
-
-    new (tableName, getDesignTimeConnection) = new DataTable<'T>(tableName, None, getDesignTimeConnection)
-    new (createCommand) = new DataTable<'T>(null, Some createCommand, lazy(createCommand.Connection))
+        | Choice2Of2 knownSelectCommand -> knownSelectCommand
 
     member __.Rows : IList<'T> = {
         new IList<'T> with
