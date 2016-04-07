@@ -227,14 +227,14 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
     
     static member internal ExecuteDataTable(cmd, getReaderBehavior, parameters, expectedDataReaderColumns) = 
         use cursor = ``ISqlCommand Implementation``.ExecuteReader(cmd, getReaderBehavior, parameters, expectedDataReaderColumns) 
-        let result = new FSharp.Data.DataTable<DataRow>(Choice2Of2 cmd)
+        let result = new FSharp.Data.DataTable<DataRow>(cmd)
         result.Load(cursor)
         result
 
     static member internal AsyncExecuteDataTable(cmd, getReaderBehavior, parameters, expectedDataReaderColumns) = 
         async {
             use! reader = ``ISqlCommand Implementation``.AsyncExecuteReader(cmd, getReaderBehavior, parameters, expectedDataReaderColumns) 
-            let result = new FSharp.Data.DataTable<DataRow>(Choice2Of2 cmd)
+            let result = new FSharp.Data.DataTable<DataRow>(cmd)
             result.Load(reader)
             return result
         }

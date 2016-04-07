@@ -8,28 +8,10 @@ open FSharp.Data.SqlClient
 
 [<Sealed>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
-type DataTable<'T when 'T :> DataRow> (knownSelectCommandOrDesignTimeInfo) = 
-    inherit DataTable(match knownSelectCommandOrDesignTimeInfo with | Choice1Of2 (tableName, _) -> tableName | _ -> null)
+type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionString: Lazy<string>) = 
+    inherit DataTable()
 
-    let tableName = base.TableName
     let rows = base.Rows
-    let getSelectCommand maybeRuntimeConnection maybeRuntimeTransaction =
-        let makeSelectCommand connection = 
-            let selectCommand = new SqlCommand("SELECT * FROM " + tableName)
-            selectCommand.Connection <- connection
-            selectCommand
-
-        match knownSelectCommandOrDesignTimeInfo with
-        | Choice1Of2 (_, (getDesignTimeConnection:Lazy<_>)) ->
-            match maybeRuntimeTransaction, maybeRuntimeConnection with
-            | Some (tran:SqlTransaction), _ -> 
-                let command = makeSelectCommand tran.Connection
-                command.Transaction <- tran
-                command
-            | None, Some connection ->  
-                makeSelectCommand connection 
-            | _ -> makeSelectCommand (getDesignTimeConnection.Value)
-        | Choice2Of2 knownSelectCommand -> knownSelectCommand
 
     member __.Rows : IList<'T> = {
         new IList<'T> with
@@ -56,9 +38,18 @@ type DataTable<'T when 'T :> DataRow> (knownSelectCommandOrDesignTimeInfo) =
 
     member __.NewRow(): 'T = downcast base.NewRow()
 
+    member private this.IsDirectTable = this.TableName <> null
+    
     member this.Update(?connection, ?transaction, ?batchSize) = 
         
-        let selectCommand = getSelectCommand connection transaction
+        connection |> Option.iter selectCommand.set_Connection
+        transaction |> Option.iter selectCommand.set_Transaction 
+        
+        if selectCommand.Connection = null && this.IsDirectTable 
+        then 
+            assert(connectionString.IsSome)
+            selectCommand.Connection <- new SqlConnection( connectionString.Value.Value)
+
         use dataAdapter = new SqlDataAdapter(selectCommand)
         use commandBuilder = new SqlCommandBuilder(dataAdapter) 
         use __ = dataAdapter.RowUpdating.Subscribe(fun args ->
@@ -85,24 +76,29 @@ type DataTable<'T when 'T :> DataRow> (knownSelectCommandOrDesignTimeInfo) =
                     cmd.UpdatedRowSource <- UpdateRowSource.FirstReturnedRecord
         )
 
-        connection |> Option.iter dataAdapter.SelectCommand.set_Connection
-        transaction |> Option.iter dataAdapter.SelectCommand.set_Transaction
         batchSize |> Option.iter dataAdapter.set_UpdateBatchSize
 
         dataAdapter.Update(this)
 
     member this.BulkCopy(?connection, ?copyOptions, ?transaction, ?batchSize, ?timeout: TimeSpan) = 
         
-        let selectCommand = getSelectCommand connection transaction
-        let connection = defaultArg connection selectCommand.Connection
-        use __ = connection.UseLocally()
-        use bulkCopy = 
-            new SqlBulkCopy(
-                connection, 
-                copyOptions = defaultArg copyOptions SqlBulkCopyOptions.Default, 
-                externalTransaction = defaultArg transaction selectCommand.Transaction
-            )
-        bulkCopy.DestinationTableName <- tableName
+        let conn', tran' = 
+            match connection, transaction with
+            | _, Some(t: SqlTransaction) -> t.Connection, t
+            | Some c, None -> c, null
+            | None, None ->
+                if this.IsDirectTable
+                then 
+                    assert(connectionString.IsSome)
+                    new SqlConnection(connectionString.Value.Value), null
+                else
+                    selectCommand.Connection, selectCommand.Transaction
+
+        use __ = conn'.UseLocally()
+        let options = defaultArg copyOptions SqlBulkCopyOptions.Default
+        use bulkCopy = new SqlBulkCopy(conn', options, tran')
+        bulkCopy.DestinationTableName <- this.TableName
         batchSize |> Option.iter bulkCopy.set_BatchSize
         timeout |> Option.iter (fun x -> bulkCopy.BulkCopyTimeout <- int x.TotalSeconds)
         bulkCopy.WriteToServer this
+
