@@ -79,6 +79,8 @@ type internal DesignTimeConnectionString =
                     else section.ConnectionString
             @@>
 
+    member this.IsDefinedByLiteral = match this with | Literal _ -> true | _ -> false
+
 //this is mess. Clean up later.
 type Configuration = {
     ResultsetRuntimeVerification: bool

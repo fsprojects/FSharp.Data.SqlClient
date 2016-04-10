@@ -454,7 +454,7 @@ type DesignTime private() =
 
         ]
 
-    static member GetCommandCtors(cmdProvidedType: ProvidedTypeDefinition, designTimeConfig, designTimeConnectionString, ?factoryMethodName) = 
+    static member internal GetCommandCtors(cmdProvidedType: ProvidedTypeDefinition, designTimeConfig, (designTimeConnectionString:DesignTimeConnectionString), isHostedExecution, ?factoryMethodName) = 
         [
             let ctorImpl = typeof<``ISqlCommand Implementation``>.GetConstructor [| typeof<DesignTimeConfig>; typeof<Connection>; typeof<int> |]
 
@@ -472,12 +472,20 @@ type DesignTime private() =
             then 
                 yield upcast ProvidedMethod(factoryMethodName.Value, parameters1, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body1)
            
-            let parameters2 = [ 
-                ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)
-                ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
-                ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
-            ]
+            let parameters2 = 
+                let connectionParameter = 
+                    if designTimeConnectionString.IsDefinedByLiteral then
+                        ProvidedParameter("connection", typeof<SqlConnection>)
+                    else
+                        ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)           
+            
+                connectionParameter ::
+                    [ 
+                        ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
+                        ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
+                    ]
 
+            let connectionStringExpr = designTimeConnectionString.RunTimeValueExpr(isHostedExecution)
             let body2 (args: _ list) =
                 let connArg = 
                     <@@ 
@@ -485,7 +493,7 @@ type DesignTime private() =
                         then Connection.Choice3Of3 %%args.[1]
                         elif box (%%args.[0]: SqlConnection) <> null 
                         then Connection.Choice2Of3 %%args.Head 
-                        else Connection.Choice1Of3( %%designTimeConnectionString)
+                        else Connection.Choice1Of3( %%connectionStringExpr)
                     @@>
                 Expr.NewObject(ctorImpl, [ designTimeConfig ; connArg; args.[2] ])
                     
