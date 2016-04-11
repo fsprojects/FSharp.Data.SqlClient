@@ -2,6 +2,7 @@ nuget/*.nupkg
 packages
 docs/output
 temp
+.vs/
 
 #################
 ## Eclipse
