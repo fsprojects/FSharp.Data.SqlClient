@@ -9,7 +9,6 @@ open System.IO
 open System.Reflection
 open System.Runtime.Caching
 open System.Data.SqlTypes
-
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
 
@@ -201,7 +200,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         yield! DesignTime.GetCommandCtors(
                             cmdProvidedType, 
                             designTimeConfig, 
-                            designTimeConnectionString.RunTimeValueExpr(config.IsHostedExecution)
+                            designTimeConnectionString,
+                            config.IsHostedExecution
                         )
 
                         let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, uddtsPerSchema)
@@ -565,7 +565,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         DesignTime.GetCommandCtors(
                             cmdProvidedType, 
                             designTimeConfig, 
-                            designTimeConnectionString.RunTimeValueExpr(config.IsHostedExecution),
+                            designTimeConnectionString,
+                            config.IsHostedExecution,
                             factoryMethodName = methodName
                         )
                     assert (ctorsAndFactories.Length = 4)

@@ -167,7 +167,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 DesignTime.GetCommandCtors(
                     cmdProvidedType, 
                     designTimeConfig, 
-                    designTimeConnectionString.RunTimeValueExpr(config.IsHostedExecution),
+                    designTimeConnectionString, 
+                    config.IsHostedExecution,
                     factoryMethodName = "Create"
                 )
                 |> cmdProvidedType.AddMembers
