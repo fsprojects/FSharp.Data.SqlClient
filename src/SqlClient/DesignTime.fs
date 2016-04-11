@@ -473,14 +473,12 @@ type DesignTime private() =
                 yield upcast ProvidedMethod(factoryMethodName.Value, parameters1, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body1)
            
             let parameters2 = 
-                let connectionParameter = 
-                    if designTimeConnectionString.IsDefinedByLiteral then
-                        ProvidedParameter("connection", typeof<SqlConnection>)
-                    else
-                        ProvidedParameter("connection", typeof<SqlConnection>, optionalValue = null)           
-            
-                connectionParameter ::
                     [ 
+                        ProvidedParameter(
+                            "connection", 
+                            typeof<SqlConnection>,
+                            ?optionalValue = if designTimeConnectionString.IsDefinedByLiteral then None else Some null
+                        )           
                         ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
                         ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
                     ]
