@@ -1,29 +1,23 @@
 
-open System.IO
+open System
 
-let releaseNotesfile = 
-    [| __SOURCE_DIRECTORY__; "..\..\.."; "RELEASE_NOTES.md" |]
-    |> Path.Combine    
-    |> Path.GetFullPath
+type Date(dt: DateTime) = 
+    member this.Year = dt.Year
+    member this.Month = dt.Month
+    member this.Day = dt.Day
 
-let release xs = 
-    let isStart(s: string) = s.StartsWith("####")
+    static member op_Implicit(x: DateTime) : Date = Date(x)
+    static member op_Implicit(x: Date) : DateTime = DateTime(x.Year, x.Month, x.Day)
 
-    match xs with
-    | h :: t when isStart h -> 
-        let current = t |> List.takeWhile (not << isStart)
-        let upcoming = t |> List.skipWhile (not << isStart)
-        Some(h::current, upcoming)
-    | _ -> None
+let now = DateTime.Now
 
-let splitUpByRelease =
-    releaseNotesfile 
-    |> File.ReadAllLines 
-    |> Array.toList
-    |> Array.unfold release
+let inline implicit arg =
+  ( ^a : (static member op_Implicit : ^b -> ^a) arg)
 
-let reversed = splitUpByRelease |> Array.rev |> Array.collect Array.ofList
-    
+Convert.ToDateTime(Date(now))
 
-File.WriteAllLines(releaseNotesfile, reversed)
+now |> box :> Date
+
+//Convert.ChangeType(Nullable 42, typeof<int>)
+Convert.ChangeType(42M, typeof<float>)
 

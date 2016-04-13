@@ -85,6 +85,7 @@
     <Compile Include="SqlClientProvider.fs" />
     <Compile Include="SqlEnumProvider.fs" />
     <None Include="Scripts\Scratchpad.fsx" />
+    <None Include="Scripts\ReverseLineOrderForNotex.fsx" />
     <None Include="Scripts\XE.fsx" />
     <None Include="packages.config" />
   </ItemGroup>
