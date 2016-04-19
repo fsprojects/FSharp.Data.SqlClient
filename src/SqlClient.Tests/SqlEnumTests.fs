@@ -3,7 +3,7 @@
 open System
 open Xunit
 
-type EnumMapping = SqlEnumProvider<"SELECT * FROM (VALUES(('One'), 1), ('Two', 2)) AS T(Tag, Value)", ConnectionStrings.LocalHost, CLIEnum = true>
+type EnumMapping = SqlEnumProvider<"SELECT * FROM (VALUES(('One'), 1), ('Two', 2)) AS T(Tag, Value)", ConnectionStrings.LocalHost, Kind = SqlEnumKind.CLI>
 
 [<Literal>]
 let connectionString = ConnectionStrings.LocalHost
@@ -88,3 +88,62 @@ let MoreThan2ColumnReturnsCorrectTuples() =
       |], 
       actual = Array.ofSeq MoreThan2Columns.Items
     )
+
+type CurrencyCode = 
+    SqlEnumProvider<"
+        SELECT CurrencyCode
+        FROM Sales.Currency 
+        WHERE CurrencyCode IN ('USD', 'EUR', 'GBP')
+    ", ConnectionStrings.AdventureWorksLiteral, Kind = SqlEnumKind.UnitsOfMeasure>
+
+[<Fact>]
+let ConvertUsdToGbp() =
+    let getLatestRate = new SqlCommandProvider<"
+        SELECT TOP 1 *
+        FROM Sales.CurrencyRate
+        WHERE FromCurrencyCode = @fromCurrency
+	        AND ToCurrencyCode = @toCurrency 
+        ORDER BY CurrencyRateDate DESC
+        ", ConnectionStrings.AdventureWorksNamed, SingleRow = true>()
+    let rate = 
+        getLatestRate.Execute(fromCurrency = "USD", toCurrency = "GBP")
+        |> Option.map(fun x -> x.AverageRate * 1M<CurrencyCode.GBP/CurrencyCode.USD>)
+        |> Option.get
+
+    let actual = 42M<CurrencyCode.USD> * rate
+    let expected = 26.5986M<CurrencyCode.GBP>
+    Assert.Equal( expected, actual)
+
+type ProductsUnitsOfMeasure = SqlEnumProvider<"SELECT UnitMeasureCode FROM Production.UnitMeasure", ConnectionStrings.AdventureWorksLiteral, Kind = SqlEnumKind.UnitsOfMeasure>
+type ProductCategory = SqlEnumProvider<"SELECT Name FROM Production.ProductCategory", ConnectionStrings.AdventureWorksLiteral>
+
+type Bikes = {
+    Id: int
+    Name: string
+    Weight: decimal<ProductsUnitsOfMeasure.``LB ``> option
+    Size: float<ProductsUnitsOfMeasure.``CM ``> option
+}
+
+[<Fact>]
+let ProductWeightAndSizeUnitsOfMeasure() =
+    let allBikes = [
+        use cmd = 
+            new SqlCommandProvider<"
+                SELECT ProductID, Product.Name, Size, SizeUnitMeasureCode, Weight, WeightUnitMeasureCode
+                FROM Production.Product 
+	                JOIN Production.ProductCategory ON ProductSubcategoryID = ProductCategoryID  
+                WHERE ProductCategory.Name = @category
+            ", ConnectionStrings.AdventureWorksNamed>()
+                
+        for x in cmd.Execute(ProductCategory.Bikes) do
+            yield {
+                Id = x.ProductID
+                Name = x.Name
+                Weight = x.Weight |> Option.map(fun weight -> weight * 1M<_>)
+                Size = x.Size |> Option.map(fun size -> size |> float |> LanguagePrimitives.FloatWithMeasure )
+            }
+    ]
+
+    let bigBikes = allBikes |> List.choose ( fun x -> if x.Size = Some 52.<ProductsUnitsOfMeasure.``CM ``> then Some x.Name else None)
+
+    Assert.Equal<_ list>( ["Mountain-500 Silver, 52"; "Mountain-500 Black, 52"], bigBikes)
