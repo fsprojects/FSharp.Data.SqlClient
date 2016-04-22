@@ -17,6 +17,11 @@ open ProviderImplementation.ProvidedTypes
 
 open FSharp.Data.SqlClient
 
+type SqlEnumKind = 
+    | Default = 0
+    | CLI = 1
+    | UnitsOfMeasure = 2
+
 [<TypeProvider>]
 type public SqlEnumProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces()
@@ -49,7 +54,7 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
                 ProvidedStaticParameter("Provider", typeof<string>, "System.Data.SqlClient") 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
-                ProvidedStaticParameter("CLIEnum", typeof<bool>, false) 
+                ProvidedStaticParameter("Kind", typeof<SqlEnumKind>, SqlEnumKind.Default) 
             ],             
             instantiationFunction = (fun typeName args ->   
                 cache.GetOrAdd(typeName, lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4]))
@@ -62,12 +67,12 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
 <param name='ConnectionString'>String used to open a data connection.</param>
 <param name='Provider'>Invariant name of a ADO.NET provider. Default is "System.Data.SqlClient".</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
-<param name='CLIEnum'>Generate standard CLI Enum. Default is false.</param>
+<param name='Kind'></param>
 """
 
         this.AddNamespace( nameSpace, [ providerType ])
     
-    member internal this.CreateRootType( typeName, query, connectionStringOrName, provider, configFile, cliEnum) = 
+    member internal this.CreateRootType( typeName, query, connectionStringOrName, provider, configFile, kind: SqlEnumKind) = 
         let tempAssembly = ProvidedAssembly( Path.ChangeExtension(Path.GetTempFileName(), ".dll"))
 
         let providedEnumType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true, IsErased = false)
@@ -147,8 +152,8 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
         |> Seq.groupBy id 
         |> Seq.iter (fun (key, xs) -> if Seq.length xs > 1 then failwithf "Non-unique label %s." key)
 
-        if cliEnum
-        then 
+        match kind with 
+        | SqlEnumKind.CLI ->
 
             if not( allowedTypesForEnum.Contains( valueType))
             then failwithf "Enumerated types can only have one of the following underlying types: %A." [| for t in allowedTypesForEnum -> t.Name |]
@@ -160,7 +165,19 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
             ||> List.map2 (fun name value -> ProvidedLiteralField(name, providedEnumType, fst value))
             |> providedEnumType.AddMembers
 
-        else
+        | SqlEnumKind.UnitsOfMeasure ->
+
+            for name in names do
+                let units = ProvidedTypeDefinition( name, None, IsErased = false)
+                units.AddCustomAttribute { 
+                    new CustomAttributeData() with
+                        member __.Constructor = typeof<MeasureAttribute>.GetConstructor [||]
+                        member __.ConstructorArguments = upcast Array.empty
+                        member __.NamedArguments = upcast Array.empty
+                }
+                providedEnumType.AddMember units
+
+        | _ -> 
             let valueFields, setFieldValues = 
                 (names, values) ||> List.map2 (fun name value -> 
                     if allowedTypesForLiteral.Contains valueType
