@@ -176,38 +176,28 @@ let rec parseDefaultValue (definition: string) (expr: Microsoft.SqlServer.Transa
         | _  -> None 
     | _ -> None 
 
-type Routine = 
-    | StoredProcedure of schema: string * name: string * definition: string * description: string option
-    | TableValuedFunction of schema: string * name: string * definition: string * description: string option
-    | ScalarValuedFunction of schema: string * name: string * definition: string * description: string option
+type internal RoutineType = StoredProcedure | TableValuedFunction | ScalarValuedFunction
 
-    member this.Definition = 
-        match this with
-        | StoredProcedure(_, _, definition, _) 
-        | TableValuedFunction(_, _, definition, _) 
-        | ScalarValuedFunction(_, _, definition, _) -> definition
+type internal Routine = {
+    Type: RoutineType
+    Schema: string
+    Name: string
+    Definition: string
+    Description: string option
+    BaseObject: string * string
+}   with
 
-    member this.Description = 
-        match this with
-        | StoredProcedure(_, _, _, description) 
-        | TableValuedFunction(_, _, _, description) 
-        | ScalarValuedFunction(_, _, _, description) -> description
+    member this.TwoPartName = this.Schema, this.Name
 
-    member this.TwoPartName = 
-        match this with
-        | StoredProcedure(schema, name, _, _) 
-        | TableValuedFunction(schema, name, _, _) 
-        | ScalarValuedFunction(schema, name, _, _) -> schema, name
-
-    member this.IsStoredProc = match this with StoredProcedure _ -> true | _ -> false
+    member this.IsStoredProc = this.Type = StoredProcedure 
     
     member this.ToCommantText(parameters: Parameter list) = 
         let twoPartNameIdentifier = sprintf "%s.%s" <|| this.TwoPartName
-        match this with 
-        | StoredProcedure _-> twoPartNameIdentifier
-        | TableValuedFunction _ -> 
+        match this.Type with 
+        | StoredProcedure -> twoPartNameIdentifier
+        | TableValuedFunction -> 
             parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT * FROM %s(%s)" twoPartNameIdentifier
-        | ScalarValuedFunction _ ->     
+        | ScalarValuedFunction ->     
             parameters |> List.map (fun p -> p.Name) |> String.concat ", " |> sprintf "SELECT %s(%s)" twoPartNameIdentifier
 
 let internal providerTypes = 
@@ -305,30 +295,82 @@ type SqlConnection with
             then 
                 "(SELECT NULL AS Value)"
             else 
-                "fn_listextendedproperty ('MS_Description', 'schema', SPECIFIC_SCHEMA, ROUTINE_TYPE, SPECIFIC_NAME, default, default)" 
+                "fn_listextendedproperty ('MS_Description', 'schema', BaseObjectSchema, ROUTINE_TYPE, BaseObjectName, default, default)" 
 
-        let getRoutinesQuery = sprintf "
-            SELECT 
-                SPECIFIC_SCHEMA
-                ,SPECIFIC_NAME
-                ,DATA_TYPE
-                ,DEFINITION = ISNULL( OBJECT_DEFINITION( OBJECT_ID( SPECIFIC_SCHEMA + '.' + SPECIFIC_NAME)), '')  
-	            ,DESCRIPTION = XProp.Value
-            FROM 
-                INFORMATION_SCHEMA.ROUTINES 
-                OUTER APPLY %s AS XProp
-            WHERE 
-                ROUTINE_SCHEMA = '%s'" descriptionSelector schema
+        let getRoutinesQuery = 
+            sprintf "
+                WITH ExplicitRoutines AS
+                (
+	                SELECT 
+		                SPECIFIC_SCHEMA AS [Schema]
+		                ,SPECIFIC_NAME AS Name
+		                ,ROUTINE_TYPE
+		                ,DATA_TYPE
+		                ,SPECIFIC_SCHEMA AS BaseObjectSchema
+		                ,SPECIFIC_NAME AS BaseObjectName
+	                FROM 
+		                INFORMATION_SCHEMA.ROUTINES 
+                ),
+                Synonyms AS
+                (
+	                SELECT 
+		                OBJECT_SCHEMA_NAME(object_id) AS [Schema]
+		                ,name AS Name
+		                ,ROUTINE_TYPE
+		                ,DATA_TYPE
+		                ,SPECIFIC_SCHEMA AS BaseObjectSchema
+		                ,SPECIFIC_NAME AS BaseObjectName
+	                FROM 
+		                sys.synonyms
+		                JOIN INFORMATION_SCHEMA.ROUTINES ON 
+			                OBJECT_ID(ROUTINES.ROUTINE_SCHEMA + '.' + ROUTINES.ROUTINE_NAME) = OBJECT_ID(base_object_name)
+                )
+                SELECT 
+	                XS.[Schema]
+	                ,XS.Name
+	                ,RoutineSubType = 
+		                CASE  
+			                WHEN XS.DATA_TYPE = 'TABLE' THEN 'TableValuedFunction'
+			                WHEN XS.DATA_TYPE IS NULL THEN 'StoredProcedure'
+			                ELSE 'ScalarValuedFunction'
+		                END
+	                ,ISNULL( OBJECT_DEFINITION( OBJECT_ID( XS.BaseObjectSchema + '.' + XS.BaseObjectName)), '') AS [Definition]
+	                ,XS.BaseObjectSchema
+	                ,XS.BaseObjectName
+	                ,[Description] = XProp.Value
+                FROM 
+	                (
+		                SELECT * FROM ExplicitRoutines
+		                UNION ALL
+		                SELECT * FROM Synonyms
+	                ) AS XS
+                    OUTER APPLY %s AS XProp
+                WHERE	
+	                [Schema] = @schema            
+            " descriptionSelector 
 
         use cmd = new SqlCommand(getRoutinesQuery, this)
+        cmd.Parameters.AddWithValue("@schema", schema) |> ignore
+
         cmd.ExecuteQuery(fun x ->
-            let schema, name = unbox x.["SPECIFIC_SCHEMA"], unbox x.["SPECIFIC_NAME"]
-            let definition = unbox x.["DEFINITION"]
-            let description = x.TryGetValue( "DESCRIPTION")
-            match x.["DATA_TYPE"] with
-            | :? string as x when x = "TABLE" -> TableValuedFunction(schema, name, definition, description)
-            | :? DBNull -> StoredProcedure(schema, name, definition, description)
-            | _ -> ScalarValuedFunction(schema, name, definition, description)
+            let schema, name = unbox x.["Schema"], unbox x.["Name"]
+            let definition = unbox x.["Definition"]
+            let description = x.TryGetValue( "Description")
+            let routineType =  
+                match string x.["RoutineSubType"] with
+                | "TableValuedFunction" -> TableValuedFunction
+                | "StoredProcedure" -> StoredProcedure
+                | "ScalarValuedFunction" -> ScalarValuedFunction
+                | unexpected -> failwithf "Unexpected database routine type: %s." unexpected
+
+            { 
+                Type = routineType 
+                Schema = schema
+                Name = name
+                Definition = definition
+                Description = description 
+                BaseObject = unbox x.["BaseObjectSchema"], unbox x.["BaseObjectName"]
+            }
         ) 
         |> Seq.toArray
             
@@ -377,7 +419,7 @@ type SqlConnection with
                 OUTER APPLY %s AS XProp
             WHERE
                 p.Name <> '' 
-                AND OBJECT_ID('%s.%s') = object_id" descriptionSelector <|| routine.TwoPartName
+                AND OBJECT_ID('%s.%s') = object_id" descriptionSelector <|| routine.BaseObject
 
         [
             use cmd = new SqlCommand( query, this)

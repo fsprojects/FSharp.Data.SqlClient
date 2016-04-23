@@ -241,6 +241,34 @@ let ResultSetAndOutParam() =
     Assert.Equal<_ list>([ Some "donkey" ], [ for x in result -> x.myName ] )
     Assert.Equal(2L, !total)
 
+[<Fact>]
+let TVFSynonym() = 
+    let personId = 42
+    let actual = 
+        use cmd = new AdventureWorks.HumanResources.GetContactInformation()
+        cmd.ExecuteSingle(personId)
+        |> Option.map(fun x -> x.FirstName, x.LastName)
+
+    let expected = 
+        use cmd = new GetContactInformation()
+        cmd.ExecuteSingle(personId)
+        |> Option.map(fun x -> x.FirstName, x.LastName)
+
+    Assert.Equal(expected, actual)
+
+[<Fact>]
+let SPSynonym() = 
+    let personId = 42
+    let actual = 
+        use cmd = new AdventureWorks.HumanResources.GetEmployeeManagers()
+        [ for x in cmd.Execute(personId) -> sprintf "%A.%A" x.FirstName x.LastName ]
+
+    let expected = 
+        use cmd = new AdventureWorks.dbo.uspGetEmployeeManagers()
+        [ for x in cmd.Execute(personId) -> sprintf "%A.%A" x.FirstName x.LastName ]
+
+    Assert.Equal<_ list>(expected, actual)
+
 module ReturnValues = 
     type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksNamed, UseReturnValue = true>
 

@@ -61,6 +61,13 @@ IF OBJECT_ID(N'dbo.TableHavingColumnNamesWithSpaces') IS NOT NULL
 	DROP TABLE dbo.TableHavingColumnNamesWithSpaces
 GO
 
+IF OBJECT_ID(N'HumanResources.GetContactInformation') IS NOT NULL
+	DROP SYNONYM HumanResources.GetContactInformation
+GO
+
+IF OBJECT_ID(N'HumanResources.GetEmployeeManagers') IS NOT NULL
+	DROP SYNONYM HumanResources.GetEmployeeManagers
+GO
 
 CREATE PROCEDURE dbo.AddRef @x AS INT, @y AS INT, @sum AS INT OUTPUT 
 AS
@@ -191,5 +198,11 @@ BEGIN
 	SELECT myId, myName FROM @p1 WHERE myName IS NOT NULL
 END
 
+GO
+
+CREATE SYNONYM HumanResources.GetContactInformation FOR dbo.ufnGetContactInformation;
+GO
+
+CREATE SYNONYM HumanResources.GetEmployeeManagers FOR dbo.uspGetEmployeeManagers;
 GO
 
