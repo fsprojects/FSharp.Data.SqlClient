@@ -9,15 +9,14 @@ open FSharp.Data
 open FSharp.Data.SqlClient
 open Xunit
 
-open ProgrammabilityTest
-
+type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksNamed>
 //Tables types structured as: [TypeAlias].[Namespace].Tables.[TableName]
 type ShiftTable = AdventureWorks.HumanResources.Tables.Shift
 type ProductCostHistory = AdventureWorks.Production.Tables.ProductCostHistory
 
 type GetRowCount = SqlCommandProvider<"SELECT COUNT(*) FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, SingleRow = true>
 type GetShiftTableData = SqlCommandProvider<"SELECT * FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, ResultType.DataReader>
-
+type GetArbitraryDataAsDataTable = SqlCommandProvider<"select 1 a, 2 b, 3 c", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>
 type DataTablesTests() = 
 
     do
@@ -270,3 +269,11 @@ type DataTablesTests() =
         let t = new AdventureWorks.dbo.Tables.TableHavingColumnNamesWithSpaces()
         t.AddRow()
         Assert.Equal(1, t.Update())
+
+    [<Fact>]
+    member __.``Can use Table type when ResultType = ResultType.DataTable`` () =
+      let t : GetArbitraryDataAsDataTable.Table = (new GetArbitraryDataAsDataTable()).Execute()
+      Assert.NotNull(t)
+      Assert.Equal(1, t.Rows.[0].a)
+      Assert.Equal(2, t.Rows.[0].b)
+      Assert.Equal(3, t.Rows.[0].c)
