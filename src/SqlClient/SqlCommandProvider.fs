@@ -141,11 +141,11 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         do  
             cmdProvidedType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
 
-        do  
-            //for ResultType.Record and ResultType.DataTable
-            output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
-            
-            if resultType = ResultType.DataTable then
+        do
+            if resultType = ResultType.Records then
+                // Add .Record
+                output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
+            elif resultType = ResultType.DataTable then
                 // add .Table
                 output.ProvidedType |>  cmdProvidedType.AddMember
 

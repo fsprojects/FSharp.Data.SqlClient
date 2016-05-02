@@ -191,6 +191,10 @@ type DesignTime private() =
         then
             let dataRowType = DesignTime.GetDataRowType outputColumns
             let dataTableType = DesignTime.GetDataTableType dataRowType 
+            
+            // add .Row to .Table
+            dataTableType.AddMember dataRowType
+
             {
                 ProvidedType = dataTableType
                 ErasedToType = typeof<DataTable<DataRow>>
