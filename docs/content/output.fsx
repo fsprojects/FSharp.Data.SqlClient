@@ -113,14 +113,6 @@ let table = (new QueryPersonInfoSingletoneDataTable()).AsyncExecute(PersonId = 2
 for row in table.Rows do
     printfn "Person info:Id - %i,FirstName - %O,LastName - %O" row.PersonID row.FirstName row.LastName 
 
-// you can refer to the table type
-let table2 : QueryPersonInfoSingletoneDataTable.Table = (new QueryPersonInfoSingletoneDataTable()).Execute(PersonId = 2)
-
-// you can refer to the row type
-for row : QueryPersonInfoSingletoneDataTable.Table.Row in table2.Rows do
-    printfn "Person info:Id - %i,FirstName - %O,LastName - %O" row.PersonID row.FirstName row.LastName 
-
-
 (**
 
  * Same as previous but using `SqlProgrammabilityProvider<...>`

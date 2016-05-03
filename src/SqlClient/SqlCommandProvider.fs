@@ -141,13 +141,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         do  
             cmdProvidedType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
 
-        do
-            if resultType = ResultType.Records then
-                // Add .Record
-                output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
-            elif resultType = ResultType.DataTable then
-                // add .Table
-                output.ProvidedType |>  cmdProvidedType.AddMember
+        do  //Record
+            output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
 
         do  //ctors
             let designTimeConfig = 
