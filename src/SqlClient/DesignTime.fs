@@ -150,7 +150,7 @@ type DesignTime private() =
         recordType.AddMember ctor
         
         recordType    
-    
+
     static member internal GetDataRowType (columns: Column list) = 
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
 
@@ -176,9 +176,9 @@ type DesignTime private() =
         rowType
 
     static member internal GetDataTableType dataRowType =
-      let tableType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ dataRowType ])
-      let tableProvidedType = ProvidedTypeDefinition("Table", Some tableType)
-      tableProvidedType
+        let tableType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ dataRowType ])
+        let tableProvidedType = ProvidedTypeDefinition("Table", Some tableType)
+        tableProvidedType
 
     static member internal GetOutputTypes (outputColumns: Column list, resultType, rank: ResultRank, hasOutputParameters) =    
         if resultType = ResultType.DataReader 

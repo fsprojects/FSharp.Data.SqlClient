@@ -118,7 +118,7 @@ let table2 : QueryPersonInfoSingletoneDataTable.Table = (new QueryPersonInfoSing
 
 // you can refer to the row type
 for row : QueryPersonInfoSingletoneDataTable.Table.Row in table2.Rows do
-  printfn "Person info:Id - %i,FirstName - %O,LastName - %O" row.PersonID row.FirstName row.LastName 
+    printfn "Person info:Id - %i,FirstName - %O,LastName - %O" row.PersonID row.FirstName row.LastName 
 
 
 (**
