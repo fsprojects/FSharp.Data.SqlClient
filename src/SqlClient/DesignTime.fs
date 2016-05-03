@@ -12,15 +12,13 @@ open FSharp.Data
 
 type internal ResultTypes = {
     ProvidedType : Type
-    ErasedToType : Type
     ProvidedRowType : ProvidedTypeDefinition option
-    ErasedToRowType : Type 
+    ErasedToRowType : Type
     RowMapping : Expr
 }   with
 
-    static member SingleTypeResult(provided, ?erasedTo)  = { 
+    static member SingleTypeResult( provided)  = { 
         ProvidedType = provided
-        ErasedToType = defaultArg erasedTo provided
         ProvidedRowType = None
         ErasedToRowType = typeof<Void>
         RowMapping = Expr.Value Unchecked.defaultof<RowMapping> 
@@ -197,7 +195,6 @@ type DesignTime private() =
 
             {
                 ProvidedType = dataTableType
-                ErasedToType = typeof<DataTable<DataRow>>
                 ProvidedRowType = Some dataRowType
                 ErasedToRowType = typeof<Void>
                 RowMapping = Expr.Value Unchecked.defaultof<RowMapping> 
@@ -255,7 +252,6 @@ type DesignTime private() =
                     if providedRowType.IsSome && genericOutputType.IsSome
                     then ProvidedTypeBuilder.MakeGenericType(genericOutputType.Value, [ providedRowType.Value ])
                     else erasedToType
-                ErasedToType = erasedToType
                 ProvidedRowType = providedRowType
                 ErasedToRowType = erasedToRowType
                 RowMapping = Expr.Call( combineWithNullsToOptions, [ nullsToOptions; rowMapping ])

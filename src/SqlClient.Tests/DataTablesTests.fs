@@ -274,7 +274,7 @@ type DataTablesTests() =
     [<Fact>]
     member __.``Can use Table type when ResultType = ResultType.DataTable`` () =
         let t : GetArbitraryDataAsDataTable.Table = (new GetArbitraryDataAsDataTable()).Execute()
-        for (r: GetArbitraryDataAsDataTable.Table.Row) in t.Rows do
+        for (_: GetArbitraryDataAsDataTable.Table.Row) in t.Rows do
             ()
 
         Assert.NotNull(t)
