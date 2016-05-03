@@ -12,15 +12,13 @@ open FSharp.Data
 
 type internal ResultTypes = {
     ProvidedType : Type
-    ErasedToType : Type
     ProvidedRowType : ProvidedTypeDefinition option
-    ErasedToRowType : Type 
+    ErasedToRowType : Type
     RowMapping : Expr
 }   with
 
-    static member SingleTypeResult(provided, ?erasedTo)  = { 
+    static member SingleTypeResult( provided)  = { 
         ProvidedType = provided
-        ErasedToType = defaultArg erasedTo provided
         ProvidedRowType = None
         ErasedToRowType = typeof<Void>
         RowMapping = Expr.Value Unchecked.defaultof<RowMapping> 
@@ -175,6 +173,11 @@ type DesignTime private() =
 
         rowType
 
+    static member internal GetDataTableType dataRowType =
+        let tableType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ dataRowType ])
+        let tableProvidedType = ProvidedTypeDefinition("Table", Some tableType)
+        tableProvidedType
+
     static member internal GetOutputTypes (outputColumns: Column list, resultType, rank: ResultRank, hasOutputParameters) =    
         if resultType = ResultType.DataReader 
         then 
@@ -185,10 +188,13 @@ type DesignTime private() =
         elif resultType = ResultType.DataTable 
         then
             let dataRowType = DesignTime.GetDataRowType outputColumns
+            let dataTableType = DesignTime.GetDataTableType dataRowType 
+            
+            // add .Row to .Table
+            dataTableType.AddMember dataRowType
 
             {
-                ProvidedType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ dataRowType ])
-                ErasedToType = typeof<DataTable<DataRow>>
+                ProvidedType = dataTableType
                 ProvidedRowType = Some dataRowType
                 ErasedToRowType = typeof<Void>
                 RowMapping = Expr.Value Unchecked.defaultof<RowMapping> 
@@ -226,7 +232,6 @@ type DesignTime private() =
 
                     let tupleTypeName = tupleType.PartialAssemblyQualifiedName
                     None, tupleType, <@@ Microsoft.FSharp.Reflection.FSharpValue.PreComputeTupleConstructor (Type.GetType (tupleTypeName))  @@>
-                    //None, tupleType, <@@ fun values -> Type.GetType(tupleTypeName, throwOnError = true).GetConstructors().[0].Invoke(values) @@>
             
             let nullsToOptions = QuotationsFactory.MapArrayNullableItems(outputColumns, "MapArrayObjItemToOption") 
             let combineWithNullsToOptions = typeof<QuotationsFactory>.GetMethod("GetMapperWithNullsToOptions") 
@@ -241,13 +246,12 @@ type DesignTime private() =
                     Some( typedefof<_ option>), typedefof<_ option>.MakeGenericType([| erasedToRowType |])
                 else //ResultRank.ScalarValue
                     None, erasedToRowType
-                          
+
             {
                 ProvidedType = 
                     if providedRowType.IsSome && genericOutputType.IsSome
                     then ProvidedTypeBuilder.MakeGenericType(genericOutputType.Value, [ providedRowType.Value ])
                     else erasedToType
-                ErasedToType = erasedToType
                 ProvidedRowType = providedRowType
                 ErasedToRowType = erasedToRowType
                 RowMapping = Expr.Call( combineWithNullsToOptions, [ nullsToOptions; rowMapping ])
