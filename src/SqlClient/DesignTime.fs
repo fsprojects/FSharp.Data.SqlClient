@@ -175,10 +175,34 @@ type DesignTime private() =
 
         rowType
 
-    static member internal GetDataTableType dataRowType =
-        let tableType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ dataRowType ])
-        let tableProvidedType = ProvidedTypeDefinition("Table", Some tableType)
-        tableProvidedType
+    static member internal GetDataTableType dataRowType (outputColumns: Column list) =
+      let tableType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ dataRowType ])
+      let tableProvidedType = ProvidedTypeDefinition("Table", Some tableType)
+      
+      let columnsType = ProvidedTypeDefinition("Columns", Some typeof<DataColumnCollection>)
+      let columnsProperty = ProvidedProperty("Columns", columnsType)
+      tableProvidedType.AddMember columnsType
+      columnsProperty.GetterCode <-
+        fun args -> 
+          <@@
+            let table : DataTable<DataRow> = %%args.[0]
+            table.Columns
+          @@>
+
+      tableProvidedType.AddMember columnsProperty
+      
+      for column in outputColumns do
+        let property = ProvidedProperty(column.Name, typeof<DataColumn>)
+        property.GetterCode <- fun args -> 
+          let columnName = column.Name
+          <@@ 
+            let columns : DataColumnCollection = %%args.[0]
+            let column = columns.[columnName]
+            column
+          @@>
+        columnsType.AddMember property        
+
+      tableProvidedType
 
     static member internal GetOutputTypes (outputColumns: Column list, resultType, rank: ResultRank, hasOutputParameters) =    
         if resultType = ResultType.DataReader 
@@ -190,7 +214,7 @@ type DesignTime private() =
         elif resultType = ResultType.DataTable 
         then
             let dataRowType = DesignTime.GetDataRowType outputColumns
-            let dataTableType = DesignTime.GetDataTableType dataRowType 
+            let dataTableType = DesignTime.GetDataTableType dataRowType outputColumns
             
             // add .Row to .Table
             dataTableType.AddMember dataRowType

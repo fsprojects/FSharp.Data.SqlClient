@@ -17,7 +17,7 @@ type ProductCostHistory = AdventureWorks.Production.Tables.ProductCostHistory
 
 type GetRowCount = SqlCommandProvider<"SELECT COUNT(*) FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, SingleRow = true>
 type GetShiftTableData = SqlCommandProvider<"SELECT * FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, ResultType.DataReader>
-type GetArbitraryDataAsDataTable = SqlCommandProvider<"select 1 a, 2 b, 3 c", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>
+type GetArbitraryDataAsDataTable = SqlCommandProvider<"select 1 a, 2 b, 3 c, cast(null as int) d", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>
 type DataTablesTests() = 
 
     do
@@ -274,10 +274,23 @@ type DataTablesTests() =
     [<Fact>]
     member __.``Can use Table type when ResultType = ResultType.DataTable`` () =
         let t : GetArbitraryDataAsDataTable.Table = (new GetArbitraryDataAsDataTable()).Execute()
-        for (r: GetArbitraryDataAsDataTable.Table.Row) in t.Rows do
+        for (_: GetArbitraryDataAsDataTable.Table.Row) in t.Rows do
             ()
 
         Assert.NotNull(t)
         Assert.Equal(1, t.Rows.[0].a)
         Assert.Equal(2, t.Rows.[0].b)
         Assert.Equal(3, t.Rows.[0].c)
+        Assert.Equal(None, t.Rows.[0].d)
+
+    [<Fact>]
+    member __.``Can use datacolumns and access like a normal DataRow`` () =
+        let t = (new GetArbitraryDataAsDataTable()).Execute()
+        let r = t.Rows.[0]
+      
+        Assert.Equal(1, r.[t.Columns.a] :?> int)
+        Assert.Equal(2, r.[t.Columns.b] :?> int)
+        Assert.Equal(3, r.[t.Columns.c] :?> int)
+        // getting value same way as a plain datatable still yields DBNull
+        Assert.Equal(DBNull.Value, r.[t.Columns.d] :?> DBNull)
+
