@@ -158,8 +158,8 @@ type DesignTime private() =
             let setter = QuotationsFactory.GetBody("SetNullableValueInDataRow", column.TypeInfo.ClrType, name)
             getter, setter
         else
-            let getter = fun (args: _ list) -> <@@ (%%args.[0] : DataRow).[name] @@>
-            let setter = fun (args: _ list) -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
+            let getter = QuotationsFactory.GetBody("GetNonNullableValueFromDataRow", column.TypeInfo.ClrType, name)
+            let setter = QuotationsFactory.GetBody("SetNonNullableValueInDataRow", column.TypeInfo.ClrType, name)
             getter, setter
 
     static member internal GetDataRowType (columns: Column list) = 
@@ -175,6 +175,8 @@ type DesignTime private() =
             let property = ProvidedProperty(col.Name, propertyType, GetterCode = getter)
 
             if not col.ReadOnly then
+              // only expose a setter if the column is not readonly
+              // note: if this is an issue, we always expose a SetValue method on the typed DataColumn itself
               property.SetterCode <- setter
             
             property
