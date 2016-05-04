@@ -149,27 +149,35 @@ type DesignTime private() =
             @@> 
         recordType.AddMember ctor
         
-        recordType    
+        recordType
+
+    static member internal GetDataRowPropertyGetterAndSetterCode (column: Column) =
+        let name = column.Name
+        if column.Nullable then
+            let getter = QuotationsFactory.GetBody("GetNullableValueFromDataRow", column.TypeInfo.ClrType, name)
+            let setter = QuotationsFactory.GetBody("SetNullableValueInDataRow", column.TypeInfo.ClrType, name)
+            getter, setter
+        else
+            let getter = fun (args: _ list) -> <@@ (%%args.[0] : DataRow).[name] @@>
+            let setter = fun (args: _ list) -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
+            getter, setter
 
     static member internal GetDataRowType (columns: Column list) = 
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
 
-        columns |> List.mapi( fun i col ->
-            let name = col.Name
-            if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
+        columns |> List.mapi(fun i col ->
+
+            if col.Name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
 
             let propertyType = col.ClrTypeConsideringNullable
-            if col.Nullable 
-            then
-                let property = ProvidedProperty(name, propertyType, GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", col.TypeInfo.ClrType, name))
-                if not col.ReadOnly
-                then property.SetterCode <- QuotationsFactory.GetBody("SetNullableValueInDataRow", col.TypeInfo.ClrType, name)
-                property
-            else
-                let property = ProvidedProperty(name, propertyType, GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>))
-                if not col.ReadOnly
-                then property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
-                property
+
+            let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode col
+            let property = ProvidedProperty(col.Name, propertyType, GetterCode = getter)
+
+            if not col.ReadOnly then
+              property.SetterCode <- setter
+            
+            property
         )
         |> rowType.AddMembers
 
