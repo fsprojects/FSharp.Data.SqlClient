@@ -186,70 +186,71 @@ type DesignTime private() =
         rowType
 
     static member internal GetDataTableType dataRowType (outputColumns: Column list) =
-      let tableType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ dataRowType ])
-      let tableProvidedType = ProvidedTypeDefinition("Table", Some tableType)
+        let tableType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ dataRowType ])
+        let tableProvidedType = ProvidedTypeDefinition("Table", Some tableType)
       
-      let columnsType = ProvidedTypeDefinition("Columns", Some typeof<DataColumnCollection>)
-      let columnsProperty = ProvidedProperty("Columns", columnsType)
-      tableProvidedType.AddMember columnsType
-      columnsProperty.GetterCode <-
-        fun args -> 
-          <@@
-            let table : DataTable<DataRow> = %%args.[0]
-            table.Columns
-          @@>
-
-      tableProvidedType.AddMember columnsProperty
-      
-      for column in outputColumns do
-        let propertyType = ProvidedTypeDefinition(column.Name, Some typeof<DataColumn>)
-        let property = ProvidedProperty(column.Name, propertyType)
-        property.GetterCode <- fun args -> 
-          let columnName = column.Name
-          <@@ 
-            let columns : DataColumnCollection = %%args.[0]
-            let column = columns.[columnName]
-            column
-          @@>
-
-        let getValueMethod =
-            ProvidedMethod(
-                "GetValue"
-                , [ProvidedParameter("row", dataRowType)]
-                , column.ClrTypeConsideringNullable
-            )
+        let columnsType = ProvidedTypeDefinition("Columns", Some typeof<DataColumnCollection>)
+        let columnsProperty = ProvidedProperty("Columns", columnsType)
+        tableProvidedType.AddMember columnsType
         
-        let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode(column)
-
-        getValueMethod.InvokeCode <- 
+        columnsProperty.GetterCode <-
             fun args -> 
-                // we don't care of args.[0] (the DataColumn) because getter code is already made for that column
-                getter args.Tail
-           
-        let setValueMethod =
-            ProvidedMethod(
-                "SetValue"
-                , [
-                    ProvidedParameter("row", dataRowType)
-                    ProvidedParameter("value", column.ClrTypeConsideringNullable)
-                ]
-                , typeof<unit>
-            )
-        
-        setValueMethod.InvokeCode <-
-            fun args ->
-                // we don't care of args.[0] (the DataColumn) because setter code is already made for that column
-                setter args.Tail
+                <@@
+                    let table : DataTable<DataRow> = %%args.[0]
+                    table.Columns
+                @@>
+
+        tableProvidedType.AddMember columnsProperty
+      
+        for column in outputColumns do
+            let propertyType = ProvidedTypeDefinition(column.Name, Some typeof<DataColumn>)
+            let property = ProvidedProperty(column.Name, propertyType)
             
-        propertyType.AddMember setValueMethod
-        
-        propertyType.AddMember getValueMethod
-        
+            property.GetterCode <- 
+                fun args -> 
+                    let columnName = column.Name
+                    <@@ 
+                        let columns : DataColumnCollection = %%args.[0]
+                        let column = columns.[columnName]
+                        column
+                    @@>
 
-        columnsType.AddMember property        
-        columnsType.AddMember propertyType
+            let getValueMethod =
+                ProvidedMethod(
+                    "GetValue"
+                    , [ProvidedParameter("row", dataRowType)]
+                    , column.ClrTypeConsideringNullable
+                )
+        
+            let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode(column)
 
-      tableProvidedType
+            getValueMethod.InvokeCode <- 
+                fun args -> 
+                    // we don't care of args.[0] (the DataColumn) because getter code is already made for that column
+                    getter args.Tail
+           
+            let setValueMethod =
+                ProvidedMethod(
+                    "SetValue"
+                    , [
+                        ProvidedParameter("row", dataRowType)
+                        ProvidedParameter("value", column.ClrTypeConsideringNullable)
+                    ]
+                    , typeof<unit>
+                )
+        
+            setValueMethod.InvokeCode <-
+                fun args ->
+                    // we don't care of args.[0] (the DataColumn) because setter code is already made for that column
+                    setter args.Tail
+
+            propertyType.AddMember getValueMethod
+            propertyType.AddMember setValueMethod
+
+            columnsType.AddMember property
+            columnsType.AddMember propertyType
+
+        tableProvidedType
 
     static member internal GetOutputTypes (outputColumns: Column list, resultType, rank: ResultRank, hasOutputParameters) =    
         if resultType = ResultType.DataReader 
