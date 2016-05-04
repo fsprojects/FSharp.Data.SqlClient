@@ -294,3 +294,35 @@ type DataTablesTests() =
         // getting value same way as a plain datatable still yields DBNull
         Assert.Equal(DBNull.Value, r.[t.Columns.d] :?> DBNull)
 
+    [<Fact>]
+    member __.``Can use datacolumns GetValue and SetValue methods`` () =
+        let t = (new GetArbitraryDataAsDataTable()).Execute()
+        let r = t.Rows.[0]
+        let a, b, c, d =
+          t.Columns.a.GetValue(r)
+          , t.Columns.b.GetValue(r)
+          , t.Columns.c.GetValue(r)
+          , t.Columns.d.GetValue(r)
+
+        Assert.Equal(r.a, a)
+        Assert.Equal(r.b, b)
+        Assert.Equal(r.c, c)
+        Assert.Equal(r.d, d)
+
+        // need to make column readonly = false in order to use SetValue from the DataColumn
+        t.Columns.a.ReadOnly <- false
+        t.Columns.b.ReadOnly <- false
+        t.Columns.c.ReadOnly <- false
+        t.Columns.d.ReadOnly <- false
+
+        t.Columns.a.SetValue(r, 108)
+        t.Columns.b.SetValue(r, 108)
+        t.Columns.c.SetValue(r, 108)
+        t.Columns.d.SetValue(r, Some 108)
+
+        Assert.Equal(r.a, 108)
+        Assert.Equal(r.b, 108)
+        Assert.Equal(r.c, 108)
+        Assert.Equal(r.d, Some 108)
+
+

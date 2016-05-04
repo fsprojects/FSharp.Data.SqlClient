@@ -202,7 +202,8 @@ type DesignTime private() =
       tableProvidedType.AddMember columnsProperty
       
       for column in outputColumns do
-        let property = ProvidedProperty(column.Name, typeof<DataColumn>)
+        let propertyType = ProvidedTypeDefinition(column.Name, Some typeof<DataColumn>)
+        let property = ProvidedProperty(column.Name, propertyType)
         property.GetterCode <- fun args -> 
           let columnName = column.Name
           <@@ 
@@ -210,7 +211,43 @@ type DesignTime private() =
             let column = columns.[columnName]
             column
           @@>
+
+        let getValueMethod =
+            ProvidedMethod(
+                "GetValue"
+                , [ProvidedParameter("row", dataRowType)]
+                , column.ClrTypeConsideringNullable
+            )
+        
+        let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode(column)
+
+        getValueMethod.InvokeCode <- 
+            fun args -> 
+                // we don't care of args.[0] (the DataColumn) because getter code is already made for that column
+                getter args.Tail
+           
+        let setValueMethod =
+            ProvidedMethod(
+                "SetValue"
+                , [
+                    ProvidedParameter("row", dataRowType)
+                    ProvidedParameter("value", column.ClrTypeConsideringNullable)
+                ]
+                , typeof<unit>
+            )
+        
+        setValueMethod.InvokeCode <-
+            fun args ->
+                // we don't care of args.[0] (the DataColumn) because setter code is already made for that column
+                setter args.Tail
+            
+        propertyType.AddMember setValueMethod
+        
+        propertyType.AddMember getValueMethod
+        
+
         columnsType.AddMember property        
+        columnsType.AddMember propertyType
 
       tableProvidedType
 
