@@ -294,36 +294,6 @@ type DataTablesTests() =
         // getting value same way as a plain datatable still yields DBNull
         Assert.Equal(DBNull.Value, r.[t.Columns.d] :?> DBNull)
 
-    [<Fact>]
-    member __.``Can use datacolumns GetValue and SetValue methods`` () =
-        let t = (new GetArbitraryDataAsDataTable()).Execute()
-        let r = t.Rows.[0]
-        let a, b, c, d =
-          t.Columns.a.GetValue(r)
-          , t.Columns.b.GetValue(r)
-          , t.Columns.c.GetValue(r)
-          , t.Columns.d.GetValue(r)
-
-        Assert.Equal(r.a, a)
-        Assert.Equal(r.b, b)
-        Assert.Equal(r.c, c)
-        Assert.Equal(r.d, d)
-
-        // need to make column readonly = false in order to use SetValue from the DataColumn
-        t.Columns.a.ReadOnly <- false
-        t.Columns.b.ReadOnly <- false
-        t.Columns.c.ReadOnly <- false
-        t.Columns.d.ReadOnly <- false
-
-        t.Columns.a.SetValue(r, 108)
-        t.Columns.b.SetValue(r, 108)
-        t.Columns.c.SetValue(r, 108)
-        t.Columns.d.SetValue(r, Some 108)
-
-        Assert.Equal(r.a, 108)
-        Assert.Equal(r.b, 108)
-        Assert.Equal(r.c, 108)
-        Assert.Equal(r.d, Some 108)
 
     [<Fact>]
     member __.``Can use DataColumnCollection`` () =
@@ -345,19 +315,8 @@ type DataTablesTests() =
         let products = AdventureWorks.Production.Tables.Product()
         
         let product = products.NewRow()
-        
-        // can use SetValue
-        let newName = "foo"
-        products.Columns.Name.SetValue(product, newName)
-        Assert.True(product.Name = newName)
+        product.Name <- "foo"
 
         // use as plain DataColumns
         let name = product.[products.Columns.Name] :?> string
         Assert.True(product.Name = name)
-
-        // can use GetValue
-        product.FinishedGoodsFlag <- true
-        let finishedGoodsFlag = products.Columns.FinishedGoodsFlag.GetValue(product)
-        Assert.Equal(product.FinishedGoodsFlag, finishedGoodsFlag)
-
-        

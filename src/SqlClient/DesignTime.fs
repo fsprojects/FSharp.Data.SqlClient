@@ -222,38 +222,6 @@ type DesignTime private() =
                         column
                     @@>
 
-            let getValueMethod =
-                ProvidedMethod(
-                    "GetValue"
-                    , [ProvidedParameter("row", dataRowType)]
-                    , column.ClrTypeConsideringNullable
-                )
-        
-            let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode(column)
-
-            getValueMethod.InvokeCode <- 
-                fun args -> 
-                    // we don't care of args.[0] (the DataColumn) because getter code is already made for that column
-                    getter args.Tail
-           
-            let setValueMethod =
-                ProvidedMethod(
-                    "SetValue"
-                    , [
-                        ProvidedParameter("row", dataRowType)
-                        ProvidedParameter("value", column.ClrTypeConsideringNullable)
-                    ]
-                    , typeof<unit>
-                )
-        
-            setValueMethod.InvokeCode <-
-                fun args ->
-                    // we don't care of args.[0] (the DataColumn) because setter code is already made for that column
-                    setter args.Tail
-
-            propertyType.AddMember getValueMethod
-            propertyType.AddMember setValueMethod
-
             columnsType.AddMember property
             columnsType.AddMember propertyType
 
