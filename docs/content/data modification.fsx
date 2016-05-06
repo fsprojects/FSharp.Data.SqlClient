@@ -134,6 +134,13 @@ let firstRow = currencyRates.Rows.[0]
 firstRow.AverageRate
 
 (**
+It is possible to get a reference to the DataColumn object
+*)
+
+let averageRateColumn = currencyRates.Columns.AverageRate
+
+
+(**
 The `AddRow` method adds a new row to a table. 
 
 <img src="img/AddRow.png"/>
