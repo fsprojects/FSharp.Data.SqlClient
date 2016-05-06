@@ -304,8 +304,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             //remove from PK if default value provided by DB on insert.
                         else c
                     )
-                    |> Seq.toArray
-
+                    |> Seq.toList
+                
 
                 //type data row
                 let dataRowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
@@ -349,7 +349,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         dataRowType.AddMember property
 
                 //type data table
-                let dataTableType = ProvidedTypeDefinition(tableName, baseType = Some( typedefof<_ DataTable>.MakeGenericType(dataRowType)))
+                let dataTableType = DesignTime.GetDataTableType tableName dataRowType columns
                 tagProvidedType dataTableType
                 dataTableType.AddMember dataRowType
         
@@ -361,7 +361,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     ctor.InvokeCode <- fun _ -> 
                         let serializedSchema = 
                             columns 
-                            |> Array.map (fun x ->
+                            |> List.map (fun x ->
                                 let nullable = x.Nullable || x.HasDefaultConstraint
                                 sprintf "%s\t%s\t%b\t%i\t%b\t%b\t%b" 
                                     x.Name x.TypeInfo.ClrTypeFullName nullable x.MaxLength x.ReadOnly x.Identity x.PartOfUniqueKey                                 

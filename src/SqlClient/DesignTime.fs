@@ -147,35 +147,82 @@ type DesignTime private() =
             @@> 
         recordType.AddMember ctor
         
-        recordType    
+        recordType
+
+    static member internal GetDataRowPropertyGetterAndSetterCode (column: Column) =
+        let name = column.Name
+        if column.Nullable then
+            let getter = QuotationsFactory.GetBody("GetNullableValueFromDataRow", column.TypeInfo.ClrType, name)
+            let setter = QuotationsFactory.GetBody("SetNullableValueInDataRow", column.TypeInfo.ClrType, name)
+            getter, setter
+        else
+            let getter = QuotationsFactory.GetBody("GetNonNullableValueFromDataRow", column.TypeInfo.ClrType, name)
+            let setter = QuotationsFactory.GetBody("SetNonNullableValueInDataRow", column.TypeInfo.ClrType, name)
+            getter, setter
 
     static member internal GetDataRowType (columns: Column list) = 
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
 
-        columns |> List.mapi( fun i col ->
-            let name = col.Name
-            if name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
+        columns |> List.mapi(fun i col ->
+
+            if col.Name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
 
             let propertyType = col.ClrTypeConsideringNullable
-            if col.Nullable 
-            then
-                let property = ProvidedProperty(name, propertyType, GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", col.TypeInfo.ClrType, name))
-                if not col.ReadOnly
-                then property.SetterCode <- QuotationsFactory.GetBody("SetNullableValueInDataRow", col.TypeInfo.ClrType, name)
-                property
-            else
-                let property = ProvidedProperty(name, propertyType, GetterCode = (fun args -> <@@ (%%args.[0] : DataRow).[name] @@>))
-                if not col.ReadOnly
-                then property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
-                property
+
+            let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode col
+            let property = ProvidedProperty(col.Name, propertyType, GetterCode = getter)
+
+            if not col.ReadOnly then
+              // only expose a setter if the column is not readonly
+              // note: if this is an issue, we always expose a SetValue method on the typed DataColumn itself
+              property.SetterCode <- setter
+            
+            property
         )
         |> rowType.AddMembers
 
         rowType
 
-    static member internal GetDataTableType dataRowType =
+    static member internal GetDataTableType typeName dataRowType (outputColumns: Column list) =
         let tableType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ dataRowType ])
-        let tableProvidedType = ProvidedTypeDefinition("Table", Some tableType)
+        let tableProvidedType = ProvidedTypeDefinition(typeName, Some tableType)
+      
+        let columnsType = ProvidedTypeDefinition("Columns", Some typeof<DataColumnCollection>)
+        
+        let ctor = ProvidedConstructor([])
+        ctor.InvokeCode <- fun args ->
+          <@@
+            ()
+          @@>
+        columnsType.AddMember ctor
+        let columnsProperty = ProvidedProperty("Columns", columnsType)
+        tableProvidedType.AddMember columnsType
+        
+        columnsProperty.GetterCode <-
+            fun args -> 
+                <@@
+                    let table : DataTable<DataRow> = %%args.[0]
+                    table.Columns
+                @@>
+
+        tableProvidedType.AddMember columnsProperty
+      
+        for column in outputColumns do
+            let propertyType = ProvidedTypeDefinition(column.Name, Some typeof<DataColumn>)
+            let property = ProvidedProperty(column.Name, propertyType)
+            
+            property.GetterCode <- 
+                fun args -> 
+                    let columnName = column.Name
+                    <@@ 
+                        let columns : DataColumnCollection = %%args.[0]
+                        let column = columns.[columnName]
+                        column
+                    @@>
+
+            columnsType.AddMember property
+            columnsType.AddMember propertyType
+
         tableProvidedType
 
     static member internal GetOutputTypes (outputColumns: Column list, resultType, rank: ResultRank, hasOutputParameters) =    
@@ -188,7 +235,7 @@ type DesignTime private() =
         elif resultType = ResultType.DataTable 
         then
             let dataRowType = DesignTime.GetDataRowType outputColumns
-            let dataTableType = DesignTime.GetDataTableType dataRowType 
+            let dataTableType = DesignTime.GetDataTableType "Table" dataRowType outputColumns
             
             // add .Row to .Table
             dataTableType.AddMember dataRowType

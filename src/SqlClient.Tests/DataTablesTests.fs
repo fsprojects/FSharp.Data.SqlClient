@@ -17,7 +17,7 @@ type ProductCostHistory = AdventureWorks.Production.Tables.ProductCostHistory
 
 type GetRowCount = SqlCommandProvider<"SELECT COUNT(*) FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, SingleRow = true>
 type GetShiftTableData = SqlCommandProvider<"SELECT * FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, ResultType.DataReader>
-type GetArbitraryDataAsDataTable = SqlCommandProvider<"select 1 a, 2 b, 3 c", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>
+type GetArbitraryDataAsDataTable = SqlCommandProvider<"select 1 a, 2 b, 3 c, cast(null as int) d", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>
 type DataTablesTests() = 
 
     do
@@ -281,3 +281,42 @@ type DataTablesTests() =
         Assert.Equal(1, t.Rows.[0].a)
         Assert.Equal(2, t.Rows.[0].b)
         Assert.Equal(3, t.Rows.[0].c)
+        Assert.Equal(None, t.Rows.[0].d)
+
+    [<Fact>]
+    member __.``Can use datacolumns and access like a normal DataRow`` () =
+        let t = (new GetArbitraryDataAsDataTable()).Execute()
+        let r = t.Rows.[0]
+      
+        Assert.Equal(1, r.[t.Columns.a] :?> int)
+        Assert.Equal(2, r.[t.Columns.b] :?> int)
+        Assert.Equal(3, r.[t.Columns.c] :?> int)
+        // getting value same way as a plain datatable still yields DBNull
+        Assert.Equal(DBNull.Value, r.[t.Columns.d] :?> DBNull)
+
+
+    [<Fact>]
+    member __.``Can use DataColumnCollection`` () =
+
+        let table = (new GetArbitraryDataAsDataTable()).Execute()
+
+        let columnCollection : System.Data.DataColumnCollection =
+            // this is more involved than just doing table.Columns because
+            // DataColumnCollection is a sealed class, and the generative TP
+            // attaches properties to a fake inherited type
+            // In order to get a real DataColumnCollection, just use the table
+            // as a normal DataTable.
+            let table : System.Data.DataTable = table :> _
+            table.Columns
+        Assert.Equal(table.Columns.Count, columnCollection.Count)
+    
+    [<Fact>]
+    member __.``Can use datacolumns on SqlProgrammabilityProvider`` () =
+        let products = AdventureWorks.Production.Tables.Product()
+        
+        let product = products.NewRow()
+        product.Name <- "foo"
+
+        // use as plain DataColumns
+        let name = product.[products.Columns.Name] :?> string
+        Assert.True(product.Name = name)

@@ -29,7 +29,7 @@ do
         INSERT INTO Sales.CurrencyRate 
         VALUES (@currencyRateDate, @fromCurrencyCode, @toCurrencyCode, 
                 @averageRate, @endOfDayRate, DEFAULT) 
-    ", connectionString>()
+    ", connectionString>(connectionString)
 
     let recordsInserted = 
         cmd.Execute(
@@ -63,7 +63,7 @@ let businessEntityID, jobTitle, hireDate =
             HumanResources.Employee 
         WHERE 
             BusinessEntityID = @id
-        ", connectionString, ResultType.Tuples, SingleRow = true>()
+        ", connectionString, ResultType.Tuples, SingleRow = true>(connectionString))
 
     jamesKramerId |> cmd.Execute |> Option.get
 
@@ -72,7 +72,7 @@ assert("Production Technician - WC60" = jobTitle)
 let newJobTitle = "Uber " + jobTitle
 
 let recordsAffrected = 
-    use updatedJobTitle = new AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo()
+    use updatedJobTitle = new AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo(connectionString))
     updatedJobTitle.Execute(
         businessEntityID, 
         newJobTitle, 
@@ -88,7 +88,7 @@ assert(recordsAffrected = 1)
 let updatedJobTitle = 
     // Static Create factory method provides better IntelliSense than ctor.
     // See https://github.com/Microsoft/visualfsharp/issues/449
-    use cmd = new AdventureWorks.dbo.ufnGetContactInformation()
+    use cmd = new AdventureWorks.dbo.ufnGetContactInformation(connectionString)
 
     //Use ExecuteSingle if you're sure it return 0 or 1 rows.
     let result = cmd.ExecuteSingle(PersonID = jamesKramerId) 
@@ -132,6 +132,13 @@ The IntelliSense experience is left a little clunky to retain legacy `DataRow` t
 
 let firstRow = currencyRates.Rows.[0]
 firstRow.AverageRate
+
+(**
+It is possible to get a reference to the DataColumn object
+*)
+
+let averageRateColumn = currencyRates.Columns.AverageRate
+
 
 (**
 The `AddRow` method adds a new row to a table. 
@@ -210,7 +217,7 @@ do
         WHERE FromCurrencyCode = @from
             AND ToCurrencyCode = @to
             AND CurrencyRateDate > @date
-        ", connectionString, ResultType.DataReader>()
+        ", connectionString, ResultType.DataReader>(connectionString)
     //ResultType.DataReader !!!
     let currencyRates = new AdventureWorks.Sales.Tables.CurrencyRate()
     //load data into data table
@@ -347,7 +354,7 @@ do
         WHERE FromCurrencyCode = @from
             AND ToCurrencyCode = @to
             AND CurrencyRateDate > @date
-        ", connectionString, ResultType.DataTable>()
+        ", connectionString, ResultType.DataTable>(connectionString)
     //ResultType.DataTable !!!
     let currencyRates = cmd.Execute("USD", "GBP", DateTime(2014, 1, 1)) 
 

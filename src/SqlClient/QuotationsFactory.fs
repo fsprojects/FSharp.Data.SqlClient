@@ -120,3 +120,9 @@ type QuotationsFactory private() =
         fun values -> 
             nullsToOptions values
             mapper values
+
+    static member private GetNonNullableValueFromDataRow<'T>(exprArgs : Expr list, name: string) =
+        <@ (%%exprArgs.[0] : DataRow).[name] @>
+
+    static member private SetNonNullableValueInDataRow<'T>(exprArgs : Expr list, name : string) =
+        <@ (%%exprArgs.[0] : DataRow).[name] <- %%Expr.Coerce(exprArgs.[1], typeof<obj>) @>
