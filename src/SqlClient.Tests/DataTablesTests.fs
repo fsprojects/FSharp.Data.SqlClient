@@ -325,4 +325,39 @@ type DataTablesTests() =
         Assert.Equal(r.c, 108)
         Assert.Equal(r.d, Some 108)
 
+    [<Fact>]
+    member __.``Can use DataColumnCollection`` () =
 
+        let table = (new GetArbitraryDataAsDataTable()).Execute()
+
+        let columnCollection : System.Data.DataColumnCollection =
+            // this is more involved than just doing table.Columns because
+            // DataColumnCollection is a sealed class, and the generative TP
+            // attaches properties to a fake inherited type
+            // In order to get a real DataColumnCollection, just use the table
+            // as a normal DataTable.
+            let table : System.Data.DataTable = table :> _
+            table.Columns
+        Assert.Equal(table.Columns.Count, columnCollection.Count)
+    
+    [<Fact>]
+    member __.``Can use datacolumns on SqlProgrammabilityProvider`` () =
+        let products = AdventureWorks.Production.Tables.Product()
+        
+        let product = products.NewRow()
+        
+        // can use SetValue
+        let newName = "foo"
+        products.Columns.Name.SetValue(product, newName)
+        Assert.True(product.Name = newName)
+
+        // use as plain DataColumns
+        let name = product.[products.Columns.Name] :?> string
+        Assert.True(product.Name = name)
+
+        // can use GetValue
+        product.FinishedGoodsFlag <- true
+        let finishedGoodsFlag = products.Columns.FinishedGoodsFlag.GetValue(product)
+        Assert.Equal(product.FinishedGoodsFlag, finishedGoodsFlag)
+
+        

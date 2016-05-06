@@ -185,11 +185,18 @@ type DesignTime private() =
 
         rowType
 
-    static member internal GetDataTableType dataRowType (outputColumns: Column list) =
+    static member internal GetDataTableType typeName dataRowType (outputColumns: Column list) =
         let tableType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ dataRowType ])
-        let tableProvidedType = ProvidedTypeDefinition("Table", Some tableType)
+        let tableProvidedType = ProvidedTypeDefinition(typeName, Some tableType)
       
         let columnsType = ProvidedTypeDefinition("Columns", Some typeof<DataColumnCollection>)
+        
+        let ctor = ProvidedConstructor([])
+        ctor.InvokeCode <- fun args ->
+          <@@
+            ()
+          @@>
+        columnsType.AddMember ctor
         let columnsProperty = ProvidedProperty("Columns", columnsType)
         tableProvidedType.AddMember columnsType
         
@@ -262,7 +269,7 @@ type DesignTime private() =
         elif resultType = ResultType.DataTable 
         then
             let dataRowType = DesignTime.GetDataRowType outputColumns
-            let dataTableType = DesignTime.GetDataTableType dataRowType outputColumns
+            let dataTableType = DesignTime.GetDataTableType "Table" dataRowType outputColumns
             
             // add .Row to .Table
             dataTableType.AddMember dataRowType
