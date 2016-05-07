@@ -479,8 +479,16 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 do //columns accessors
                     for c in columns do
                         let name = c.Name
-                        dataTableType.AddMember <| 
-                            ProvidedProperty(name + "Column", typeof<DataColumn>, [], GetterCode = fun args -> <@@ (%%Expr.Coerce(args.[0], typeof<DataTable>): DataTable).Columns.[name]  @@>)
+
+                        let columnProperty = 
+                            ProvidedProperty(
+                                name + "Column"
+                                , typeof<DataColumn>
+                                , []
+                                , GetterCode = fun args -> <@@ (%%Expr.Coerce(args.[0], typeof<DataTable>): DataTable).Columns.[name]  @@>
+                                )
+                        columnProperty.AddObsoleteAttribute(sprintf "This property is deprecated, please use Columns.%s instead." name)
+                        dataTableType.AddMember columnProperty
 
                 dataTableType
             )
