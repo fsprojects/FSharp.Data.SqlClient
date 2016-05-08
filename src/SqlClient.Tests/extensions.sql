@@ -44,6 +44,10 @@ IF OBJECT_ID('dbo.HowManyRows') IS NOT NULL
 	DROP PROCEDURE dbo.HowManyRows;
 GO
 
+IF OBJECT_ID(N'dbo.TableHavingColumnNamesWithSpaces') IS NOT NULL
+	DROP TABLE dbo.TableHavingColumnNamesWithSpaces
+GO
+
 --TYPES
 IF TYPE_ID(N'dbo.MyTableType') IS NOT NULL
 	DROP TYPE dbo.MyTableType
@@ -57,17 +61,20 @@ GO
 IF TYPE_ID(N'dbo.SingleElementType') IS NOT NULL
 	DROP TYPE dbo.SingleElementType 
 GO
-IF OBJECT_ID(N'dbo.TableHavingColumnNamesWithSpaces') IS NOT NULL
-	DROP TABLE dbo.TableHavingColumnNamesWithSpaces
-GO
-
 IF OBJECT_ID(N'HumanResources.GetContactInformation') IS NOT NULL
 	DROP SYNONYM HumanResources.GetContactInformation
 GO
 
+-- SYNONYMs
+
 IF OBJECT_ID(N'HumanResources.GetEmployeeManagers') IS NOT NULL
 	DROP SYNONYM HumanResources.GetEmployeeManagers
 GO
+
+IF OBJECT_ID(N'dbo.HRShift') IS NOT NULL
+	DROP SYNONYM dbo.HRShift
+GO
+
 
 CREATE PROCEDURE dbo.AddRef @x AS INT, @y AS INT, @sum AS INT OUTPUT 
 AS
@@ -206,3 +213,5 @@ GO
 CREATE SYNONYM HumanResources.GetEmployeeManagers FOR dbo.uspGetEmployeeManagers;
 GO
 
+CREATE SYNONYM dbo.HRShift FOR HumanResources.Shift
+GO

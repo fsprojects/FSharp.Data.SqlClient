@@ -188,13 +188,7 @@ type DesignTime private() =
         let tableProvidedType = ProvidedTypeDefinition(typeName, Some tableType)
       
         let columnsType = ProvidedTypeDefinition("Columns", Some typeof<DataColumnCollection>)
-        
-        let ctor = ProvidedConstructor([])
-        ctor.InvokeCode <- fun args ->
-          <@@
-            ()
-          @@>
-        columnsType.AddMember ctor
+
         let columnsProperty = ProvidedProperty("Columns", columnsType)
         tableProvidedType.AddMember columnsType
         
@@ -211,13 +205,11 @@ type DesignTime private() =
             let propertyType = ProvidedTypeDefinition(column.Name, Some typeof<DataColumn>)
             let property = ProvidedProperty(column.Name, propertyType)
             
-            property.GetterCode <- 
-                fun args -> 
+            property.GetterCode <- fun args -> 
                     let columnName = column.Name
                     <@@ 
-                        let columns : DataColumnCollection = %%args.[0]
-                        let column = columns.[columnName]
-                        column
+                        let columns: DataColumnCollection = %%args.[0]
+                        columns.[columnName]
                     @@>
 
             columnsType.AddMember property

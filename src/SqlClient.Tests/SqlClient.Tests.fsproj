@@ -69,14 +69,17 @@
     <Compile Include="ConfigurationTest.fs" />
     <Compile Include="OptionalParamsTests.fs" />
     <Compile Include="TypeProviderTest.fs" />
+    <Compile Include="FreeVarDoubleDeclTests.fs" />
     <Compile Include="SpatialTypesTests.fs" />
     <Compile Include="TransactionTests.fs" />
     <Compile Include="ResultTypeTests.fs" />
     <Compile Include="TVPTests.fs" />
     <Compile Include="ProgrammabilityTests.fs" />
+    <Compile Include="SpReturnValueTests.fs" />
     <Compile Include="DynamicRecordTests.fs" />
     <Compile Include="SqlEnumTests.fs" />
     <Compile Include="DataTablesTests.fs" />
+    <Compile Include="SynonymsTests.fs" />
     <Compile Include="CreateCommand.fs" />
     <None Include="sampleCommand.sql" />
     <None Include="extensions.sql" />

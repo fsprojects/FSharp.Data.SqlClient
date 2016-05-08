@@ -18,6 +18,7 @@ type ProductCostHistory = AdventureWorks.Production.Tables.ProductCostHistory
 type GetRowCount = SqlCommandProvider<"SELECT COUNT(*) FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, SingleRow = true>
 type GetShiftTableData = SqlCommandProvider<"SELECT * FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed, ResultType.DataReader>
 type GetArbitraryDataAsDataTable = SqlCommandProvider<"select 1 a, 2 b, 3 c, cast(null as int) d", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>
+
 type DataTablesTests() = 
 
     do
@@ -110,7 +111,7 @@ type DataTablesTests() =
         t.AddRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16.)
 
         //remove ModifiedDate column therefore bulk insert won't send explicit NULLs to server
-        t.Columns.Remove(t.ModifiedDateColumn)
+        t.Columns.Remove(t.Columns.ModifiedDate)
 
         let bulkCopy = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, tran)
         let rowsCopied = ref 0L
@@ -124,7 +125,7 @@ type DataTablesTests() =
     [<Fact>]
     member __.DEFAULTConstraintInsertViaSqlDataAdapter() = 
         let t = new ShiftTable()
-        Assert.True t.ModifiedDateColumn.AllowDBNull
+        Assert.True t.Columns.ModifiedDate.AllowDBNull
         use conn = new SqlConnection(connectionString = adventureWorks)
         conn.Open()
         use tran = conn.BeginTransaction()
@@ -171,8 +172,8 @@ type DataTablesTests() =
         Assert.Equal(1, rowsUpdated)
 
         use getShift = new SqlCommandProvider<"SELECT * FROM HumanResources.Shift", ConnectionStrings.AdventureWorksNamed>()
-        let eveningShiftIinDb = getShift.Execute() |> Seq.find (fun x -> x.Name = "Evening")
-        Assert.Equal(finishBy10, eveningShiftIinDb.EndTime)
+        let eveningShiftInDb = getShift.Execute() |> Seq.find (fun x -> x.Name = "Evening")
+        Assert.Equal(finishBy10, eveningShiftInDb.EndTime)
 
     [<Fact>]
     member __.TableTypeTag() = 
@@ -312,7 +313,7 @@ type DataTablesTests() =
     
     [<Fact>]
     member __.``Can use datacolumns on SqlProgrammabilityProvider`` () =
-        let products = AdventureWorks.Production.Tables.Product()
+        let products = new AdventureWorks.Production.Tables.Product()
         
         let product = products.NewRow()
         product.Name <- "foo"

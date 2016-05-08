@@ -243,7 +243,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             use __ = conn.UseLocally()
             let isSqlAzure = conn.IsSqlAzure
             conn.GetTables(schema, isSqlAzure)
-            |> List.map (fun (tableName, description) -> 
+            |> List.map (fun (tableName, baseTableName, baseSchemaName, description) -> 
 
                 let twoPartTableName = sprintf "[%s].[%s]" schema tableName 
 
@@ -285,8 +285,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         "  descriptionSelector
 
                 let cmd = new SqlCommand(query, conn)
-                cmd.Parameters.AddWithValue("@tableName", tableName) |> ignore
-                cmd.Parameters.AddWithValue("@schema", schema) |> ignore
+                cmd.Parameters.AddWithValue("@tableName", baseTableName) |> ignore
+                cmd.Parameters.AddWithValue("@schema", baseSchemaName) |> ignore
 
                 let columns =  
                     cmd.ExecuteQuery( fun x ->

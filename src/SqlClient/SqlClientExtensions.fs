@@ -302,12 +302,12 @@ type SqlConnection with
                 WITH ExplicitRoutines AS
                 (
 	                SELECT 
-		                SPECIFIC_SCHEMA AS [Schema]
-		                ,SPECIFIC_NAME AS Name
+		                ROUTINE_SCHEMA AS [Schema]
+		                ,ROUTINE_NAME AS Name
 		                ,ROUTINE_TYPE
 		                ,DATA_TYPE
-		                ,SPECIFIC_SCHEMA AS BaseObjectSchema
-		                ,SPECIFIC_NAME AS BaseObjectName
+		                ,ROUTINE_SCHEMA AS BaseObjectSchema
+		                ,ROUTINE_NAME AS BaseObjectName
 	                FROM 
 		                INFORMATION_SCHEMA.ROUTINES 
                 ),
@@ -318,8 +318,8 @@ type SqlConnection with
 		                ,name AS Name
 		                ,ROUTINE_TYPE
 		                ,DATA_TYPE
-		                ,SPECIFIC_SCHEMA AS BaseObjectSchema
-		                ,SPECIFIC_NAME AS BaseObjectName
+		                ,ROUTINE_SCHEMA AS BaseObjectSchema
+		                ,ROUTINE_NAME AS BaseObjectName
 	                FROM 
 		                sys.synonyms
 		                JOIN INFORMATION_SCHEMA.ROUTINES ON 
@@ -475,19 +475,50 @@ type SqlConnection with
             then 
                 "(SELECT NULL AS Value)"
             else 
-                "fn_listextendedproperty ('MS_Description', 'schema', TABLE_SCHEMA, 'TABLE', TABLE_NAME, default, default)" 
+                "fn_listextendedproperty ('MS_Description', 'schema', BaseObjectSchema, 'TABLE', BaseTableName, default, default)" 
 
         let getTablesQuery = sprintf "
+           WITH TableSynonyms AS
+            (
+	            SELECT 
+					Name 
+					,SCHEMA_NAME(schema_id) AS [Schema]
+					,TABLE_NAME AS BaseTableName
+					,TABLE_SCHEMA AS BaseObjectSchema
+	            FROM sys.synonyms
+		            JOIN INFORMATION_SCHEMA.TABLES ON 
+			            OBJECT_ID(TABLES.TABLE_SCHEMA + '.' + TABLES.TABLE_NAME) = OBJECT_ID(base_object_name) 
+						AND TABLE_TYPE = 'BASE TABLE'
+            ),
+			Tables AS 
+			(
+				SELECT 
+					TABLE_NAME AS Name
+					,TABLE_SCHEMA AS [Schema]
+					,TABLE_NAME AS BaseTableName
+					,TABLE_SCHEMA AS BaseObjectSchema
+	            FROM INFORMATION_SCHEMA.TABLES 
+				WHERE TABLE_TYPE = 'BASE TABLE'
+			)
             SELECT 
-                TABLE_NAME 
+                *
 	            ,DESCRIPTION = XProp.Value
             FROM 
-                INFORMATION_SCHEMA.TABLES 
+                (
+	                SELECT * FROM TableSynonyms
+	                UNION ALL
+					SELECT * FROM Tables
+                ) AS _
                 OUTER APPLY %s AS XProp
             WHERE 
-                TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = '%s'" descriptionSelector schema
+	             [Schema] = '%s'" descriptionSelector schema
         use cmd = new SqlCommand(getTablesQuery, this)
-        cmd.ExecuteQuery(fun x -> x.GetString 0, x.TryGetValue( "DESCRIPTION") ) |> Seq.toList
+        cmd.ExecuteQuery(fun x -> 
+            string x.["Name"], 
+            string x.["BaseTableName"], 
+            string x.["BaseObjectSchema"], 
+            x.TryGetValue( "DESCRIPTION") 
+        ) |> Seq.toList
 
     member internal this.GetFullQualityColumnInfo commandText = 
         assert (this.State = ConnectionState.Open)
