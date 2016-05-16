@@ -33,7 +33,7 @@ open FSharp.Data
 
 [<Literal>]
 let connectionString = 
-    @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+    @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 (**
 
@@ -47,7 +47,7 @@ do
         FROM Sales.vSalesPerson
         WHERE CountryRegionName = @regionName AND SalesYTD > @salesMoreThan 
         ORDER BY SalesYTD
-        " , connectionString>()
+        " , connectionString>(connectionString)
 
     cmd.Execute(topN = 3L, regionName = "United States", salesMoreThan = 1000000M) |> printfn "%A"
 
@@ -65,7 +65,7 @@ SqlProgrammabilityProvider
 
 type AdventureWorks = SqlProgrammabilityProvider<connectionString>
 do
-    use cmd = new AdventureWorks.dbo.uspGetWhereUsedProductID()
+    use cmd = new AdventureWorks.dbo.uspGetWhereUsedProductID(connectionString)
     for x in cmd.Execute( StartProductID = 1, CheckDate = System.DateTime(2013,1,1)) do
         //check for nulls
         match x.ProductAssemblyID, x.StandardCost, x.TotalQuantity with 
@@ -96,7 +96,7 @@ do
         SELECT COUNT(*) 
         FROM Purchasing.PurchaseOrderHeader 
         WHERE ShipDate > @shippedLaterThan AND ShipMethodID = @shipMethodId
-    ", connectionString, SingleRow = true>() 
+    ", connectionString, SingleRow = true>(connectionString) 
     //overnight orders shipped since Jan 1, 2008 
     cmd.Execute( System.DateTime( 2008, 1, 1), ShipMethod.``OVERNIGHT J-FAST``) |> printfn "%A"
     //output

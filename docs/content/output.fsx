@@ -3,7 +3,7 @@
 #r "Microsoft.SqlServer.Types.dll"
 open FSharp.Data
 [<Literal>]
-let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 (**
 
@@ -26,11 +26,13 @@ let productsSql = "
 *)
 
 type QueryProductAsRecords = SqlCommandProvider<productsSql, connectionString>
-let queryProductAsRecords = new QueryProductAsRecords()
+let queryProductAsRecords = new QueryProductAsRecords(connectionString)
 
-let records = queryProductAsRecords.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
-                |> Async.RunSynchronously 
-                |> List.ofSeq
+let records = 
+    queryProductAsRecords.AsyncExecute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
+    |> Async.RunSynchronously 
+    |> List.ofSeq
+
 records |> Seq.iter (printfn "%A")
 
 (**
@@ -43,10 +45,12 @@ records |> Seq.iter (printfn "%A")
 
 type QueryProductSync = SqlCommandProvider<productsSql, connectionString, ResultType = ResultType.Tuples>
 
-let tuples = (new QueryProductSync()).Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01")
+do
+    use cmd = new QueryProductSync(connectionString)
+    let tuples = cmd.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") 
 
-for productName, sellStartDate, size in tuples do
-    printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size
+    for productName, sellStartDate, size in tuples do
+        printfn "Product name: %s. Sells start date %A, size: %A" productName sellStartDate size
 
 (**
  * Typed data table as result set
@@ -54,7 +58,7 @@ for productName, sellStartDate, size in tuples do
 *)
 
 do 
-    use cmd = new SqlCommandProvider<productsSql, connectionString, ResultType = ResultType.DataTable>()
+    use cmd = new SqlCommandProvider<productsSql, connectionString, ResultType.DataTable>(connectionString)
     let table = cmd.Execute(top = 7L, SellStartDate = System.DateTime.Parse "2002-06-01") 
     for row in table.Rows do
         printfn "Product name: %s. Sells start date %O, size: %A" row.ProductName row.SellStartDate row.Size
@@ -70,7 +74,7 @@ type QueryPersonInfoSingletoneAsRecords =
                         , connectionString
                         , SingleRow = true>
 
-let singleton = new QueryPersonInfoSingletoneAsRecords()
+let singleton = new QueryPersonInfoSingletoneAsRecords(connectionString)
 
 let person = singleton.AsyncExecute(PersonId = 2) |> Async.RunSynchronously |> Option.get
 match person.FirstName, person.LastName with
@@ -86,10 +90,10 @@ let queryPersonInfoSingletoneQuery =
     "SELECT PersonID, FirstName, LastName FROM dbo.ufnGetContactInformation(@PersonId)"
 
 type QueryPersonInfoSingletoneTuples = 
-    SqlCommandProvider<queryPersonInfoSingletoneQuery, connectionString, SingleRow=true, ResultType = ResultType.Tuples>
+    SqlCommandProvider<queryPersonInfoSingletoneQuery, connectionString, ResultType.Tuples, SingleRow=true>
 
 QueryPersonInfoSingletoneTuples
-    .Create()
+    .Create(connectionString)
     .Execute(PersonId = 2).Value
     |> (function
         | id, Some first, Some last -> printfn "Person id: %i, name: %s %s" person.PersonID first last 
@@ -108,13 +112,16 @@ type QueryPersonInfoSingletoneDataTable =
         connectionString, 
         ResultType = ResultType.DataTable>
 
-let table = (new QueryPersonInfoSingletoneDataTable()).AsyncExecute(PersonId = 2) |> Async.RunSynchronously 
-
-for row in table.Rows do
-    printfn "Person info:Id - %i,FirstName - %O,LastName - %O" row.PersonID row.FirstName row.LastName 
+do 
+    use cmd = new QueryPersonInfoSingletoneDataTable(connectionString)
+    let table = cmd .AsyncExecute(PersonId = 2) |> Async.RunSynchronously 
+    for row in table.Rows do
+        printfn "Person info:Id - %i,FirstName - %O,LastName - %O" row.PersonID row.FirstName row.LastName 
 
 // you can refer to the table type
-let table2 : QueryPersonInfoSingletoneDataTable.Table = (new QueryPersonInfoSingletoneDataTable()).Execute(PersonId = 2)
+let table2 : QueryPersonInfoSingletoneDataTable.Table = 
+    let cmd = new QueryPersonInfoSingletoneDataTable(connectionString)
+    cmd.Execute(PersonId = 2)
 
 // you can refer to the row type
 for row : QueryPersonInfoSingletoneDataTable.Table.Row in table2.Rows do
@@ -129,7 +136,7 @@ for row : QueryPersonInfoSingletoneDataTable.Table.Row in table2.Rows do
 
 type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
 do
-    use cmd = new AdventureWorks2012.dbo.ufnGetContactInformation()
+    use cmd = new AdventureWorks2012.dbo.ufnGetContactInformation(connectionString)
     cmd.ExecuteSingle(1) //opt-in for explicit call to 
     |> Option.iter(fun x ->  
         printfn "Person info:Id - %i,FirstName - %O,LastName - %O" x.PersonID x.FirstName x.LastName 
@@ -150,7 +157,7 @@ type QueryPersonInfoSingleValue =
 
 do 
     let personId = 2
-    use cmd = new QueryPersonInfoSingleValue()
+    use cmd = new QueryPersonInfoSingleValue(connectionString)
     cmd.Execute( personId)
     |> Option.iter (fun name -> printf "Person with id %i has name %s" personId name.Value)
 
@@ -167,7 +174,7 @@ type GetServerTime =
         connectionString, 
         SingleRow=true>
 
-let getSrvTime = new GetServerTime()
+let getSrvTime = new GetServerTime(connectionString)
 
 getSrvTime.AsyncExecute(IsUtc = true) |> Async.RunSynchronously |> printfn "%A"
 getSrvTime.Execute(IsUtc = false) |> printfn "%A"
@@ -188,7 +195,7 @@ let invokeSp = "
         @Gender
 "
 type UpdateEmplInfoCommand = SqlCommandProvider<invokeSp, connectionString>
-let nonQuery = new UpdateEmplInfoCommand()
+let nonQuery = new UpdateEmplInfoCommand(connectionString)
 let rowsAffected = 
     nonQuery.Execute(
         BusinessEntityID = 2, NationalIDNumber = "245797967", 
@@ -204,7 +211,7 @@ open System.Data
 open Microsoft.SqlServer.Types
 
 do 
-    use cmd = new AdventureWorks2012.HumanResources.uspUpdateEmployeeLogin()
+    use cmd = new AdventureWorks2012.HumanResources.uspUpdateEmployeeLogin(connectionString)
     let hierarchyId = SqlHierarchyId.Parse(SqlTypes.SqlString("/1/4/2/"))
     cmd.Execute(
         BusinessEntityID = 291, 
@@ -225,7 +232,7 @@ If multiple passes over the sequence required use standard `Seq.cache` combinato
 *)
 
 type Get42 = SqlCommandProvider<"SELECT * FROM (VALUES (42), (43)) AS T(N)", connectionString>
-let xs = (new Get42()).Execute() |> Seq.cache 
+let xs = (new Get42(connectionString)).Execute() |> Seq.cache 
 printfn "#1: %i " <| Seq.nth 0 xs 
 printfn "#2: %i " <| Seq.nth 1 xs //see it fails here if result is not piped into Seq.cache 
 

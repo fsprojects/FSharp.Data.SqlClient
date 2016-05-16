@@ -5,7 +5,7 @@ open FSharp.Data
 open System
 
 [<Literal>]
-let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 (**
 
@@ -63,7 +63,7 @@ let businessEntityID, jobTitle, hireDate =
             HumanResources.Employee 
         WHERE 
             BusinessEntityID = @id
-        ", connectionString, ResultType.Tuples, SingleRow = true>(connectionString))
+        ", connectionString, ResultType.Tuples, SingleRow = true>(connectionString)
 
     jamesKramerId |> cmd.Execute |> Option.get
 
@@ -72,7 +72,7 @@ assert("Production Technician - WC60" = jobTitle)
 let newJobTitle = "Uber " + jobTitle
 
 let recordsAffrected = 
-    use updatedJobTitle = new AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo(connectionString))
+    use updatedJobTitle = new AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo(connectionString)
     updatedJobTitle.Execute(
         businessEntityID, 
         newJobTitle, 

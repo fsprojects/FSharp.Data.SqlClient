@@ -4,7 +4,7 @@
 open FSharp.Data
 
 [<Literal>]
-let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
     
 (**
 FAQ
@@ -25,7 +25,8 @@ consider wrapping it into stored procedure or function. Both accept default valu
 By default SqlCommandProvider treat all parameters as mandatory. 
 *)
 
-let echoOnly = new SqlCommandProvider<"SELECT ISNULL(@x, 42)", connectionString, SingleRow = true>()
+let echoOnly = 
+    new SqlCommandProvider<"SELECT ISNULL(@x, 42)", connectionString, SingleRow = true>(connectionString)
 echoOnly.Execute( x = (* must pass int value here *) 1) 
 
 (**
@@ -47,7 +48,7 @@ No generics, no F# specific types/annotations which includes optional parameters
 let echoOr42 = 
     new SqlCommandProvider<"
         SELECT ISNULL(@x, 42)
-    ", connectionString, SingleRow = true, AllParametersOptional = true>()
+    ", connectionString, SingleRow = true, AllParametersOptional = true>(connectionString)
 
 // Pass parameter value. Specifying Some constructor is mandatrory.
 echoOr42.Execute( Some 1) 
@@ -77,13 +78,18 @@ To work around this limitation, you can declare another variable in your script:
 *)
 
 // this one would fail with above mentionned error:
-// let echoFail = new SqlCommandProvider<"select 'hello' + @name, 'your name is :' @name", connectionString, SingleRow = true>()
+//let echoFail = 
+//    new SqlCommandProvider<"
+//        select 'hello' + @name, 'your name is :' @name
+//    ", connectionString, SingleRow = true>(connectionString)
 
 // this one is ok as @name parameter is used only once in the statement:
-let echoOk = new SqlCommandProvider< @"
-declare @theName nvarchar(max)
-set @theName = @name
-select 'hello' + @theName, 'your name is :' + @theName", connectionString, ResultType.Tuples, SingleRow = true>()
+let echoOk = 
+    new SqlCommandProvider< @"
+        declare @theName nvarchar(max)
+        set @theName = @name
+        select 'hello' + @theName, 'your name is :' + @theName
+    ", connectionString, ResultType.Tuples, SingleRow = true>(connectionString)
 
 
 (**
@@ -105,7 +111,12 @@ type SqlDataReader with
     member this.ToRecords<'T>() = 
         seq {
             while this.Read() do
-                let data = dict [ for i = 0 to this.VisibleFieldCount - 1 do yield this.GetName(i), this.GetValue(i)]
+                let data = 
+                    dict [ 
+                        for i = 0 to this.VisibleFieldCount - 1 do 
+                            yield this.GetName(i), this.GetValue(i)
+                    ]
+
                 yield FSharp.Data.SqlClient.DynamicRecord(data) |> box |> unbox<'T>
         }
     

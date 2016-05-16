@@ -37,7 +37,7 @@ A typical implementation for overnight orders shipped since Jan 1, 2008 is follo
 *)
 
 [<Literal>]
-let connStr = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connStr = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 open System 
 open System.Data.SqlClient
@@ -72,7 +72,8 @@ cmd.Parameters.AddWithValue("@shipMethodId", ShippingMethod.``OVERNIGHT J-FAST``
 cmd.ExecuteScalar() |> unbox<int>
 
 (**
-But improvement is questionable because we traded one problem for another \– keeping this enum type definition in sync with database changes.  
+But improvement is questionable because we traded one problem for another - 
+keeping this enum type definition in sync with database changes.  
 
 Solution - SqlEnumProvider
 -------------------------------------
@@ -88,7 +89,8 @@ The code above can be rewritten as follows:
 open FSharp.Data
 
 //by convention: first column is Name, second is Value
-type ShipMethod = SqlEnumProvider<"SELECT Name, ShipMethodID FROM Purchasing.ShipMethod ORDER BY ShipMethodID", connStr>
+type ShipMethod = 
+    SqlEnumProvider<"SELECT Name, ShipMethodID FROM Purchasing.ShipMethod ORDER BY ShipMethodID", connStr>
 
 //Now combining 2 F# type providers: SqlEnumProvider and SqlCommandProvider
 type OrdersByShipTypeSince = SqlCommandProvider<"
@@ -96,7 +98,7 @@ type OrdersByShipTypeSince = SqlCommandProvider<"
     FROM Purchasing.PurchaseOrderHeader 
     WHERE ShipDate > @shippedLaterThan AND ShipMethodID = @shipMethodId", connStr, SingleRow = true>
 
-let cmd2 = new OrdersByShipTypeSince() 
+let cmd2 = new OrdersByShipTypeSince(connStr) 
 cmd2.Execute( DateTime( 2008, 1, 1), ShipMethod.``OVERNIGHT J-FAST``) 
 
 (**
@@ -161,7 +163,7 @@ type TheLatestOrder = SqlCommandProvider<"
     ORDER BY ShipDate DESC
     ", connStr, SingleRow = true>
 
-let cmd3 = new TheLatestOrder() 
+let cmd3 = new TheLatestOrder(connStr) 
 let theLatestOrder = cmd3.Execute().Value
 
 //exploring multi-item value for application logic
@@ -189,7 +191,10 @@ Second can be useful where compiler allows only const declaration - attribute co
 open System.Web.Http
 
 type Roles = 
-    SqlEnumProvider<"SELECT * FROM (VALUES(('Read'), 1), ('Write', 2), ('Admin', 4)) AS T(Name, Value)", @"Data Source=(LocalDb)\v11.0;Integrated Security=True", CLIEnum = true>
+    SqlEnumProvider<"
+        SELECT * 
+        FROM (VALUES(('Read'), 1), ('Write', 2), ('Admin', 4)) AS T(Name, Value)
+    ", @"Data Source=(LocalDb)\v11.0;Integrated Security=True", Kind = SqlEnumKind.CLI>
 
 type CustomAuthorizeAttribute(roles: Roles) = 
     inherit AuthorizeAttribute()

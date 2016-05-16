@@ -46,10 +46,10 @@ CommandText
 open FSharp.Data
 
 [<Literal>]
-let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+let connStr = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 //Inline T-SQL text convinient for short queries 
-type GetDate = SqlCommandProvider<"SELECT GETDATE() AS Now", connectionString>
+type GetDate = SqlCommandProvider<"SELECT GETDATE() AS Now", connStr>
 
 //More complex queries are better off extracted to stand-alone literals
 
@@ -71,10 +71,12 @@ let fibonacci = "
     FROM Fibonacci
 "
 
-type FibonacciQuery = SqlCommandProvider<fibonacci, connectionString>
+type FibonacciQuery = SqlCommandProvider<fibonacci, connStr>
 
-(new FibonacciQuery())
-    .Execute(10L) 
+do 
+    let cmd = new FibonacciQuery(connStr)
+
+    cmd.Execute(10L) 
     |> Seq.map Option.get 
     |> Seq.toArray 
     |> printfn "First 10 fibonacci numbers: %A" 
@@ -103,7 +105,7 @@ For example, it can be handed over to DBA team for optimization. It's harder to 
 are mixed together (LINQ).
 *)
 
-let cmd = new SqlCommandProvider<"GetDate.sql", connectionString>()
+let cmd = new SqlCommandProvider<"GetDate.sql", connStr>(connStr)
 cmd.Execute() |> ignore
 
 (**
@@ -118,7 +120,7 @@ Below is an example of SQL Table-Valued Function usage.
 *)
 
 type GetContactInformation = 
-    SqlCommandProvider<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString>
+    SqlCommandProvider<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connStr>
 
 (**
 ### Syntax errors
@@ -147,9 +149,9 @@ type FizzOrBuzz = SqlCommandProvider<"
 		    WHEN @x % 3 = 0 THEN 'Fizz' 
 		    WHEN @x % 5 = 0 THEN 'Buzz' 
 		    ELSE CONCAT(@x, '') --use concat to avoid nullable column
-	    END", connectionString>
+	    END", connStr>
 
-let fizzOrBuzz = new FizzOrBuzz()
+let fizzOrBuzz = new FizzOrBuzz(connStr)
 printfn "Answer on interview:\n%A" [ for i = 1 to 100 do yield! fizzOrBuzz.Execute(i) ]
 
 (**
@@ -164,7 +166,7 @@ Connection string can be provided either via literal (all examples above) or inl
 
 //Inline 
 type Get42 = 
-    SqlCommandProvider<"SELECT 42", @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True">
+    SqlCommandProvider<"SELECT 42", @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True">
 
 (**
 
@@ -176,10 +178,10 @@ The other option is to supply connection string name from config file.
 *)
 
 //default config file name is app.config or web.config
-type Get43 = SqlCommandProvider<"SELECT 43", "name=AdventureWorks2014">
+type Get43 = SqlCommandProvider<"SELECT 43", "name=AdventureWorks">
 
 //specify ANY other file name (including web.config) explicitly
-type Get44 = SqlCommandProvider<"SELECT 44", "name=AdventureWorks2014", ConfigFile = "user.config">
+type Get44 = SqlCommandProvider<"SELECT 44", "name=AdventureWorks", ConfigFile = "user.config">
 
 (**
 I would like to emphasize that `ConfigFile` is about ***design time only*. 
@@ -223,7 +225,7 @@ let get42 = new Get42(runTimeConnStr)
 //Factory or IOC of choice to avoid logic duplication. Use F# ctor static constraints.
 module DB = 
     [<Literal>]
-    let connStr = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+    let connStr = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
     open System.Data.SqlClient
 
@@ -245,7 +247,7 @@ let dbCmd2: DB.MyCmd2 = DB.createCommand()
 //Static type property ConnectionStringOrName that has exactly same value as passed into SqlCommandProvider helps.
 module DataAccess = 
     [<Literal>]
-    let adventureWorks = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+    let adventureWorks = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
     [<Literal>]
     let master = @"Data Source=.;Initial Catalog=master;Integrated Security=True"
 
@@ -279,32 +281,34 @@ let bitCoinName = "Bitcoin"
 
 type DeleteBitCoin = 
     SqlCommandProvider<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code"
-                        , connectionString>
+                        , connStr>
 type InsertBitCoin = 
     SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())"
-                        , connectionString>
+                        , connStr>
 type GetBitCoin = 
     SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code"
-                        , connectionString>
+                        , connStr>
 
 do 
-    let cmd = new DeleteBitCoin() in cmd.Execute(bitCoinCode) |> ignore
-    let conn = new System.Data.SqlClient.SqlConnection(connectionString)
+    let cmd = new DeleteBitCoin(connStr) in cmd.Execute(bitCoinCode) |> ignore
+    let conn = new System.Data.SqlClient.SqlConnection(connStr)
     conn.Open()
     let tran = conn.BeginTransaction()
 
-    let cmd = new SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())"
-                        , connectionString>()
+    let cmd = 
+        new SqlCommandProvider<"
+            INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())
+        ", connStr>(connStr)
 
-    use insert = InsertBitCoin. Create(transaction = tran) 
+    use insert = InsertBitCoin.Create(conn, transaction = tran) 
     assert(insert.Execute(bitCoinCode, bitCoinName) = 1)
 
-    use get = new GetBitCoin(transaction = tran)
+    use get = new GetBitCoin(conn, transaction = tran)
     assert( get.Execute(bitCoinCode) |> Seq.length = 1)
 
     tran.Rollback()
 
-    assert( GetBitCoin.Create().Execute(bitCoinCode) |> Seq.length = 0)
+    assert( GetBitCoin.Create(connStr).Execute(bitCoinCode) |> Seq.length = 0)
 
 (**
 
@@ -316,7 +320,7 @@ to create command instances.
 
 open System
 
-type AdventureWorks2012 = SqlProgrammabilityProvider<connectionString>
+type AdventureWorks2012 = SqlProgrammabilityProvider<connStr>
 
 (**
 
@@ -328,10 +332,10 @@ But there are rare cases when you prefer to handle NULL input values inside T-SQ
 *)
 
 type IncrBy = SqlCommandProvider<"SELECT @x + ISNULL(CAST(@y AS INT), 1) ", 
-                                    connectionString, 
+                                    connStr, 
                                     AllParametersOptional = true, 
                                     SingleRow = true>
-let incrBy = new IncrBy()
+let incrBy = new IncrBy(connStr)
 //pass both params passed 
 incrBy.Execute(Some 10, Some 2) = Some( Some 12) //true
 //omit second parameter. default to 1
@@ -361,9 +365,9 @@ END
 </pre>
 *)
 
-type TableValuedSample = SqlCommandProvider<"exec myProc @x", connectionString>
+type TableValuedSample = SqlCommandProvider<"exec myProc @x", connStr>
 type TVP = TableValuedSample.MyTableType
-let tvpSp = new TableValuedSample()
+let tvpSp = new TableValuedSample(connStr)
 //nullable columns mapped to optional ctor params
 tvpSp.Execute(x = [ TVP(myId = 1, myName = Some "monkey"); TVP(myId = 2) ]) 
 
@@ -374,7 +378,7 @@ Same with `SqlProgrammabilityProvider<...>`
 type T = AdventureWorks2012.dbo.``User-Defined Table Types``.MyTableType
 
 do 
-    use cmd = new AdventureWorks2012.dbo.MyProc()
+    use cmd = new AdventureWorks2012.dbo.MyProc(connStr)
     cmd.Execute([ T(myId = 2); T(myId = 1) ]) |> printfn "%A"
 
 (**  
@@ -386,7 +390,7 @@ There is additional ExecuteSingle/ AsyncExecuteSingle to opt-in for singleton re
 *)
 
 do 
-    use cmd = new AdventureWorks2012.dbo.uspGetWhereUsedProductID()
+    use cmd = new AdventureWorks2012.dbo.uspGetWhereUsedProductID(connStr)
 
     //sync
     cmd.Execute( StartProductID = 1, CheckDate = DateTime(2013,1,1)) |> printfn "%A"
@@ -404,19 +408,19 @@ do
 *)
 
 do 
-    use cmd = new AdventureWorks2012.dbo.uspLogError()
+    use cmd = new AdventureWorks2012.dbo.uspLogError(connStr)
     let errorLogId = ref -1
     let recordsAffected = cmd.Execute(errorLogId)
     printfn "errorLogId: %i" !errorLogId
 
 do  //tupled invocation syntax
     //works only in VS 2015 or later because of F# compiler bug
-    use cmd = new AdventureWorks2012.dbo.uspLogError()
+    use cmd = new AdventureWorks2012.dbo.uspLogError(connStr)
     let _, errorLogId = cmd.Execute()
     printfn "errorLogId: %i" errorLogId
 
 do  //mutable bindgings 
-    use cmd = new AdventureWorks2012.dbo.uspLogError()
+    use cmd = new AdventureWorks2012.dbo.uspLogError(connStr)
     let mutable errorLogId = -1
     let recordsAffected = cmd.Execute(&errorLogId)
     printfn "errorLogId: %i" errorLogId
@@ -428,13 +432,14 @@ RETURN_VALUE will be the last byref parameter.
 *)
 
 do 
-    use cmd = new SqlProgrammabilityProvider<connectionString, UseReturnValue = true>.dbo.uspLogError()
+    use cmd = 
+        new SqlProgrammabilityProvider<connStr, UseReturnValue = true>.dbo.uspLogError(connStr)
     let recordsAffected, errorLogId, returnValue = cmd.Execute()
     printfn "recordsAffected: %i, errorLogId: %i, returnValue: %i" recordsAffected errorLogId returnValue
 
 (**
 Things get interesting when stored procedure return both set of rows and output parameters. 
-I won’t show any sample code because AdventureWorks database doesn’t have such procedure. 
+I won't show any sample code because AdventureWorks database doesn't have such procedure. 
 But the only change comparing to non-query stored procedure that instead of returning number 
 of affected records it returns F# list of records. 
 Notice that list is data structure as oppose to lazy evaluated seq<_> computation. 

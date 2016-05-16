@@ -5,7 +5,7 @@ open FSharp.Data
 open System
 
 [<Literal>]
-let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 (**
 
@@ -25,7 +25,7 @@ let cmd = new SqlCommandProvider<"
     FROM Sales.vSalesPerson
     WHERE CountryRegionName = @regionName AND SalesYTD > @salesMoreThan 
     ORDER BY SalesYTD
-    " , connectionString>()
+    " , connectionString>(connectionString)
 
 cmd.ToTraceString(topN = 3L, regionName = "United States", salesMoreThan = 1000000M) 
 |> printfn "Sql: %s"

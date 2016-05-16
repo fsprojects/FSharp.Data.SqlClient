@@ -1,3 +1,13 @@
+#### 1.8.2 - May 16, 2016
+	* Issue #192 - Invert order of release notes so most recent is on top
+	* Issue #195 - BREAKING CHANGE! Make connection parameter mandatory when literal connection string used at design time
+	* Issue #196 - BREAKING CHANGE! API based run-time configuration
+	* Issue #197 
+	* Issue #199 - Support for Stored procedure and Functions Synonyms
+	* Issue #200 - Support for Table Synonyms
+	* Issue #201 - Units of measure kind support in SqlEnumProvider
+	* Issue #214 - BREAKING CHANGE! Add SqlCommand.Table type for ResultType.DataTable
+
 #### 1.8.1 - March 3, 2016
 	* Issue #185 
 	
