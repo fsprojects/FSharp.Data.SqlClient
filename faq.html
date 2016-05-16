@@ -54,10 +54,12 @@ consider wrapping it into stored procedure or function. Both accept default valu
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
 <span class="l">2: </span>
+<span class="l">3: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">echoOnly</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs2', 2)" onmouseover="showTip(event, 'fs2', 2)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">ISNULL</span><span class="s">(</span><span class="s">@</span><span class="s">x</span><span class="s">,</span><span class="s"> </span><span class="s">42</span><span class="s">)</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 3)" onmouseover="showTip(event, 'fs3', 3)" class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>(<span onmouseout="hideTip(event, 'fs3', 4)" onmouseover="showTip(event, 'fs3', 4)" class="i">connectionString</span>)
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">echoOnly</span> <span class="o">=</span> 
+    <span class="k">new</span> <span onmouseout="hideTip(event, 'fs2', 2)" onmouseover="showTip(event, 'fs2', 2)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">ISNULL</span><span class="s">(</span><span class="s">@</span><span class="s">x</span><span class="s">,</span><span class="s"> </span><span class="s">42</span><span class="s">)</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 3)" onmouseover="showTip(event, 'fs3', 3)" class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>(<span onmouseout="hideTip(event, 'fs3', 4)" onmouseover="showTip(event, 'fs3', 4)" class="i">connectionString</span>)
 <span onmouseout="hideTip(event, 'fs1', 5)" onmouseover="showTip(event, 'fs1', 5)" class="i">echoOnly</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs4', 6)" onmouseover="showTip(event, 'fs4', 6)" class="i">Execute</span>( <span onmouseout="hideTip(event, 'fs5', 7)" onmouseover="showTip(event, 'fs5', 7)" class="i">x</span> <span class="o">=</span> <span class="c">(* must pass int value here *)</span> <span class="n">1</span>) </pre>
 </td>
 </tr>
@@ -134,11 +136,17 @@ to determine which columns to filter, if at all, based on that input.</p>
 <span class="l"> 8: </span>
 <span class="l"> 9: </span>
 <span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
 <span class="c">// this one would fail with above mentionned error:</span>
-<span class="c">// let echoFail = new SqlCommandProvider&lt;&quot;select &#39;hello&#39; + @name, &#39;your name is :&#39; @name&quot;, connectionString, SingleRow = true&gt;()</span>
+<span class="c">//let echoFail = </span>
+<span class="c">//    new SqlCommandProvider&lt;&quot;</span>
+<span class="c">//        select &#39;hello&#39; + @name, &#39;your name is :&#39; @name</span>
+<span class="c">//    &quot;, connectionString, SingleRow = true&gt;(connectionString)</span>
 
 <span class="c">// this one is ok as @name parameter is used only once in the statement:</span>
 <span class="k">let</span> <span onmouseout="hideTip(event, 'fs11', 21)" onmouseover="showTip(event, 'fs11', 21)" class="i">echoOk</span> <span class="o">=</span> 
@@ -177,6 +185,11 @@ to determine which columns to filter, if at all, based on that input.</p>
 <span class="l">17: </span>
 <span class="l">18: </span>
 <span class="l">19: </span>
+<span class="l">20: </span>
+<span class="l">21: </span>
+<span class="l">22: </span>
+<span class="l">23: </span>
+<span class="l">24: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
@@ -189,7 +202,12 @@ to determine which columns to filter, if at all, based on that input.</p>
     <span class="k">member</span> <span onmouseout="hideTip(event, 'fs21', 37)" onmouseover="showTip(event, 'fs21', 37)" class="i">this</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs22', 38)" onmouseover="showTip(event, 'fs22', 38)" class="i">ToRecords</span><span class="o">&lt;</span><span class="o">&#39;</span><span class="i">T</span><span class="o">&gt;</span>() <span class="o">=</span> 
         <span onmouseout="hideTip(event, 'fs23', 39)" onmouseover="showTip(event, 'fs23', 39)" class="i">seq</span> {
             <span class="k">while</span> <span onmouseout="hideTip(event, 'fs21', 40)" onmouseover="showTip(event, 'fs21', 40)" class="i">this</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs24', 41)" onmouseover="showTip(event, 'fs24', 41)" class="i">Read</span>() <span class="k">do</span>
-                <span class="k">let</span> <span onmouseout="hideTip(event, 'fs25', 42)" onmouseover="showTip(event, 'fs25', 42)" class="i">data</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs26', 43)" onmouseover="showTip(event, 'fs26', 43)" class="i">dict</span> [ <span class="k">for</span> <span onmouseout="hideTip(event, 'fs27', 44)" onmouseover="showTip(event, 'fs27', 44)" class="i">i</span> <span class="o">=</span> <span class="n">0</span> <span class="k">to</span> <span onmouseout="hideTip(event, 'fs21', 45)" onmouseover="showTip(event, 'fs21', 45)" class="i">this</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs28', 46)" onmouseover="showTip(event, 'fs28', 46)" class="i">VisibleFieldCount</span> <span class="o">-</span> <span class="n">1</span> <span class="k">do</span> <span class="k">yield</span> <span onmouseout="hideTip(event, 'fs21', 47)" onmouseover="showTip(event, 'fs21', 47)" class="i">this</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs29', 48)" onmouseover="showTip(event, 'fs29', 48)" class="i">GetName</span>(<span onmouseout="hideTip(event, 'fs27', 49)" onmouseover="showTip(event, 'fs27', 49)" class="i">i</span>), <span onmouseout="hideTip(event, 'fs21', 50)" onmouseover="showTip(event, 'fs21', 50)" class="i">this</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs30', 51)" onmouseover="showTip(event, 'fs30', 51)" class="i">GetValue</span>(<span onmouseout="hideTip(event, 'fs27', 52)" onmouseover="showTip(event, 'fs27', 52)" class="i">i</span>)]
+                <span class="k">let</span> <span onmouseout="hideTip(event, 'fs25', 42)" onmouseover="showTip(event, 'fs25', 42)" class="i">data</span> <span class="o">=</span> 
+                    <span onmouseout="hideTip(event, 'fs26', 43)" onmouseover="showTip(event, 'fs26', 43)" class="i">dict</span> [ 
+                        <span class="k">for</span> <span onmouseout="hideTip(event, 'fs27', 44)" onmouseover="showTip(event, 'fs27', 44)" class="i">i</span> <span class="o">=</span> <span class="n">0</span> <span class="k">to</span> <span onmouseout="hideTip(event, 'fs21', 45)" onmouseover="showTip(event, 'fs21', 45)" class="i">this</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs28', 46)" onmouseover="showTip(event, 'fs28', 46)" class="i">VisibleFieldCount</span> <span class="o">-</span> <span class="n">1</span> <span class="k">do</span> 
+                            <span class="k">yield</span> <span onmouseout="hideTip(event, 'fs21', 47)" onmouseover="showTip(event, 'fs21', 47)" class="i">this</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs29', 48)" onmouseover="showTip(event, 'fs29', 48)" class="i">GetName</span>(<span onmouseout="hideTip(event, 'fs27', 49)" onmouseover="showTip(event, 'fs27', 49)" class="i">i</span>), <span onmouseout="hideTip(event, 'fs21', 50)" onmouseover="showTip(event, 'fs21', 50)" class="i">this</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs30', 51)" onmouseover="showTip(event, 'fs30', 51)" class="i">GetValue</span>(<span onmouseout="hideTip(event, 'fs27', 52)" onmouseover="showTip(event, 'fs27', 52)" class="i">i</span>)
+                    ]
+
                 <span class="k">yield</span> <span onmouseout="hideTip(event, 'fs31', 53)" onmouseover="showTip(event, 'fs31', 53)" class="i">FSharp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs32', 54)" onmouseover="showTip(event, 'fs32', 54)" class="i">Data</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs33', 55)" onmouseover="showTip(event, 'fs33', 55)" class="i">SqlClient</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs34', 56)" onmouseover="showTip(event, 'fs34', 56)" class="i">DynamicRecord</span>(<span onmouseout="hideTip(event, 'fs25', 57)" onmouseover="showTip(event, 'fs25', 57)" class="i">data</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs35', 58)" onmouseover="showTip(event, 'fs35', 58)" class="i">box</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs36', 59)" onmouseover="showTip(event, 'fs36', 59)" class="i">unbox</span><span class="o">&lt;</span><span class="o">&#39;</span><span class="i">T</span><span class="o">&gt;</span>
         }
     
