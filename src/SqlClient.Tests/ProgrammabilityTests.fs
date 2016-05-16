@@ -44,19 +44,18 @@ let ``update table should work when names connection string from design time is 
 
 [<Fact>]
 let ``no bad error message when db is changed before table update ``() = 
-    use cmd = new SqlCommandProvider<"EXEC sp_rename 'Sales.SalesTerritory', 'SalesTerr';", ConnectionStrings.AdventureWorksNamed>()
-    cmd.Execute() |> ignore
-
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
     use tran = conn.BeginTransaction()
+        
+    use cmd = new SqlCommand("EXEC sp_rename 'Sales.SalesTerritory', 'SalesTerr';", conn, tran)
+
+    cmd.ExecuteNonQuery() |> ignore
+
     use table = new AdventureWorks.Sales.Tables.SalesTerritory()
     table.AddRow("Northwest2", "US", "North America")
     
     Assert.Throws<SqlException>(fun _ ->  table.Update(conn, tran) |> ignore) |> ignore   
-    
-    use cmd = new SqlCommandProvider<"EXEC sp_rename 'Sales.SalesTerr', 'SalesTerritory';", ConnectionStrings.AdventureWorksNamed>()
-    cmd.Execute() |> ignore
 
 type Address_GetAddressBySpatialLocation = AdventureWorks.Person.Address_GetAddressBySpatialLocation
 open Microsoft.SqlServer.Types
