@@ -217,6 +217,21 @@ type DesignTime private() =
 
         tableProvidedType
 
+    static member internal SetupTableProperty(rowType: ProvidedTypeDefinition) (tableType: ProvidedTypeDefinition) =
+        let tableProperty =
+            ProvidedProperty(
+                "Table"
+                , tableType
+                , GetterCode = 
+                    fun args ->
+                        <@@
+                            let row : DataRow = %%args.[0]
+                            let table = row.Table
+                            table
+                        @@>
+            )
+        rowType.AddMember tableProperty
+
     static member internal GetOutputTypes (outputColumns: Column list, resultType, rank: ResultRank, hasOutputParameters) =    
         if resultType = ResultType.DataReader 
         then 
@@ -228,7 +243,7 @@ type DesignTime private() =
         then
             let dataRowType = DesignTime.GetDataRowType outputColumns
             let dataTableType = DesignTime.GetDataTableType "Table" dataRowType outputColumns
-            
+            DesignTime.SetupTableProperty dataRowType dataTableType
             // add .Row to .Table
             dataTableType.AddMember dataRowType
 
