@@ -10,7 +10,7 @@ The library is a home for three type providers:
 
 - __SqlCommandProvider__ - type-safe access to full set of T-SQL language
 - __SqlProgrammabilityProvider__ - quick access to Sql Server functions, stored procedures and tables in idiomatic F# way
-- __SqlEnumProvider__ - generates enumeration types based on static lookup data from any ADO.NET complaint source
+- __SqlEnumProvider__ - generates enumeration types based on static lookup data from any ADO.NET compliant source
 
 <div class="row">
   <div class="span1"></div>
