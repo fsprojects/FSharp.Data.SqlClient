@@ -241,5 +241,23 @@ let ResultSetAndOutParam() =
     Assert.Equal(2L, !total)
 
 
+[<Fact>]
+let PassingImageAsParamDoesntGetCut() = 
+    use tran = new System.Transactions.TransactionScope() 
+    use read = 
+        new SqlCommandProvider<"
+            SELECT TOP 1 ProductPhotoID, LargePhoto 
+            FROM Production.ProductPhoto
+            ORDER BY ProductPhotoID DESC
+        ", ConnectionStrings.AdventureWorksNamed, SingleRow = true>()
+    let existing = read.Execute().Value
+
+    use write = new AdventureWorks.dbo.TestPhoto()
+    let id = 200
+    let inserted = write.ExecuteSingle(id, existing.LargePhoto.Value).Value
+    Assert.Equal(id, inserted.ProductPhotoId)
+    Assert.Equal(existing.LargePhoto.Value.Length, inserted.LargePhoto.Value.Length)
+    Assert.Equal(existing.LargePhoto, inserted.LargePhoto)
+
 
 

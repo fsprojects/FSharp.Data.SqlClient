@@ -26,11 +26,6 @@ type QuotationsFactory private() =
 
     static member internal ToSqlParam(p : Parameter) = 
 
-        let tvpColumnNames, tvpColumnTypes = 
-            if not p.TypeInfo.TableType 
-            then [], []
-            else [ for c in p.TypeInfo.TableTypeColumns.Value -> c.Name, c.TypeInfo.ClrType.FullName ] |> List.unzip
-
         let name = p.Name
         let sqlDbType = p.TypeInfo.SqlDbType
         let isFixedLength = p.TypeInfo.IsFixedLength
@@ -52,14 +47,6 @@ type QuotationsFactory private() =
             if %%Expr.Value p.TypeInfo.SqlEngineTypeId = 240 
             then
                 x.UdtTypeName <- %%Expr.Value p.TypeInfo.TypeName
-            
-            if not tvpColumnNames.IsEmpty
-            then 
-                let table = new DataTable()
-                for name, typeName in List.zip tvpColumnNames tvpColumnTypes do
-                    let c = new DataColumn(name, Type.GetType( typeName, throwOnError = true))
-                    table.Columns.Add c
-                x.Value <- table
             x
         @@>
 

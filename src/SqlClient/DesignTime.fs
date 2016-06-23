@@ -4,6 +4,7 @@ open System
 open System.Reflection
 open System.Data
 open System.Data.SqlClient
+open Microsoft.SqlServer.Server
 open System.Collections.Generic
 open System.Diagnostics
 open Microsoft.FSharp.Quotations
@@ -438,6 +439,50 @@ type DesignTime private() =
                 |> Some
         else
             None
+
+    static member internal CreateUDTT(t: TypeInfo) = 
+        assert(t.TableType)
+        let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj>, HideObjectMethods = true)
+
+        let parameters, sqlMetas = 
+            List.unzip [ 
+                for p in t.TableTypeColumns.Value do
+                    let name = p.Name
+                    let param = ProvidedParameter( name, p.ClrTypeConsideringNullable, ?optionalValue = if p.Nullable then Some null else None) 
+                    let sqlMeta =
+                        let dbType = p.TypeInfo.SqlDbType
+                        if p.TypeInfo.IsFixedLength
+                        then <@@ SqlMetaData(name, dbType) @@>
+                        else 
+                            let maxLength = p.MaxLength
+                            <@@ SqlMetaData(name, dbType, int64 maxLength) @@>
+
+                    yield param, sqlMeta
+            ] 
+
+        let ctor = ProvidedConstructor( parameters)
+        ctor.InvokeCode <- fun args -> 
+            let optionsToNulls = QuotationsFactory.MapArrayNullableItems(List.ofArray t.TableTypeColumns.Value, "MapArrayOptionItemToObj") 
+
+            <@@
+                let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for a in args -> Expr.Coerce(a, typeof<obj>) ])
+                (%%optionsToNulls) values
+
+                //let record = new SqlDataRecord()
+                //record.SetValues(values) |> ignore
+
+                //done via reflection because not implemented on Mono
+                let sqlDataRecordType = typeof<SqlCommand>.Assembly.GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
+                let record = Activator.CreateInstance(sqlDataRecordType, args = [| %%Expr.Coerce(Expr.NewArray(typeof<SqlMetaData>, sqlMetas), typeof<obj>) |])
+                sqlDataRecordType.GetMethod("SetValues").Invoke(record, [| values |]) |> ignore
+
+                record
+            @@>
+        rowType.AddMember ctor
+        rowType.AddXmlDoc "User-Defined Table Type"
+                            
+        rowType
+
                 
     static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, udttsPerSchema: Dictionary<_, ProvidedTypeDefinition>) = 
         [
@@ -466,24 +511,8 @@ type DesignTime private() =
                             then //SqlCommandProvider case
                                 match cmdProvidedType.GetNestedType(p.TypeInfo.UdttName) with 
                                 | null -> 
-                                    let rowType = ProvidedTypeDefinition(p.TypeInfo.UdttName, Some typeof<obj>, HideObjectMethods = true)
+                                    let rowType = DesignTime.CreateUDTT(p.TypeInfo)
                                     cmdProvidedType.AddMember rowType
-
-                                    let parameters = [ 
-                                        for p in p.TypeInfo.TableTypeColumns.Value -> 
-                                            ProvidedParameter( p.Name, p.ClrTypeConsideringNullable, ?optionalValue = if p.Nullable then Some null else None) 
-                                    ] 
-
-                                    let ctor = ProvidedConstructor( parameters)
-                                    ctor.InvokeCode <- fun args -> 
-                                        let optionsToNulls = QuotationsFactory.MapArrayNullableItems(List.ofArray p.TypeInfo.TableTypeColumns.Value, "MapArrayOptionItemToObj") 
-                                        <@@
-                                            let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for a in args -> Expr.Coerce(a, typeof<obj>) ])
-                                            (%%optionsToNulls) values
-                                            values
-                                        @@>
-                                    rowType.AddMember ctor
-                            
                                     rowType
                                 | x -> downcast x //same type appears more than once
                             else //SqlProgrammability

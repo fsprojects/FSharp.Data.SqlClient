@@ -574,7 +574,8 @@ type SqlConnection with
         then
             assert (this.State = ConnectionState.Open)
 
-            let runningOnMono = try System.Type.GetType("Mono.Runtime") <> null with e -> false 
+            let runningOnMono = try System.Type.GetType("Mono.Runtime") <> null with _ -> false 
+
             let sqlEngineTypes = [|
                 use cmd = new SqlCommand("
                     SELECT t.name, t.system_type_id, t.user_type_id, t.is_table_type, s.name as schema_name, t.is_user_defined

@@ -43,6 +43,9 @@ GO
 IF OBJECT_ID('dbo.HowManyRows') IS NOT NULL
 	DROP PROCEDURE dbo.HowManyRows;
 GO
+IF OBJECT_ID('dbo.TestPhoto') IS NOT NULL
+	DROP PROCEDURE dbo.TestPhoto;
+GO
 
 IF OBJECT_ID(N'dbo.TableHavingColumnNamesWithSpaces') IS NOT NULL
 	DROP TABLE dbo.TableHavingColumnNamesWithSpaces
@@ -215,3 +218,23 @@ GO
 
 CREATE SYNONYM dbo.HRShift FOR HumanResources.Shift
 GO
+
+
+CREATE PROCEDURE dbo.TestPhoto
+    -- Add the parameters for the stored procedure here
+	@id int
+    ,@img varbinary(max)
+AS
+BEGIN
+    -- SET NOCOUNT ON added to prevent extra result sets from
+    -- interfering with SELECT statements.
+    SET NOCOUNT ON;
+    -- Insert statements for procedure here
+    SET IDENTITY_INSERT Production.ProductPhoto ON
+    INSERT INTO Production.ProductPhoto (ProductPhotoId, LargePhoto) 
+    OUTPUT inserted.ProductPhotoId, inserted.LargePhoto
+    VALUES (@id, @img)
+    SET IDENTITY_INSERT Production.ProductPhoto OFF
+END
+
+GO 

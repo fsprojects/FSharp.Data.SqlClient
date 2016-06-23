@@ -13,7 +13,7 @@ let Basic() =
     let p = [
         MyTableType(myId = 1, myName = Some "monkey")
         MyTableType(myId = 2, myName = Some "donkey")
-    ]
+    ] 
     Assert.Equal(Some(1, Some "monkey"), cmd.Execute(x = p))    
 
 [<Fact>] 
@@ -36,7 +36,6 @@ let NullableColumn() =
         MyTableType(myId = 2, myName = Some "donkey")
     ]
     Assert.Equal(Some(1, None), cmd.Execute p)    
-
 
 type TableValuedSingle = SqlCommandProvider<"exec SingleElementProc @x", ConnectionStringOrName = ConnectionStrings.AdventureWorksNamed>
 
@@ -97,3 +96,24 @@ let TwoTVPParameterOfSameUDTT() =
     let expected = [ for id, name in xs @ ys -> MyFunc.Record(id, name) ]
     Assert.Equal<_ list>(expected, cmd.Execute(xs', ys') |> Seq.toList)    
 
+open System.Data.SqlClient
+
+[<Fact>]
+let ReuseTVPTypeForDynamicADONET() = 
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
+    use cmd = new SqlCommand("exec Person.myProc @x", conn)
+    let p = cmd.Parameters.Add( "@x", System.Data.SqlDbType.Structured)
+    p.TypeName <- "Person.MyTableType"
+    p.Value <- [
+        MyTableType(myId = 1, myName = Some "monkey")
+        MyTableType(myId = 2, myName = Some "donkey")
+    ] |> Seq.cast<Microsoft.SqlServer.Server.SqlDataRecord>
+    conn.Open()
+    let expected = [ 1, "monkey"; 2, "donkey" ]
+    let actual = [
+        use cursor = cmd.ExecuteReader()
+        while cursor.Read() do
+            yield cursor.GetInt32(0), cursor.GetString(1)
+    ]
+
+    Assert.Equal<_ list>( expected, actual)

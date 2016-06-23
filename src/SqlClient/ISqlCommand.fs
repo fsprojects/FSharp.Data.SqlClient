@@ -186,10 +186,11 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                     then 
                         p.Value <- value
                     else
-                        let table : DataTable = unbox p.Value
-                        table.Rows.Clear()
-                        for rowValues in unbox<seq<obj>> value do
-                            table.Rows.Add( rowValues :?> obj[]) |> ignore
+                        //p.Value <- value |> unbox |> Seq.cast<Microsoft.SqlServer.Server.SqlDataRecord>
+
+                        //done via reflection because not implemented on Mono
+                        let sqlDataRecordType = typeof<SqlCommand>.Assembly.GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
+                        p.Value <- typeof<Linq.Enumerable>.GetMethod("Cast").MakeGenericMethod(sqlDataRecordType).Invoke(null, [| value |])
 
 //Execute/AsyncExecute versions
 

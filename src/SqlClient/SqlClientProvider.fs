@@ -100,7 +100,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         for schemaType in schemas do
             let udttsRoot = ProvidedTypeDefinition("User-Defined Table Types", Some typeof<obj>)
             udttsRoot.AddMembersDelayed <| fun () -> 
-                this.UDTTs (conn.ConnectionString, schemaType.Name, tagProvidedType)
+                this.UDTTs (conn.ConnectionString, schemaType.Name)
 
             udttsPerSchema.Add( schemaType.Name, udttsRoot)
             schemaType.AddMember udttsRoot
@@ -122,30 +122,12 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         databaseRootType           
 
-     member internal __.UDTTs( connStr, schema, tagProvidedType) = [
+     member internal __.UDTTs( connStr, schema) = [
         for t in getTypes( connStr) do
             if t.TableType && t.Schema = schema
             then 
-                let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj>, HideObjectMethods = true)
-                    
-                let parameters = [ 
-                    for p in t.TableTypeColumns.Value -> 
-                        ProvidedParameter(p.Name, p.ClrTypeConsideringNullable, ?optionalValue = if p.Nullable then Some null else None) 
-                ] 
-
-                let ctor = ProvidedConstructor( parameters)
-                ctor.InvokeCode <- fun args -> 
-                    let optionsToNulls = QuotationsFactory.MapArrayNullableItems(List.ofArray t.TableTypeColumns.Value, "MapArrayOptionItemToObj") 
-                    <@@
-                        let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for a in args -> Expr.Coerce(a, typeof<obj>) ])
-                        (%%optionsToNulls) values
-                        values
-                    @@>
-
-                rowType.AddMember ctor
-                rowType.AddXmlDoc "User-Defined Table Type"
-                tagProvidedType rowType
-                yield rowType
+                yield DesignTime.CreateUDTT( t)
+                //tagProvidedType rowType
     ]
 
     member internal __.Routines(conn, schema, uddtsPerSchema, resultType, designTimeConnectionString, useReturnValue) = 
@@ -551,7 +533,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     if resultType = ResultType.DataTable then
                         // if we don't do this, we get a compile error
                         // Error The type provider 'FSharp.Data.SqlProgrammabilityProvider' reported an error: type 'Table' was not added as a member to a declaring type <type instanciation name> 
-                        output.ProvidedType |> cmdProvidedType.AddMember
+                        cmdProvidedType.AddMember( output.ProvidedType) 
                     else
                         output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
 
