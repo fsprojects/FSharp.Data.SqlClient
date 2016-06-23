@@ -40,7 +40,6 @@ type DataTablesTests() =
                 t.NewRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12., ModifiedDate = Some DateTime.Now.Date)
                 t.NewRow("Spanish siesta", TimeSpan.FromHours 13., TimeSpan.FromHours 16., Some DateTime.Now.Date)
             |]
-        t.NewRow().ShiftID <- 12
 
         let bulkCopy = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, tran)
         let rowsCopied = ref 0L

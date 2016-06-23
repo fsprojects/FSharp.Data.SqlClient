@@ -117,3 +117,24 @@ let ReuseTVPTypeForDynamicADONET() =
     ]
 
     Assert.Equal<_ list>( expected, actual)
+
+type QueryTVO = 
+    SqlCommandProvider<"
+        DECLARE @p1 AS dbo.MyTableType = @input
+        SELECT * from @p1
+    ", ConnectionStrings.AdventureWorksNamed>
+
+[<Fact(Skip ="Fails at runtime :(")>]
+let UsingTVPInQuery() = 
+    use cmd = new QueryTVO()
+    let expected = [ 
+        1, Some "monkey"
+        2, Some "donkey"
+    ]
+
+    let actual =
+        cmd.Execute(input = [ for id, name in expected -> QueryTVO.MyTableType(id, name) ])
+        |> Seq.map(fun x -> x.myId, x.myName)
+        |> Seq.toList
+
+    Assert.Equal<_ list>(expected, actual)
