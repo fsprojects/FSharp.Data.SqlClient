@@ -322,3 +322,21 @@ type DataTablesTests() =
         // use as plain DataColumns
         let name = product.[products.Columns.Name] :?> string
         Assert.True(product.Name = name)
+    
+    [<Fact>]
+    member __.``Can use Table property on SqlCommandProvider's rows`` () =
+        let t = (new GetArbitraryDataAsDataTable()).Execute()
+        let r = t.Rows.[0]
+        Assert.True(r.Table = t)
+        Assert.True(r.Table.Columns.a = t.Columns.a)
+
+    [<Fact>]
+    member __.``Can use Table property on SqlProgrammabilityProvider's rows`` () =
+        let products = new AdventureWorks.Production.Tables.Product()
+        
+        let product = products.NewRow()
+        product.Name <- "foo"
+        
+        // can access typed table from row
+        let name = product.[product.Table.Columns.Name] :?> string
+        Assert.True(product.Name = name)
