@@ -325,10 +325,9 @@ type DataTablesTests() =
     
     [<Fact>]
     member __.``Can use Table property on SqlCommandProvider's rows`` () =
-        let t = (new GetArbitraryDataAsDataTable()).Execute()
-        let r = t.Rows.[0]
-        Assert.True(r.Table = t)
-        Assert.True(r.Table.Columns.a = t.Columns.a)
+        use cmd = new GetArbitraryDataAsDataTable()
+        let t = cmd.Execute()
+        Assert.Equal<GetArbitraryDataAsDataTable.Table>(t.Rows.[0].Table, t)
 
     [<Fact>]
     member __.``Can use Table property on SqlProgrammabilityProvider's rows`` () =

@@ -174,8 +174,6 @@ type DesignTime private() =
             let property = ProvidedProperty(col.Name, propertyType, GetterCode = getter)
 
             if not col.ReadOnly then
-              // only expose a setter if the column is not readonly
-              // note: if this is an issue, we always expose a SetValue method on the typed DataColumn itself
               property.SetterCode <- setter
             
             property
@@ -184,7 +182,7 @@ type DesignTime private() =
 
         rowType
 
-    static member internal GetDataTableType typeName dataRowType (outputColumns: Column list) =
+    static member internal GetDataTableType(typeName, dataRowType, outputColumns: Column list) =
         let tableType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ dataRowType ])
         let tableProvidedType = ProvidedTypeDefinition(typeName, Some tableType)
       
@@ -218,7 +216,7 @@ type DesignTime private() =
 
         tableProvidedType
 
-    static member internal SetupTableProperty(rowType: ProvidedTypeDefinition) (tableType: ProvidedTypeDefinition) =
+    static member internal SetupTableProperty(rowType: ProvidedTypeDefinition, tableType: ProvidedTypeDefinition) =
         let tableProperty =
             ProvidedProperty(
                 "Table"
@@ -243,8 +241,8 @@ type DesignTime private() =
         elif resultType = ResultType.DataTable 
         then
             let dataRowType = DesignTime.GetDataRowType outputColumns
-            let dataTableType = DesignTime.GetDataTableType "Table" dataRowType outputColumns
-            DesignTime.SetupTableProperty dataRowType dataTableType
+            let dataTableType = DesignTime.GetDataTableType("Table", dataRowType, outputColumns)
+            DesignTime.SetupTableProperty(dataRowType, dataTableType)
             // add .Row to .Table
             dataTableType.AddMember dataRowType
 

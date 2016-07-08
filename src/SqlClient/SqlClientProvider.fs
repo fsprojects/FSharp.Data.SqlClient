@@ -331,8 +331,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         dataRowType.AddMember property
 
                 //type data table
-                let dataTableType = DesignTime.GetDataTableType tableName dataRowType columns
-                DesignTime.SetupTableProperty dataRowType dataTableType
+                let dataTableType = DesignTime.GetDataTableType(tableName, dataRowType, columns)
+                DesignTime.SetupTableProperty(dataRowType, dataTableType)
                 tagProvidedType dataTableType
                 dataTableType.AddMember dataRowType
         
