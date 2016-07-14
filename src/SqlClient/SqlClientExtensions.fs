@@ -62,10 +62,25 @@ type Column = {
     Description: string
 }   with
     
-    member this.ClrTypeConsideringNullable = 
+    member this.ClrTypeConsideringNullable(?unitsOfMeasurePerSchema: Dictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition>) = 
+        printfn "%A" unitsOfMeasurePerSchema
+        let typeConsideringUOM: Type = 
+//            if this.TypeInfo.IsUnitOfMeasure && unitsOfMeasurePerSchema.IsSome
+//            then
+//                assert(unitsOfMeasurePerSchema.IsSome)
+//                let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema].GetNestedType(this.TypeInfo.UnitOfMeasureName)
+//                ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.Default.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
+//            else
+//                this.TypeInfo.ClrType
+
+            this.TypeInfo.ClrType
+
         if this.Nullable
-        then typedefof<_ option>.MakeGenericType this.TypeInfo.ClrType
-        else this.TypeInfo.ClrType
+        then
+            //ProviderImplementation.ProvidedTypes.ProvidedTypeBuilder.MakeGenericType(typedefof<_ option>, [ typeConsideringUOM ])
+            typedefof<_ option>.MakeGenericType typeConsideringUOM
+        else 
+            typeConsideringUOM
 
     member this.HasDefaultConstraint = this.DefaultConstraint <> ""
     member this.NullableParameter = this.Nullable || this.HasDefaultConstraint
@@ -111,6 +126,8 @@ and TypeInfo = {
     member this.ClrType: Type = Type.GetType( this.ClrTypeFullName, throwOnError = true)
     member this.TableType = this.SqlDbType = SqlDbType.Structured
     member this.IsValueType = not this.TableType && this.ClrType.IsValueType
+    member this.IsUnitOfMeasure = this.TypeName.StartsWith("<") && this.TypeName.EndsWith(">")
+    member this.UnitOfMeasureName = this.TypeName.TrimStart('<').TrimEnd('>')
 
 type Parameter = {
     Name: string

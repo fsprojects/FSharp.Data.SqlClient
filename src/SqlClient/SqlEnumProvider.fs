@@ -172,8 +172,8 @@ type public SqlEnumProvider(config : TypeProviderConfig) as this =
                 units.AddCustomAttribute { 
                     new CustomAttributeData() with
                         member __.Constructor = typeof<MeasureAttribute>.GetConstructor [||]
-                        member __.ConstructorArguments = upcast Array.empty
-                        member __.NamedArguments = upcast Array.empty
+                        member __.ConstructorArguments = upcast [||]
+                        member __.NamedArguments = upcast [||]
                 }
                 providedEnumType.AddMember units
 

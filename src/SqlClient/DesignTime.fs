@@ -124,7 +124,7 @@ type DesignTime private() =
 
                 if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
                     
-                let propType = col.ClrTypeConsideringNullable
+                let propType = col.ClrTypeConsideringNullable()
 
                 let property = ProvidedProperty(propertyName, propType)
                 property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
@@ -168,7 +168,7 @@ type DesignTime private() =
 
             if col.Name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
 
-            let propertyType = col.ClrTypeConsideringNullable
+            let propertyType = col.ClrTypeConsideringNullable()
 
             let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode col
             let property = ProvidedProperty(col.Name, propertyType, GetterCode = getter)
@@ -231,7 +231,7 @@ type DesignTime private() =
 
         tableProvidedType
 
-    static member internal GetOutputTypes (outputColumns: Column list, resultType, rank: ResultRank, hasOutputParameters) =    
+    static member internal GetOutputTypes (outputColumns: Column list, resultType, rank: ResultRank, hasOutputParameters, ?unitsOfMeasurePerSchema) =    
         if resultType = ResultType.DataReader 
         then 
             ResultTypes.SingleTypeResult typeof<SqlDataReader>
@@ -256,7 +256,7 @@ type DesignTime private() =
                 if List.length outputColumns = 1
                 then
                     let column0 = outputColumns.Head
-                    let t = column0.ClrTypeConsideringNullable 
+                    let t = column0.ClrTypeConsideringNullable(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
                     let values = Var("values", typeof<obj[]>)
                     let indexGet = Expr.Call(Expr.Var values, typeof<Array>.GetMethod("GetValue",[|typeof<int>|]), [Expr.Value 0])
                     None, t, Expr.Lambda(values,  indexGet) 
@@ -278,8 +278,8 @@ type DesignTime private() =
                 else 
                     let tupleType = 
                         match outputColumns with
-                        | [ x ] -> x.ClrTypeConsideringNullable
-                        | xs -> Microsoft.FSharp.Reflection.FSharpType.MakeTupleType [| for x in xs -> x.ClrTypeConsideringNullable|]
+                        | [ x ] -> x.ClrTypeConsideringNullable()
+                        | xs -> Microsoft.FSharp.Reflection.FSharpType.MakeTupleType [| for x in xs -> x.ClrTypeConsideringNullable() |]
 
                     let tupleTypeName = tupleType.PartialAssemblyQualifiedName
                     None, tupleType, <@@ Microsoft.FSharp.Reflection.FSharpValue.PreComputeTupleConstructor (Type.GetType (tupleTypeName))  @@>
@@ -459,7 +459,7 @@ type DesignTime private() =
             List.unzip [ 
                 for p in t.TableTypeColumns.Value do
                     let name = p.Name
-                    let param = ProvidedParameter( name, p.ClrTypeConsideringNullable, ?optionalValue = if p.Nullable then Some null else None) 
+                    let param = ProvidedParameter( name, p.ClrTypeConsideringNullable(), ?optionalValue = if p.Nullable then Some null else None) 
                     let sqlMeta =
                         let dbType = p.TypeInfo.SqlDbType
                         if p.TypeInfo.IsFixedLength

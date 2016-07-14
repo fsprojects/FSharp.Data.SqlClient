@@ -15,8 +15,10 @@ open FSharp.Data
 //[<Literal>] 
 //let prodConnectionString = ConnectionStrings.MasterDb
 
-//type AdventureWorks = SqlProgrammabilityProvider<"Data Source=.;Initial Catalog = AdventureWorks2012;Integrated Security=True">
-//type dbo = AdventureWorks.dbo
+type AdventureWorks = SqlProgrammabilityProvider<"Data Source=.;Initial Catalog = AdventureWorks2012;Integrated Security=True">
+type dbo = AdventureWorks.dbo
+let x = 42.<AdventureWorks.Sales.``Units of Measure``.GBP>
+let y = 12.<AdventureWorks.Sales.``Units of Measure``.USD>
 
 
 //let cmd = new SqlCommandProvider<"

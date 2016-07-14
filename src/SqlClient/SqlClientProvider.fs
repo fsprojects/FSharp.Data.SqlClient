@@ -96,14 +96,26 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         databaseRootType.AddMembers schemas
 
         let udttsPerSchema = Dictionary()
+        let uomPerSchema = Dictionary()
 
         for schemaType in schemas do
-            let udttsRoot = ProvidedTypeDefinition("User-Defined Table Types", Some typeof<obj>)
-            udttsRoot.AddMembersDelayed <| fun () -> 
-                this.UDTTs (conn.ConnectionString, schemaType.Name)
 
-            udttsPerSchema.Add( schemaType.Name, udttsRoot)
-            schemaType.AddMember udttsRoot
+            do //User-defined table types
+                let udttsRoot = ProvidedTypeDefinition("User-Defined Table Types", Some typeof<obj>)
+                udttsRoot.AddMembersDelayed <| fun () -> 
+                    this.UDTTs (conn.ConnectionString, schemaType.Name)
+
+                udttsPerSchema.Add( schemaType.Name, udttsRoot)
+                schemaType.AddMember udttsRoot
+                
+            do //Units of measure
+                let xs = this.UnitsOfMeasure (conn.ConnectionString, schemaType.Name)
+                if not (List.isEmpty xs)
+                then 
+                    let uomRoot = ProvidedTypeDefinition("Units of Measure", Some typeof<obj>)
+                    uomRoot.AddMembers xs
+                    uomPerSchema.Add( schemaType.Name, uomRoot)
+                    schemaType.AddMember uomRoot
                 
         for schemaType in schemas do
 
@@ -118,7 +130,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         let commands = ProvidedTypeDefinition( "Commands", None)
         databaseRootType.AddMember commands
-        this.AddCreateCommandMethod(conn, designTimeConnectionString, databaseRootType, udttsPerSchema, commands, connectionStringOrName)
+        this.AddCreateCommandMethod(conn, designTimeConnectionString, databaseRootType, udttsPerSchema, commands, connectionStringOrName, uomPerSchema)
 
         databaseRootType           
 
@@ -128,6 +140,20 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             then 
                 yield DesignTime.CreateUDTT( t)
                 //tagProvidedType rowType
+    ]
+
+     member internal __.UnitsOfMeasure( connStr, schema) = [
+        for t in getTypes( connStr) do
+            if t.Schema = schema && t.IsUnitOfMeasure
+            then 
+                let units = ProvidedTypeDefinition( t.UnitOfMeasureName, None)
+                units.AddCustomAttribute { 
+                    new CustomAttributeData() with
+                        member __.Constructor = typeof<MeasureAttribute>.GetConstructor [||]
+                        member __.ConstructorArguments = upcast [||]
+                        member __.NamedArguments = upcast [||]
+                }
+                yield units
     ]
 
     member internal __.Routines(conn, schema, uddtsPerSchema, resultType, designTimeConnectionString, useReturnValue) = 
@@ -476,7 +502,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             )
         tables
         
-    member internal this.AddCreateCommandMethod(conn, designTimeConnectionString, rootType: ProvidedTypeDefinition, udttsPerSchema, commands: ProvidedTypeDefinition, tag) = 
+    member internal this.AddCreateCommandMethod(conn, designTimeConnectionString, rootType: ProvidedTypeDefinition, udttsPerSchema, commands: ProvidedTypeDefinition, tag, unitsOfMeasureTypesPerSchema) = 
         let staticParams = [
             ProvidedStaticParameter("CommandText", typeof<string>) 
             ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Records) 
@@ -505,7 +531,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         else []
 
                     let rank = if singleRow then ResultRank.SingleRow else ResultRank.Sequence
-                    let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters = false)
+                    let output = 
+                        let hasOutputParameters = false
+                        DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters, unitsOfMeasureTypesPerSchema)
 
                     let commandTypeName = if typename <> "" then typename else methodName.Replace("=", "").Replace("@", "")
                     let cmdProvidedType = ProvidedTypeDefinition(commandTypeName, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
