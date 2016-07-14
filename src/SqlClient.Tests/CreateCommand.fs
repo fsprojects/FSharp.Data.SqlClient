@@ -177,5 +177,4 @@ module UnitsOfMeasure =
     [<Fact>]
     let SingleOutput() =
         use cmd = DB.CreateCommand<"SELECT SUM(TotalDue) FROM Sales.UnitedKingdomOrders", SingleRow = true>()
-        //Some( Some(8570333.1218<DB.Sales.``Units of Measure``.GBP>)) = cmd.Execute() |> Assert.True 
-        ()
+        Some( Some(8570333.1218M<DB.Sales.``Units of Measure``.GBP>)) = cmd.Execute() |> Assert.True 

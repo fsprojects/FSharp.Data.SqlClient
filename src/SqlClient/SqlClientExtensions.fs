@@ -66,15 +66,15 @@ type Column = {
     member this.GetProvidedType(?unitsOfMeasurePerSchema: Dictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
         printfn "%A" unitsOfMeasurePerSchema
         let typeConsideringUOM: Type = 
-//            if this.TypeInfo.IsUnitOfMeasure && unitsOfMeasurePerSchema.IsSome
-//            then
-//                assert(unitsOfMeasurePerSchema.IsSome)
-//                let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
-//                ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.Default.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
-//            else
-//                this.TypeInfo.ClrType
+            if this.TypeInfo.IsUnitOfMeasure && unitsOfMeasurePerSchema.IsSome
+            then
+                assert(unitsOfMeasurePerSchema.IsSome)
+                let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
+                ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.Default.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
+            else
+                this.TypeInfo.ClrType
 
-            this.TypeInfo.ClrType
+            //this.TypeInfo.ClrType
 
         if this.Nullable
         then
