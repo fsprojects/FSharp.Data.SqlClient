@@ -19,7 +19,7 @@ type AdventureWorks = SqlProgrammabilityProvider<"Data Source=.;Initial Catalog 
 type dbo = AdventureWorks.dbo
 let x = 42.<AdventureWorks.Sales.``Units of Measure``.GBP>
 let y = 12.<AdventureWorks.Sales.``Units of Measure``.USD>
-
+x.GetType().AssemblyQualifiedName
 
 //let cmd = new SqlCommandProvider<"
 //    SELECT X.* 

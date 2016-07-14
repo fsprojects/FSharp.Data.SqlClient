@@ -104,7 +104,7 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
             notImplemented
         | ResultType.Records | ResultType.Tuples ->
             match box cfg.RowMapping, cfg.ItemTypeName with
-            | null, itemTypeName when Type.GetType(itemTypeName, throwOnError = true) = typeof<Void> ->
+            | null, null ->
                 ``ISqlCommand Implementation``.ExecuteNonQuery manageConnection >> box, 
                 ``ISqlCommand Implementation``.AsyncExecuteNonQuery manageConnection >> box,
                 notImplemented, 

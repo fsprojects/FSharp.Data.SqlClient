@@ -114,7 +114,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 then 
                     let uomRoot = ProvidedTypeDefinition("Units of Measure", Some typeof<obj>)
                     uomRoot.AddMembers xs
-                    uomPerSchema.Add( schemaType.Name, uomRoot)
+                    uomPerSchema.Add( schemaType.Name, xs)
                     schemaType.AddMember uomRoot
                 
         for schemaType in schemas do
@@ -179,10 +179,10 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         let hasOutputParameters = parameters |> List.exists (fun x -> x.Direction.HasFlag( ParameterDirection.Output))
 
-                        let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters)
+                        let returnType = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters)
         
                         do  //Record
-                            output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
+                            returnType.PerRow |> Option.iter (fun x -> cmdProvidedType.AddMember x.Provided)
 
                         //ctors
                         let sqlParameters = Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
@@ -200,8 +200,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 Parameters = %%sqlParameters
                                 ResultType = resultType
                                 Rank = rank
-                                RowMapping = %%output.RowMapping
-                                ItemTypeName = %%Expr.Value( output.ErasedToRowType.PartialAssemblyQualifiedName)
+                                RowMapping = %%returnType.RowMapping
+                                ItemTypeName = %%returnType.RowTypeName
                                 ExpectedDataReaderColumns = %%expectedDataReaderColumns
                             } @@>
 
@@ -214,26 +214,17 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, uddtsPerSchema)
 
-                        yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, output.ProvidedType, "Execute") 
+                        yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, returnType.Single, "Execute") 
 
                         if not hasOutputParameters
                         then                              
-                            let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
+                            let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ returnType.Single ])
                             yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, asyncReturnType, "AsyncExecute")
 
-                        if output.ErasedToRowType <> typeof<Void>
+                        if returnType.PerRow.IsSome
                         then 
-                            let providedReturnType = 
-                                ProvidedTypeBuilder.MakeGenericType(
-                                    typedefof<_ option>, 
-                                    [ (match output.ProvidedRowType with None -> output.ErasedToRowType | Some x -> upcast x)  ]
-                                ) 
-
-                            let providedAsyncReturnType = 
-                                ProvidedTypeBuilder.MakeGenericType(
-                                    typedefof<_ Async>, 
-                                    [ providedReturnType ]
-                                ) 
+                            let providedReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ option>, [ returnType.PerRow.Value.Provided ])
+                            let providedAsyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ providedReturnType ]) 
 
                             if not hasOutputParameters
                             then                              
@@ -531,7 +522,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         else []
 
                     let rank = if singleRow then ResultRank.SingleRow else ResultRank.Sequence
-                    let output = 
+                    let returnType = 
                         let hasOutputParameters = false
                         DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters, unitsOfMeasureTypesPerSchema)
 
@@ -550,9 +541,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, outputType, name) 
                             |> cmdProvidedType.AddMember
 
-                        addRedirectToISqlCommandMethod output.ProvidedType "Execute" 
+                        addRedirectToISqlCommandMethod returnType.Single "Execute" 
                             
-                        let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
+                        let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ returnType.Single ])
                         addRedirectToISqlCommandMethod asyncReturnType "AsyncExecute" 
 
                         addRedirectToISqlCommandMethod typeof<string> "ToTraceString" 
@@ -561,9 +552,9 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     if resultType = ResultType.DataTable then
                         // if we don't do this, we get a compile error
                         // Error The type provider 'FSharp.Data.SqlProgrammabilityProvider' reported an error: type 'Table' was not added as a member to a declaring type <type instanciation name> 
-                        cmdProvidedType.AddMember( output.ProvidedType) 
+                        cmdProvidedType.AddMember( returnType.Single) 
                     else
-                        output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
+                        returnType.PerRow |> Option.iter (fun x -> cmdProvidedType.AddMember x.Provided)
 
                     let designTimeConfig = 
                         let expectedDataReaderColumns = 
@@ -578,8 +569,8 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             Parameters = %%Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
                             ResultType = resultType
                             Rank = rank
-                            RowMapping = %%output.RowMapping
-                            ItemTypeName = %%Expr.Value( output.ErasedToRowType.PartialAssemblyQualifiedName)
+                            RowMapping = %%returnType.RowMapping
+                            ItemTypeName = %%returnType.RowTypeName
                             ExpectedDataReaderColumns = %%expectedDataReaderColumns
                         } @@>
 

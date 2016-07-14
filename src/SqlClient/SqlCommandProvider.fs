@@ -134,7 +134,7 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             else []
 
         let rank = if singleRow then ResultRank.SingleRow else ResultRank.Sequence
-        let output = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters = false)
+        let returnType = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters = false)
         
         let cmdProvidedType = ProvidedTypeDefinition(assembly, nameSpace, typeName, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
 
@@ -144,10 +144,10 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         do
             if resultType = ResultType.Records then
                 // Add .Record
-                output.ProvidedRowType |> Option.iter cmdProvidedType.AddMember
+                returnType.PerRow |> Option.iter (fun x -> cmdProvidedType.AddMember x.Provided)
             elif resultType = ResultType.DataTable then
                 // add .Table
-                output.ProvidedType |>  cmdProvidedType.AddMember
+                returnType.Single |> cmdProvidedType.AddMember
 
         do  //ctors
             let designTimeConfig = 
@@ -163,8 +163,8 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                     Parameters = %%Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
                     ResultType = resultType
                     Rank = rank
-                    RowMapping = %%output.RowMapping
-                    ItemTypeName = %%Expr.Value( output.ErasedToRowType.PartialAssemblyQualifiedName)
+                    RowMapping = %%returnType.RowMapping
+                    ItemTypeName = %%returnType.RowTypeName
                     ExpectedDataReaderColumns = %%expectedDataReaderColumns
                 } @@>
 
@@ -187,9 +187,9 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, outputType, name) 
                 |> cmdProvidedType.AddMember
 
-            addRedirectToISqlCommandMethod output.ProvidedType "Execute" 
+            addRedirectToISqlCommandMethod returnType.Single "Execute" 
                             
-            let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ output.ProvidedType ])
+            let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ returnType.Single ])
             addRedirectToISqlCommandMethod asyncReturnType "AsyncExecute" 
 
             addRedirectToISqlCommandMethod typeof<string> "ToTraceString" 

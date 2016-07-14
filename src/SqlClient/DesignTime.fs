@@ -11,19 +11,24 @@ open Microsoft.FSharp.Quotations
 open ProviderImplementation.ProvidedTypes
 open FSharp.Data
 
-type internal ResultTypes = {
-    ProvidedType : Type
-    ProvidedRowType : ProvidedTypeDefinition option
-    ErasedToRowType : Type
-    RowMapping : Expr
-}   with
+type internal RowType = {
+    Provided: Type
+    ErasedTo: Type
+    Mapping: Expr
+}
 
-    static member SingleTypeResult( provided)  = { 
-        ProvidedType = provided
-        ProvidedRowType = None
-        ErasedToRowType = typeof<Void>
-        RowMapping = Expr.Value Unchecked.defaultof<RowMapping> 
-    }
+type internal ReturnType = {
+    Single: Type
+    PerRow: RowType option
+}  with 
+    member this.RowMapping = 
+        match this.PerRow with
+        | Some x -> x.Mapping
+        | None -> Expr.Value Unchecked.defaultof<RowMapping> 
+    member this.RowTypeName = 
+        match this.PerRow with
+        | Some x -> Expr.Value( x.ErasedTo.AssemblyQualifiedName)
+        | None -> <@@ null: string @@>
 
 type DesignTime private() = 
     static member internal AddGeneratedMethod
@@ -124,7 +129,7 @@ type DesignTime private() =
 
                 if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
                     
-                let propType = col.ClrTypeConsideringNullable()
+                let propType = col.GetProvidedType()
 
                 let property = ProvidedProperty(propertyName, propType)
                 property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
@@ -168,7 +173,7 @@ type DesignTime private() =
 
             if col.Name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
 
-            let propertyType = col.ClrTypeConsideringNullable()
+            let propertyType = col.GetProvidedType()
 
             let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode col
             let property = ProvidedProperty(col.Name, propertyType, GetterCode = getter)
@@ -234,78 +239,77 @@ type DesignTime private() =
     static member internal GetOutputTypes (outputColumns: Column list, resultType, rank: ResultRank, hasOutputParameters, ?unitsOfMeasurePerSchema) =    
         if resultType = ResultType.DataReader 
         then 
-            ResultTypes.SingleTypeResult typeof<SqlDataReader>
+            { Single = typeof<SqlDataReader>; PerRow = None }
         elif outputColumns.IsEmpty
         then 
-            ResultTypes.SingleTypeResult typeof<int>
+            { Single = typeof<int>; PerRow = None }
         elif resultType = ResultType.DataTable 
         then
             let dataRowType = DesignTime.GetDataRowType outputColumns
             let dataTableType = DesignTime.GetDataTableType("Table", dataRowType, outputColumns)
             dataTableType.AddMember dataRowType
 
-            {
-                ProvidedType = dataTableType
-                ProvidedRowType = Some dataRowType
-                ErasedToRowType = typeof<Void>
-                RowMapping = Expr.Value Unchecked.defaultof<RowMapping> 
-            }
+            { Single = dataTableType; PerRow = None }
 
         else 
             let providedRowType, erasedToRowType, rowMapping = 
                 if List.length outputColumns = 1
                 then
                     let column0 = outputColumns.Head
-                    let t = column0.ClrTypeConsideringNullable(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
+                    let erasedTo = column0.ErasedToType
+                    let provided = column0.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
                     let values = Var("values", typeof<obj[]>)
                     let indexGet = Expr.Call(Expr.Var values, typeof<Array>.GetMethod("GetValue",[|typeof<int>|]), [Expr.Value 0])
-                    None, t, Expr.Lambda(values,  indexGet) 
+                    provided, erasedTo, Expr.Lambda(values,  indexGet) 
 
                 elif resultType = ResultType.Records 
                 then 
-                    let r = DesignTime.GetRecordType outputColumns
+                    let provided = DesignTime.GetRecordType outputColumns
                     let names = Expr.NewArray(typeof<string>, outputColumns |> List.map (fun x -> Expr.Value(x.Name))) 
-                    Some r,
-                    typeof<obj>,
-                    <@@ 
-                        fun (values: obj[]) -> 
-                            let data = Dictionary()
-                            let names: string[] = %%names
-                            for i = 0 to names.Length - 1 do 
-                                data.Add(names.[i], values.[i])
-                            DynamicRecord( data) |> box 
-                    @@>
-                else 
-                    let tupleType = 
-                        match outputColumns with
-                        | [ x ] -> x.ClrTypeConsideringNullable()
-                        | xs -> Microsoft.FSharp.Reflection.FSharpType.MakeTupleType [| for x in xs -> x.ClrTypeConsideringNullable() |]
+                    let mapping = 
+                        <@@ 
+                            fun (values: obj[]) -> 
+                                let data = Dictionary()
+                                let names: string[] = %%names
+                                for i = 0 to names.Length - 1 do 
+                                    data.Add(names.[i], values.[i])
+                                DynamicRecord( data) |> box 
+                        @@>
 
-                    let tupleTypeName = tupleType.PartialAssemblyQualifiedName
-                    None, tupleType, <@@ Microsoft.FSharp.Reflection.FSharpValue.PreComputeTupleConstructor (Type.GetType (tupleTypeName))  @@>
+                    upcast provided, typeof<obj>, mapping
+                else 
+                    let erasedToTupleType = 
+                        match outputColumns with
+                        | [ x ] -> x.ErasedToType
+                        | xs -> Microsoft.FSharp.Reflection.FSharpType.MakeTupleType [| for x in xs -> x.ErasedToType |]
+
+                    let providedType = 
+                        match outputColumns with
+                        | [ x ] -> x.GetProvidedType()
+                        | xs -> Microsoft.FSharp.Reflection.FSharpType.MakeTupleType [| for x in xs -> x.GetProvidedType() |]
+
+                    let clrTypeName = erasedToTupleType.FullName
+                    let mapping = <@@ Microsoft.FSharp.Reflection.FSharpValue.PreComputeTupleConstructor (Type.GetType(clrTypeName, throwOnError = true))  @@>
+                    providedType, erasedToTupleType, mapping
             
             let nullsToOptions = QuotationsFactory.MapArrayNullableItems(outputColumns, "MapArrayObjItemToOption") 
             let combineWithNullsToOptions = typeof<QuotationsFactory>.GetMethod("GetMapperWithNullsToOptions") 
             
-            let genericOutputType, erasedToType = 
-                if rank = ResultRank.Sequence 
-                then 
-                    let resultsetType = if hasOutputParameters then typedefof<_ list> else typedefof<_ seq>
-                    Some( resultsetType), resultsetType.MakeGenericType([| erasedToRowType |])
-                elif rank = ResultRank.SingleRow 
-                then
-                    Some( typedefof<_ option>), typedefof<_ option>.MakeGenericType([| erasedToRowType |])
-                else //ResultRank.ScalarValue
-                    None, erasedToRowType
+            { 
+                Single = 
+                    match rank with
+                    | ResultRank.ScalarValue -> providedRowType
+                    | ResultRank.SingleRow -> ProvidedTypeBuilder.MakeGenericType(typedefof<_ option>, [ providedRowType ])
+                    | ResultRank.Sequence -> 
+                        let collectionType = if hasOutputParameters then typedefof<_ list> else typedefof<_ seq>
+                        ProvidedTypeBuilder.MakeGenericType( collectionType, [ providedRowType ])
+                    | unexpected -> failwithf "Unexpected ResultRank value: %A" unexpected
 
-            {
-                ProvidedType = 
-                    if providedRowType.IsSome && genericOutputType.IsSome
-                    then ProvidedTypeBuilder.MakeGenericType(genericOutputType.Value, [ providedRowType.Value ])
-                    else erasedToType
-                ProvidedRowType = providedRowType
-                ErasedToRowType = erasedToRowType
-                RowMapping = Expr.Call( combineWithNullsToOptions, [ nullsToOptions; rowMapping ])
+                PerRow = Some { 
+                    Provided = providedRowType
+                    ErasedTo = erasedToRowType
+                    Mapping = Expr.Call( combineWithNullsToOptions, [ nullsToOptions; rowMapping ]) 
+                }               
             }
 
     static member internal GetOutputColumns (connection: SqlConnection, commandText, parameters: Parameter list, isStoredProcedure) = 
@@ -459,7 +463,7 @@ type DesignTime private() =
             List.unzip [ 
                 for p in t.TableTypeColumns.Value do
                     let name = p.Name
-                    let param = ProvidedParameter( name, p.ClrTypeConsideringNullable(), ?optionalValue = if p.Nullable then Some null else None) 
+                    let param = ProvidedParameter( name, p.GetProvidedType(), ?optionalValue = if p.Nullable then Some null else None) 
                     let sqlMeta =
                         let dbType = p.TypeInfo.SqlDbType
                         if p.TypeInfo.IsFixedLength

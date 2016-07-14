@@ -10,10 +10,6 @@ open System.Threading.Tasks
 open System.Data.SqlClient
 open System.Reflection
 
-type Type with
-    member this.PartialAssemblyQualifiedName = 
-        Assembly.CreateQualifiedName(this.Assembly.GetName().Name, this.FullName)
-
 type SqlCommand with
     member this.AsyncExecuteReader behavior =
         Async.FromBeginEnd((fun(callback, state) -> this.BeginExecuteReader(callback, state, behavior)), this.EndExecuteReader)
@@ -61,14 +57,19 @@ type Column = {
     DefaultConstraint: string
     Description: string
 }   with
+
+    member this.ErasedToType = 
+        if this.Nullable
+        then typedefof<_ option>.MakeGenericType this.TypeInfo.ClrType
+        else this.TypeInfo.ClrType
     
-    member this.ClrTypeConsideringNullable(?unitsOfMeasurePerSchema: Dictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition>) = 
+    member this.GetProvidedType(?unitsOfMeasurePerSchema: Dictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
         printfn "%A" unitsOfMeasurePerSchema
         let typeConsideringUOM: Type = 
 //            if this.TypeInfo.IsUnitOfMeasure && unitsOfMeasurePerSchema.IsSome
 //            then
 //                assert(unitsOfMeasurePerSchema.IsSome)
-//                let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema].GetNestedType(this.TypeInfo.UnitOfMeasureName)
+//                let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
 //                ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.Default.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
 //            else
 //                this.TypeInfo.ClrType
