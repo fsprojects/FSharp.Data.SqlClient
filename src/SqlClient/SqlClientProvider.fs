@@ -534,7 +534,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                     do  //AsyncExecute, Execute, and ToTraceString
 
-                        let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, udttsPerSchema)
+                        let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, udttsPerSchema, unitsOfMeasureTypesPerSchema)
 
                         let addRedirectToISqlCommandMethod outputType name = 
                             let hasOutputParameters = false

@@ -64,7 +64,6 @@ type Column = {
         else this.TypeInfo.ClrType
     
     member this.GetProvidedType(?unitsOfMeasurePerSchema: Dictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
-        printfn "%A" unitsOfMeasurePerSchema
         let typeConsideringUOM: Type = 
             if this.TypeInfo.IsUnitOfMeasure && unitsOfMeasurePerSchema.IsSome
             then
@@ -73,8 +72,6 @@ type Column = {
                 ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.Default.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
             else
                 this.TypeInfo.ClrType
-
-            //this.TypeInfo.ClrType
 
         if this.Nullable
         then
@@ -146,6 +143,15 @@ type Parameter = {
         match this.TypeInfo.SqlDbType with
         | SqlDbType.NChar | SqlDbType.NText | SqlDbType.NVarChar -> this.MaxLength / 2
         | _ -> this.MaxLength
+
+    member this.GetProvidedType(?unitsOfMeasurePerSchema: Dictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
+        if this.TypeInfo.IsUnitOfMeasure && unitsOfMeasurePerSchema.IsSome
+        then
+            assert(unitsOfMeasurePerSchema.IsSome)
+            let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
+            ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.Default.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
+        else
+            this.TypeInfo.ClrType
 
 let private dataTypeMappings = Dictionary<string, TypeInfo[]>()
 

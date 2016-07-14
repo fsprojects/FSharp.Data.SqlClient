@@ -114,7 +114,7 @@ type DesignTime private() =
     static member SetRef<'t>(r : byref<'t>, arr: (string * obj)[], i) = 
         r <- arr.[i] |> snd |> unbox
 
-    static member internal GetRecordType(columns: Column list) =
+    static member internal GetRecordType(columns: Column list, ?unitsOfMeasurePerSchema) =
         
         columns 
             |> Seq.groupBy (fun x -> x.Name) 
@@ -129,7 +129,7 @@ type DesignTime private() =
 
                 if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
                     
-                let propType = col.GetProvidedType()
+                let propType = col.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
 
                 let property = ProvidedProperty(propertyName, propType)
                 property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
@@ -264,7 +264,7 @@ type DesignTime private() =
 
                 elif resultType = ResultType.Records 
                 then 
-                    let provided = DesignTime.GetRecordType outputColumns
+                    let provided = DesignTime.GetRecordType(outputColumns, ?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
                     let names = Expr.NewArray(typeof<string>, outputColumns |> List.map (fun x -> Expr.Value(x.Name))) 
                     let mapping = 
                         <@@ 
@@ -499,7 +499,7 @@ type DesignTime private() =
         rowType
 
                 
-    static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, udttsPerSchema: Dictionary<_, ProvidedTypeDefinition>) = 
+    static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, udttsPerSchema: Dictionary<_, ProvidedTypeDefinition>, ?unitsOfMeasurePerSchema) = 
         [
             for p in sqlParameters do
                 assert p.Name.StartsWith("@")
@@ -517,7 +517,7 @@ type DesignTime private() =
                             then
                                 ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType.MakeByRefType(), isOut = true)
                             else                                 
-                                ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType, ?optionalValue = p.DefaultValue)
+                                ProvidedParameter(parameterName, parameterType = p.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema), ?optionalValue = p.DefaultValue)
                     else
                         assert(p.Direction = ParameterDirection.Input)
 

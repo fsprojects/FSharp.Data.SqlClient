@@ -174,7 +174,33 @@ let CreareDynamicRecords() =
     |> ignore
 
 module UnitsOfMeasure = 
+
+    type UOM = DB.Sales.``Units of Measure``
+
     [<Fact>]
     let SingleOutput() =
         use cmd = DB.CreateCommand<"SELECT SUM(TotalDue) FROM Sales.UnitedKingdomOrders", SingleRow = true>()
-        Some( Some(8570333.1218M<DB.Sales.``Units of Measure``.GBP>)) = cmd.Execute() |> Assert.True 
+        Assert.Equal<_>(Some( Some(8570333.1218M<UOM.GBP>)), cmd.Execute())
+
+    [<Fact>]
+    let WithParam() =
+        use cmd = DB.CreateCommand<"
+            DECLARE @minTemp AS Sales.[<GBP>] = @min
+            SELECT 
+	            Total = SUM(x.TotalDue)
+	            ,[Year] = DATEPART(year, y.OrderDate)
+            FROM Sales.UnitedKingdomOrders x
+	            JOIN Sales.SalesOrderHeader y on x.SalesOrderID = y.SalesOrderID
+            GROUP BY DATEPART(year, y.OrderDate)
+            HAVING SUM(x.TotalDue) > @minTemp
+            ORDER BY 1
+        ", TypeName = "GetUKSales">()
+
+        let actual = cmd.Execute(2000000M<UOM.GBP>) |> Seq.toArray
+        let expected = [|
+            DB.Commands.GetUKSales.Record(Total = Some 2772402.4754M<UOM.GBP>, Year = Some 2008)
+            DB.Commands.GetUKSales.Record(Total = Some 3873351.7965M<UOM.GBP>, Year = Some 2007)
+        |]
+
+        Assert.Equal<_[]>(expected, actual)
+
