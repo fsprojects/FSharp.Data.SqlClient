@@ -121,7 +121,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
             schemaType.AddMembersDelayed <| fun() -> 
                 [
-                    let routines = this.Routines(conn, schemaType.Name, udttsPerSchema, ResultType.Records, designTimeConnectionString, useReturnValue)
+                    let routines = this.Routines(conn, schemaType.Name, udttsPerSchema, ResultType.Records, designTimeConnectionString, useReturnValue, uomPerSchema)
                     routines |> List.iter tagProvidedType
                     yield! routines
 
@@ -156,7 +156,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 yield units
     ]
 
-    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, designTimeConnectionString, useReturnValue) = 
+    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, designTimeConnectionString, useReturnValue, unitsOfMeasurePerSchema) = 
         [
             use _ = conn.UseLocally()
             let isSqlAzure = conn.IsSqlAzure
@@ -179,7 +179,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         let hasOutputParameters = parameters |> List.exists (fun x -> x.Direction.HasFlag( ParameterDirection.Output))
 
-                        let returnType = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters)
+                        let returnType = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters, unitsOfMeasurePerSchema)
         
                         do  //Record
                             returnType.PerRow |> Option.iter (fun x -> cmdProvidedType.AddMember x.Provided)
@@ -212,7 +212,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             config.IsHostedExecution
                         )
 
-                        let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, uddtsPerSchema)
+                        let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, uddtsPerSchema, unitsOfMeasurePerSchema)
 
                         yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, returnType.Single, "Execute") 
 

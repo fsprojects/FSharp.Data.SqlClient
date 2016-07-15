@@ -1,6 +1,9 @@
-﻿USE AdventureWorks2012
+﻿-- The following Sql must be run against AdventureWorks2012 for the tests to compile.
 
--- The following Sql must be run against AdventureWorks2012 for the tests to compile.
+USE AdventureWorks2012
+
+--ROUTINES
+
 IF OBJECT_ID('dbo.AddRef') IS NOT NULL 
 	DROP PROCEDURE dbo.AddRef;
 GO
@@ -46,9 +49,32 @@ GO
 IF OBJECT_ID('dbo.TestPhoto') IS NOT NULL
 	DROP PROCEDURE dbo.TestPhoto;
 GO
+IF OBJECT_ID('Sales.GetUKSalesOrders') IS NOT NULL
+	DROP FUNCTION Sales.GetUKSalesOrders;
+GO
+
+--TABLES
 
 IF OBJECT_ID(N'dbo.TableHavingColumnNamesWithSpaces') IS NOT NULL
 	DROP TABLE dbo.TableHavingColumnNamesWithSpaces
+GO
+
+IF OBJECT_ID(N'Sales.UnitedKingdomOrders') IS NOT NULL
+	DROP TABLE Sales.UnitedKingdomOrders
+GO
+
+-- SYNONYMs
+
+IF OBJECT_ID(N'HumanResources.GetContactInformation') IS NOT NULL
+	DROP SYNONYM HumanResources.GetContactInformation
+GO
+
+IF OBJECT_ID(N'HumanResources.GetEmployeeManagers') IS NOT NULL
+	DROP SYNONYM HumanResources.GetEmployeeManagers
+GO
+
+IF OBJECT_ID(N'dbo.HRShift') IS NOT NULL
+	DROP SYNONYM dbo.HRShift
 GO
 
 --TYPES
@@ -64,20 +90,64 @@ GO
 IF TYPE_ID(N'dbo.SingleElementType') IS NOT NULL
 	DROP TYPE dbo.SingleElementType 
 GO
-IF OBJECT_ID(N'HumanResources.GetContactInformation') IS NOT NULL
-	DROP SYNONYM HumanResources.GetContactInformation
+
+IF TYPE_ID(N'Sales.<GBP>') IS NOT NULL
+	DROP TYPE Sales.[<GBP>]
 GO
 
--- SYNONYMs
-
-IF OBJECT_ID(N'HumanResources.GetEmployeeManagers') IS NOT NULL
-	DROP SYNONYM HumanResources.GetEmployeeManagers
+IF TYPE_ID(N'Sales.<USD>') IS NOT NULL
+	DROP TYPE Sales.[<USD>]
 GO
 
-IF OBJECT_ID(N'dbo.HRShift') IS NOT NULL
-	DROP SYNONYM dbo.HRShift
+
+CREATE TYPE dbo.MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
 GO
 
+CREATE TYPE Person.MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
+GO
+
+CREATE TYPE dbo.SingleElementType AS TABLE (myId int not null)
+GO
+
+CREATE TYPE dbo.u_int64 FROM NUMERIC (20) NOT NULL;
+GO
+
+CREATE TYPE Sales.[<GBP>] FROM MONEY NOT NULL
+GO
+
+CREATE TYPE Sales.[<USD>] FROM MONEY NOT NULL
+GO
+
+--TABLES
+
+CREATE TABLE dbo.TableHavingColumnNamesWithSpaces (
+    ID INT      IDENTITY (1, 1) NOT NULL,
+    [Modified Date 2] DATETIME     DEFAULT (getdate()) NOT NULL,
+);
+GO
+
+CREATE TABLE Sales.UnitedKingdomOrders(
+	[SalesOrderID] [int] NOT NULL,
+	[TotalDue] [Sales].[<GBP>] NOT NULL
+)
+GO 
+
+INSERT INTO Sales.UnitedKingdomOrders
+SELECT SalesOrderID, TotalDue
+FROM Sales.SalesOrderHeader X
+	JOIN Sales.CurrencyRate Y ON 
+		X.CurrencyRateID = Y.CurrencyRateID
+		AND Y.ToCurrencyCode = 'GBP'
+
+GO 
+
+--ROUTINES
+
+CREATE PROCEDURE Person.MyProc @p1 Person.MyTableType readonly AS
+BEGIN
+   SELECT * from @p1 p
+END
+GO
 
 CREATE PROCEDURE dbo.AddRef @x AS INT, @y AS INT, @sum AS INT OUTPUT 
 AS
@@ -87,21 +157,7 @@ BEGIN
 END
 GO
 
-CREATE TYPE dbo.MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
-GO
-
 CREATE PROCEDURE dbo.MyProc @p1 dbo.MyTableType readonly AS
-BEGIN
-   SELECT * from @p1 p
-END
-GO
-
-
-CREATE TYPE Person.MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
-GO
-
-
-CREATE PROCEDURE Person.MyProc @p1 Person.MyTableType readonly AS
 BEGIN
    SELECT * from @p1 p
 END
@@ -112,9 +168,6 @@ BEGIN
    SELECT * from @p1 p
 END
 
-GO
-
-CREATE TYPE dbo.SingleElementType AS TABLE (myId int not null)
 GO
 
 CREATE PROCEDURE dbo.SingleElementProc @p1 SingleElementType readonly AS
@@ -140,9 +193,6 @@ BEGIN
     CREATE TABLE #result (id  UNIQUEIDENTIFIER not null)
     SELECT * FROM #result
 END
-
-
-CREATE TYPE dbo.u_int64 FROM NUMERIC (20) NOT NULL;
 GO
 
 CREATE PROCEDURE Person.Address_GetAddressBySpatialLocation
@@ -190,13 +240,6 @@ AS
 	SELECT ISNULL(@in, '<NULL>');
 GO
 
-CREATE TABLE dbo.TableHavingColumnNamesWithSpaces (
-    ID INT      IDENTITY (1, 1) NOT NULL,
-    [Modified Date 2] DATETIME     DEFAULT (getdate()) NOT NULL,
-);
-GO
-
-
 CREATE FUNCTION dbo.MyFunc(@p1 dbo.MyTableType readonly, @p2 dbo.MyTableType readonly)
 RETURNS TABLE 
 RETURN (SELECT * from @p1 UNION SELECT * from @p2) 
@@ -209,16 +252,6 @@ BEGIN
 END
 
 GO
-
-CREATE SYNONYM HumanResources.GetContactInformation FOR dbo.ufnGetContactInformation;
-GO
-
-CREATE SYNONYM HumanResources.GetEmployeeManagers FOR dbo.uspGetEmployeeManagers;
-GO
-
-CREATE SYNONYM dbo.HRShift FOR HumanResources.Shift
-GO
-
 
 CREATE PROCEDURE dbo.TestPhoto
     -- Add the parameters for the stored procedure here
@@ -236,5 +269,30 @@ BEGIN
     VALUES (@id, @img)
     SET IDENTITY_INSERT Production.ProductPhoto OFF
 END
+GO
+
+CREATE FUNCTION Sales.GetUKSalesOrders(@min AS Sales.[<GBP>])
+RETURNS TABLE 
+RETURN 
+    SELECT 
+	    Total = SUM(x.TotalDue)
+	    ,[Year] = DATEPART(year, y.OrderDate)
+    FROM Sales.UnitedKingdomOrders x
+	    JOIN Sales.SalesOrderHeader y on x.SalesOrderID = y.SalesOrderID
+    GROUP BY DATEPART(year, y.OrderDate)
+    HAVING SUM(x.TotalDue) > @min
+GO
+
 
 GO 
+--SYNONYMS
+
+CREATE SYNONYM HumanResources.GetContactInformation FOR dbo.ufnGetContactInformation;
+GO
+
+CREATE SYNONYM HumanResources.GetEmployeeManagers FOR dbo.uspGetEmployeeManagers;
+GO
+
+CREATE SYNONYM dbo.HRShift FOR HumanResources.Shift
+GO
+
