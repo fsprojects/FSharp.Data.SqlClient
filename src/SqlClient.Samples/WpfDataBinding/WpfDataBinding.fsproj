@@ -67,13 +67,14 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data.SqlClient">
-      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.7.3\lib\net40\FSharp.Data.SqlClient.dll</HintPath>
+      <HintPath>..\..\..\packages\FSharp.Data.SqlClient.1.8.2\lib\net40\FSharp.Data.SqlClient.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Types, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91" />
     <Reference Include="mscorlib" />
     <Reference Include="PresentationUI" />
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Numerics" />
