@@ -35,12 +35,12 @@ let WithParam() =
 
 [<Fact>]
 let FunctionInQuery() =
-    use cmd = DB.CreateCommand<"SELECT * FROM Sales.GetUKSalesOrders(@min) ORDER BY 1", TypeName = "GetUKSales2">()
+    use cmd = DB.CreateCommand<"SELECT * FROM Sales.GetUKSalesOrders(@min) ORDER BY 1", ResultType.Tuples>()
 
     let actual = cmd.Execute(2000000M<UOM.GBP>) |> Seq.toArray
     let expected = [|
-        DB.Commands.GetUKSales2.Record(Total = Some 2772402.4754M<UOM.GBP>, Year = Some 2008)
-        DB.Commands.GetUKSales2.Record(Total = Some 3873351.7965M<UOM.GBP>, Year = Some 2007)
+        Some 2772402.4754M<UOM.GBP>, Some 2008
+        Some 3873351.7965M<UOM.GBP>, Some 2007
     |]
 
     Assert.Equal<_[]>(expected, actual)
@@ -56,4 +56,19 @@ let FunctionDirect() =
 
     Assert.Equal<_[]>(expected, actual)
 
+[<Fact>]
+let Datatable() =
+    use cmd = DB.CreateCommand<"SELECT * FROM Sales.GetUKSalesOrders(@min) ORDER BY 1", ResultType.DataTable>()
+
+    let actual = [| 
+        for x in cmd.Execute(2000000M<UOM.GBP>).Rows do 
+            let total: decimal<UOM.GBP> option = x.Total
+            yield total, x.Year
+    |]
+    let expected = [|
+        Some 2772402.4754M<UOM.GBP>, Some 2008
+        Some 3873351.7965M<UOM.GBP>, Some 2007
+    |]
+
+    Assert.Equal<_[]>(expected, actual)
 

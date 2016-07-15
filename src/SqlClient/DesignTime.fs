@@ -166,14 +166,14 @@ type DesignTime private() =
             let setter = QuotationsFactory.GetBody("SetNonNullableValueInDataRow", column.TypeInfo.ClrType, name)
             getter, setter
 
-    static member internal GetDataRowType (columns: Column list) = 
+    static member internal GetDataRowType (columns: Column list, ?unitsOfMeasurePerSchema) = 
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
 
         columns |> List.mapi(fun i col ->
 
             if col.Name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
 
-            let propertyType = col.GetProvidedType()
+            let propertyType = col.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
 
             let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode col
             let property = ProvidedProperty(col.Name, propertyType, GetterCode = getter)
@@ -245,7 +245,7 @@ type DesignTime private() =
             { Single = typeof<int>; PerRow = None }
         elif resultType = ResultType.DataTable 
         then
-            let dataRowType = DesignTime.GetDataRowType outputColumns
+            let dataRowType = DesignTime.GetDataRowType(outputColumns, ?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
             let dataTableType = DesignTime.GetDataTableType("Table", dataRowType, outputColumns)
             dataTableType.AddMember dataRowType
 
@@ -286,7 +286,7 @@ type DesignTime private() =
                     let providedType = 
                         match outputColumns with
                         | [ x ] -> x.GetProvidedType()
-                        | xs -> Microsoft.FSharp.Reflection.FSharpType.MakeTupleType [| for x in xs -> x.GetProvidedType() |]
+                        | xs -> Microsoft.FSharp.Reflection.FSharpType.MakeTupleType [| for x in xs -> x.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema) |]
 
                     let clrTypeName = erasedToTupleType.FullName
                     let mapping = <@@ Microsoft.FSharp.Reflection.FSharpValue.PreComputeTupleConstructor (Type.GetType(clrTypeName, throwOnError = true))  @@>

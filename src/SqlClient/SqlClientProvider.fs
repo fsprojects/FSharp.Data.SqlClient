@@ -511,7 +511,7 @@ type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             
                     if singleRow && not (resultType = ResultType.Records || resultType = ResultType.Tuples)
                     then 
-                        invalidArg "singleRow" "singleRow can be set only for ResultType.Records or ResultType.Tuples."
+                        invalidArg "singleRow" "SingleRow can be set only for ResultType.Records or ResultType.Tuples."
 
                     use __ = conn.UseLocally()
                     let parameters = DesignTime.ExtractParameters(conn, sqlStatement, allParametersOptional)
