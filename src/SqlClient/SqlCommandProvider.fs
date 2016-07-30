@@ -30,11 +30,6 @@ do()
 type public SqlCommandProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces()
 
-    static let invalidPathChars = HashSet(Path.GetInvalidPathChars())
-    static let invalidFileChars = HashSet(Path.GetInvalidFileNameChars())
-
-    let mutable watcher = null : IDisposable
-
     let nameSpace = this.GetType().Namespace
     let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, HideObjectMethods = true)
@@ -44,7 +39,6 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
     do 
         this.Disposing.Add <| fun _ ->
             try  
-                if watcher <> null then watcher.Dispose()
                 cache.Dispose()
                 clearDataTypesMap()
             with _ -> ()
@@ -58,11 +52,10 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("SingleRow", typeof<bool>, false)   
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
-                ProvidedStaticParameter("ResolutionFolder", typeof<string>, "") 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
             ],             
             instantiationFunction = (fun typeName args ->
-                let value = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6], unbox args.[7])
+                let value = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6])
                 cache.GetOrAdd(typeName, value)
             ) 
         )
@@ -88,28 +81,12 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
         |> defaultArg 
         <| base.ResolveAssembly args
 
-    member internal this.CreateRootType(typeName, sqlStatementOrFile, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, resolutionFolder, dataDirectory) = 
+    member internal this.CreateRootType(typeName, sqlStatement, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, dataDirectory) = 
 
         if singleRow && not (resultType = ResultType.Records || resultType = ResultType.Tuples)
         then 
             invalidArg "singleRow" "SingleRow can be set only for ResultType.Records or ResultType.Tuples."
         
-        let invalidator() =
-            cache.Remove(typeName) |> ignore
-            this.Invalidate()
-            
-        let sqlStatement, watcher' = 
-            let sqlScriptResolutionFolder = 
-                if resolutionFolder = "" 
-                then config.ResolutionFolder 
-                elif Path.IsPathRooted (resolutionFolder)
-                then resolutionFolder
-                else Path.Combine (config.ResolutionFolder, resolutionFolder)
-
-            SqlCommandProvider.ParseTextAtDesignTime(sqlStatementOrFile, sqlScriptResolutionFolder, invalidator)
-
-        watcher' |> Option.iter (fun x -> watcher <- x)
-
         if connectionStringOrName.Trim() = ""
         then invalidArg "ConnectionStringOrName" "Value is empty!" 
 
@@ -196,32 +173,3 @@ type public SqlCommandProvider(config : TypeProviderConfig) as this =
             addRedirectToISqlCommandMethod typeof<string> "ToTraceString" 
 
         cmdProvidedType
-
-    static member internal GetValidFileName (file:string, resolutionFolder:string) = 
-        try 
-            if (file.Contains "\n") || (resolutionFolder.Contains "\n") then None else
-            let f = Path.Combine(resolutionFolder, file)
-            if invalidPathChars.Overlaps (Path.GetDirectoryName f) ||
-               invalidFileChars.Overlaps (Path.GetFileName f) then None 
-            else 
-               // Canonicalizing the path may throw on bad input, the check above does not cover every error.
-               Some (Path.GetFullPath f) 
-        with _ -> 
-            None
-
-    static member ParseTextAtDesignTime(commandTextOrPath : string, resolutionFolder, invalidateCallback) =
-        match SqlCommandProvider.GetValidFileName (commandTextOrPath, resolutionFolder) with
-        | Some path when File.Exists path ->
-                if Path.GetExtension(path) <> ".sql" then failwith "Only files with .sql extension are supported"
-                let watcher = new FileSystemWatcher(Filter = Path.GetFileName path, Path = Path.GetDirectoryName path)
-                watcher.Changed.Add(fun _ -> invalidateCallback())
-                watcher.Renamed.Add(fun _ -> invalidateCallback())
-                watcher.Deleted.Add(fun _ -> invalidateCallback())
-                watcher.EnableRaisingEvents <- true   
-                let task = System.Threading.Tasks.Task.Factory.StartNew(fun () -> 
-                        use stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
-                        use reader = new StreamReader(stream)
-                        reader.ReadToEnd())
-                if not (task.Wait(TimeSpan.FromSeconds(1.))) then failwithf "Couldn't read command from file %s" path
-                task.Result, Some watcher 
-        | _ -> commandTextOrPath, None
