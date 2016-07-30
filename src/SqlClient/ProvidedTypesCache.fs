@@ -1,8 +1,9 @@
 ﻿[<AutoOpen>]
-module ProviderImplementation.ProvidedTypes.MemoryCache
+module FSharp.Data.SqlClient.Cache
 
 open System
 open System.Runtime.Caching
+open ProviderImplementation.ProvidedTypes
 
 type MemoryCache with 
     member this.GetOrAdd<'T>(key, value: Lazy<'T>, ?expiration): 'T = 
@@ -14,3 +15,4 @@ type MemoryCache with
         | x -> 
             assert(x = null)
             value.Value
+

@@ -19,6 +19,7 @@ open ProviderImplementation.ProvidedTypes
 open FSharp.Data.SqlClient
 
 [<TypeProvider>]
+[<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type public SqlProgrammabilityProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces()
 

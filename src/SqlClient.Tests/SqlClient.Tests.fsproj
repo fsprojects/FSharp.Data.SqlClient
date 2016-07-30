@@ -84,6 +84,7 @@
     <Compile Include="UnitsOfMeasure.fs" />
     <None Include="sampleCommand.sql" />
     <None Include="extensions.sql" />
+    <None Include="MySqlFolder\sampleCommand.sql" />
     <None Include="Scripts\SqlCommand.fsx" />
     <None Include="Scripts\SqlProgrammability.fsx" />
     <None Include="Scripts\CreateCommand.fsx" />
@@ -121,6 +122,7 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Runtime.Caching" />
     <Reference Include="System.Transactions" />
     <Reference Include="System.Xml" />
     <Reference Include="xunit">

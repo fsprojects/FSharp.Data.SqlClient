@@ -1,7 +1,7 @@
 ﻿module FSharp.Data.Application
 
 //open WebApi
-//let testExternalQuery = DataAccess.QueryProducts()
+//let testExternalQuery = new DataAccess.QueryProducts()
 
 open System
 open System.Windows

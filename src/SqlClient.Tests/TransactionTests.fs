@@ -1,5 +1,9 @@
 ﻿module FSharp.Data.TransactionTests
 
+#if DEBUG
+#nowarn "101"
+#endif
+
 open System
 open System.Data
 open System.Transactions

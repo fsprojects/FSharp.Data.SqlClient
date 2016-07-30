@@ -26,6 +26,7 @@ open ProviderImplementation.ProvidedTypes
 do()
 
 [<TypeProvider>]
+[<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type public SqlCommandProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces()
 
