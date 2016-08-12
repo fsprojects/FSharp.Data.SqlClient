@@ -69,7 +69,7 @@ type internal DesignTimeConnectionString =
         | Literal value -> <@@ value @@>
         | NameInConfig(name, value, _) -> 
             <@@ 
-                if isHostedExecution
+                if isHostedExecution || System.Diagnostics.Process.GetCurrentProcess().ProcessName.ToLower() = "fsi"
                 then 
                     value
                 else
