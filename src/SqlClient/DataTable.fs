@@ -40,7 +40,7 @@ type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionStri
 
     member private this.IsDirectTable = this.TableName <> null
     
-    member this.Update(?connection, ?transaction, ?batchSize) = 
+    member this.Update(?connection, ?transaction, ?batchSize, ?continueUpdateOnError) = 
         
         connection |> Option.iter selectCommand.set_Connection
         transaction |> Option.iter selectCommand.set_Transaction 
@@ -77,6 +77,7 @@ type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionStri
         )
 
         batchSize |> Option.iter dataAdapter.set_UpdateBatchSize
+        continueUpdateOnError |> Option.iter dataAdapter.set_ContinueUpdateOnError
 
         dataAdapter.Update(this)
 

@@ -339,3 +339,32 @@ type DataTablesTests() =
         // can access typed table from row
         let name = product.[product.Table.Columns.Name] :?> string
         Assert.True(product.Name = name)
+
+    [<Fact>]
+    member __.ContinueUpdateOnErrorFalse() =
+        use conn = new SqlConnection(connectionString = adventureWorks)
+        conn.Open()
+        use tran = conn.BeginTransaction()
+        use cmd = 
+            new SqlCommandProvider<"SELECT TOP 2 * FROM Purchasing.ShipMethod", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>(conn, tran)
+        let table = cmd.Execute()
+        table.Rows.[0].ShipRate <- -1M
+        table.Rows.[1].ShipRate <- table.Rows.[1].ShipRate * 1.1M
+
+        Assert.Throws<SqlException>(fun() -> table.Update() |> box) |> ignore
+
+    [<Fact>]
+    member __.ContinueUpdateOnErrorTrue() =
+        use conn = new SqlConnection(connectionString = adventureWorks)
+        conn.Open()
+        use tran = conn.BeginTransaction()
+        use cmd = 
+            new SqlCommandProvider<"SELECT TOP 2 * FROM Purchasing.ShipMethod", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>(conn, tran)
+        let table = cmd.Execute()
+        table.Rows.[0].ShipRate <- -1M
+        table.Rows.[1].ShipRate <- table.Rows.[1].ShipRate * 1.1M
+
+        let rowsAffected = table.Update(continueUpdateOnError = true)
+
+        Assert.Equal(1, rowsAffected)
+    
