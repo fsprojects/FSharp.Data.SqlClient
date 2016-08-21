@@ -1,3 +1,9 @@
+#### 1.8.3 - Aug 12, 2016
+	* Issue #224 - TVP generated type implicitly from SqlDataRecord. 
+	* Issue #232 - BREAKING CHANGE! SqlFile type provider is a new way to feed external sql files into SqlCommandProvider/CreateCommand
+	* Issue #233 - Optional continueUpdateOnError parameter added Update method on statically typed data tables
+	* Issue #234 - Design-time captured value of named connection string used at runtime if code runs under fsi.exe
+
 #### 1.8.2 - May 16, 2016
 	* Issue #192 - Invert order of release notes so most recent is on top
 	* Issue #195 - BREAKING CHANGE! Make connection parameter mandatory when literal connection string used at design time

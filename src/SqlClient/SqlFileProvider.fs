@@ -8,7 +8,7 @@ open System.Text
 
 [<TypeProvider>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
-type public SqlFileProvider(config : TypeProviderConfig) = 
+type SqlFileProvider(config : TypeProviderConfig) = 
     inherit SingleRootTypeProvider(
         config, 
         "SqlFile", 
@@ -48,4 +48,4 @@ type public SqlFileProvider(config : TypeProviderConfig) =
 
                 t
 
-        typ, [ new SingleFileChangeMonitor(fullPath) ]
+        typ, [| new SingleFileChangeMonitor(fullPath) |]

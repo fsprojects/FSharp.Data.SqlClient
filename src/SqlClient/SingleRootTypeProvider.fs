@@ -8,7 +8,7 @@ open System.Collections.Concurrent
 
 [<AbstractClass>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
-type public SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters, ?isErased) as this = 
+type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters, ?isErased) as this = 
     inherit TypeProviderForNamespaces()
 
     //cache
@@ -56,7 +56,7 @@ type public SingleRootTypeProvider(config: TypeProviderConfig, providerName, par
             parameters = parameters,             
             instantiationFunction = fun typeName args ->
                 let typ, monitors = this.CreateRootType(assembly, nameSpace, typeName, args)
-                cacheGetOrAdd(typeName, typ, monitors)
+                cacheGetOrAdd(typeName, typ, monitors |> Seq.cast)
         )
 
         this.AddNamespace( nameSpace, [ providerType ])
@@ -64,4 +64,4 @@ type public SingleRootTypeProvider(config: TypeProviderConfig, providerName, par
     do
         this.Disposing.Add <| fun _ -> disposeCache()
 
-    abstract CreateRootType: assemblyName: Assembly * nameSpace: string * typeName: string  * args: obj[] -> ProvidedTypeDefinition Lazy * ChangeMonitor list
+    abstract CreateRootType: assemblyName: Assembly * nameSpace: string * typeName: string  * args: obj[] -> Lazy<ProvidedTypeDefinition> * obj[] // ChangeMonitor[] underneath but there is a problem https://github.com/fsprojects/FSharp.Data.SqlClient/issues/234#issuecomment-240694390

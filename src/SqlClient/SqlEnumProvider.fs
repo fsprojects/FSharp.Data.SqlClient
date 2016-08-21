@@ -24,7 +24,7 @@ type SqlEnumKind =
 
 [<TypeProvider>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
-type public SqlEnumProvider(config : TypeProviderConfig) as this = 
+type SqlEnumProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces()
 
     let nameSpace = this.GetType().Namespace

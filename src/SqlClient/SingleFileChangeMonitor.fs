@@ -5,7 +5,7 @@ open System.IO
 open System.Runtime.Caching
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
-type SingleFileChangeMonitor(path) as this = 
+type internal SingleFileChangeMonitor(path) as this = 
     inherit ChangeMonitor()
 
     let file = new FileInfo(path)
