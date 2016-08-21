@@ -1,9 +1,15 @@
-﻿#r @"bin\Debug\Lib.dll"
+﻿#r @"..\..\..\bin\FSharp.Data.SqlClient.dll"
+#r @"bin\Debug\Lib.dll"
+#r @"System.Configuration"
+#r @"System.Transactions"
+
 DataAccess.get42()
 
-let fsi = System.Diagnostics.Process.GetCurrentProcess()
-//fsi.StartInfo.EnvironmentVariables |> Seq.cast<System.Collections.DictionaryEntry> |> Seq.map (fun x -> x.Key, x.Value) |> Seq.toList
+open System
 
-//fsi.StartInfo.WorkingDirectory
-
-System.Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
+//let shifts = new DataAccess.AdventureWorks.HumanResources.Tables.Shift()
+let shifts = DataAccess.getShiftTable()
+do 
+    use tran = new System.Transactions.TransactionScope()
+    shifts.AddRow("French coffee break", StartTime = TimeSpan.FromHours 10., EndTime = TimeSpan.FromHours 12.)
+    shifts.Update() |> printfn "Records affected %i"
