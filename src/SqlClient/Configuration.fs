@@ -18,6 +18,7 @@ open System.IO
 open System
 open System.Threading.Tasks
 open System.Collections.Generic
+open System.Diagnostics
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type internal DesignTimeConnectionString = 
@@ -69,7 +70,10 @@ type internal DesignTimeConnectionString =
         | Literal value -> <@@ value @@>
         | NameInConfig(name, value, _) -> 
             <@@ 
-                if isHostedExecution || System.Diagnostics.Process.GetCurrentProcess().ProcessName.ToLower() = "fsi"
+                let hostProcess = Process.GetCurrentProcess().ProcessName.ToUpper()
+                if isHostedExecution 
+                    || (Environment.Is64BitProcess && hostProcess = "FSIANYCPU")
+                    || (not Environment.Is64BitProcess && hostProcess = "FSI")
                 then 
                     value
                 else
