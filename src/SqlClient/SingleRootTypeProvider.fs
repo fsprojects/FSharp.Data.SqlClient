@@ -18,11 +18,9 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
     let cache = new MemoryCache(providerName)
 
     let disposeCache() = 
-        disposingCache <- true
         while not changeMonitors.IsEmpty do
             let removed, (monitor: CacheEntryChangeMonitor) =  changeMonitors.TryTake()
             if removed then monitor.Dispose()
-        cache.Dispose()
 
     let cacheGetOrAdd(key, value: Lazy<ProvidedTypeDefinition>, monitors) = 
         let policy = CacheItemPolicy()
@@ -62,6 +60,9 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
         this.AddNamespace( nameSpace, [ providerType ])
 
     do
-        this.Disposing.Add <| fun _ -> disposeCache()
+        this.Disposing.Add <| fun _ ->
+            disposingCache <- true
+            disposeCache()
+            cache.Dispose()
 
     abstract CreateRootType: assemblyName: Assembly * nameSpace: string * typeName: string  * args: obj[] -> Lazy<ProvidedTypeDefinition> * obj[] // ChangeMonitor[] underneath but there is a problem https://github.com/fsprojects/FSharp.Data.SqlClient/issues/234#issuecomment-240694390
