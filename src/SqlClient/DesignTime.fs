@@ -508,16 +508,15 @@ type DesignTime private() =
                 yield 
                     if not p.TypeInfo.TableType 
                     then
-                        if p.Optional 
+                        if p.Direction.HasFlag(ParameterDirection.Output)
+                        then
+                            ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType.MakeByRefType(), isOut = true)
+                        elif p.Optional 
                         then 
                             assert(p.Direction = ParameterDirection.Input)
                             ProvidedParameter(parameterName, parameterType = typedefof<_ option>.MakeGenericType( p.TypeInfo.ClrType) , optionalValue = null)
                         else
-                            if p.Direction.HasFlag(ParameterDirection.Output)
-                            then
-                                ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType.MakeByRefType(), isOut = true)
-                            else                                 
-                                ProvidedParameter(parameterName, parameterType = p.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema), ?optionalValue = p.DefaultValue)
+                            ProvidedParameter(parameterName, parameterType = p.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema), ?optionalValue = p.DefaultValue)                        
                     else
                         assert(p.Direction = ParameterDirection.Input)
 
