@@ -1,4 +1,3 @@
-
 (**
 
 A comparison on SQL Server data access methods
@@ -32,6 +31,68 @@ Type providers + Query Expressions
    [ef]: http://msdn.microsoft.com/en-us/library/hh361035.aspx
    [edmx]: http://msdn.microsoft.com/en-us/library/hh361038.aspx
    [soissue]: http://stackoverflow.com/questions/21574254/how-do-i-do-a-contains-query-with-f-query-expressions/21584169
+
+### Common for all TypeProviders
+
+- You write just logic code, not POCO-objects and mappings
+- If your database changes, your code breaks on compile time
+- No SQL-injection vulnerabilities
+- Commit to existing transactions so you can mix with other technologies
+- You can call stored procedures if needed.
+- Supports joins and nested in-queries so you can avoid "n+1 database hits" problems
+
+### FSharp.Data.SqlClient
+
+Good:
+
+- User has control of SQL-clauses
+- So you can hit database indexes with complex queries
+- SQL-syntax is already familiar for many
+- Supports async database operations
+- Use it e.g. for data processing backends
+- Open source
+
+Not so good:
+
+- By default supports only Microsoft SQLServer and its SQL.
+- Code overhead if you have a large amount of different small operations
+- Doesn't generate domain model for work with C#
+
+
+### SQLProvider
+
+Good:
+
+- Supports any database (MSSQL, MySQL, Postgre, Oracle, Odbc, ...)
+- Changing the database is not actually huge work
+- Makes effective simple SQL 
+- Supports async database operations
+- Use it e.g. for web servers
+- User's code stays simple
+- Open source
+
+Not so good:
+
+- No Manual control over generated SQL
+- FSharp/LINQ query-syntax is a learning curve
+- Doesn't generate domain model for work with C#
+- Most LINQ-operations supported, but not yet complex group-by scenarios
+
+### SqlDataConnection
+
+Good:
+
+- You can use generated DB-model from C#-projects
+- Supports even complex LINQ-operations
+
+Not so good:
+
+- Generates EF-models on background
+- Not dynamic
+- Doesn't scale to large databases
+- FSharp/LINQ query-syntax is a learning curve
+- Closed source
+- Supports only Microsoft SQLServer
 
 [Dapper](https://code.google.com/p/dapper-dot-net/)
 -----------------------------------------
