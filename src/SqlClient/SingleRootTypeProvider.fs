@@ -67,6 +67,8 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
         this.AddNamespace( nameSpace, [ providerType ])
 
     do
-        this.Disposing.Add <| fun _ -> clearCache()
+        this.Disposing.Add <| fun _ ->
+          clearCache()
+          cache.Dispose()
 
     abstract CreateRootType: assemblyName: Assembly * nameSpace: string * typeName: string  * args: obj[] -> Lazy<ProvidedTypeDefinition> * obj[] // ChangeMonitor[] underneath but there is a problem https://github.com/fsprojects/FSharp.Data.SqlClient/issues/234#issuecomment-240694390
