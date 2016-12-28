@@ -14,15 +14,20 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
     //cache
     let changeMonitors = ConcurrentBag()
     [<VolatileField>]
-    let mutable disposingCache = false
+    let mutable clearingCache = false
     let cache = new MemoryCache(providerName)
 
-    let disposeCache() = 
-        disposingCache <- true
+    let clearCache() = 
+        clearingCache <- true
         while not changeMonitors.IsEmpty do
             let removed, (monitor: CacheEntryChangeMonitor) =  changeMonitors.TryTake()
             if removed then monitor.Dispose()
-        cache.Dispose()
+        
+        // http://stackoverflow.com/a/29916907
+        cache 
+        |> Seq.map (fun e -> e.Key) 
+        |> Seq.toArray
+        |> Array.iter (cache.Remove >> ignore)
 
     let cacheGetOrAdd(key, value: Lazy<ProvidedTypeDefinition>, monitors) = 
         let policy = CacheItemPolicy()
@@ -33,9 +38,9 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
             then 
                 let m = cache.CreateCacheEntryChangeMonitor [ key ]
                 m.NotifyOnChanged(fun _ -> 
-                    if not disposingCache 
+                    if not clearingCache 
                     then 
-                        disposeCache()
+                        clearCache()
                         this.Invalidate()
                 )
                 changeMonitors.Add(m)
@@ -62,6 +67,6 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
         this.AddNamespace( nameSpace, [ providerType ])
 
     do
-        this.Disposing.Add <| fun _ -> disposeCache()
+        this.Disposing.Add <| fun _ -> clearCache()
 
     abstract CreateRootType: assemblyName: Assembly * nameSpace: string * typeName: string  * args: obj[] -> Lazy<ProvidedTypeDefinition> * obj[] // ChangeMonitor[] underneath but there is a problem https://github.com/fsprojects/FSharp.Data.SqlClient/issues/234#issuecomment-240694390
