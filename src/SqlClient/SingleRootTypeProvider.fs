@@ -6,19 +6,14 @@ open System.Runtime.Caching
 open System
 open System.Collections.Concurrent
 
-[<AbstractClass>]
-[<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
-type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters, ?isErased) as this = 
-    inherit TypeProviderForNamespaces()
-
+type CacheWithMonitors (providerName) =
     //cache
     let changeMonitors = ConcurrentBag()
     [<VolatileField>]
-    let mutable clearingCache = false
+    let mutable isDisposing = false
     let cache = new MemoryCache(providerName)
 
-    let clearCache() = 
-        clearingCache <- true
+    member x.ClearCache() = 
         while not changeMonitors.IsEmpty do
             let removed, (monitor: CacheEntryChangeMonitor) =  changeMonitors.TryTake()
             if removed then monitor.Dispose()
@@ -29,7 +24,7 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
         |> Seq.toArray
         |> Array.iter (cache.Remove >> ignore)
 
-    let cacheGetOrAdd(key, value: Lazy<ProvidedTypeDefinition>, monitors) = 
+    member x.CacheGetOrAdd(key, value: Lazy<ProvidedTypeDefinition>, monitors, invalidate) = 
         let policy = CacheItemPolicy()
         monitors |> Seq.iter policy.ChangeMonitors.Add
         let existing = cache.AddOrGetExisting(key, value, policy)
@@ -38,10 +33,8 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
             then 
                 let m = cache.CreateCacheEntryChangeMonitor [ key ]
                 m.NotifyOnChanged(fun _ -> 
-                    if not clearingCache 
-                    then 
-                        clearCache()
-                        this.Invalidate()
+                    x.ClearCache()
+                    invalidate()
                 )
                 changeMonitors.Add(m)
                 value 
@@ -50,6 +43,21 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
 
         cacheItem.Value
 
+    interface IDisposable with
+        member x.Dispose () =
+            if not isDisposing then
+                isDisposing <- true
+                x.ClearCache()
+                cache.Dispose()
+
+
+
+[<AbstractClass>]
+[<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
+type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters, ?isErased) as this = 
+    inherit TypeProviderForNamespaces()
+
+    let cache = new CacheWithMonitors(providerName)
     do 
         let isErased = defaultArg isErased true
         let nameSpace = this.GetType().Namespace
@@ -61,14 +69,12 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
             parameters = parameters,             
             instantiationFunction = fun typeName args ->
                 let typ, monitors = this.CreateRootType(assembly, nameSpace, typeName, args)
-                cacheGetOrAdd(typeName, typ, monitors |> Seq.cast)
+                cache.CacheGetOrAdd(typeName, typ, monitors |> Seq.cast, this.Invalidate)
         )
 
         this.AddNamespace( nameSpace, [ providerType ])
 
     do
-        this.Disposing.Add <| fun _ ->
-          clearCache()
-          cache.Dispose()
+        this.Disposing.Add <| fun _ -> (cache :> IDisposable).Dispose()
 
     abstract CreateRootType: assemblyName: Assembly * nameSpace: string * typeName: string  * args: obj[] -> Lazy<ProvidedTypeDefinition> * obj[] // ChangeMonitor[] underneath but there is a problem https://github.com/fsprojects/FSharp.Data.SqlClient/issues/234#issuecomment-240694390
