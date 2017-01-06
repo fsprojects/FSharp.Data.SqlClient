@@ -210,7 +210,8 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             cmdProvidedType, 
                             designTimeConfig, 
                             designTimeConnectionString,
-                            config.IsHostedExecution
+                            config.IsHostedExecution,
+                            factoryMethodName = "Create"
                         )
 
                         let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, uddtsPerSchema, unitsOfMeasurePerSchema)
