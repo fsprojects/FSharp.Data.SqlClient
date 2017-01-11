@@ -51,7 +51,10 @@ type DesignTime private() =
                             expr
                     else
                         let t = param.TypeInfo.ClrType
-                        Expr.Value(Activator.CreateInstance(t), t)
+
+                        if t.IsArray
+                        then Expr.Value(Array.CreateInstance(t.GetElementType(), param.Size))
+                        else Expr.Value(Activator.CreateInstance(t), t)
 
                 <@@ (%%Expr.Value(param.Name) : string), %%Expr.Coerce(value, typeof<obj>) @@>
             )

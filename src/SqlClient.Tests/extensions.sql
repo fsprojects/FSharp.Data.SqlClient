@@ -46,6 +46,12 @@ GO
 IF OBJECT_ID('dbo.HowManyRows') IS NOT NULL
 	DROP PROCEDURE dbo.HowManyRows;
 GO
+IF OBJECT_ID('dbo.BinaryOutput') IS NOT NULL
+	DROP PROCEDURE dbo.BinaryOutput;
+GO
+IF OBJECT_ID('dbo.TimestampOutput') IS NOT NULL
+	DROP PROCEDURE dbo.TimestampOutput;
+GO
 IF OBJECT_ID('dbo.TestPhoto') IS NOT NULL
 	DROP PROCEDURE dbo.TestPhoto;
 GO
@@ -249,6 +255,20 @@ CREATE PROCEDURE dbo.HowManyRows @p1 dbo.MyTableType READONLY, @total AS BIGINT 
 BEGIN
 	SET @total = (SELECT COUNT_BIG(*) FROM @p1)
 	SELECT myId, myName FROM @p1 WHERE myName IS NOT NULL
+END
+
+GO
+
+CREATE PROCEDURE dbo.BinaryOutput @out AS BINARY(5) OUTPUT AS
+BEGIN
+	SELECT @out = CAST(42 AS BINARY(5)); 
+END
+
+GO
+
+CREATE PROCEDURE dbo.TimestampOutput @timestamp TIMESTAMP OUTPUT AS
+BEGIN
+	SELECT @timestamp = CAST(42 AS TIMESTAMP); 
 END
 
 GO

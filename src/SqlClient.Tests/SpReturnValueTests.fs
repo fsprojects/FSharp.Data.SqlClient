@@ -44,3 +44,17 @@ open Xunit
             Assert.Equal<_ list>( [ 2, Some "donkey" ], [ for x in result -> x.myId, x.myName ] )
             Assert.Equal(2L, total)
             Assert.Equal(0, returnValue) //default return value
+
+    [<Fact>]
+    let BinaryOutput() =
+        let cmd = new AdventureWorks.dbo.BinaryOutput()
+        let _, out, returnValue = cmd.Execute()
+        Assert.Equal<byte []>([| 0uy; 0uy; 0uy; 0uy; 42uy |], out)
+        Assert.Equal(0, returnValue)
+
+    [<Fact>]
+    let TimestampOutput() =
+        let cmd = new AdventureWorks.dbo.TimestampOutput()
+        let _, timestamp, returnValue = cmd.Execute()
+        Assert.Equal<byte []>([| 0uy; 0uy; 0uy; 0uy; 0uy; 0uy; 0uy; 42uy; |], timestamp)
+        Assert.Equal(0, returnValue)

@@ -191,6 +191,9 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                         //done via reflection because not implemented on Mono
                         let sqlDataRecordType = typeof<SqlCommand>.Assembly.GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
                         p.Value <- typeof<Linq.Enumerable>.GetMethod("Cast").MakeGenericMethod(sqlDataRecordType).Invoke(null, [| value |])
+            elif p.Direction.HasFlag(ParameterDirection.Output) && value :? Array
+            then
+                p.Size <- (value :?> Array).Length
 
 //Execute/AsyncExecute versions
 
