@@ -258,6 +258,42 @@ let PassingImageAsParamDoesntGetCut() =
     Assert.Equal(id, inserted.ProductPhotoId)
     Assert.Equal(existing.LargePhoto.Value.Length, inserted.LargePhoto.Value.Length)
     Assert.Equal(existing.LargePhoto, inserted.LargePhoto)
+    
+[<Fact>]
+let StaticCreateMethod() =
+    let input1 = [AdventureWorks.Person.``User-Defined Table Types``.MyTableType(42, Some "BSL")]
+    use newCmd = new AdventureWorks.Person.MyProc()
+    let newResult = newCmd.Execute(input1)
+    use factoryCmd = AdventureWorks.Person.MyProc.Create()
+    let factoryResult = factoryCmd.Execute(input1)
+    //Assert.Equal<Collections.Generic.IEnumerable<AdventureWorks.Person.MyProc.Record>>(newResult, factoryResult)
+    Assert.Equal(Seq.length newResult, Seq.length factoryResult)
+    (newResult, factoryResult) ||> Seq.iter2 (fun newR facR ->
+        Assert.Equal(newR.myId, facR.myId)
+        Assert.Equal(newR.myName, facR.myName))
+    
+    let input2 = [AdventureWorks.Person.``User-Defined Table Types``.MyTableType(420)]
+    use newCmd = new AdventureWorks.Person.MyProc(ConnectionStrings.AdventureWorksLiteral, 58)
+    let newResult = newCmd.Execute(input2)
+    use factoryCmd = AdventureWorks.Person.MyProc.Create(ConnectionStrings.AdventureWorksLiteral, 58)
+    let factoryResult = factoryCmd.Execute(input2)
+    //Assert.Equal<Collections.Generic.IEnumerable<AdventureWorks.Person.MyProc.Record>>(newResult, factoryResult)
+    Assert.Equal(Seq.length newResult, Seq.length factoryResult)
+    (newResult, factoryResult) ||> Seq.iter2 (fun newR facR ->
+        Assert.Equal(newR.myId, facR.myId)
+        Assert.Equal(newR.myName, facR.myName))
 
-
-
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
+    do conn.Open()
+    use newTran = conn.BeginTransaction()
+    use newCmd = new AdventureWorks.Person.MyProc(conn, newTran)
+    let newResult = newCmd.Execute(input1) |> Seq.toList
+    do newTran.Dispose()
+    use factoryTran = conn.BeginTransaction()
+    use factoryCmd = AdventureWorks.Person.MyProc.Create(conn, factoryTran)
+    let factoryResult = factoryCmd.Execute(input1) |> Seq.toList
+    //Assert.Equal<Collections.Generic.IEnumerable<AdventureWorks.Person.MyProc.Record>>(newResult, factoryResult)
+    Assert.Equal(List.length newResult, List.length factoryResult)
+    (newResult, factoryResult) ||> List.iter2 (fun newR facR ->
+        Assert.Equal(newR.myId, facR.myId)
+        Assert.Equal(newR.myName, facR.myName))
