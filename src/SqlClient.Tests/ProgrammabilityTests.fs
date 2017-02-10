@@ -7,6 +7,7 @@ open FSharp.Data.SqlClient
 
 type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksNamed>
 
+type AdventureWorksDataTables = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksLiteral, ResultType = ResultType.DataTable>
 type GetContactInformation = AdventureWorks.dbo.ufnGetContactInformation
 
 [<Fact>]
@@ -259,5 +260,9 @@ let PassingImageAsParamDoesntGetCut() =
     Assert.Equal(existing.LargePhoto.Value.Length, inserted.LargePhoto.Value.Length)
     Assert.Equal(existing.LargePhoto, inserted.LargePhoto)
 
-
-
+[<Fact>]
+let ``honors result type parameter: datatable`` () =
+    let command = new AdventureWorksDataTables.Sales.GetUKSalesOrders(ConnectionStrings.AdventureWorksLiteral)
+    let gbp = 1.0M<AdventureWorksDataTables.Sales.``Units of Measure``.GBP>
+    let table : AdventureWorksDataTables.Sales.GetUKSalesOrders.Table = command.Execute(gbp)
+    Assert.Equal<string>("Year", table.Columns.Year.ColumnName)
