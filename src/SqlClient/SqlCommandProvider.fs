@@ -120,12 +120,7 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
             cmdProvidedType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
 
         do
-            if resultType = ResultType.Records then
-                // Add .Record
-                returnType.PerRow |> Option.iter (fun x -> cmdProvidedType.AddMember x.Provided)
-            elif resultType = ResultType.DataTable then
-                // add .Table
-                returnType.Single |> cmdProvidedType.AddMember
+            SharedLogic.alterReturnTypeAccordingToResultType returnType cmdProvidedType resultType
 
         do  //ctors
             let designTimeConfig = 

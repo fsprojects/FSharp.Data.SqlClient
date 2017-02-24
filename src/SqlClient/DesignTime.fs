@@ -30,6 +30,16 @@ type internal ReturnType = {
         | Some x -> Expr.Value( x.ErasedTo.AssemblyQualifiedName)
         | None -> <@@ null: string @@>
 
+module internal SharedLogic =
+    /// Adds .Record or .Table inner type depending on resultType
+    let alterReturnTypeAccordingToResultType (returnType: ReturnType) (cmdProvidedType: ProvidedTypeDefinition) resultType =
+        if resultType = ResultType.Records then
+            // Add .Record
+            returnType.PerRow |> Option.iter (fun x -> cmdProvidedType.AddMember x.Provided)
+        elif resultType = ResultType.DataTable then
+            // add .Table
+            returnType.Single |> cmdProvidedType.AddMember
+
 type DesignTime private() = 
     static member internal AddGeneratedMethod
         (sqlParameters: Parameter list, hasOutputParameters, executeArgs: ProvidedParameter list, erasedType, providedOutputType, name) =
