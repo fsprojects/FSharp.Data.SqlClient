@@ -15,8 +15,8 @@
     <copyright>Copyright 2015</copyright>
     <tags>@tags@</tags>
     <frameworkAssemblies>
-      <frameworkAssembly assemblyName="System.Data" />
-      <frameworkAssembly assemblyName="System.Xml" />
+      <frameworkAssembly assemblyName="System.Data" targetFramework="net40" />
+      <frameworkAssembly assemblyName="System.Xml" targetFramework="net40" />
     </frameworkAssemblies>
     <references>
       <reference file="FSharp.Data.SqlClient.dll" />
