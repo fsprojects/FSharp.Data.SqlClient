@@ -142,11 +142,12 @@ let UsingTVPInQuery() =
 
 type MappedTVP = 
     SqlCommandProvider<"
-        SELECT * from @input
-    ", ConnectionStrings.AdventureWorksNamed, TableVarMapping = "@input=dbo.MyTableType">
+        SELECT myId, myName from @input
+    ", ConnectionStrings.AdventureWorksLiteral, TableVarMapping = "@input=dbo.MyTableType">
 [<Fact>]
 let UsingMappedTVPInQuery() = 
-    use cmd = new MappedTVP(ConnectionStrings.AdventureWorksNamed)
+    printfn "%s" ConnectionStrings.AdventureWorksLiteral
+    use cmd = new MappedTVP(ConnectionStrings.AdventureWorksLiteral)
     let expected = [ 
         1, Some "monkey"
         2, Some "donkey"
@@ -162,18 +163,20 @@ let UsingMappedTVPInQuery() =
 
 [<Fact>]
 let UsingTempTable() = 
-    use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
     conn.Open()
-    use cmd = new SqlCommand("
+    use create = new SqlCommand("
         CREATE TABLE #Temp(Id INT NOT NULL, Name NVARCHAR(100) NULL); 
         INSERT #Temp(Id, Name)
         VALUES (1, 'monkey'),
                (2, 'donkey')
         ", conn)
 
+    create.ExecuteScalar() |> ignore
+
     use cmd = new SqlCommandProvider<"
         SELECT Id, Name from #Temp
-    ", ConnectionStrings.AdventureWorksNamed, TempTableDefinitions = "CREATE TABLE #Temp(Id INT NOT NULL, Name NVARCHAR(100) NULL)">(conn)
+    ", ConnectionStrings.AdventureWorksLiteral, TempTableDefinitions = "CREATE TABLE #Temp(Id INT NOT NULL, Name NVARCHAR(100) NULL)">(conn)
 
     let expected = [ 
         1, Some "monkey"
