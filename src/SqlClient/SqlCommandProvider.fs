@@ -18,6 +18,7 @@ open Microsoft.FSharp.Quotations
 open FSharp.Data.SqlClient
 
 open ProviderImplementation.ProvidedTypes
+open System.Text.RegularExpressions
 
 [<assembly:TypeProviderAssembly()>]
 #if DEBUG
@@ -53,9 +54,11 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
+                ProvidedStaticParameter("TempTableDefinitions", typeof<string>, "") 
+                ProvidedStaticParameter("TableVarMapping", typeof<string>, "") 
             ],             
             instantiationFunction = (fun typeName args ->
-                let value = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6])
+                let value = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6], unbox args.[7], unbox args.[8])
                 cache.GetOrAdd(typeName, value)
             ) 
         )
@@ -70,6 +73,8 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
 <param name='AllParametersOptional'>If set all parameters become optional. NULL input values must be handled inside T-SQL.</param>
 <param name='ResolutionFolder'>A folder to be used to resolve relative file paths to *.sql script files at compile time. The default value is the folder that contains the project or script.</param>
 <param name='DataDirectory'>The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.</param>
+<param name='TempTableDefinitions'>Temp tables create command.</param>
+<param name='TableVarMapping'>List table-valued parameters in the format of "@tvp1=[dbo].[TVP_IDs]; @tvp2=[dbo].[TVP_IDs]"</param>
 """
 
         this.AddNamespace(nameSpace, [ providerType ])
@@ -81,7 +86,7 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
         |> defaultArg 
         <| base.ResolveAssembly args
 
-    member internal this.CreateRootType(typeName, sqlStatement, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, dataDirectory) = 
+    member internal this.CreateRootType(typeName, sqlStatement, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, dataDirectory, tempTableDefinitions, tableVarMapping) = 
 
         if singleRow && not (resultType = ResultType.Records || resultType = ResultType.Tuples)
         then 
@@ -104,13 +109,19 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
         conn.CheckVersion()
         conn.LoadDataTypesMap()
 
-        let parameters = DesignTime.ExtractParameters(conn, sqlStatement, allParametersOptional)
+        let designTimeSqlStatement, tempTableNames = 
+            let sql, tempTableNames = DesignTime.SubstituteTempTables(conn, sqlStatement, tempTableDefinitions)
+            DesignTime.SubstituteTableVar(sql, tableVarMapping), tempTableNames
+
+        let parameters = DesignTime.ExtractParameters(conn, designTimeSqlStatement, allParametersOptional)
 
         let outputColumns = 
             if resultType <> ResultType.DataReader
-            then DesignTime.GetOutputColumns(conn, sqlStatement, parameters, isStoredProcedure = false)
+            then DesignTime.GetOutputColumns(conn, designTimeSqlStatement, parameters, isStoredProcedure = false)
             else []
 
+        DesignTime.RemoveSubstitutedTempTables(conn, tempTableNames)
+            
         let rank = if singleRow then ResultRank.SingleRow else ResultRank.Sequence
         let returnType = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters = false)
         

@@ -10,6 +10,7 @@ open System.Diagnostics
 open Microsoft.FSharp.Quotations
 open ProviderImplementation.ProvidedTypes
 open FSharp.Data
+open System.Text.RegularExpressions
 
 type internal RowType = {
     Provided: Type
@@ -39,6 +40,10 @@ module internal SharedLogic =
         elif resultType = ResultType.DataTable then
             // add .Table
             returnType.Single |> cmdProvidedType.AddMember
+
+module Prefixes =
+    let tempTable = "##SQLCOMMANDPROVIDER_"
+    let tableVar = "@SQLCOMMANDPROVIDER_"
 
 type DesignTime private() = 
     static member internal AddGeneratedMethod
@@ -600,3 +605,51 @@ type DesignTime private() =
             then 
                 yield upcast ProvidedMethod(factoryMethodName.Value, parameters2, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body2)
         ]
+
+    static member internal SubstituteTempTables(connection, commandText: string, tempTableDefinitions : string) =
+        let tempTableRegex = Regex("#([a-z0-9\-_]+)", RegexOptions.IgnoreCase)
+
+        let tempTableNames =
+            tempTableRegex.Matches(tempTableDefinitions)
+            |> Seq.cast<Match>
+            |> Seq.map (fun m -> m.Groups.[1].Value)
+            |> Seq.toList
+
+        match tempTableNames with
+        | [] -> commandText, []
+        | _ -> 
+            use cmd = new SqlCommand(tempTableRegex.Replace(tempTableDefinitions, Prefixes.tempTable+"$1"), connection)
+            cmd.ExecuteScalar() |> ignore
+
+            // Only replace temp tables we find in our list.
+            tempTableRegex.Replace(commandText, MatchEvaluator(fun m -> 
+                match tempTableNames |> List.tryFind((=) m.Groups.[1].Value) with
+                | Some name -> Prefixes.tempTable + name
+                | None -> m.Groups.[0].Value)),
+
+            tempTableNames
+
+    static member internal RemoveSubstitutedTempTables(connection, tempTableNames : string list) =
+        if not tempTableNames.IsEmpty then
+            use cmd = new SqlCommand(tempTableNames |> List.map(fun name -> sprintf "DROP TABLE [%s%s]" Prefixes.tempTable name) |> String.concat ";", connection)
+            cmd.ExecuteScalar() |> ignore
+
+    static member internal SubstituteTableVar(commandText: string, tableVarMapping : string) =
+        let varRegex = Regex("@([a-z0-9_]+)", RegexOptions.IgnoreCase)
+
+        let vars = 
+            tableVarMapping.Split([|';'|], System.StringSplitOptions.RemoveEmptyEntries)
+            |> Array.choose(fun (x : string) -> 
+                match x.Split([|'='|]) with
+                | [|name;typ|] -> Some(name.TrimStart('@'), typ)
+                | _ ->  None)
+
+        // Only replace table vars we find in our list.
+        let commandText = 
+            varRegex.Replace(commandText, MatchEvaluator(fun m -> 
+                match vars |> Array.tryFind(fun (n,_) -> n = m.Groups.[1].Value) with
+                | Some (name, _) -> Prefixes.tableVar + name
+                | None -> m.Groups.[0].Value))
+
+        (vars |> Array.map(fun (name,typ) -> sprintf "DECLARE %s%s %s = @%s" Prefixes.tableVar name typ name) |> String.concat "; ") + "; " + commandText
+
