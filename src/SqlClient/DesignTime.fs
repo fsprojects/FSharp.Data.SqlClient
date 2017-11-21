@@ -516,7 +516,7 @@ type DesignTime private() =
                             
         rowType
 
-                
+
     static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, udttsPerSchema: Dictionary<_, ProvidedTypeDefinition>, ?unitsOfMeasurePerSchema) = 
         [
             for p in sqlParameters do
@@ -606,6 +606,30 @@ type DesignTime private() =
                 yield upcast ProvidedMethod(factoryMethodName.Value, parameters2, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body2)
         ]
 
+    static member private CreateTempTableRecord(name, cols) =
+        let rowType = ProvidedTypeDefinition(name, Some typeof<obj>, HideObjectMethods = true)
+
+        let parameters = 
+            [ 
+                for (p : Column) in cols do
+                    let name = p.Name
+                    let param = ProvidedParameter( name, p.GetProvidedType(), ?optionalValue = if p.Nullable then Some null else None) 
+                    yield param
+            ] 
+
+        let ctor = ProvidedConstructor( parameters)
+        ctor.InvokeCode <- fun args -> 
+            let optionsToNulls = QuotationsFactory.MapArrayNullableItems(cols, "MapArrayOptionItemToObj") 
+
+            <@@ let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for a in args -> Expr.Coerce(a, typeof<obj>) ])
+                (%%optionsToNulls) values
+                values @@>
+
+        rowType.AddMember ctor
+        rowType.AddXmlDoc "Type Table Type"
+                            
+        rowType
+
     static member internal SubstituteTempTables(connection, commandText: string, tempTableDefinitions : string) =
         let tempTableRegex = Regex("#([a-z0-9\-_]+)", RegexOptions.IgnoreCase)
 
@@ -616,8 +640,82 @@ type DesignTime private() =
             |> Seq.toList
 
         match tempTableNames with
-        | [] -> commandText, []
+        | [] -> commandText, None
         | _ -> 
+            let tableTypes = 
+                use create = new SqlCommand(tempTableDefinitions, connection)
+                create.ExecuteScalar() |> ignore
+
+                tempTableNames
+                |> List.map(fun name ->
+                    let cols = DesignTime.GetOutputColumns(connection, "SELECT * FROM #"+name, [], isStoredProcedure = false)
+                    use drop = new SqlCommand("DROP TABLE #"+name, connection)
+                    drop.ExecuteScalar() |> ignore
+                    DesignTime.CreateTempTableRecord(name, cols), cols)
+
+            let parameters = 
+                tableTypes
+                |> List.map (fun (typ, _) ->
+                    ProvidedParameter(typ.Name, parameterType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ typ ])))
+
+            let loadValues (exprArgs: Expr list) (connection) = 
+                (exprArgs.Tail, tableTypes)
+                ||> List.map2 (fun expr (typ, cols) ->
+                    let dest = typ.Name
+
+                    let columnsNames, columnsTypeNames =
+                        cols
+                        |> List.map(fun c -> c.Name, c.TypeInfo.TypeName)
+                        |> List.toArray
+                        |> Array.unzip
+
+                    <@@ (%%expr : _ seq) 
+                        |> Seq.chunkBySize 5000
+                        |> Seq.iter(fun rows ->
+                            use table = new DataTable("Items");
+
+                            (columnsNames, columnsTypeNames)
+                            ||> Array.iter2(fun name typeName ->
+
+                                let typ =
+                                    match typeName with
+                                    | "int" -> typedefof<int>
+                                    | "string" -> typedefof<string>
+                                    | "bool" -> typedefof<bool>
+                                    | _ -> invalidOp typeName
+
+                                table.Columns.Add(name, typ) |> ignore
+                            )
+
+                            rows
+                            |> Array.iter(fun row -> 
+                                let row : obj[] = unbox row
+                                table.Rows.Add(row) |> ignore
+                            )
+
+                            use bulkCopy = new SqlBulkCopy((%%connection : SqlConnection))    
+                            bulkCopy.DestinationTableName <- "#" + dest
+                            bulkCopy.WriteToServer(table)
+                        ) @@> 
+                )
+                |> List.fold (fun acc x -> Expr.Sequential(acc, x)) <@@ () @@>
+
+            let loadTempTablesMethod = ProvidedMethod("LoadTempTables", parameters, typeof<unit>)
+
+            loadTempTablesMethod.InvokeCode <- fun exprArgs ->
+
+                let command = Expr.Coerce(exprArgs.[0], typedefof<ISqlCommand>)
+
+                let connection =
+                    <@@ let cmd = (%%command : ISqlCommand)
+                        cmd.Raw.Connection @@>
+
+                <@@ use create = new SqlCommand(tempTableDefinitions, (%%connection : SqlConnection))
+                    create.ExecuteScalar() |> ignore
+
+                    (%%loadValues exprArgs connection)
+                    ignore() @@>
+
             use cmd = new SqlCommand(tempTableRegex.Replace(tempTableDefinitions, Prefixes.tempTable+"$1"), connection)
             cmd.ExecuteScalar() |> ignore
 
@@ -627,11 +725,11 @@ type DesignTime private() =
                 | Some name -> Prefixes.tempTable + name
                 | None -> m.Groups.[0].Value)),
 
-            tempTableNames
+            Some(loadTempTablesMethod, tableTypes |> List.unzip |> fst)
 
-    static member internal RemoveSubstitutedTempTables(connection, tempTableNames : string list) =
-        if not tempTableNames.IsEmpty then
-            use cmd = new SqlCommand(tempTableNames |> List.map(fun name -> sprintf "DROP TABLE [%s%s]" Prefixes.tempTable name) |> String.concat ";", connection)
+    static member internal RemoveSubstitutedTempTables(connection, tempTables : ProvidedTypeDefinition list) =
+        if not tempTables.IsEmpty then
+            use cmd = new SqlCommand(tempTables |> List.map(fun tempTable -> sprintf "DROP TABLE [%s%s]" Prefixes.tempTable tempTable.Name) |> String.concat ";", connection)
             cmd.ExecuteScalar() |> ignore
 
     static member internal SubstituteTableVar(commandText: string, tableVarMapping : string) =

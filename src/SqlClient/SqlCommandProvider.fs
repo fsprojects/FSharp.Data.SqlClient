@@ -109,9 +109,9 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
         conn.CheckVersion()
         conn.LoadDataTypesMap()
 
-        let designTimeSqlStatement, tempTableNames = 
-            let sql, tempTableNames = DesignTime.SubstituteTempTables(conn, sqlStatement, tempTableDefinitions)
-            DesignTime.SubstituteTableVar(sql, tableVarMapping), tempTableNames
+        let designTimeSqlStatement, tempTableTypes = 
+            let sql, types = DesignTime.SubstituteTempTables(conn, sqlStatement, tempTableDefinitions)
+            DesignTime.SubstituteTableVar(sql, tableVarMapping), types
 
         let parameters = DesignTime.ExtractParameters(conn, designTimeSqlStatement, allParametersOptional)
 
@@ -120,12 +120,18 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
             then DesignTime.GetOutputColumns(conn, designTimeSqlStatement, parameters, isStoredProcedure = false)
             else []
 
-        DesignTime.RemoveSubstitutedTempTables(conn, tempTableNames)
-            
         let rank = if singleRow then ResultRank.SingleRow else ResultRank.Sequence
         let returnType = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters = false)
         
         let cmdProvidedType = ProvidedTypeDefinition(assembly, nameSpace, typeName, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
+        
+        do
+            match tempTableTypes with
+            | Some (loadTempTables, types) -> 
+                DesignTime.RemoveSubstitutedTempTables(conn, types)
+                cmdProvidedType.AddMember(loadTempTables)
+                types |> List.iter(fun t -> cmdProvidedType.AddMember(t))
+            | _ -> ()
 
         do  
             cmdProvidedType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
