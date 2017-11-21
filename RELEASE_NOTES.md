@@ -1,3 +1,6 @@
+#### 1.8.3.1 - Nov 21, 2017
+	* Temp Table
+
 #### 1.8.3 - Aug 12, 2016
 	* Issue #224 - TVP generated type implicitly from SqlDataRecord. 
 	* Issue #232 - BREAKING CHANGE! SqlFile type provider is a new way to feed external sql files into SqlCommandProvider/CreateCommand
