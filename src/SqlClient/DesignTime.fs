@@ -681,7 +681,7 @@ type DesignTime private() =
                                     match typeName with
                                     | "int" -> typedefof<int>
                                     | "string" -> typedefof<string>
-                                    | "bool" -> typedefof<bool>
+                                    | "bit" -> typedefof<bool>
                                     | _ -> invalidOp typeName
 
                                 table.Columns.Add(name, typ) |> ignore
