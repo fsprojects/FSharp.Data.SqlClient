@@ -682,6 +682,7 @@ type DesignTime private() =
                                     | "int" -> typedefof<int>
                                     | "string" -> typedefof<string>
                                     | "bit" -> typedefof<bool>
+                                    | "binary" -> typedefof<byte[]>
                                     | _ -> invalidOp typeName
 
                                 table.Columns.Add(name, typ) |> ignore
