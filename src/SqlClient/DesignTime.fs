@@ -45,6 +45,48 @@ module Prefixes =
     let tempTable = "##SQLCOMMANDPROVIDER_"
     let tableVar = "@SQLCOMMANDPROVIDER_"
 
+type TempTableLoader(fieldCount, items: obj seq) =
+    let enumerator = items.GetEnumerator()
+
+    interface IDataReader with
+        member this.FieldCount: int = fieldCount
+        member this.Read(): bool = enumerator.MoveNext()
+        member this.GetValue(i: int): obj = 
+            let row : obj[] = unbox enumerator.Current
+            row.[i]
+        member this.Dispose(): unit = ()
+
+        member __.Close(): unit = invalidOp "NotImplementedException"
+        member __.Depth: int = invalidOp "NotImplementedException"
+        member __.GetBoolean(i: int): bool = invalidOp "NotImplementedException"
+        member __.GetByte(i: int): byte = invalidOp "NotImplementedException"
+        member __.GetBytes(i: int, fieldOffset: int64, buffer: byte [], bufferoffset: int, length: int): int64 = invalidOp "NotImplementedException"
+        member __.GetChar(i: int): char = invalidOp "NotImplementedException"
+        member __.GetChars(i: int, fieldoffset: int64, buffer: char [], bufferoffset: int, length: int): int64 = invalidOp "NotImplementedException"
+        member __.GetData(i: int): IDataReader = invalidOp "NotImplementedException"
+        member __.GetDataTypeName(i: int): string = invalidOp "NotImplementedException"
+        member __.GetDateTime(i: int): System.DateTime = invalidOp "NotImplementedException"
+        member __.GetDecimal(i: int): decimal = invalidOp "NotImplementedException"
+        member __.GetDouble(i: int): float = invalidOp "NotImplementedException"
+        member __.GetFieldType(i: int): System.Type = invalidOp "NotImplementedException"
+        member __.GetFloat(i: int): float32 = invalidOp "NotImplementedException"
+        member __.GetGuid(i: int): System.Guid = invalidOp "NotImplementedException"
+        member __.GetInt16(i: int): int16 = invalidOp "NotImplementedException"
+        member __.GetInt32(i: int): int = invalidOp "NotImplementedException"
+        member __.GetInt64(i: int): int64 = invalidOp "NotImplementedException"
+        member __.GetName(i: int): string = invalidOp "NotImplementedException"
+        member __.GetOrdinal(name: string): int = invalidOp "NotImplementedException"
+        member __.GetSchemaTable(): DataTable = invalidOp "NotImplementedException"
+        member __.GetString(i: int): string = invalidOp "NotImplementedException"
+        member __.GetValues(values: obj []): int = invalidOp "NotImplementedException"
+        member __.IsClosed: bool = invalidOp "NotImplementedException"
+        member __.IsDBNull(i: int): bool = invalidOp "NotImplementedException"
+        member __.Item with get (i: int): obj = invalidOp "NotImplementedException"
+        member __.Item with get (name: string): obj = invalidOp "NotImplementedException"
+        member __.NextResult(): bool = invalidOp "NotImplementedException"
+        member __.RecordsAffected: int = invalidOp "NotImplementedException"
+
+
 type DesignTime private() = 
     static member internal AddGeneratedMethod
         (sqlParameters: Parameter list, hasOutputParameters, executeArgs: ProvidedParameter list, erasedType, providedOutputType, name) =
@@ -663,41 +705,25 @@ type DesignTime private() =
                 ||> List.map2 (fun expr (typ, cols) ->
                     let dest = typ.Name
 
-                    let columnsNames, columnsTypeNames =
-                        cols
-                        |> List.map(fun c -> c.Name, c.TypeInfo.TypeName)
-                        |> List.toArray
-                        |> Array.unzip
+                    //let columnsNames, columnsTypeNames =
+                    //    cols
+                    //    |> List.map(fun c -> c.Name, c.TypeInfo.TypeName)
+                    //    |> List.toArray
+                    //    |> Array.unzip
 
-                    <@@ (%%expr : _ seq) 
-                        |> Seq.chunkBySize 5000
-                        |> Seq.iter(fun rows ->
-                            use table = new DataTable("Items");
+                    let len = cols.Length
 
-                            (columnsNames, columnsTypeNames)
-                            ||> Array.iter2(fun name typeName ->
+                    <@@ 
+                        let items = (%%expr : obj seq)
+                        use reader = new TempTableLoader(len, items)
 
-                                let typ =
-                                    match typeName with
-                                    | "int" -> typedefof<int>
-                                    | "string" -> typedefof<string>
-                                    | "bit" -> typedefof<bool>
-                                    | "binary" -> typedefof<byte[]>
-                                    | _ -> invalidOp typeName
+                        use bulkCopy = new SqlBulkCopy((%%connection : SqlConnection))    
+                        bulkCopy.BulkCopyTimeout <- 0
+                        bulkCopy.BatchSize <- 5000
+                        bulkCopy.DestinationTableName <- "#" + dest
+                        bulkCopy.WriteToServer(reader)
 
-                                table.Columns.Add(name, typ) |> ignore
-                            )
-
-                            rows
-                            |> Array.iter(fun row -> 
-                                let row : obj[] = unbox row
-                                table.Rows.Add(row) |> ignore
-                            )
-
-                            use bulkCopy = new SqlBulkCopy((%%connection : SqlConnection))    
-                            bulkCopy.DestinationTableName <- "#" + dest
-                            bulkCopy.WriteToServer(table)
-                        ) @@> 
+                         @@> 
                 )
                 |> List.fold (fun acc x -> Expr.Sequential(acc, x)) <@@ () @@>
 
@@ -711,8 +737,9 @@ type DesignTime private() =
                     <@@ let cmd = (%%command : ISqlCommand)
                         cmd.Raw.Connection @@>
 
-                <@@ use create = new SqlCommand(tempTableDefinitions, (%%connection : SqlConnection))
-                    create.ExecuteScalar() |> ignore
+                <@@ do
+                        use create = new SqlCommand(tempTableDefinitions, (%%connection : SqlConnection))
+                        create.ExecuteNonQuery() |> ignore
 
                     (%%loadValues exprArgs connection)
                     ignore() @@>
