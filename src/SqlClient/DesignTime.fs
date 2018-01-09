@@ -392,7 +392,7 @@ type DesignTime private() =
     static member internal RewriteSqlStatementToEnableMoreThanOneParameterDeclaration(cmd: SqlCommand, why: SqlException) =  
         
         let getVariables tsql = 
-            let parser = Microsoft.SqlServer.TransactSql.ScriptDom.TSql120Parser( true)
+            let parser = Microsoft.SqlServer.TransactSql.ScriptDom.TSql140Parser( true)
             let tsqlReader = new System.IO.StringReader(tsql)
             let errors = ref Unchecked.defaultof<_>
             let fragment = parser.Parse(tsqlReader, errors)

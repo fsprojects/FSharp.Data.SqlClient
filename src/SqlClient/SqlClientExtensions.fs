@@ -403,7 +403,7 @@ type SqlConnection with
 
         let paramDefaults = Task.Factory.StartNew( fun() ->
 
-            let parser = Microsoft.SqlServer.TransactSql.ScriptDom.TSql120Parser( true)
+            let parser = Microsoft.SqlServer.TransactSql.ScriptDom.TSql140Parser( true)
             let tsqlReader = new StringReader(routine.Definition)
             let errors = ref Unchecked.defaultof<_>
             let fragment = parser.Parse(tsqlReader, errors)
