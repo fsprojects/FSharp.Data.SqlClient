@@ -55,7 +55,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.SqlServer.TransactSql.ScriptDom">
-      <HintPath>..\..\lib\Microsoft.SqlServer.TransactSql.ScriptDom.dll</HintPath>
+      <HintPath>..\..\packages\Microsoft.SqlServer.TransactSql.ScriptDom.14.0.3811.1\lib\net40\Microsoft.SqlServer.TransactSql.ScriptDom.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
