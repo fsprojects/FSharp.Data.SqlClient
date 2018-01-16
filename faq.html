@@ -8,16 +8,16 @@
     <meta name="description" content="SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way. SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code.">
     <meta name="author" content="Dmitry Morozov, Dmitry Sevastianov">
 
-    <script src="http://code.jquery.com/jquery-1.8.0.js"></script>
-    <script src="http://code.jquery.com/ui/1.8.23/jquery-ui.js"></script>
-    <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
-    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet">
+    <script src="//code.jquery.com/jquery-1.8.0.js"></script>
+    <script src="//code.jquery.com/ui/1.8.23/jquery-ui.js"></script>
+    <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
+    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet" />
 
     <link type="text/css" rel="stylesheet" href="/FSharp.Data.SqlClient/content/style.css" />
     <script type="text/javascript" src="/FSharp.Data.SqlClient/content/tips.js"></script>
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
-      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 </head>
 <body>
@@ -121,7 +121,7 @@ to determine which columns to filter, if at all, based on that input.</p>
 
 <h3>4. Why do I get compile time error " ... The undeclared parameter '@p1' is used more than once in the batch being analyzed."?</h3>
 
-<p>This is a limitation of <a href="https://msdn.microsoft.com/en-us/library/ff878260.aspx">sys.sp<em>describe</em>undeclared_parameters</a>.</p>
+<p>This is a limitation of <a href="https://msdn.microsoft.com/en-us/library/ff878260.aspx">sys.sp_describe_undeclared_parameters</a>.</p>
 
 <p>To work around this limitation, you can declare another variable in your script:</p>
 

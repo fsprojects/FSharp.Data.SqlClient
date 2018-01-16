@@ -8,16 +8,16 @@
     <meta name="description" content="SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way. SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code.">
     <meta name="author" content="Dmitry Morozov, Dmitry Sevastianov">
 
-    <script src="http://code.jquery.com/jquery-1.8.0.js"></script>
-    <script src="http://code.jquery.com/ui/1.8.23/jquery-ui.js"></script>
-    <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
-    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet">
+    <script src="//code.jquery.com/jquery-1.8.0.js"></script>
+    <script src="//code.jquery.com/ui/1.8.23/jquery-ui.js"></script>
+    <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
+    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet" />
 
     <link type="text/css" rel="stylesheet" href="/FSharp.Data.SqlClient/content/style.css" />
     <script type="text/javascript" src="/FSharp.Data.SqlClient/content/tips.js"></script>
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
-      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 </head>
 <body>
@@ -607,7 +607,7 @@ Both methods accept connection and transaction to support explicit transactions.
 <div class="tip" id="fs18">property DateTime.Today: DateTime</div>
 <div class="tip" id="fs19">SqlTransaction.Commit() : unit</div>
 <div class="tip" id="fs20">type AdventureWorks = obj<br /><br />Full name: Transactions.AdventureWorks</div>
-<div class="tip" id="fs21">type SqlProgrammabilityProvider<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider<br /><em><br /><br /><br />&lt;summary&gt;Typed access to SQL Server programmable objects: stored procedures, functions and user defined table types.&lt;/summary&gt; <br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;DataDirectory&#39;&gt;The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.&lt;/param&gt;<br /></em></div>
+<div class="tip" id="fs21">type SqlProgrammabilityProvider<br /><br />Full name: FSharp.Data.SqlProgrammabilityProvider<br /><em><br /><br /><br />&lt;summary&gt;Typed access to SQL Server programmable objects: stored procedures, functions and user defined table types.&lt;/summary&gt; <br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;DataDirectory&#39;&gt;The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.&lt;/param&gt;<br />&lt;param name=&#39;UseReturnValue&#39;&gt;To be documented.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader, this affects only Stored Procedures.&lt;/param&gt;<br /></em></div>
 <div class="tip" id="fs22">Multiple items<br />namespace System.Data<br /><br />--------------------<br />namespace Microsoft.FSharp.Data</div>
 <div class="tip" id="fs23">type IsolationLevel =<br />&#160;&#160;| Unspecified = -1<br />&#160;&#160;| Chaos = 16<br />&#160;&#160;| ReadUncommitted = 256<br />&#160;&#160;| ReadCommitted = 4096<br />&#160;&#160;| RepeatableRead = 65536<br />&#160;&#160;| Serializable = 1048576<br />&#160;&#160;| Snapshot = 16777216<br /><br />Full name: System.Data.IsolationLevel</div>
 <div class="tip" id="fs24">field Data.IsolationLevel.Serializable = 1048576</div>
