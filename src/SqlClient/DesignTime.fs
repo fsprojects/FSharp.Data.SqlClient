@@ -468,7 +468,7 @@ type DesignTime private() =
         else
             None
 
-    static member internal CreateUDTT(t: TypeInfo) = 
+    static member internal CreateUDTT(t: FSharp.Data.SqlClient.Extensions.TypeInfo) = 
         assert(t.TableType)
         let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj>, HideObjectMethods = true)
 
