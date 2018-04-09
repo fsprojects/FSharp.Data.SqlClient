@@ -173,26 +173,22 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
 
     static member internal SetParameters(cmd: SqlCommand, parameters: (string * obj)[]) = 
         for name, value in parameters do
-            
             let p = cmd.Parameters.[name]            
 
             if p.Direction.HasFlag(ParameterDirection.Input)
             then 
-                if value = null 
-                then 
+                if isNull value then 
                     p.Value <- DBNull.Value 
                 else
-                    if not( p.SqlDbType = SqlDbType.Structured)
-                    then 
-                        p.Value <- value
-                    else
-                        //p.Value <- value |> unbox |> Seq.cast<Microsoft.SqlServer.Server.SqlDataRecord>
-
-                        //done via reflection because not implemented on Mono
-                        let sqlDataRecordType = typeof<SqlCommand>.Assembly.GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
-                        p.Value <- typeof<Linq.Enumerable>.GetMethod("Cast").MakeGenericMethod(sqlDataRecordType).Invoke(null, [| value |])
-            elif p.Direction.HasFlag(ParameterDirection.Output) && value :? Array
-            then
+                    match p.SqlDbType with 
+                    | SqlDbType.Structured -> 
+                        p.Value <- 
+                            match value |> unbox |> Seq.cast<Microsoft.SqlServer.Server.SqlDataRecord> with
+                            | records when Seq.isEmpty records -> null 
+                            | records -> records
+                    | _ -> p.Value <- value
+                            
+            elif p.Direction.HasFlag(ParameterDirection.Output) && value :? Array then
                 p.Size <- (value :?> Array).Length
 
 //Execute/AsyncExecute versions
