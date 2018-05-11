@@ -493,7 +493,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
             ProvidedStaticParameter("TypeName", typeof<string>, "") 
         ]
-        let m = ProvidedMethod("CreateCommand", [], typeof<obj>, isStatic = true, invokeCode = fun _ -> ???)
+        let m = ProvidedMethod("CreateCommand", [], typeof<obj>, isStatic = true, invokeCode = fun _ -> <@@ () @@>)
         m.DefineStaticParameters(staticParams, (fun methodName args ->
 
             let getMethodImpl = 
@@ -519,10 +519,10 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters, unitsOfMeasureTypesPerSchema)
 
                     let commandTypeName = if typename <> "" then typename else methodName.Replace("=", "").Replace("@", "")
-                    let cmdProvidedType = ProvidedTypeDefinition(commandTypeName, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
+                    let cmdProvidedType = ProvidedTypeDefinition(commandTypeName, Some typeof<``ISqlCommand Implementation``>, hideObjectMethods = true)
 
                     do  
-                        cmdProvidedType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ tag @@>))
+                        cmdProvidedType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, isStatic = true, getterCode = fun _ -> <@@ tag @@>))
 
                     do  //AsyncExecute, Execute, and ToTraceString
 
