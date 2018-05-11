@@ -71,9 +71,7 @@ type DesignTime private() =
                 <@@ (%%Expr.Value(param.Name) : string), %%Expr.Coerce(value, typeof<obj>) @@>
             )
 
-        let m = ProvidedMethod(name, executeArgs, providedOutputType)
-        
-        m.InvokeCode <- fun exprArgs ->
+        let m = ProvidedMethod(name, executeArgs, providedOutputType, fun exprArgs ->
             let methodInfo = typeof<ISqlCommand>.GetMethod(name)
             let vals = mappedInputParamValues(exprArgs)
             let paramValues = Expr.NewArray( typeof<string * obj>, elements = vals)
@@ -109,7 +107,7 @@ type DesignTime private() =
                     let result = (%%execute) ps
                     ps |> %%mapOutParamValues
                     result
-                @@>
+                @@>)
 
         let xmlDoc = 
             sqlParameters
@@ -136,7 +134,7 @@ type DesignTime private() =
             |> Seq.tryFind (fun (_, xs) -> Seq.length xs > 1)
             |> Option.iter (fun (name, _) -> failwithf "Non-unique column name %s is illegal for ResultType.Records." name)
         
-        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
+        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, hideObjectMethods = true)
         let properties, ctorParameters = 
             columns
             |> List.mapi ( fun i col ->
@@ -189,12 +187,7 @@ type DesignTime private() =
             let propertyType = col.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
 
             let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode col
-            let property = ProvidedProperty(col.Name, propertyType, GetterCode = getter)
-
-            if not col.ReadOnly then
-              property.SetterCode <- setter
-            
-            property
+            ProvidedProperty(col.Name, propertyType, getterCode = getter, ?setterCode = if not col.ReadOnly then Some setter else None)
         )
         |> rowType.AddMembers
 
@@ -206,28 +199,23 @@ type DesignTime private() =
       
         let columnsType = ProvidedTypeDefinition("Columns", Some typeof<DataColumnCollection>)
 
-        let columnsProperty = ProvidedProperty("Columns", columnsType)
         tableProvidedType.AddMember columnsType
-        
-        columnsProperty.GetterCode <-
-            fun args -> 
+        let columnsProperty = ProvidedProperty("Columns", columnsType, fun args -> 
                 <@@
                     let table : DataTable<DataRow> = %%args.[0]
                     table.Columns
-                @@>
+                @@>)
 
         tableProvidedType.AddMember columnsProperty
       
         for column in outputColumns do
             let propertyType = ProvidedTypeDefinition(column.Name, Some typeof<DataColumn>)
-            let property = ProvidedProperty(column.Name, propertyType)
-            
-            property.GetterCode <- fun args -> 
+            let property = ProvidedProperty(column.Name, propertyType, fun args -> 
                     let columnName = column.Name
                     <@@ 
                         let columns: DataColumnCollection = %%args.[0]
                         columns.[columnName]
-                    @@>
+                    @@>)
 
             columnsType.AddMember property
             columnsType.AddMember propertyType
@@ -237,7 +225,7 @@ type DesignTime private() =
             ProvidedProperty(
                 "Table"
                 , tableProvidedType
-                , GetterCode = 
+                , getterCode = 
                     fun args ->
                         <@@
                             let row : DataRow = %%args.[0]
@@ -470,7 +458,7 @@ type DesignTime private() =
 
     static member internal CreateUDTT(t: TypeInfo) = 
         assert(t.TableType)
-        let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj>, HideObjectMethods = true)
+        let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj>, hideObjectMethods = true)
 
         let parameters, sqlMetas = 
             List.unzip [ 
@@ -488,8 +476,7 @@ type DesignTime private() =
                     yield param, sqlMeta
             ] 
 
-        let ctor = ProvidedConstructor( parameters)
-        ctor.InvokeCode <- fun args -> 
+        let ctor = ProvidedConstructor(parameters, fun args -> 
             let optionsToNulls = QuotationsFactory.MapArrayNullableItems(List.ofArray t.TableTypeColumns.Value, "MapArrayOptionItemToObj") 
 
             <@@
@@ -505,7 +492,7 @@ type DesignTime private() =
                 sqlDataRecordType.GetMethod("SetValues").Invoke(record, [| values |]) |> ignore
 
                 record
-            @@>
+            @@>)
         rowType.AddMember ctor
         rowType.AddXmlDoc "User-Defined Table Type"
                             
@@ -566,11 +553,11 @@ type DesignTime private() =
             let body1 (args: _ list) = 
                 Expr.NewObject(ctorImpl, designTimeConfig :: <@@ Connection.Choice1Of3 %%args.Head @@> :: args.Tail)
 
-            yield ProvidedConstructor(parameters1, InvokeCode = body1) :> MemberInfo
+            yield ProvidedConstructor(parameters1, body1) :> MemberInfo
             
             if factoryMethodName.IsSome
             then 
-                yield upcast ProvidedMethod(factoryMethodName.Value, parameters1, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body1)
+                yield upcast ProvidedMethod(factoryMethodName.Value, parameters1, returnType = cmdProvidedType, isStatic = true, invokeCode = body1)
            
             let parameters2 = 
                     [ 
@@ -595,8 +582,8 @@ type DesignTime private() =
                     @@>
                 Expr.NewObject(ctorImpl, [ designTimeConfig ; connArg; args.[2] ])
                     
-            yield upcast ProvidedConstructor(parameters2, InvokeCode = body2)
+            yield upcast ProvidedConstructor(parameters2, body2)
             if factoryMethodName.IsSome
             then 
-                yield upcast ProvidedMethod(factoryMethodName.Value, parameters2, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body2)
+                yield upcast ProvidedMethod(factoryMethodName.Value, parameters2, returnType = cmdProvidedType, isStatic = true, invokeCode = body2)
         ]

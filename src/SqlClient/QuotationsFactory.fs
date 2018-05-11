@@ -46,7 +46,7 @@ type QuotationsFactory private() =
 
             if %%Expr.Value p.TypeInfo.SqlEngineTypeId = 240 
             then
-                x.UdtTypeName <- %%Expr.Value p.TypeInfo.TypeName
+                x.TypeName <- %%Expr.Value p.TypeInfo.TypeName
             x
         @@>
 

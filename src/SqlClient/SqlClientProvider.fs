@@ -21,11 +21,11 @@ open FSharp.Data.SqlClient
 [<TypeProvider>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type SqlProgrammabilityProvider(config : TypeProviderConfig) as this = 
-    inherit TypeProviderForNamespaces()
+    inherit TypeProviderForNamespaces(config)
 
     let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
     let nameSpace = this.GetType().Namespace
-    let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlProgrammabilityProvider", Some typeof<obj>, HideObjectMethods = true)
+    let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlProgrammabilityProvider", Some typeof<obj>, hideObjectMethods = true)
 
     let cache = new MemoryCache(name = this.GetType().Name)
     let methodsCache = new MemoryCache(name = this.GetType().Name)
@@ -87,14 +87,14 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         conn.CheckVersion()
         conn.LoadDataTypesMap()
 
-        let databaseRootType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, HideObjectMethods = true)
+        let databaseRootType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, hideObjectMethods = true)
 
         let tagProvidedType(t: ProvidedTypeDefinition) =
-            t.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
+            t.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, isStatic = true, getterCode = fun _ -> <@@ connectionStringOrName @@>))
 
         let schemas = 
             conn.GetUserSchemas() 
-            |> List.map (fun schema -> ProvidedTypeDefinition(schema, baseType = Some typeof<obj>, HideObjectMethods = true))
+            |> List.map (fun schema -> ProvidedTypeDefinition(schema, baseType = Some typeof<obj>, hideObjectMethods = true))
         
         databaseRootType.AddMembers schemas
 
@@ -166,7 +166,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             let routines = conn.GetRoutines( schema, isSqlAzure) 
             for routine in routines do
              
-                let cmdProvidedType = ProvidedTypeDefinition(snd routine.TwoPartName, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
+                let cmdProvidedType = ProvidedTypeDefinition(snd routine.TwoPartName, Some typeof<``ISqlCommand Implementation``>, hideObjectMethods = true)
 
                 do
                     routine.Description |> Option.iter cmdProvidedType.AddXmlDoc
@@ -318,16 +318,10 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             if c.Nullable 
                             then
                                 let propertType = typedefof<_ option>.MakeGenericType dataType
-                                let property = ProvidedProperty(name, propertType, GetterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", dataType, name))
-                                
-                                if not c.ReadOnly
-                                then 
-                                    property.SetterCode <- QuotationsFactory.GetBody("SetNullableValueInDataRow", dataType, name)
-                                
-                                property
+                                ProvidedProperty(name, propertType, getterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", dataType, name),
+                                    ?setterCode = if not c.ReadOnly then Some(QuotationsFactory.GetBody("SetNullableValueInDataRow", dataType, name)) else None)
                             else
-                                let property = ProvidedProperty(name, dataType)
-                                property.GetterCode <- 
+                                ProvidedProperty(name, dataType, getterCode = ( 
                                     if c.Identity && c.TypeInfo.ClrType <> typeof<int>
                                     then
                                         fun args -> 
@@ -337,13 +331,11 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                                 Convert.ChangeType(value, targetType)
                                             @@>
                                     else
-                                        fun args -> <@@ (%%args.[0] : DataRow).[name] @@>
-                                
-                                if not c.ReadOnly
-                                then 
-                                    property.SetterCode <- fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>
-                                
-                                property
+                                        fun args -> <@@ (%%args.[0] : DataRow).[name] @@>),
+                                    ?setterCode = 
+                                        if not c.ReadOnly then 
+                                            Some (fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>)
+                                        else None)
 
                         if c.Description <> "" 
                         then property.AddXmlDoc c.Description
@@ -359,8 +351,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     description |> Option.iter (fun x -> dataTableType.AddXmlDoc( sprintf "<summary>%s</summary>" x))
 
                 do //ctor
-                    let ctor = ProvidedConstructor []
-                    ctor.InvokeCode <- fun _ -> 
+                    let ctor = ProvidedConstructor([], fun _ -> 
                         let serializedSchema = 
                             columns 
                             |> List.map (fun x ->
@@ -397,7 +388,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             table.PrimaryKey <- Array.ofSeq primaryKey
 
                             table
-                        @@>
+                        @@>)
                     dataTableType.AddMember ctor
                 
                 do
@@ -463,19 +454,18 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         @@>
 
                     do 
-                        let newRowMethod = ProvidedMethod("NewRow", parameters, dataRowType, InvokeCode = invokeCode)
+                        let newRowMethod = ProvidedMethod("NewRow", parameters, dataRowType, invokeCode = invokeCode)
                         if methodXmlDoc <> "" then newRowMethod.AddXmlDoc methodXmlDoc
                         dataTableType.AddMember newRowMethod
 
-                        let addRowMethod = ProvidedMethod("AddRow", parameters, typeof<Void>)
-                        if methodXmlDoc <> "" then addRowMethod.AddXmlDoc methodXmlDoc
-                        addRowMethod.InvokeCode <- fun args -> 
+                        let addRowMethod = ProvidedMethod("AddRow", parameters, typeof<Void>, fun args -> 
                             let newRow = invokeCode args
                             <@@
                                 let table: DataTable<DataRow> = %%args.[0]
                                 let row: DataRow = %%newRow
                                 table.Rows.Add row
-                            @@>
+                            @@>)
+                        if methodXmlDoc <> "" then addRowMethod.AddXmlDoc methodXmlDoc
                         dataTableType.AddMember addRowMethod
 
                 do //columns accessors
@@ -486,8 +476,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             ProvidedProperty(
                                 name + "Column"
                                 , typeof<DataColumn>
-                                , []
-                                , GetterCode = fun args -> <@@ (%%Expr.Coerce(args.[0], typeof<DataTable>): DataTable).Columns.[name]  @@>
+                                , getterCode = fun args -> <@@ (%%Expr.Coerce(args.[0], typeof<DataTable>): DataTable).Columns.[name]  @@>
                                 )
                         columnProperty.AddObsoleteAttribute(sprintf "This property is deprecated, please use Columns.%s instead." name)
                         dataTableType.AddMember columnProperty
@@ -504,7 +493,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             ProvidedStaticParameter("AllParametersOptional", typeof<bool>, false) 
             ProvidedStaticParameter("TypeName", typeof<string>, "") 
         ]
-        let m = ProvidedMethod("CreateCommand", [], typeof<obj>, IsStaticMethod = true)
+        let m = ProvidedMethod("CreateCommand", [], typeof<obj>, isStatic = true, invokeCode = fun _ -> ???)
         m.DefineStaticParameters(staticParams, (fun methodName args ->
 
             let getMethodImpl = 

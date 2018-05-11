@@ -11,9 +11,9 @@ open System.Data.SqlClient
 open System.Reflection
 
 type SqlCommand with
-    member this.AsyncExecuteReader() = Async.AwaitTask(this.ExecuteReaderAsync())
+    member this.AsyncExecuteReader (behavior: CommandBehavior) = Async.AwaitTask(this.ExecuteReaderAsync(behavior))
 
-    member this.AsyncExecuteNonQuery() = Async.AwaitTask(this.ExecuteNonQueryAsync()) 
+    member this.AsyncExecuteNonQuery () = Async.AwaitTask(this.ExecuteNonQueryAsync()) 
 
     static member internal DefaultTimeout = (new SqlCommand()).CommandTimeout
 
