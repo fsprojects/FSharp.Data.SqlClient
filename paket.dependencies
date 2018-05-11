@@ -13,6 +13,7 @@ nuget Microsoft.AspNet.WebApi
 nuget Microsoft.AspNet.WebApi.Client
 nuget Microsoft.AspNet.WebApi.Core
 nuget Microsoft.AspNet.WebApi.WebHost
+nuget Microsoft.SqlServer.TransactSql.ScriptDom
 nuget Newtonsoft.Json
 nuget xunit
 nuget xunit.runner.visualstudio

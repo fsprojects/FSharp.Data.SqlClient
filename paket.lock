@@ -17,6 +17,7 @@ NUGET
       Microsoft.AspNet.WebApi.Core (>= 5.2.5 < 5.3)
     Microsoft.NETCore.Platforms (2.0.2)
     Microsoft.NETCore.Targets (2.0)
+    Microsoft.SqlServer.TransactSql.ScriptDom (14.0.3811.1)
     Microsoft.Win32.Registry (4.4)
       System.Security.AccessControl (>= 4.4)
       System.Security.Principal.Windows (>= 4.4)

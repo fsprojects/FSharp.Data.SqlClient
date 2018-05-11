@@ -1,196 +1,47 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\..\packages\xunit.core\build\xunit.core.props" Condition="Exists('..\..\packages\xunit.core\build\xunit.core.props')" Label="Paket" />
-  <!--<Import Project="..\..\packages\xunit.runner.visualstudio.2.0.0\build\net20\xunit.runner.visualstudio.props" Condition="Exists('..\..\packages\xunit.runner.visualstudio.2.0.0\build\net20\xunit.runner.visualstudio.props')" />-->
-  <Import Project="..\..\packages\xunit.runner.visualstudio.2.1.0\build\net20\xunit.runner.visualstudio.props" Condition="Exists('..\..\packages\xunit.runner.visualstudio.2.1.0\build\net20\xunit.runner.visualstudio.props')" />
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>624c31ff-2003-4334-b02e-ad5a79fe9ed8</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>Tests</RootNamespace>
-    <AssemblyName>SqlClient.Tests</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
-    <Name>SqlClient.Tests</Name>
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
-    <TargetFSharpCoreVersion>4.3.1.0</TargetFSharpCoreVersion>
-    <TargetFrameworkProfile />
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <Tailcalls>false</Tailcalls>
-    <OutputPath>..\..\bin\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>
-    </DocumentationFile>
-    <NoWarn>101</NoWarn>
-    <OtherFlags>--warnon:1182</OtherFlags>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <WarningsAsErrors />
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <Tailcalls>true</Tailcalls>
-    <OutputPath>..\..\bin\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\bin\SqlClient.Tests.XML</DocumentationFile>
-    <OtherFlags>--warnon:1182</OtherFlags>
-    <NoWarn>101</NoWarn>
-  </PropertyGroup>
-  <PropertyGroup>
-    <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
-  </PropertyGroup>
-  <Choose>
-    <When Condition="'$(VisualStudioVersion)' == '11.0'">
-      <PropertyGroup>
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets</FSharpTargetsPath>
-      </PropertyGroup>
-    </When>
-    <Otherwise>
-      <PropertyGroup>
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
-      </PropertyGroup>
-    </Otherwise>
-  </Choose>
-  <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETStandard' And $(TargetFrameworkVersion) == 'v2.0'">
-      <PropertyGroup>
-        <__paket__NETStandard_Library_targets>netstandard2.0\NETStandard.Library</__paket__NETStandard_Library_targets>
-      </PropertyGroup>
-    </When>
-  </Choose>
-  <ItemGroup>
-    <Compile Include="Assert.fs" />
-    <Compile Include="ConnectionStrings.fs" />
-    <Compile Include="ConfigurationTest.fs" />
-    <Compile Include="OptionalParamsTests.fs" />
-    <Compile Include="TypeProviderTest.fs" />
-    <Compile Include="FreeVarDoubleDeclTests.fs" />
-    <Compile Include="SpatialTypesTests.fs" />
-    <Compile Include="TransactionTests.fs" />
-    <Compile Include="ResultTypeTests.fs" />
-    <Compile Include="TVPTests.fs" />
-    <Compile Include="ProgrammabilityTests.fs" />
-    <Compile Include="SpReturnValueTests.fs" />
-    <Compile Include="DynamicRecordTests.fs" />
-    <Compile Include="SqlEnumTests.fs" />
-    <Compile Include="DataTablesTests.fs" />
-    <Compile Include="SynonymsTests.fs" />
-    <Compile Include="CreateCommand.fs" />
-    <Compile Include="UnitsOfMeasure.fs" />
-    <None Include="sampleCommand.sql" />
-    <None Include="extensions.sql" />
-    <None Include="MySqlFolder\sampleCommand.sql" />
-    <None Include="Scripts\SqlCommand.fsx" />
-    <None Include="Scripts\SqlProgrammability.fsx" />
-    <None Include="Scripts\CreateCommand.fsx" />
-    <None Include="paket.references" />
-    <None Include="app.config" />
-    <Content Include="appWithInclude.config" />
-    <Content Include="connectionStrings.config" />
-    <Content Include="connectionStrings.Azure.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="FSharp.Data.SqlClient">
-      <HintPath>..\..\bin\FSharp.Data.SqlClient.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Types, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91" />
-    <Reference Include="mscorlib" />
-    <Reference Include="System" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Transactions" />
-    <Reference Include="System.Xml" />
-    <Reference Include="xunit">
-      <HintPath>..\..\packages\xunit.1.9.2\lib\net20\xunit.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETStandard' And $(TargetFrameworkVersion) == 'v2.0'">
-      <ItemGroup>
-        <Reference Include="FSharp.Core">
-          <HintPath>..\..\packages\FSharp.Core\lib\netstandard1.6\FSharp.Core.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
+<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="../../netfx.props"/>
+    <Import Project="../../fsc.props"/>
+    <PropertyGroup>
+        <TargetFramework>netstandard20</TargetFramework>
+        <AssemblyName>SqlClient.Tests</AssemblyName>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="Assert.fs"/>
+        <Compile Include="ConnectionStrings.fs"/>
+        <Compile Include="ConfigurationTest.fs"/>
+        <Compile Include="OptionalParamsTests.fs"/>
+        <Compile Include="TypeProviderTest.fs"/>
+        <Compile Include="FreeVarDoubleDeclTests.fs"/>
+        <Compile Include="SpatialTypesTests.fs"/>
+        <Compile Include="TransactionTests.fs"/>
+        <Compile Include="ResultTypeTests.fs"/>
+        <Compile Include="TVPTests.fs"/>
+        <Compile Include="ProgrammabilityTests.fs"/>
+        <Compile Include="SpReturnValueTests.fs"/>
+        <Compile Include="DynamicRecordTests.fs"/>
+        <Compile Include="SqlEnumTests.fs"/>
+        <Compile Include="DataTablesTests.fs"/>
+        <Compile Include="SynonymsTests.fs"/>
+        <Compile Include="CreateCommand.fs"/>
+        <Compile Include="UnitsOfMeasure.fs"/>
+        <None Include="sampleCommand.sql"/>
+        <None Include="extensions.sql"/>
+        <None Include="MySqlFolder\sampleCommand.sql"/>
+        <None Include="Scripts\SqlCommand.fsx"/>
+        <None Include="Scripts\SqlProgrammability.fsx"/>
+        <None Include="Scripts\CreateCommand.fsx"/>
+        <None Include="paket.references"/>
+        <None Include="app.config"/>
+        <Content Include="appWithInclude.config"/>
+        <Content Include="connectionStrings.config"/>
+    </ItemGroup>
+    <ItemGroup>
+        <Reference Include="FSharp.Data.SqlClient">
+            <HintPath>../../src/SqlClient/bin/Debug/netstandard20/FSharp.Data.SqlClient.dll</HintPath>
         </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETStandard' And $(TargetFrameworkVersion) == 'v2.0'">
-      <ItemGroup>
-        <Reference Include="Newtonsoft.Json">
-          <HintPath>..\..\packages\Newtonsoft.Json\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETStandard' And $(TargetFrameworkVersion) == 'v2.0'">
-      <ItemGroup>
-        <Reference Include="xunit.abstractions">
-          <HintPath>..\..\packages\xunit.abstractions\lib\netstandard1.0\xunit.abstractions.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETStandard' And $(TargetFrameworkVersion) == 'v2.0'">
-      <ItemGroup>
-        <Reference Include="xunit.assert">
-          <HintPath>..\..\packages\xunit.assert\lib\netstandard1.1\xunit.assert.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETStandard' And $(TargetFrameworkVersion) == 'v2.0'">
-      <ItemGroup>
-        <Reference Include="xunit.core">
-          <HintPath>..\..\packages\xunit.extensibility.core\lib\netstandard1.1\xunit.core.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETStandard' And $(TargetFrameworkVersion) == 'v2.0'">
-      <ItemGroup>
-        <Reference Include="xunit.execution.dotnet">
-          <HintPath>..\..\packages\xunit.extensibility.execution\lib\netstandard1.1\xunit.execution.dotnet.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Import Project="..\..\packages\NETStandard.Library\build\$(__paket__NETStandard_Library_targets).targets" Condition="Exists('..\..\packages\NETStandard.Library\build\$(__paket__NETStandard_Library_targets).targets')" Label="Paket" />
-  <Import Project="..\..\packages\xunit.core\build\xunit.core.targets" Condition="Exists('..\..\packages\xunit.core\build\xunit.core.targets')" Label="Paket" />
+    </ItemGroup>
+    <Import Project="..\..\.paket\Paket.Restore.targets"/>
 </Project>

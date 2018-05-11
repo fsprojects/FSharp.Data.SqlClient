@@ -3,3 +3,7 @@ Newtonsoft.Json
 xunit
 xunit.runner.visualstudio
 FSharp.Core
+System.Configuration.ConfigurationManager
+System.Data.Common
+System.Data.SqlClient
+Microsoft.SqlServer.TransactSql.ScriptDom

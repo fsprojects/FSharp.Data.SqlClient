@@ -3,6 +3,7 @@ System.Runtime.Caching
 System.Configuration.ConfigurationManager
 System.Data.Common
 System.Data.SqlClient
+Microsoft.SqlServer.TransactSql.ScriptDom
 
 File: ProvidedTypes.fsi .
 File: ProvidedTypes.fs .
