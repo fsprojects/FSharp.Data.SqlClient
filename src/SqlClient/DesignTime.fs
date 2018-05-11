@@ -9,6 +9,7 @@ open System.Collections.Generic
 open System.Diagnostics
 open Microsoft.FSharp.Quotations
 open ProviderImplementation.ProvidedTypes
+open ProviderImplementation.ProvidedTypes.UncheckedQuotations
 open FSharp.Data
 open FSharp.Data.SqlClient.Extensions
 
@@ -145,8 +146,7 @@ type DesignTime private() =
                     
                 let propType = col.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
 
-                let property = ProvidedProperty(propertyName, propType)
-                property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
+                let property = ProvidedProperty(propertyName, propType, fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>)
 
                 let ctorParameter = ProvidedParameter(propertyName, propType)  
 
@@ -156,15 +156,14 @@ type DesignTime private() =
 
         recordType.AddMembers properties
 
-        let ctor = ProvidedConstructor(ctorParameters)
-        ctor.InvokeCode <- fun args ->
+        let ctor = ProvidedConstructor(ctorParameters, fun args ->
             let pairs =  Seq.zip args properties //Because we need original names in dictionary
                         |> Seq.map (fun (arg,p) -> <@@ (%%Expr.Value(p.Name):string), %%Expr.Coerce(arg, typeof<obj>) @@>)
                         |> List.ofSeq
             <@@
                 let pairs : (string * obj) [] = %%Expr.NewArray(typeof<string * obj>, pairs)
                 DynamicRecord (dict pairs)
-            @@> 
+            @@>)
         recordType.AddMember ctor
         
         recordType

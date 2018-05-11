@@ -1,0 +1,9 @@
+FSharp.Core
+System.Runtime.Caching
+System.Configuration.ConfigurationManager
+System.Data.Common
+System.Data.SqlClient
+
+File: ProvidedTypes.fsi .
+File: ProvidedTypes.fs .
+File: ProvidedTypesTesting.fs .

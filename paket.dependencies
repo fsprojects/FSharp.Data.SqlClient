@@ -1,0 +1,22 @@
+framework: netstandard2.0
+redirects: force
+source https://api.nuget.org/v3/index.json
+
+nuget System.Runtime.Caching
+nuget System.Configuration.ConfigurationManager
+nuget System.Data.Common
+nuget System.Data.SqlClient
+nuget FSharp.Core
+nuget FSharp.Configuration prelease
+nuget FSharp.Data.SqlClient
+nuget Microsoft.AspNet.WebApi
+nuget Microsoft.AspNet.WebApi.Client
+nuget Microsoft.AspNet.WebApi.Core
+nuget Microsoft.AspNet.WebApi.WebHost
+nuget Newtonsoft.Json
+nuget xunit
+nuget xunit.runner.visualstudio
+
+github fsprojects/FSharp.TypeProviders.SDK src/ProvidedTypes.fs
+github fsprojects/FSharp.TypeProviders.SDK src/ProvidedTypes.fsi
+github fsprojects/FSharp.TypeProviders.SDK src/ProvidedTypesTesting.fs

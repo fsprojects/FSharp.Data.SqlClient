@@ -1,0 +1,5 @@
+FSharp.Configuration
+Newtonsoft.Json
+xunit
+xunit.runner.visualstudio
+FSharp.Core

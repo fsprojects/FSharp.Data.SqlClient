@@ -2,6 +2,7 @@
 
 open System
 open System.Data
+open System.Data.Common
 open System.Data.SqlClient
 open System.Collections.Generic
 open FSharp.Data.SqlClient

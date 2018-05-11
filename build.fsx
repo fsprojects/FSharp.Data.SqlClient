@@ -66,14 +66,24 @@ Target "CleanDocs" (fun _ ->
     CleanDirs ["docs/output"]
 )
 
-// --------------------------------------------------------------------------------------
-// Build library (builds Visual Studio solution, which builds multiple versions
-// of the runtime library & desktop + Silverlight version of design time library)
+let mutable dotnetExePath = "dotnet"
+let dotnetcliVersion = "2.1.105"
 
+Target "InstallDotNetCore" (fun _ ->
+    dotnetExePath <- DotNetCli.InstallDotNetSDK dotnetcliVersion
+    Environment.SetEnvironmentVariable("DOTNET_EXE_PATH", dotnetExePath)
+)
+
+// --------------------------------------------------------------------------------------
+// Build library 
 Target "Build" (fun _ ->
-    files (["SqlClient.sln"])
-    |> MSBuildRelease "" "Rebuild"
-    |> ignore
+    let outDir = __SOURCE_DIRECTORY__ + "/bin/"
+    CreateDir outDir
+    DotNetCli.Publish (fun p -> 
+        { p with
+            Output = outDir
+            Framework = "netstandard20"
+            WorkingDir = "src/SqlClient/" })
 )
 
 #r "System.Data"
@@ -212,6 +222,7 @@ Target "All" DoNothing
 "Clean"
   ==> "RestorePackages"
   ==> "AssemblyInfo"
+  ==> "InstallDotNetCore"
   ==> "Build"
   ==> "DeployTestDB"
   ==> "BuildTests"

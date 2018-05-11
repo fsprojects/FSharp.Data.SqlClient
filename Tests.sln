@@ -3,6 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{57E4D922-237E-49DE-A163-72E67E5DF0C1}"
+	ProjectSection(SolutionItems) = preProject
+		paket.dependencies = paket.dependencies
+	EndProjectSection
+EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlClient.Tests", "src\SqlClient.Tests\SqlClient.Tests.fsproj", "{624C31FF-2003-4334-B02E-AD5A79FE9ED8}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlClient.Tests.NET40", "src\SqlClient.Tests\SqlClient.Tests.NET40\SqlClient.Tests.NET40.fsproj", "{DE2EC181-0452-415D-82C3-1D43168D4FF1}"
