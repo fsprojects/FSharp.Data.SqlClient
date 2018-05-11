@@ -177,9 +177,10 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
 
             if p.Direction.HasFlag(ParameterDirection.Input)
             then 
-                if isNull value then 
+                match value with
+                | null ->
                     p.Value <- DBNull.Value 
-                else
+                | _ ->
                     match p.SqlDbType with 
                     | SqlDbType.Structured -> 
                         p.Value <- 
