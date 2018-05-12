@@ -78,13 +78,18 @@ Target "InstallDotNetCore" (fun _ ->
 // --------------------------------------------------------------------------------------
 // Build library 
 Target "Build" (fun _ ->
-    let outDir = __SOURCE_DIRECTORY__ + "/bin/"
-    CreateDir outDir
-    DotNetCli.Publish (fun p -> 
+    
+    let targets = ["netstandard20"; "net462"]
+    targets 
+    |> List.iter (fun target ->
+        let outDir = __SOURCE_DIRECTORY__ + "/bin/lib/" + target
+        
+        DotNetCli.Publish (fun p -> 
         { p with
             Output = outDir
-            Framework = "netstandard20"
+            Framework = target
             WorkingDir = "src/SqlClient/" })
+    )
 )
 
 #r "System.Data"

@@ -2,6 +2,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="../../netfx.props" />
   <Import Project="../../fsc.props" />
+  <Import Project="../../../netfx.props" />
+  <Import Project="../../../fsc.props" />
   <PropertyGroup>
     <TargetFramework>netstandard20</TargetFramework>
     <AssemblyName>Lib</AssemblyName>
