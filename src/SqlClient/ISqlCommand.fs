@@ -169,6 +169,8 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
             
     interface IDisposable with
         member this.Dispose() =
+            if manageConnection then
+              cmd.Connection.Dispose()
             cmd.Dispose()
 
     static member internal SetParameters(cmd: SqlCommand, parameters: (string * obj)[]) = 
