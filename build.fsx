@@ -69,6 +69,7 @@ Target "CleanDocs" (fun _ ->
 
 let mutable dotnetExePath = "dotnet"
 let dotnetcliVersion = "2.1.200"
+let installedDotnetSDKVersion = DotNetCli.getVersion ()
 
 Target "InstallDotNetCore" (fun _ ->
     dotnetExePath <- DotNetCli.InstallDotNetSDK dotnetcliVersion
@@ -228,7 +229,7 @@ Target "All" DoNothing
 "Clean"
   ==> "RestorePackages"
   ==> "AssemblyInfo"
-  ==> "InstallDotNetCore"
+  =?> ("InstallDotNetCore", installedDotnetSDKVersion <> dotnetcliVersion)
   ==> "Build"
   ==> "DeployTestDB"
   ==> "BuildTests"
