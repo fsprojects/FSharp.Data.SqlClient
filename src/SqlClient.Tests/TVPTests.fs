@@ -72,6 +72,13 @@ let SprocTupleValue() =
     let actual = cmd.Execute(p).Value
     Assert.Equal((1, Some "monkey"), actual)    
 
+[<Fact>]
+let ``SprocTupleValue works with empty table``() = 
+    let cmd = new TableValuedSprocTuple()
+    let p = []
+    let actual = cmd.Execute(p)
+    Assert.Equal(None, actual)    
+
 type TableValuedTupleWithOptionalParams = SqlCommandProvider<"exec Person.myProc @x", ConnectionStrings.AdventureWorksNamed, AllParametersOptional = true>
 [<Fact>]
 let TableValuedTupleWithOptionalParams() = 
