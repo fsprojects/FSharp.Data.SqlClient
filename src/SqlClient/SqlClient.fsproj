@@ -3,7 +3,7 @@
   <Import Project="../../netfx.props" />
   <Import Project="../../fsc.props" />
   <PropertyGroup>
-    <TargetFramework>netstandard20</TargetFramework>
+    <TargetFrameworks>netstandard20;net462</TargetFrameworks>
     <AssemblyName>FSharp.Data.SqlClient</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
