@@ -1,3 +1,10 @@
+#### 1.8.4 - May 12, 2018
+    * Issue #221 - Expose custom getter/setter methods on provided DataColumn properties
+    * Issue #252 - Add factory method to SqlProgrammabilityProvider-generated types
+    * Issue #280 - Upgrade TSQL parser version
+    * Issue #286 - SqlCommand disposes underlying connection in its Dispose method
+    * Issue #289 - Pass `null` if table value argument has zero records
+
 #### 1.8.3 - Aug 12, 2016
 	* Issue #224 - TVP generated type implicitly from SqlDataRecord. 
 	* Issue #232 - BREAKING CHANGE! SqlFile type provider is a new way to feed external sql files into SqlCommandProvider/CreateCommand
