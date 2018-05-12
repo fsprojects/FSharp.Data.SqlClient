@@ -8,7 +8,7 @@ open System
 open System.Data
 open System.Data.SqlClient
 open Xunit
-
+   
 type GetEvenNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (24)) as T(value)", ConnectionStrings.AdventureWorksNamed>
 
 [<Fact>]
