@@ -80,7 +80,7 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
         let providedEnumType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, hideObjectMethods = true, isErased = false)
         tempAssembly.AddTypes [ providedEnumType ]
         
-        let connStr, providerName = 
+        let connStr, _providerName = 
             match DesignTimeConnectionString.Parse(connectionStringOrName, config.ResolutionFolder, configFile) with
             | Literal value -> value, provider
             | NameInConfig(_, value, provider) -> value, provider

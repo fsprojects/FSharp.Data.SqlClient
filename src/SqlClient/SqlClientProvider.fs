@@ -322,17 +322,20 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 ProvidedProperty(name, propertType, getterCode = QuotationsFactory.GetBody("GetNullableValueFromDataRow", dataType, name),
                                     ?setterCode = if not c.ReadOnly then Some(QuotationsFactory.GetBody("SetNullableValueInDataRow", dataType, name)) else None)
                             else
-                                ProvidedProperty(name, dataType, getterCode = ( 
-                                    if c.Identity && c.TypeInfo.ClrType <> typeof<int>
-                                    then
-                                        fun args -> 
-                                            <@@ 
-                                                let value = (%%args.[0] : DataRow).[name]
-                                                let targetType = Type.GetType(%%Expr.Value( c.TypeInfo.ClrTypeFullName), throwOnError = true)
-                                                Convert.ChangeType(value, targetType)
-                                            @@>
-                                    else
-                                        fun args -> <@@ (%%args.[0] : DataRow).[name] @@>),
+                                ProvidedProperty(
+                                    name, 
+                                    dataType, 
+                                    getterCode = ( 
+                                        if c.Identity && c.TypeInfo.ClrType <> typeof<int>
+                                        then
+                                            fun args -> 
+                                                <@@ 
+                                                    let value = (%%args.[0] : DataRow).[name]
+                                                    let targetType = Type.GetType(%%Expr.Value( c.TypeInfo.ClrTypeFullName), throwOnError = true)
+                                                    Convert.ChangeType(value, targetType)
+                                                @@>
+                                        else
+                                            fun args -> <@@ (%%args.[0] : DataRow).[name] @@>),
                                     ?setterCode = 
                                         if not c.ReadOnly then 
                                             Some (fun args -> <@@ (%%args.[0] : DataRow).[name] <- %%Expr.Coerce(args.[1], typeof<obj>) @@>)

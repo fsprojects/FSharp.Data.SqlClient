@@ -2,8 +2,6 @@ REDIRECTS: FORCE
 RESTRICTION: == netstandard2.0
 NUGET
   remote: https://api.nuget.org/v3/index.json
-    FSharp.Configuration (1.4)
-      FSharp.Core (>= 4.0.0.1)
     FSharp.Core (4.3.4)
     FSharp.Data.SqlClient (1.8.2)
     Microsoft.AspNet.WebApi (5.2.5)
@@ -146,7 +144,6 @@ NUGET
     xunit.extensibility.execution (2.3.1)
       NETStandard.Library (>= 1.6.1)
       xunit.extensibility.core (2.3.1)
-    xunit.runner.visualstudio (2.3.1)
 GITHUB
   remote: fsprojects/FSharp.TypeProviders.SDK
     src/ProvidedTypes.fs (f0c4a6300db313eb2616c4f792cd6ae68c255e56)

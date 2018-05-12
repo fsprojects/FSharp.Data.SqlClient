@@ -7,7 +7,7 @@ nuget System.Configuration.ConfigurationManager
 nuget System.Data.Common
 nuget System.Data.SqlClient
 nuget FSharp.Core
-nuget FSharp.Configuration prelease
+//nuget FSharp.Configuration prerelease
 nuget FSharp.Data.SqlClient
 nuget Microsoft.AspNet.WebApi
 nuget Microsoft.AspNet.WebApi.Client
@@ -16,7 +16,6 @@ nuget Microsoft.AspNet.WebApi.WebHost
 nuget Microsoft.SqlServer.TransactSql.ScriptDom
 nuget Newtonsoft.Json
 nuget xunit
-nuget xunit.runner.visualstudio
 
 github fsprojects/FSharp.TypeProviders.SDK src/ProvidedTypes.fs
 github fsprojects/FSharp.TypeProviders.SDK src/ProvidedTypes.fsi

@@ -217,41 +217,34 @@ type DesignTime private() =
                         columns.[columnName]
                     @@>)
 
+            let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode(column)
+            
             let getValueMethod =
                 ProvidedMethod(
-                    "GetValue"
-                    , [ProvidedParameter("row", dataRowType)]
-                    , column.ErasedToType
+                    "GetValue",
+                    [ ProvidedParameter("row", dataRowType) ],
+                    column.ErasedToType,
+                    fun args -> 
+                        // we don't care of args.[0] (the DataColumn) because getter code is already made for that column
+                        getter args.Tail
                 )
         
-            let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode(column)
-
-            getValueMethod.InvokeCode <- 
-                fun args -> 
-                    // we don't care of args.[0] (the DataColumn) because getter code is already made for that column
-                    getter args.Tail
-           
             let setValueMethod =
                 ProvidedMethod(
-                    "SetValue"
-                    , [
-                        ProvidedParameter("row", dataRowType)
-                        ProvidedParameter("value", column.ErasedToType)
-                    ]
-                    , typeof<unit>
+                    "SetValue",
+                    [ ProvidedParameter("row", dataRowType)
+                      ProvidedParameter("value", column.ErasedToType) ],
+                    typeof<unit>,
+                    fun args ->
+                        // we don't care of args.[0] (the DataColumn) because setter code is already made for that column
+                        setter args.Tail
                 )
-        
-            setValueMethod.InvokeCode <-
-                fun args ->
-                    // we don't care of args.[0] (the DataColumn) because setter code is already made for that column
-                    setter args.Tail
 
             propertyType.AddMember getValueMethod
             propertyType.AddMember setValueMethod
 
             columnsType.AddMember property
             columnsType.AddMember propertyType
-
 
         let tableProperty =
             ProvidedProperty(

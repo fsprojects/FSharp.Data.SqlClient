@@ -68,7 +68,7 @@ Target "CleanDocs" (fun _ ->
 )
 
 let mutable dotnetExePath = "dotnet"
-let dotnetcliVersion = "2.1.105"
+let dotnetcliVersion = "2.1.200"
 
 Target "InstallDotNetCore" (fun _ ->
     dotnetExePath <- DotNetCli.InstallDotNetSDK dotnetcliVersion

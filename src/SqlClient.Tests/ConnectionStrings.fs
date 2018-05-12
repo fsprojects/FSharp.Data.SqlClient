@@ -18,5 +18,4 @@ let LocalHost = @"Data Source=" + server + ";Integrated Security=True"
 [<Literal>]
 let AdventureWorksAzureRedGate = @"Data Source=mhknbn2kdz.database.windows.net;Initial Catalog=AdventureWorks2012;User ID=sqlfamily;Pwd=sqlf@m1ly"
 
-open FSharp.Configuration
-let AdventureWorks = AppSettings<"app.config">.ConnectionStrings.AdventureWorks
+let AdventureWorks = System.Configuration.ConfigurationManager.ConnectionStrings.["AdventureWorks"].ConnectionString
