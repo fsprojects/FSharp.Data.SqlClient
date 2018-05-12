@@ -30,6 +30,16 @@ type internal ReturnType = {
         | Some x -> Expr.Value( x.ErasedTo.AssemblyQualifiedName)
         | None -> <@@ null: string @@>
 
+module internal SharedLogic =
+    /// Adds .Record or .Table inner type depending on resultType
+    let alterReturnTypeAccordingToResultType (returnType: ReturnType) (cmdProvidedType: ProvidedTypeDefinition) resultType =
+        if resultType = ResultType.Records then
+            // Add .Record
+            returnType.PerRow |> Option.iter (fun x -> cmdProvidedType.AddMember x.Provided)
+        elif resultType = ResultType.DataTable then
+            // add .Table
+            returnType.Single |> cmdProvidedType.AddMember
+
 type DesignTime private() = 
     static member internal AddGeneratedMethod
         (sqlParameters: Parameter list, hasOutputParameters, executeArgs: ProvidedParameter list, erasedType, providedOutputType, name) =
@@ -218,6 +228,38 @@ type DesignTime private() =
                         let columns: DataColumnCollection = %%args.[0]
                         columns.[columnName]
                     @@>
+
+            let getValueMethod =
+                ProvidedMethod(
+                    "GetValue"
+                    , [ProvidedParameter("row", dataRowType)]
+                    , column.ErasedToType
+                )
+        
+            let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode(column)
+
+            getValueMethod.InvokeCode <- 
+                fun args -> 
+                    // we don't care of args.[0] (the DataColumn) because getter code is already made for that column
+                    getter args.Tail
+           
+            let setValueMethod =
+                ProvidedMethod(
+                    "SetValue"
+                    , [
+                        ProvidedParameter("row", dataRowType)
+                        ProvidedParameter("value", column.ErasedToType)
+                    ]
+                    , typeof<unit>
+                )
+        
+            setValueMethod.InvokeCode <-
+                fun args ->
+                    // we don't care of args.[0] (the DataColumn) because setter code is already made for that column
+                    setter args.Tail
+
+            propertyType.AddMember getValueMethod
+            propertyType.AddMember setValueMethod
 
             columnsType.AddMember property
             columnsType.AddMember propertyType

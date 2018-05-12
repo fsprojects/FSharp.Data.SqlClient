@@ -7,6 +7,7 @@ open FSharp.Data.SqlClient
 
 type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksNamed>
 
+type AdventureWorksDataTables = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksLiteral, ResultType = ResultType.DataTable>
 type GetContactInformation = AdventureWorks.dbo.ufnGetContactInformation
 
 [<Fact>]
@@ -260,6 +261,13 @@ let PassingImageAsParamDoesntGetCut() =
     Assert.Equal(existing.LargePhoto, inserted.LargePhoto)
     
 [<Fact>]
+let ``honors result type parameter: datatable`` () =
+    let command = new AdventureWorksDataTables.Sales.GetUKSalesOrders(ConnectionStrings.AdventureWorksLiteral)
+    let gbp = 1.0M<AdventureWorksDataTables.Sales.``Units of Measure``.GBP>
+    let table : AdventureWorksDataTables.Sales.GetUKSalesOrders.Table = command.Execute(gbp)
+    Assert.Equal<string>("Year", table.Columns.Year.ColumnName)
+    
+[<Fact>]    
 let StaticCreateMethod() =
     let input1 = [AdventureWorks.Person.``User-Defined Table Types``.MyTableType(42, Some "BSL")]
     use newCmd = new AdventureWorks.Person.MyProc()
@@ -282,7 +290,6 @@ let StaticCreateMethod() =
     (newResult, factoryResult) ||> Seq.iter2 (fun newR facR ->
         Assert.Equal(newR.myId, facR.myId)
         Assert.Equal(newR.myName, facR.myName))
-
     use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
     do conn.Open()
     use newTran = conn.BeginTransaction()

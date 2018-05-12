@@ -58,15 +58,18 @@ Not so good:
 - By default supports only Microsoft SQLServer and T-SQL
 - Code overhead if you have a large amount of different small operations
 - Doesn't generate domain model for work with C#
+- No support for .NET Standard / .NET Core
 
 ### SQLProvider
 
 Good:
 
-- Supports any database (MSSQL, MySQL, Postgre, Oracle, Odbc, ...)
+- Supports any database (MSSQL, MySQL, PostgreSQL, Oracle, Odbc, ...)
+- Supports .NET Standard and .NET Core
 - Changing the database is not actually huge work
 - Makes effective simple SQL
 - Supports async database operations
+- Used in production for enterprise development for years
 - Simplifies user code
 - Open source
 
@@ -84,6 +87,7 @@ Good:
 
 - You can use generated DB-model from C#-projects
 - Supports even complex LINQ-operations
+- Used in production for enterprise development for years
 
 Not so good:
 
@@ -93,6 +97,25 @@ Not so good:
 - FSharp/LINQ query-syntax is a learning curve
 - Closed source
 - Supports only Microsoft SQLServer
+- No support for .NET Standard / .NET Core
+
+### Rezoom.SQL
+
+Good:
+
+- User has full control of SQL
+- Which allows full utilization of database indexes with complex queries
+- SQL syntax is already familiar for many
+- Supports SQLite, SQL Server, and PostgreSQL
+- Open source
+
+Not so good:
+
+- No support for .NET Standard / .NET Core
+- No support for MySQL, Oracle, ...
+- Code overhead if you have a large amount of different small operations
+- Doesn't generate domain model for work with C#
+
 
 [Dapper](https://code.google.com/p/dapper-dot-net/)
 -----------------------------------------

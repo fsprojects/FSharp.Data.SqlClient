@@ -44,9 +44,10 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
                 ProvidedStaticParameter("UseReturnValue", typeof<bool>, false) 
-            ],             
+                ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Records) 
+            ],
             instantiationFunction = (fun typeName args ->
-                let root = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3])
+                let root = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4])
                 cache.GetOrAdd(typeName, root)
             ) 
         )
@@ -54,9 +55,10 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         providerType.AddXmlDoc """
 <summary>Typed access to SQL Server programmable objects: stored procedures, functions and user defined table types.</summary> 
 <param name='ConnectionStringOrName'>String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&lt;connection string name&gt;”.</param>
-<param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
 <param name='DataDirectory'>The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.</param>
+<param name='UseReturnValue'>To be documented.</param>
+<param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader, this affects only Stored Procedures.</param>
 """
 
         this.AddNamespace(nameSpace, [ providerType ])
@@ -68,7 +70,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         |> defaultArg 
         <| base.ResolveAssembly args
 
-    member internal this.CreateRootType( typeName, connectionStringOrName, configFile, dataDirectory, useReturnValue) =
+    member internal this.CreateRootType( typeName, connectionStringOrName, configFile, dataDirectory, useReturnValue, resultType) =
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         
         let designTimeConnectionString = DesignTimeConnectionString.Parse(connectionStringOrName, config.ResolutionFolder, configFile)
@@ -122,7 +124,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
             schemaType.AddMembersDelayed <| fun() -> 
                 [
-                    let routines = this.Routines(conn, schemaType.Name, udttsPerSchema, ResultType.Records, designTimeConnectionString, useReturnValue, uomPerSchema)
+                    let routines = this.Routines(conn, schemaType.Name, udttsPerSchema, resultType, designTimeConnectionString, useReturnValue, uomPerSchema)
                     routines |> List.iter tagProvidedType
                     yield! routines
 
@@ -182,8 +184,8 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                         let returnType = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters, unitsOfMeasurePerSchema)
         
-                        do  //Record
-                            returnType.PerRow |> Option.iter (fun x -> cmdProvidedType.AddMember x.Provided)
+                        do
+                            SharedLogic.alterReturnTypeAccordingToResultType returnType cmdProvidedType resultType
 
                         //ctors
                         let sqlParameters = Expr.NewArray( typeof<SqlParameter>, parameters |> List.map QuotationsFactory.ToSqlParam)
@@ -219,17 +221,17 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, returnType.Single, "Execute") 
 
                         if not hasOutputParameters
-                        then                              
+                        then
                             let asyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ returnType.Single ])
                             yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, asyncReturnType, "AsyncExecute")
 
                         if returnType.PerRow.IsSome
-                        then 
+                        then
                             let providedReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ option>, [ returnType.PerRow.Value.Provided ])
                             let providedAsyncReturnType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ Async>, [ providedReturnType ]) 
 
                             if not hasOutputParameters
-                            then                              
+                            then
                                 yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, providedReturnType, "ExecuteSingle") 
                                 yield upcast DesignTime.AddGeneratedMethod(parameters, hasOutputParameters, executeArgs, cmdProvidedType.BaseType, providedAsyncReturnType, "AsyncExecuteSingle")
                     ]
