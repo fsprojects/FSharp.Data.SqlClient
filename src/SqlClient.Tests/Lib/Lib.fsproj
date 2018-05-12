@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../netfx.props"/>
-  <Import Project="../../fsc.props"/>
+  <Import Project="../../../netfx.props" />
+  <Import Project="../../../fsc.props" />
   <PropertyGroup>
     <TargetFramework>netstandard20</TargetFramework>
     <AssemblyName>Lib</AssemblyName>
@@ -18,4 +18,5 @@
       <HintPath>../../../src/SqlClient/bin/Debug/netstandard20/FSharp.Data.SqlClient.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <Import Project="..\..\..\.paket\Paket.Restore.targets" />
 </Project>
