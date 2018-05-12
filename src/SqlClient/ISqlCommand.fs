@@ -169,30 +169,29 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
             
     interface IDisposable with
         member this.Dispose() =
+            if manageConnection then
+              cmd.Connection.Dispose()
             cmd.Dispose()
 
     static member internal SetParameters(cmd: SqlCommand, parameters: (string * obj)[]) = 
         for name, value in parameters do
-            
             let p = cmd.Parameters.[name]            
 
             if p.Direction.HasFlag(ParameterDirection.Input)
             then 
-                if value = null 
-                then 
+                match value with
+                | null ->
                     p.Value <- DBNull.Value 
-                else
-                    if not( p.SqlDbType = SqlDbType.Structured)
-                    then 
-                        p.Value <- value
-                    else
-                        //p.Value <- value |> unbox |> Seq.cast<Microsoft.SqlServer.Server.SqlDataRecord>
-
+                | _ ->
+                    match p.SqlDbType with 
+                    | SqlDbType.Structured -> 
                         //done via reflection because not implemented on Mono
                         let sqlDataRecordType = typeof<SqlCommand>.Assembly.GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
-                        p.Value <- typeof<Linq.Enumerable>.GetMethod("Cast").MakeGenericMethod(sqlDataRecordType).Invoke(null, [| value |])
-            elif p.Direction.HasFlag(ParameterDirection.Output) && value :? Array
-            then
+                        let records = typeof<Linq.Enumerable>.GetMethod("Cast").MakeGenericMethod(sqlDataRecordType).Invoke(null, [| value |]) :?> seq<Microsoft.SqlServer.Server.SqlDataRecord>
+                        p.Value <- if Seq.isEmpty records then null else records
+                    | _ -> p.Value <- value
+                            
+            elif p.Direction.HasFlag(ParameterDirection.Output) && value :? Array then
                 p.Size <- (value :?> Array).Length
 
 //Execute/AsyncExecute versions
