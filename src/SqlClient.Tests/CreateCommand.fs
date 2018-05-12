@@ -173,3 +173,17 @@ let CreareDynamicRecords() =
     |> Seq.toArray
     |> ignore
 
+
+[<Fact>]
+let ``connection is properly disposed`` () =
+  
+  let mutable connection : SqlConnection = null 
+  let mutable isDisposed = false
+  do
+    use cmd = DB.CreateCommand<"exec dbo.[Get]", ResultType.DataReader>()
+    connection <- (cmd :> ISqlCommand).Raw.Connection
+    connection.Disposed.Add(fun _ -> isDisposed <- true)
+    use reader = cmd.Execute()
+    ()
+
+  Assert.True isDisposed
