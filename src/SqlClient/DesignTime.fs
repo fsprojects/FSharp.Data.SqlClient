@@ -217,6 +217,38 @@ type DesignTime private() =
                         columns.[columnName]
                     @@>)
 
+            let getValueMethod =
+                ProvidedMethod(
+                    "GetValue"
+                    , [ProvidedParameter("row", dataRowType)]
+                    , column.ErasedToType
+                )
+        
+            let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode(column)
+
+            getValueMethod.InvokeCode <- 
+                fun args -> 
+                    // we don't care of args.[0] (the DataColumn) because getter code is already made for that column
+                    getter args.Tail
+           
+            let setValueMethod =
+                ProvidedMethod(
+                    "SetValue"
+                    , [
+                        ProvidedParameter("row", dataRowType)
+                        ProvidedParameter("value", column.ErasedToType)
+                    ]
+                    , typeof<unit>
+                )
+        
+            setValueMethod.InvokeCode <-
+                fun args ->
+                    // we don't care of args.[0] (the DataColumn) because setter code is already made for that column
+                    setter args.Tail
+
+            propertyType.AddMember getValueMethod
+            propertyType.AddMember setValueMethod
+
             columnsType.AddMember property
             columnsType.AddMember propertyType
 
@@ -380,7 +412,7 @@ type DesignTime private() =
     static member internal RewriteSqlStatementToEnableMoreThanOneParameterDeclaration(cmd: SqlCommand, why: SqlException) =  
         
         let getVariables tsql = 
-            let parser = Microsoft.SqlServer.TransactSql.ScriptDom.TSql120Parser( true)
+            let parser = Microsoft.SqlServer.TransactSql.ScriptDom.TSql140Parser( true)
             let tsqlReader = new System.IO.StringReader(tsql)
             let errors = ref Unchecked.defaultof<_>
             let fragment = parser.Parse(tsqlReader, errors)

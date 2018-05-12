@@ -48,7 +48,8 @@ Target "AssemblyInfo" (fun _ ->
              Attribute.Product project
              Attribute.Description summary
              Attribute.Version version
-             Attribute.FileVersion version] )
+             Attribute.FileVersion version
+             Attribute.InternalsVisibleTo "SqlClient.Tests" ] )
 )
 
 // --------------------------------------------------------------------------------------
