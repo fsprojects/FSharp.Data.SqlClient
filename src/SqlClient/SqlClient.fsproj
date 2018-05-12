@@ -3,17 +3,11 @@
   <Import Project="../../netfx.props" />
   <Import Project="../../fsc.props" />
   <PropertyGroup>
-    <TargetFramework>netstandard20</TargetFramework>
+    <TargetFrameworks>net462;netstandard20</TargetFrameworks>
     <AssemblyName>FSharp.Data.SqlClient</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="Microsoft.SqlServer.TransactSql.ScriptDom">
-      <HintPath>..\..\packages\Microsoft.SqlServer.TransactSql.ScriptDom.14.0.3811.1\lib\net40\Microsoft.SqlServer.TransactSql.ScriptDom.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-  </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\paket-files\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fsi">
       <Paket>True</Paket>
