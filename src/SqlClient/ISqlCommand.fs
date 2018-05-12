@@ -185,10 +185,10 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                 | _ ->
                     match p.SqlDbType with 
                     | SqlDbType.Structured -> 
-                        p.Value <- 
-                            match value |> unbox |> Seq.cast<Microsoft.SqlServer.Server.SqlDataRecord> with
-                            | records when Seq.isEmpty records -> null 
-                            | records -> records
+                        //done via reflection because not implemented on Mono
+                        let sqlDataRecordType = typeof<SqlCommand>.Assembly.GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
+                        let records = typeof<Linq.Enumerable>.GetMethod("Cast").MakeGenericMethod(sqlDataRecordType).Invoke(null, [| value |]) :?> seq<Microsoft.SqlServer.Server.SqlDataRecord>
+                        p.Value <- if Seq.isEmpty records then null else records
                     | _ -> p.Value <- value
                             
             elif p.Direction.HasFlag(ParameterDirection.Output) && value :? Array then
