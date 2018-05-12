@@ -58,6 +58,7 @@ type internal Connection = Choice<string, SqlConnection, SqlTransaction>
 type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connection, commandTimeout) = 
 
     let cmd = new SqlCommand(cfg.SqlStatement, CommandTimeout = commandTimeout)
+    
     let manageConnection = 
         match connection with
         | Choice1Of3 connectionString -> 
@@ -73,7 +74,7 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
 
     do
         cmd.CommandType <- if cfg.IsStoredProcedure then CommandType.StoredProcedure else CommandType.Text
-        cmd.Parameters.AddRange( cfg.Parameters)
+        cmd.Parameters.AddRange(cfg.Parameters)
 
     let getReaderBehavior() = 
         seq {
@@ -169,6 +170,8 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
             
     interface IDisposable with
         member this.Dispose() =
+            if manageConnection then
+                cmd.Connection.Dispose()
             cmd.Dispose()
 
     static member internal SetParameters(cmd: SqlCommand, parameters: (string * obj)[]) = 
@@ -305,9 +308,9 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
             assert (rank = ResultRank.Sequence)
             box xs 
 
-    static member internal ExecuteNonQuery manageConnection (cmd, _, parameters, _) = 
+    static member internal ExecuteNonQuery (manageConnection: bool) (cmd, _, parameters, _) = 
         ``ISqlCommand Implementation``.SetParameters(cmd, parameters)  
-        use openedConnection = cmd.Connection.UseLocally(manageConnection )
+        use openedConnection = cmd.Connection.UseLocally(manageConnection)
         let recordsAffected = cmd.ExecuteNonQuery() 
         for i = 0 to parameters.Length - 1 do
             let name, _ = parameters.[i]

@@ -10,6 +10,7 @@ open System.Diagnostics
 open Microsoft.FSharp.Quotations
 open ProviderImplementation.ProvidedTypes
 open FSharp.Data
+open FSharp.Data.SqlClient.Extensions
 
 type internal RowType = {
     Provided: Type
