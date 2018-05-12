@@ -80,7 +80,8 @@ Target "InstallDotNetCore" (fun _ ->
 // Build library 
 Target "Build" (fun _ ->
     
-    let targets = ["netstandard20"; "net462"]
+    let targets = ["netstandard20"]
+    //let targets = ["netstandard20"; "net462"]
     targets 
     |> List.iter (fun target ->
         let outDir = __SOURCE_DIRECTORY__ + "/bin/lib/" + target
