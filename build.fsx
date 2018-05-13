@@ -79,19 +79,27 @@ Target "InstallDotNetCore" (fun _ ->
 // --------------------------------------------------------------------------------------
 // Build library 
 Target "Build" (fun _ ->
+    DotNetCli.Restore(fun p -> 
+        { p with 
+            Project = "src/SqlClient/SqlClient.fsproj"
+            NoCache = true })
+
+    DotNetCli.Build(fun p -> 
+        { p with 
+            Project = "src/SqlClient/SqlClient.fsproj"
+            Configuration = "Release" })
     
-    //let targets = ["netstandard20"]
-    let targets = ["netstandard20"; "net462"]
-    targets 
-    |> List.iter (fun target ->
-        let outDir = __SOURCE_DIRECTORY__ + "/bin/lib/" + target
+    //let targets = ["netstandard20"; "net461"]
+    //targets 
+    //|> List.iter (fun target ->
+    //    let outDir = __SOURCE_DIRECTORY__ + "/bin/lib/" + target
         
-        DotNetCli.Publish (fun p -> 
-        { p with
-            Output = outDir
-            Framework = target
-            WorkingDir = "src/SqlClient/" })
-    )
+    //    DotNetCli.Publish (fun p -> 
+    //    { p with
+    //        Output = outDir
+    //        Framework = target
+    //        WorkingDir = "src/SqlClient/" })
+    //)
 )
 
 #r "System.Data"
@@ -180,6 +188,21 @@ Target "RunTests" (fun _ ->
 // Build a NuGet package
 
 Target "NuGet" (fun _ ->
+#if MONO
+#else
+    CopyDir @"bin" "src/SqlClient/bin/Release" allFiles
+    
+    let dotnetSdk = @"C:\Program Files\dotnet\sdk\2.1.200\Microsoft\Microsoft.NET.Build.Extensions\net461\lib\"
+    if directoryExists dotnetSdk then
+       CopyFile "bin/netstandard2.0" (dotnetSdk + @"netstandard.dll")
+       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Console.dll")
+       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.IO.dll")
+       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Reflection.dll")
+       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Runtime.dll")
+    CopyFile "bin/netstandard2.0" "packages/build/System.Data.SqlClient/lib/net461/System.Data.SqlClient.dll" 
+#endif
+    
+    CopyDir @"temp/lib" "bin" allFiles
 
     // Format the description to fit on a single line (remove \r\n and double-spaces)
     let description = description.Replace("\r", "").Replace("\n", "").Replace("  ", " ")
@@ -194,6 +217,7 @@ Target "NuGet" (fun _ ->
             Version = version
             ReleaseNotes = releaseNotes
             Tags = tags
+            WorkingDir = "temp"
             OutputPath = "nuget"
             ToolPath = nugetPath
             AccessKey = getBuildParamOrDefault "nugetkey" ""
@@ -231,9 +255,9 @@ Target "All" DoNothing
   ==> "AssemblyInfo"
   =?> ("InstallDotNetCore", installedDotnetSDKVersion <> dotnetcliVersion)
   ==> "Build"
-  ==> "DeployTestDB"
-  ==> "BuildTests"
-  ==> "RunTests"
+  //==> "DeployTestDB"
+  //==> "BuildTests"
+  //==> "RunTests"
   ==> "All"
 
 "All" 

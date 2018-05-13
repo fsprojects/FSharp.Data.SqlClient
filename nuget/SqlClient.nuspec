@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
-  <metadata>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata minClientVersion="2.12">
     <id>@project@</id>
     <version>@build.number@</version>
     <authors>@authors@</authors>
@@ -12,20 +12,29 @@
     <description>@description@</description>
     <summary>@summary@</summary>
     <releaseNotes>@releaseNotes@</releaseNotes>
-    <copyright>Copyright 2015</copyright>
+    <copyright>Copyright 2018</copyright>
     <tags>@tags@</tags>
-    <frameworkAssemblies>
-      <frameworkAssembly assemblyName="System.Data" />
-      <frameworkAssembly assemblyName="System.Xml" />
-    </frameworkAssemblies>
-    <references>
-      <reference file="FSharp.Data.SqlClient.dll" />
-    </references>
+    <dependencies>
+      <group targetFramework=".NETFramework4.6.1"/>
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="NETStandard.Library" version="2.0" />
+        <dependency id="FSharp.Core" version="3.1.2.5" />
+        <dependency id="System.Runtime" version="4.3" />
+        <dependency id="System.Runtime.Loader" version="4.3" />
+        <dependency id="System.Runtime.Serialization.Primitives" version="4.3" />
+        <dependency id="System.Runtime.Serialization.Formatters" version="4.3" />
+        <dependency id="System.IO" version="4.3" />
+        <dependency id="System.Console" version="4.3" />
+        <dependency id="System.Reflection" version="4.3" />
+        <dependency id="System.Reflection.TypeExtensions" version="4.3" />
+        <dependency id="System.Data.SqlClient" version="4.4" />
+        <dependency id="System.Data.Common" version="4.3" />
+        <dependency id="Microsoft.SqlServer.TransactSql.ScriptDom" version="14.0.3811.1" />
+      </group>
+    </dependencies>
   </metadata>
   <files>
-    <file src="..\bin\FSharp.Data.SqlClient.dll" target="lib\net40" />
-    <file src="..\bin\FSharp.Data.SqlClient.pdb" target="lib\net40" />
-    <file src="..\bin\FSharp.Data.SqlClient.xml" target="lib\net40" />
-    <file src="..\bin\Microsoft.SqlServer.TransactSql.ScriptDom.dll" target="lib\net40" />
+    <file src="**/*.dll" exclude="**/net461/FSharp.Core.dll" />
+    <file src="**/*.deps.json" />
   </files>
 </package>

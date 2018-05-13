@@ -3,7 +3,7 @@
   <Import Project="../../netfx.props" />
   <Import Project="../../fsc.props" />
   <PropertyGroup>
-    <TargetFrameworks>net462;netstandard20</TargetFrameworks>
+    <TargetFrameworks>net461;netstandard2.0</TargetFrameworks>
     <AssemblyName>FSharp.Data.SqlClient</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -30,12 +30,6 @@
     <None Include="..\..\packages\build\NETStandard.Library.NETFramework\build\net461\lib\System.Runtime.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\..\packages\build\system.data.sqlclient\lib\net461\System.Data.SqlClient.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\..\packages\build\System.Configuration.ConfigurationManager\lib\net461\System.Configuration.ConfigurationManager.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Configuration.fs" />
     <Compile Include="ProvidedTypesCache.fs" />
@@ -54,6 +48,18 @@
     <None Include="Scripts\Scratchpad.fsx" />
     <None Include="Scripts\ReverseLineOrderForNotex.fsx" />
     <None Include="Scripts\XE.fsx" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net461'">
+    <Reference Include="mscorlib" />
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.IdentityModel" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Transactions" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="paket.references" />

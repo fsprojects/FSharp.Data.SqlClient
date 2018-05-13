@@ -1,11 +1,11 @@
 group Build
-	framework: netstandard2.0, net462
+	framework: netstandard2.0, net461
 	redirects: force
 	source https://api.nuget.org/v3/index.json
 	
 	nuget FSharp.Core	
 	nuget System.Runtime
-	nuget System.Runtime.Caching prerelease
+	nuget System.Runtime.Caching
 	nuget System.Runtime.Loader
 	nuget System.Runtime.Serialization.Primitives
 	nuget System.Runtime.Serialization.Formatters
@@ -13,9 +13,9 @@ group Build
 	nuget System.Console
 	nuget System.Reflection
 	nuget System.Reflection.TypeExtensions
-	nuget System.Data.SqlClient prerelease
+	nuget System.Data.SqlClient 4.4.0
 	nuget System.Data.Common
-	nuget System.Configuration.ConfigurationManager prerelease
+	nuget System.Configuration.ConfigurationManager
 	nuget Microsoft.SqlServer.TransactSql.ScriptDom
 
 	# These are for TPSDK testing of TPDTCs against .NET Core App 2.0, to make sure references can be found in a known packages/... location.  
@@ -29,7 +29,7 @@ group Build
 	github fsprojects/FSharp.TypeProviders.SDK src/ProvidedTypesTesting.fs
 
 group Tests
-	framework: net462, netcoreapp2.0
+	framework: net461, netcoreapp2.0
 	redirects: force
 	source https://api.nuget.org/v3/index.json
 
@@ -40,7 +40,7 @@ group Tests
 	nuget xunit
 
 group Samples
-	framework: netstandard2.0, net462, netcoreapp2.0
+	framework: netstandard2.0, net461, netcoreapp2.0
 	redirects: force
 	source https://api.nuget.org/v3/index.json
 

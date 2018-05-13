@@ -47,5 +47,15 @@
       <HintPath>../../bin/lib/$(TargetLibraryFramework)/FSharp.Data.SqlClient.dll</HintPath>
     </Reference>
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy ..\..\packages\System.Data.SqlClient\runtimes\win\lib\netstandard2.0\System.Data.SqlClient.dll bin\Debug\netcoreapp2.0\" Condition="'$(IsWindows)' == 'true'" />
+    <Exec Command="cp ../../packages/System.Data.SqlClient/runtimes/unix/lib/netstandard2.0/System.Data.SqlClient.dll bin/Debug/netcoreapp2.0/" Condition="'$(IsWindows)' != 'true'" />
+  </Target>
+
+  <!--<None Include="..\..\packages\build\System.Configuration.ConfigurationManager\lib\net461\System.Configuration.ConfigurationManager.dll">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>-->
+  
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

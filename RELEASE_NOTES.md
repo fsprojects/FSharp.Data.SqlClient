@@ -1,3 +1,6 @@
+#### 2.0.1 - May 13, 2018
+	* Target netstandard20
+
 #### 1.8.4 - May 12, 2018
     * Issue #221 - Expose custom getter/setter methods on provided DataColumn properties
 	* Issue #224 - TVP generated type implicitly from SqlDataRecord. 
