@@ -30,6 +30,7 @@
         <dependency id="System.Data.SqlClient" version="4.4" />
         <dependency id="System.Data.Common" version="4.3" />
         <dependency id="Microsoft.SqlServer.TransactSql.ScriptDom" version="14.0.3811.1" />
+        <dependency id="System.Configuration.ConfigurationManager" version="4.4.1" />
       </group>
     </dependencies>
   </metadata>

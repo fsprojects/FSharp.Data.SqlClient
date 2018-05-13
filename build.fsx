@@ -200,6 +200,7 @@ Target "NuGet" (fun _ ->
        CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Reflection.dll")
        CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Runtime.dll")
     CopyFile "bin/netstandard2.0" "packages/build/System.Data.SqlClient/lib/net461/System.Data.SqlClient.dll" 
+    CopyFile "bin/netstandard2.0" "packages/build/System.Configuration.ConfigurationManager/lib/net461/System.Configuration.ConfigurationManager.dll" 
 #endif
     
     CopyDir @"temp/lib" "bin" allFiles
