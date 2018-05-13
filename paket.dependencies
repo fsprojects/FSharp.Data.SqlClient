@@ -34,6 +34,8 @@ group Tests
 	source https://api.nuget.org/v3/index.json
 
 	nuget FSharp.Core
+	nuget System.Configuration.ConfigurationManager prerelease
+	nuget Microsoft.SqlServer.TransactSql.ScriptDom
 	nuget Newtonsoft.Json
 	nuget xunit
 

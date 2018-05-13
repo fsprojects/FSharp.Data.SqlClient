@@ -7,13 +7,13 @@ module FSharp.Data.TypeProviderTest
 open System
 open System.Data
 open System.Data.SqlClient
-open Xunit
-   
+open Xunit 
+    
 type GetEvenNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (24)) as T(value)", ConnectionStrings.AdventureWorksNamed>
 
 [<Fact>]
 let asyncSinlgeColumn() = 
-    use cmd = new GetEvenNumbers()
+    use cmd = new GetEvenNumbers() 
     Assert.Equal<int[]>([| 2; 4; 8; 24 |], cmd.AsyncExecute() |> Async.RunSynchronously |> Seq.toArray)    
 
 [<Fact>]

@@ -1,8 +1,6 @@
-group Build
+group Tests
+	FSharp.Core
 	System.Configuration.ConfigurationManager
 	Microsoft.SqlServer.TransactSql.ScriptDom
-
-group Tests
 	Newtonsoft.Json
-	FSharp.Core
 	xunit

@@ -1,46 +1,51 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="../../netfx.props" />
-    <Import Project="../../fsc.props" />
-    <PropertyGroup>
-        <TargetFramework>netcoreapp2.0</TargetFramework>
-        <AssemblyName>SqlClient.Tests</AssemblyName>
-        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-        <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
-    </PropertyGroup>
-    <ItemGroup>
-        <Compile Include="Assert.fs" />
-        <Compile Include="ConnectionStrings.fs" />
-        <Compile Include="ConfigurationTest.fs" />
-        <Compile Include="OptionalParamsTests.fs" />
-        <Compile Include="TypeProviderTest.fs" />
-        <Compile Include="FreeVarDoubleDeclTests.fs" />
-        <Compile Include="SpatialTypesTests.fs" />
-        <Compile Include="TransactionTests.fs" />
-        <Compile Include="ResultTypeTests.fs" />
-        <Compile Include="TVPTests.fs" />
-        <Compile Include="ProgrammabilityTests.fs" />
-        <Compile Include="SpReturnValueTests.fs" />
-        <Compile Include="DynamicRecordTests.fs" />
-        <Compile Include="SqlEnumTests.fs" />
-        <Compile Include="DataTablesTests.fs" />
-        <Compile Include="SynonymsTests.fs" />
-        <Compile Include="CreateCommand.fs" />
-        <Compile Include="UnitsOfMeasure.fs" />
-        <None Include="sampleCommand.sql" />
-        <None Include="extensions.sql" />
-        <None Include="MySqlFolder\sampleCommand.sql" />
-        <None Include="Scripts\SqlCommand.fsx" />
-        <None Include="Scripts\SqlProgrammability.fsx" />
-        <None Include="Scripts\CreateCommand.fsx" />
-        <None Include="paket.references" />
-        <None Include="app.config" />
-        <Content Include="appWithInclude.config" />
-        <Content Include="connectionStrings.config" />
-    </ItemGroup>
-    <ItemGroup>
-        <ProjectReference Include="../SqlClient/SqlClient.fsproj" />
-    </ItemGroup>
-    <Import Project="..\..\.paket\Paket.Restore.targets" />
+  <Import Project="../../netfx.props" />
+  <Import Project="../../fsc.props" />
+  <PropertyGroup>
+    <TargetFrameworks>netcoreapp2.0;net462</TargetFrameworks>
+    <AssemblyName>SqlClient.Tests</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <IsPackable>false</IsPackable>
+    <TargetLibraryFramework Condition="'$(TargetFramework)' == 'net462'">net462</TargetLibraryFramework>
+    <TargetLibraryFramework Condition="'$(TargetFramework)' == 'netcoreapp2.0'">netstandard20</TargetLibraryFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Assert.fs" />
+    <Compile Include="ConnectionStrings.fs" />
+    <Compile Include="ConfigurationTest.fs" />
+    <Compile Include="OptionalParamsTests.fs" />
+    <Compile Include="TypeProviderTest.fs" />
+    <Compile Include="FreeVarDoubleDeclTests.fs" />
+    <Compile Include="SpatialTypesTests.fs" />
+    <Compile Include="TransactionTests.fs" />
+    <Compile Include="ResultTypeTests.fs" />
+    <Compile Include="TVPTests.fs" />
+    <Compile Include="ProgrammabilityTests.fs" />
+    <Compile Include="SpReturnValueTests.fs" />
+    <Compile Include="DynamicRecordTests.fs" />
+    <Compile Include="SqlEnumTests.fs" />
+    <Compile Include="DataTablesTests.fs" />
+    <Compile Include="SynonymsTests.fs" />
+    <Compile Include="CreateCommand.fs" />
+    <Compile Include="UnitsOfMeasure.fs" />
+    <None Include="sampleCommand.sql" />
+    <None Include="extensions.sql" />
+    <None Include="MySqlFolder\sampleCommand.sql" />
+    <None Include="Scripts\SqlCommand.fsx" />
+    <None Include="Scripts\SqlProgrammability.fsx" />
+    <None Include="Scripts\CreateCommand.fsx" />
+    <None Include="paket.references" />
+    <None Include="app.config" />
+    <Content Include="appWithInclude.config" />
+    <Content Include="connectionStrings.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="FSharp.Data.SqlClient">
+      <HintPath>../../bin/lib/$(TargetLibraryFramework)/FSharp.Data.SqlClient.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
