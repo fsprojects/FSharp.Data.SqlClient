@@ -1,10 +1,19 @@
-FSharp.Core
-System.Runtime.Caching
-System.Configuration.ConfigurationManager
-System.Data.Common
-System.Data.SqlClient
-Microsoft.SqlServer.TransactSql.ScriptDom
+group Build
+	FSharp.Core
+	System.Runtime
+	System.Runtime.Caching
+	System.Runtime.Loader
+	System.Runtime.Serialization.Primitives
+	System.Runtime.Serialization.Formatters
+	System.IO
+	System.Console
+	System.Reflection
+	System.Reflection.TypeExtensions
+	System.Data.SqlClient
+	System.Data.Common
+	System.Configuration.ConfigurationManager
+	Microsoft.SqlServer.TransactSql.ScriptDom
 
-File: ProvidedTypes.fsi .
-File: ProvidedTypes.fs .
-File: ProvidedTypesTesting.fs .
+	File: ProvidedTypes.fsi .
+	File: ProvidedTypes.fs .
+	File: ProvidedTypesTesting.fs .

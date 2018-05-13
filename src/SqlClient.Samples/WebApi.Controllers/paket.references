@@ -1,5 +1,6 @@
-FSharp.Data.SqlClient
-Microsoft.AspNet.WebApi.Client
-Microsoft.AspNet.WebApi.Core
-Newtonsoft.Json
-FSharp.Core
+group Samples
+	FSharp.Core
+	FSharp.Data.SqlClient
+	Microsoft.AspNet.WebApi.Client
+	Microsoft.AspNet.WebApi.Core
+	Newtonsoft.Json
