@@ -3,7 +3,7 @@ group Build
 	redirects: force
 	source https://api.nuget.org/v3/index.json
 	
-	nuget FSharp.Core	
+	nuget FSharp.Core >= 4.0 lowest_matching:true	
 	nuget System.Runtime
 	nuget System.Runtime.Caching
 	nuget System.Runtime.Loader
@@ -13,9 +13,9 @@ group Build
 	nuget System.Console
 	nuget System.Reflection
 	nuget System.Reflection.TypeExtensions
-	nuget System.Data.SqlClient 4.4.0
+	nuget System.Data.SqlClient
 	nuget System.Data.Common
-	nuget System.Configuration.ConfigurationManager 4.4.1
+	nuget System.Configuration.ConfigurationManager
 	nuget Microsoft.SqlServer.TransactSql.ScriptDom
 
 	# These are for TPSDK testing of TPDTCs against .NET Core App 2.0, to make sure references can be found in a known packages/... location.  
@@ -33,8 +33,8 @@ group Tests
 	redirects: force
 	source https://api.nuget.org/v3/index.json
 
-	nuget FSharp.Core
-	nuget System.Configuration.ConfigurationManager 4.4.1
+	nuget FSharp.Core >= 4.0 lowest_matching:true
+	nuget System.Configuration.ConfigurationManager
 	nuget Microsoft.SqlServer.TransactSql.ScriptDom
 	nuget Newtonsoft.Json
 	nuget xunit
@@ -44,7 +44,7 @@ group Samples
 	redirects: force
 	source https://api.nuget.org/v3/index.json
 
-	nuget FSharp.Core
+	nuget FSharp.Core >= 4.0 lowest_matching:true
 	nuget FSharp.Data.SqlClient
 	nuget Microsoft.AspNet.WebApi
 	nuget Microsoft.AspNet.WebApi.Client
