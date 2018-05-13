@@ -3,7 +3,6 @@ module FSharp.Data.SqlClient.Cache
 
 open System
 open System.Runtime.Caching
-open ProviderImplementation.ProvidedTypes
 
 type MemoryCache with 
     member this.GetOrAdd<'T>(key, value: Lazy<'T>, ?expiration): 'T = 

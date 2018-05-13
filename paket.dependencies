@@ -1,11 +1,11 @@
-framework: netstandard2.0
+framework: netstandard2.0, net462, netcoreapp2.0
 redirects: force
 source https://api.nuget.org/v3/index.json
 
-nuget System.Runtime.Caching
-nuget System.Configuration.ConfigurationManager
+nuget System.Runtime.Caching prerelease
+nuget System.Configuration.ConfigurationManager prerelease
 nuget System.Data.Common
-nuget System.Data.SqlClient
+nuget System.Data.SqlClient prerelease
 nuget FSharp.Core
 //nuget FSharp.Configuration prerelease
 nuget FSharp.Data.SqlClient

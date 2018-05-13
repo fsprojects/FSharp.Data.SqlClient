@@ -3,7 +3,7 @@
     <Import Project="../../netfx.props" />
     <Import Project="../../fsc.props" />
     <PropertyGroup>
-        <TargetFramework>netstandard20</TargetFramework>
+        <TargetFramework>netcoreapp2.0</TargetFramework>
         <AssemblyName>SqlClient.Tests</AssemblyName>
         <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -40,9 +40,7 @@
         <Content Include="connectionStrings.config" />
     </ItemGroup>
     <ItemGroup>
-        <Reference Include="FSharp.Data.SqlClient">
-            <HintPath>../../src/SqlClient/bin/Debug/netstandard20/FSharp.Data.SqlClient.dll</HintPath>
-        </Reference>
+        <ProjectReference Include="../SqlClient/SqlClient.fsproj" />
     </ItemGroup>
     <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
