@@ -5,10 +5,15 @@
 #I @"packages/FAKE/tools"
 #r @"packages/FAKE/tools/FakeLib.dll"
 
-open System
 open System.IO
 open Fake 
-open Fake.AssemblyInfoFile
+open System
+open Fake.DotNet
+open Fake.DotNet.AssemblyInfoFile
+open Fake.Core.Target
+open Fake.Core.TargetOperators
+open Fake.Core
+open Fake.IO
 open Fake.Git
 
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
@@ -31,7 +36,7 @@ let gitName = "FSharp.Data.SqlClient"
 // Read release notes & version info from RELEASE_NOTES.md
 let release = 
     File.ReadLines "RELEASE_NOTES.md" 
-    |> ReleaseNotesHelper.parseReleaseNotes
+    |> ReleaseNotes.parse
 
 let version = release.AssemblyVersion
 let releaseNotes = release.Notes |> String.concat "\n"
@@ -40,66 +45,65 @@ let testDir = "bin"
 // --------------------------------------------------------------------------------------
 // Generate assembly info files with the right version & up-to-date information
 
-Target "AssemblyInfo" (fun _ ->
+Core.Target.create "AssemblyInfo" (fun _ ->
     [ "src/SqlClient/AssemblyInfo.fs", "SqlClient", project, summary ]
     |> Seq.iter (fun (fileName, title, project, summary) ->
-        CreateFSharpAssemblyInfo fileName
-           [ Attribute.Title title
-             Attribute.Product project
-             Attribute.Description summary
-             Attribute.Version version
-             Attribute.FileVersion version
-             Attribute.InternalsVisibleTo "SqlClient.Tests" ] )
+        createFSharp fileName
+           [ DotNet.AssemblyInfo.Title title
+             DotNet.AssemblyInfo.Product project
+             DotNet.AssemblyInfo.Description summary
+             DotNet.AssemblyInfo.Version version
+             DotNet.AssemblyInfo.FileVersion version
+             DotNet.AssemblyInfo.InternalsVisibleTo "SqlClient.Tests" ] )
 )
 
 // --------------------------------------------------------------------------------------
 // Clean build results & restore NuGet packages
-Target "RestorePackages" (fun _ ->
+Core.Target.create "RestorePackages" (fun _ ->
     !! "./**/packages.config"
-    |> Seq.iter (RestorePackage (fun p -> { p with ToolPath = "./.nuget/NuGet.exe" }))
+    |> Seq.iter (Fake.DotNet.NuGet.Restore.RestorePackage (fun p -> { p with ToolPath = "./.nuget/NuGet.exe" }))
 )
 
-Target "Clean" (fun _ ->
-    CleanDirs ["bin"; "temp"]
+Core.Target.create "Clean" (fun _ ->
+    Shell.cleanDirs ["bin"; "temp"]
 )
 
-Target "CleanDocs" (fun _ ->
-    CleanDirs ["docs/output"]
+Core.Target.create "CleanDocs" (fun _ ->
+    Shell.cleanDirs ["docs/output"]
 )
 
 let mutable dotnetExePath = "dotnet"
 let dotnetcliVersion = "2.1.200"
 let installedDotnetSDKVersion = DotNetCli.getVersion ()
 
-Target "InstallDotNetCore" (fun _ ->
+Core.Target.create "InstallDotNetCore" (fun _ ->
     dotnetExePath <- DotNetCli.InstallDotNetSDK dotnetcliVersion
     Environment.SetEnvironmentVariable("DOTNET_EXE_PATH", dotnetExePath)
 )
 
 // --------------------------------------------------------------------------------------
 // Build library 
-Target "Build" (fun _ ->
-    DotNetCli.Restore(fun p -> 
-        { p with 
-            Project = "src/SqlClient/SqlClient.fsproj"
-            NoCache = true })
-
-    DotNetCli.Build(fun p -> 
-        { p with 
-            Project = "src/SqlClient/SqlClient.fsproj"
-            Configuration = "Release" })
+Core.Target.create "Build" (fun _ ->
+//    DotNetCli.Restore(fun p -> 
+//        { p with 
+//            Project = "src/SqlClient/SqlClient.fsproj"
+//            NoCache = true })
+//
+//    DotNetCli.Build(fun p -> 
+//        { p with 
+//            Project = "src/SqlClient/SqlClient.fsproj"
+//            Configuration = "Debug" // "Release" 
+//        })
     
-    //let targets = ["netstandard20"; "net461"]
-    //targets 
-    //|> List.iter (fun target ->
-    //    let outDir = __SOURCE_DIRECTORY__ + "/bin/lib/" + target
-        
-    //    DotNetCli.Publish (fun p -> 
-    //    { p with
-    //        Output = outDir
-    //        Framework = target
-    //        WorkingDir = "src/SqlClient/" })
-    //)
+    ["netstandard2.0"; "net461"]
+    |> List.iter (fun target ->
+    let outDir = __SOURCE_DIRECTORY__ </> "bin" </> target
+    DotNetCli.Publish (fun p -> 
+        { p with Output = outDir
+                 Framework = target
+                 WorkingDir = "src/SqlClient/" 
+        })
+    )
 )
 
 #r "System.Data"
@@ -111,8 +115,9 @@ Target "Build" (fun _ ->
 open System.Data.SqlClient
 open System.Configuration
 open System.IO.Compression
+open System.Numerics
 
-Target "DeployTestDB" (fun() ->
+Core.Target.create "DeployTestDB" (fun _ ->
     let testsSourceRoot = Path.GetFullPath(@"src\SqlClient.Tests")
     let map = ExeConfigurationFileMap()
     map.ExeConfigFilename <- testsSourceRoot @@ "app.config"
@@ -167,41 +172,27 @@ Target "DeployTestDB" (fun() ->
             cmd.ExecuteNonQuery() |> ignore
 )
 
-Target "BuildTests" (fun _ ->
+Core.Target.create "BuildTests" (fun _ ->
     DotNetCli.Build (fun p -> { p with Configuration = "Release"
                                        Project = "Tests.sln" } )
 )
 
 // --------------------------------------------------------------------------------------
 // Run the unit tests 
-Target "RunTests" (fun _ ->
+Core.Target.create "RunTests" (fun _ ->
     !! (testDir + "/*.Tests.dll")
-        |> xUnit (fun p -> 
+        |> Testing.XUnit2.run (fun p -> 
             {p with 
-                ShadowCopy = false;
-                HtmlOutput = true;
-                XmlOutput = true;
-                OutputDir = testDir})
+                ShadowCopy = false
+                XmlOutputPath = Some testDir })
 )
 
 // --------------------------------------------------------------------------------------
 // Build a NuGet package
 
-Target "NuGet" (fun _ ->
-#if MONO
-#else
-    CopyDir @"bin" "src/SqlClient/bin/Release" allFiles
-    
-    let dotnetSdk = @"C:\Program Files\dotnet\sdk\2.1.200\Microsoft\Microsoft.NET.Build.Extensions\net461\lib\"
-    if directoryExists dotnetSdk then
-       CopyFile "bin/netstandard2.0" (dotnetSdk + @"netstandard.dll")
-       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Console.dll")
-       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.IO.dll")
-       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Reflection.dll")
-       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Runtime.dll")
-    CopyFile "bin/netstandard2.0" "packages/build/System.Data.SqlClient/lib/net461/System.Data.SqlClient.dll" 
-    CopyFile "bin/netstandard2.0" "packages/build/System.Configuration.ConfigurationManager/lib/net461/System.Configuration.ConfigurationManager.dll" 
-#endif
+Core.Target.create "NuGet" (fun _ ->
+//    CopyDir @"bin" "src/SqlClient/bin/Debug" allFiles
+//    CopyDir @"bin" "src/SqlClient/bin/Release" allFiles
     
     CopyDir @"temp/lib" "bin" allFiles
 
@@ -209,13 +200,13 @@ Target "NuGet" (fun _ ->
     let description = description.Replace("\r", "").Replace("\n", "").Replace("  ", " ")
     let nugetPath = ".nuget/nuget.exe"
 
-    NuGet (fun p -> 
+    DotNet.NuGet.NuGet.NuGetPack (fun p -> 
         { p with   
             Authors = authors
             Project = project
             Summary = summary
             Description = description
-            Version = version
+            Version = release.NugetVersion
             ReleaseNotes = releaseNotes
             Tags = tags
             WorkingDir = "temp"
@@ -230,26 +221,26 @@ Target "NuGet" (fun _ ->
 // --------------------------------------------------------------------------------------
 // Generate the documentation
 
-Target "GenerateDocs" (fun _ ->
+Core.Target.create "GenerateDocs" (fun _ ->
     executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"] [] |> ignore
 )
 
-Target "ReleaseDocs" (fun _ ->
-    Repository.clone "" (gitHome + "/" + gitName + ".git") "temp/gh-pages"
-    Branches.checkoutBranch "temp/gh-pages" "gh-pages"
-    CopyRecursive "docs/output" "temp/gh-pages" true |> printfn "%A"
-    CommandHelper.runSimpleGitCommand "temp/gh-pages" "add ." |> printfn "%s"
+Core.Target.create "ReleaseDocs" (fun _ ->
+    Tools.Git.Repository.clone "" (gitHome + "/" + gitName + ".git") "temp/gh-pages"
+    Tools.Git.Branches.checkoutBranch "temp/gh-pages" "gh-pages"
+    Shell.copyRecursive "docs/output" "temp/gh-pages" true |> printfn "%A"
+    Tools.Git.CommandHelper.runSimpleGitCommand "temp/gh-pages" "add ." |> printfn "%s"
     let cmd = sprintf """commit -a -m "Update generated documentation for version %s""" release.NugetVersion
-    CommandHelper.runSimpleGitCommand "temp/gh-pages" cmd |> printfn "%s"
-    Branches.push "temp/gh-pages"
+    Tools.Git.CommandHelper.runSimpleGitCommand "temp/gh-pages" cmd |> printfn "%s"
+    Tools.Git.Branches.push "temp/gh-pages"
 )
 
-Target "Release" DoNothing
+Core.Target.create "Release" DoNothing
 
 // --------------------------------------------------------------------------------------
 // Run all targets by default. Invoke 'build <Target>' to override
 
-Target "All" DoNothing
+Core.Target.create "All" DoNothing
 
 "Clean"
   ==> "RestorePackages"
@@ -270,5 +261,5 @@ Target "All" DoNothing
   ==> "GenerateDocs"
   ==> "ReleaseDocs"
 
-RunTargetOrDefault "All"
+Core.Target.runOrDefault "All"
 
