@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ContentModelStore">
-    <e p="$PROJECT_DIR$" t="IncludeFlat">
+    <e p="C:\Users\kirichenko\.Rider2018.1\system\resharper-host\Local\Transient\ReSharperHost\v12\SolutionCaches\_SqlClient.-166080880.00" t="ExcludeRecursive" />
+    <e p="C:\WLCR\github\FSharp.Data.SqlClient" t="IncludeFlat">
       <e p=".nuget" t="Include" />
       <e p=".paket" t="Include" />
       <e p="build.cmd" t="Include" />
@@ -31,18 +32,23 @@
         </e>
       </e>
       <e p="LICENSE.md" t="Include" />
-      <e p="nuget/SqlClient.nuspec" t="Include" />
-      <e p="packages" t="ExcludeRecursive" />
-      <e p="paket-files/fsprojects/FSharp.TypeProviders.SDK/src/ProvidedTypes.fs" t="Include" />
-      <e p="paket-files/fsprojects/FSharp.TypeProviders.SDK/src/ProvidedTypes.fsi" t="Include" />
-      <e p="paket-files/fsprojects/FSharp.TypeProviders.SDK/src/ProvidedTypesTesting.fs" t="Include" />
+      <e p="nuget\SqlClient.nuspec" t="Include" />
+      <e p="packages" t="ExcludeRecursive">
+        <e p="build\NetStandard.Library.NetFramework\build\net461\lib\netstandard.dll" t="Include" />
+        <e p="build\NetStandard.Library.NetFramework\build\net461\lib\System.IO.dll" t="Include" />
+        <e p="build\NetStandard.Library.NetFramework\build\net461\lib\System.Reflection.dll" t="Include" />
+        <e p="build\NetStandard.Library.NetFramework\build\net461\lib\System.Runtime.dll" t="Include" />
+      </e>
+      <e p="paket-files\build\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fs" t="Include" />
+      <e p="paket-files\build\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fsi" t="Include" />
+      <e p="paket-files\build\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypesTesting.fs" t="Include" />
       <e p="paket.dependencies" t="Include" />
       <e p="paket.lock" t="Include" />
       <e p="README.md" t="Include" />
       <e p="RELEASE_NOTES.md" t="Include" />
       <e p="Solution Items" t="Include" />
       <e p="SqlClient.sln" t="IncludeFlat" />
-      <e p="src/SqlClient" t="IncludeRecursive">
+      <e p="src\SqlClient" t="IncludeRecursive">
         <e p="AssemblyInfo.fs" t="Include" />
         <e p="bin" t="ExcludeRecursive" />
         <e p="Configuration.fs" t="Include" />
@@ -54,11 +60,6 @@
         <e p="paket.references" t="Include" />
         <e p="ProvidedTypesCache.fs" t="Include" />
         <e p="QuotationsFactory.fs" t="Include" />
-        <e p="Scripts" t="Include">
-          <e p="ReverseLineOrderForNotex.fsx" t="Include" />
-          <e p="Scratchpad.fsx" t="Include" />
-          <e p="XE.fsx" t="Include" />
-        </e>
         <e p="SingleFileChangeMonitor.fs" t="Include" />
         <e p="SingleRootTypeProvider.fs" t="Include" />
         <e p="SqlClient.fsproj" t="IncludeRecursive" />
@@ -69,6 +70,5 @@
         <e p="SqlFileProvider.fs" t="Include" />
       </e>
     </e>
-    <e p="$USER_HOME$/Library/Caches/Rider2018.1/resharper-host/local/Transient/ReSharperHost/v12/SolutionCaches/_SqlClient.-1296799789.00" t="ExcludeRecursive" />
   </component>
 </project>

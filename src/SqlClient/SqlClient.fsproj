@@ -1,69 +1,73 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../netfx.props" />
-  <Import Project="../../fsc.props" />
-  <PropertyGroup>
-    <TargetFrameworks>net461;netstandard2.0</TargetFrameworks>
-    <AssemblyName>FSharp.Data.SqlClient</AssemblyName>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <AllowCrossTargeting>true</AllowCrossTargeting>
-  </PropertyGroup>
-  <ItemGroup>
-    <Compile Include="..\..\paket-files\build\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fsi">
-      <Paket>True</Paket>
-      <Link>ProvidedTypes.fsi</Link>
-    </Compile>
-    <Compile Include="..\..\paket-files\build\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fs">
-      <Paket>True</Paket>
-      <Link>ProvidedTypes.fs</Link>
-    </Compile>
-    <Compile Include="..\..\paket-files\build\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypesTesting.fs">
-      <Paket>True</Paket>
-      <Link>ProvidedTypesTesting.fs</Link>
-    </Compile>
-    <None Include="..\..\packages\build\NetStandard.Library.NetFramework\build\net461\lib\netstandard.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\..\packages\build\NETStandard.Library.NETFramework\build\net461\lib\System.Reflection.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\..\packages\build\NETStandard.Library.NETFramework\build\net461\lib\System.Runtime.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Configuration.fs" />
-    <Compile Include="ProvidedTypesCache.fs" />
-    <Compile Include="DynamicRecord.fs" />
-    <Compile Include="SqlClientExtensions.fs" />
-    <Compile Include="DataTable.fs" />
-    <Compile Include="ISqlCommand.fs" />
-    <Compile Include="QuotationsFactory.fs" />
-    <Compile Include="DesignTime.fs" />
-    <Compile Include="SingleFileChangeMonitor.fs" />
-    <Compile Include="SingleRootTypeProvider.fs" />
-    <Compile Include="SqlCommandProvider.fs" />
-    <Compile Include="SqlClientProvider.fs" />
-    <Compile Include="SqlEnumProvider.fs" />
-    <Compile Include="SqlFileProvider.fs" />
-    <None Include="Scripts\Scratchpad.fsx" />
-    <None Include="Scripts\ReverseLineOrderForNotex.fsx" />
-    <None Include="Scripts\XE.fsx" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net461'">
-    <Reference Include="mscorlib" />
-    <Reference Include="System" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.IdentityModel" />
-    <Reference Include="System.ServiceModel" />
-    <Reference Include="System.Transactions" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="paket.references" />
-  </ItemGroup>
-  <Import Project="..\..\.paket\Paket.Restore.targets" />
+    <Import Project="../../netfx.props"/>
+    <Import Project="../../fsc.props"/>
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
+        <AssemblyName>FSharp.Data.SqlClient</AssemblyName>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+        <AllowCrossTargeting>true</AllowCrossTargeting>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="..\..\paket-files\build\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fsi">
+            <Paket>True</Paket>
+            <Link>ProvidedTypes.fsi</Link>
+        </Compile>
+        <Compile Include="..\..\paket-files\build\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fs">
+            <Paket>True</Paket>
+            <Link>ProvidedTypes.fs</Link>
+        </Compile>
+        <Compile Include="..\..\paket-files\build\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypesTesting.fs">
+            <Paket>True</Paket>
+            <Link>ProvidedTypesTesting.fs</Link>
+        </Compile>
+        <None Include="..\..\packages\build\NetStandard.Library.NetFramework\build\net461\lib\netstandard.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Include="..\..\packages\build\NETStandard.Library.NETFramework\build\net461\lib\System.Reflection.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Include="..\..\packages\build\NETStandard.Library.NETFramework\build\net461\lib\System.Runtime.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Include="..\..\packages\build\NETStandard.Library.NETFramework\build\net461\lib\System.IO.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <Compile Include="AssemblyInfo.fs"/>
+        <Compile Include="Configuration.fs"/>
+        <Compile Include="ProvidedTypesCache.fs"/>
+        <Compile Include="DynamicRecord.fs"/>
+        <Compile Include="SqlClientExtensions.fs"/>
+        <Compile Include="DataTable.fs"/>
+        <Compile Include="ISqlCommand.fs"/>
+        <Compile Include="QuotationsFactory.fs"/>
+        <Compile Include="DesignTime.fs"/>
+        <Compile Include="SingleFileChangeMonitor.fs"/>
+        <Compile Include="SingleRootTypeProvider.fs"/>
+        <Compile Include="SqlCommandProvider.fs"/>
+        <Compile Include="SqlClientProvider.fs"/>
+        <Compile Include="SqlEnumProvider.fs"/>
+        <Compile Include="SqlFileProvider.fs"/>
+        <None Include="Scripts\Scratchpad.fsx"/>
+        <None Include="Scripts\ReverseLineOrderForNotex.fsx"/>
+        <None Include="Scripts\XE.fsx"/>
+    </ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'net461'">
+        <Reference Include="mscorlib"/>
+        <Reference Include="System"/>
+        <Reference Include="System.Configuration"/>
+        <Reference Include="System.Core"/>
+        <Reference Include="System.Data"/>
+        <Reference Include="System.Data.DataSetExtensions"/>
+        <Reference Include="System.IdentityModel"/>
+        <Reference Include="System.ServiceModel"/>
+        <Reference Include="System.Transactions"/>
+        <Reference Include="System.Xml"/>
+        <Reference Include="System.Runtime.Caching"/>
+    </ItemGroup>
+    <ItemGroup>
+        <Content Include="paket.references"/>
+    </ItemGroup>
+    <Import Project="..\..\.paket\Paket.Restore.targets"/>
 </Project>

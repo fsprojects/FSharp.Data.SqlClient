@@ -1,4 +1,4 @@
-#### 2.0.14 - May 13, 2018
+#### 2.0.27-alpha - May 13, 2018
 	* Target netstandard20
 
 #### 1.8.4 - May 12, 2018

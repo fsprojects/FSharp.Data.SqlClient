@@ -193,6 +193,19 @@ Core.Target.create "RunTests" (fun _ ->
 Core.Target.create "NuGet" (fun _ ->
 //    CopyDir @"bin" "src/SqlClient/bin/Debug" allFiles
 //    CopyDir @"bin" "src/SqlClient/bin/Release" allFiles
+
+#if MONO
+#else
+    let dotnetSdk = @"C:\Program Files\dotnet\sdk\2.1.200\Microsoft\Microsoft.NET.Build.Extensions\net461\lib\"
+    if directoryExists dotnetSdk then
+       CopyFile "bin/netstandard2.0" (dotnetSdk + @"netstandard.dll")
+       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Console.dll")
+       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.IO.dll")
+       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Reflection.dll")
+       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Runtime.dll")
+    CopyFile "bin/netstandard2.0" "packages/build/System.Data.SqlClient/lib/net461/System.Data.SqlClient.dll" 
+    CopyFile "bin/netstandard2.0" "packages/build/System.Configuration.ConfigurationManager/lib/net461/System.Configuration.ConfigurationManager.dll" 
+#endif
     
     CopyDir @"temp/lib" "bin" allFiles
 

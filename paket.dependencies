@@ -13,9 +13,9 @@ group Build
 	nuget System.Console
 	nuget System.Reflection
 	nuget System.Reflection.TypeExtensions
-	nuget System.Data.SqlClient
+	nuget System.Data.SqlClient 4.4.0
 	nuget System.Data.Common
-	nuget System.Configuration.ConfigurationManager
+	nuget System.Configuration.ConfigurationManager 4.4.1
 	nuget Microsoft.SqlServer.TransactSql.ScriptDom
 
 	# These are for TPSDK testing of TPDTCs against .NET Core App 2.0, to make sure references can be found in a known packages/... location.  
