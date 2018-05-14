@@ -5,7 +5,6 @@ group Build
 	
 	nuget FSharp.Core >= 4.0 lowest_matching:true	
 	nuget System.Runtime
-	nuget System.Runtime.Caching
 	nuget System.Runtime.Loader
 	nuget System.Runtime.Serialization.Primitives
 	nuget System.Runtime.Serialization.Formatters

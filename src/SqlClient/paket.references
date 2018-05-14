@@ -1,7 +1,6 @@
 group Build
 	FSharp.Core
 	System.Runtime
-	System.Runtime.Caching
 	System.Runtime.Loader
 	System.Runtime.Serialization.Primitives
 	System.Runtime.Serialization.Formatters

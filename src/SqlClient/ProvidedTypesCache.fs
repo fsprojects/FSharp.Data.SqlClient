@@ -1,17 +1,14 @@
 ﻿[<AutoOpen>]
-module FSharp.Data.SqlClient.Cache
+module internal FSharp.Data.SqlClient.Cache
 
-open System
-open System.Runtime.Caching
+open ProviderImplementation.ProvidedTypes
+open System.Collections.Concurrent
 
-type MemoryCache with 
-    member this.GetOrAdd<'T>(key, value: Lazy<'T>, ?expiration): 'T = 
-        let policy = CacheItemPolicy()
-        policy.SlidingExpiration <- defaultArg expiration <| TimeSpan.FromHours 24.
-        match this.AddOrGetExisting(key, value, policy) with
-        | :? Lazy<'T> as item -> 
-            item.Value
-        | x -> 
-            assert(x = null)
-            value.Value
+type TypeName = string
+
+type Cache<'a>() =
+    let cache = ConcurrentDictionary<TypeName, Lazy<'a>>()
+
+    member __.GetOrAdd(typeName: TypeName, value: Lazy<'a>): 'a = 
+        cache.GetOrAdd(typeName, value).Value
 

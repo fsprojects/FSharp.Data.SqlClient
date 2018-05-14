@@ -9,7 +9,6 @@ open System.Data.SqlClient
 open System.Diagnostics
 open System.IO
 open System.Reflection
-open System.Runtime.Caching
 open System.Data.SqlTypes
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
@@ -29,13 +28,11 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     let nameSpace = this.GetType().Namespace
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlProgrammabilityProvider", Some typeof<obj>, hideObjectMethods = true)
 
-    let cache = new MemoryCache(name = this.GetType().Name)
-    let methodsCache = new MemoryCache(name = this.GetType().Name)
+    let cache = Cache()
+    let methodsCache = Cache()
 
     do 
         this.Disposing.Add <| fun _ -> 
-            cache.Dispose()
-            methodsCache.Dispose()
             clearDataTypesMap()
     do 
         //this.RegisterRuntimeAssemblyLocationAsProbingFolder( config) 

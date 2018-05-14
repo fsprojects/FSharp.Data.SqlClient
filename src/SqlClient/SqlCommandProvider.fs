@@ -10,15 +10,10 @@ open System.Reflection
 open System.Collections.Generic
 open System.Runtime.CompilerServices
 open System.Configuration
-open System.Runtime.Caching
-
 open Microsoft.SqlServer.Server
-
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
-
 open FSharp.Data.SqlClient
-
 open ProviderImplementation.ProvidedTypes
 
 [<assembly:TypeProviderAssembly()>]
@@ -36,12 +31,11 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
     let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, hideObjectMethods = true)
 
-    let cache = new MemoryCache(name = this.GetType().Name)
+    let cache = Cache()
 
     do 
         this.Disposing.Add <| fun _ ->
             try  
-                cache.Dispose()
                 clearDataTypesMap()
             with _ -> ()
 

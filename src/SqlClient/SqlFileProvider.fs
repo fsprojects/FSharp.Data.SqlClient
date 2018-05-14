@@ -50,4 +50,4 @@ type SqlFileProvider(config : TypeProviderConfig) =
 
                 t
 
-        typ, [| new SingleFileChangeMonitor(fullPath) |]
+        typ, [| (* new SingleFileChangeMonitor(fullPath) *) |]

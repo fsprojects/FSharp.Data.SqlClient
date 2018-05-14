@@ -84,26 +84,27 @@ Core.Target.create "InstallDotNetCore" (fun _ ->
 // --------------------------------------------------------------------------------------
 // Build library 
 Core.Target.create "Build" (fun _ ->
-//    DotNetCli.Restore(fun p -> 
-//        { p with 
-//            Project = "src/SqlClient/SqlClient.fsproj"
-//            NoCache = true })
-//
-//    DotNetCli.Build(fun p -> 
-//        { p with 
-//            Project = "src/SqlClient/SqlClient.fsproj"
-//            Configuration = "Debug" // "Release" 
-//        })
-    
-    ["netstandard2.0"; "net461"]
-    |> List.iter (fun target ->
-    let outDir = __SOURCE_DIRECTORY__ </> "bin" </> target
-    DotNetCli.Publish (fun p -> 
-        { p with Output = outDir
-                 Framework = target
-                 WorkingDir = "src/SqlClient/" 
+    DotNetCli.Restore(fun p -> 
+        { p with 
+            Project = "src/SqlClient/SqlClient.fsproj"
+            NoCache = true })
+
+    DotNetCli.Build(fun p -> 
+        { p with 
+            Project = "src/SqlClient/SqlClient.fsproj"
+            Configuration = "Debug" // "Release" 
         })
-    )
+    
+//    ["netstandard2.0"; "net461"]
+//    |> List.iter (fun target ->
+//    let outDir = __SOURCE_DIRECTORY__ </> "bin" </> target
+//    DotNetCli.Publish (fun p -> 
+//        { p with Output = outDir
+//                 Framework = target
+//                 WorkingDir = "src/SqlClient/" 
+//                 Configuration = "Debug"
+//        })
+//    )
 )
 
 #r "System.Data"
@@ -191,23 +192,23 @@ Core.Target.create "RunTests" (fun _ ->
 // Build a NuGet package
 
 Core.Target.create "NuGet" (fun _ ->
-//    CopyDir @"bin" "src/SqlClient/bin/Debug" allFiles
+    CopyDir @"bin" "src/SqlClient/bin/Debug" allFiles
 //    CopyDir @"bin" "src/SqlClient/bin/Release" allFiles
 
 #if MONO
 #else
     let dotnetSdk = @"C:\Program Files\dotnet\sdk\2.1.200\Microsoft\Microsoft.NET.Build.Extensions\net461\lib\"
-    if directoryExists dotnetSdk then
-       CopyFile "bin/netstandard2.0" (dotnetSdk + @"netstandard.dll")
-       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Console.dll")
-       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.IO.dll")
-       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Reflection.dll")
-       CopyFile "bin/netstandard2.0" (dotnetSdk + @"System.Runtime.dll")
-    CopyFile "bin/netstandard2.0" "packages/build/System.Data.SqlClient/lib/net461/System.Data.SqlClient.dll" 
-    CopyFile "bin/netstandard2.0" "packages/build/System.Configuration.ConfigurationManager/lib/net461/System.Configuration.ConfigurationManager.dll" 
+    if  directoryExists dotnetSdk then
+       Shell.copyFile "bin/netstandard2.0" (dotnetSdk + @"netstandard.dll")
+       Shell.copyFile "bin/netstandard2.0" (dotnetSdk + @"System.Console.dll")
+       Shell.copyFile "bin/netstandard2.0" (dotnetSdk + @"System.IO.dll")
+       Shell.copyFile "bin/netstandard2.0" (dotnetSdk + @"System.Reflection.dll")
+       Shell.copyFile "bin/netstandard2.0" (dotnetSdk + @"System.Runtime.dll")
+    Shell.copyFile "bin/netstandard2.0" "packages/build/System.Data.SqlClient/lib/net461/System.Data.SqlClient.dll" 
+    Shell.copyFile "bin/netstandard2.0" "packages/build/System.Configuration.ConfigurationManager/lib/net461/System.Configuration.ConfigurationManager.dll" 
 #endif
     
-    CopyDir @"temp/lib" "bin" allFiles
+    Shell.copyDir @"temp/lib" "bin" allFiles
 
     // Format the description to fit on a single line (remove \r\n and double-spaces)
     let description = description.Replace("\r", "").Replace("\n", "").Replace("  ", " ")
