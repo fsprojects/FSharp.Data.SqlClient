@@ -1,5 +1,7 @@
 ﻿namespace FSharp.Data.SqlClient
 
+#nowarn "101"
+
 open System
 open System.Reflection
 open System.Data

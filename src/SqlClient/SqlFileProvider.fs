@@ -1,5 +1,7 @@
 ﻿namespace FSharp.Data
 
+#nowarn "101"
+
 open System.IO
 open Microsoft.FSharp.Core.CompilerServices
 open ProviderImplementation.ProvidedTypes

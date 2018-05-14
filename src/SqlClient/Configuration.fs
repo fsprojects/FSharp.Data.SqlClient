@@ -1,5 +1,7 @@
 ﻿namespace FSharp.Data
 
+#nowarn "101"
+
 ///<summary>Enum describing output type</summary>
 type ResultType =
 ///<summary>Sequence of custom records with properties matching column names and types</summary>

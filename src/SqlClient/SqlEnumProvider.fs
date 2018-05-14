@@ -1,5 +1,7 @@
 ﻿namespace FSharp.Data
 
+#nowarn "101"
+
 open System.Reflection
 open System.Collections.Generic
 open System.Data
