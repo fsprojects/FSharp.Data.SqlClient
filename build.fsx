@@ -198,7 +198,7 @@ Core.Target.create "NuGet" (fun _ ->
 #if MONO
 #else
     let dotnetSdk = @"C:\Program Files\dotnet\sdk\2.1.200\Microsoft\Microsoft.NET.Build.Extensions\net461\lib\"
-    if  directoryExists dotnetSdk then
+    if directoryExists dotnetSdk then
        Shell.copyFile "bin/netstandard2.0" (dotnetSdk + @"netstandard.dll")
        Shell.copyFile "bin/netstandard2.0" (dotnetSdk + @"System.Console.dll")
        Shell.copyFile "bin/netstandard2.0" (dotnetSdk + @"System.IO.dll")

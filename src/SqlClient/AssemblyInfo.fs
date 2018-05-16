@@ -6,8 +6,8 @@ open System.Runtime.CompilerServices
 [<assembly: AssemblyTitleAttribute("SqlClient")>]
 [<assembly: AssemblyProductAttribute("FSharp.Data.SqlClient")>]
 [<assembly: AssemblyDescriptionAttribute("SqlClient F# type providers")>]
-[<assembly: AssemblyVersionAttribute("1.8.4")>]
-[<assembly: AssemblyFileVersionAttribute("1.8.4")>]
+[<assembly: AssemblyVersionAttribute("2.0.50")>]
+[<assembly: AssemblyFileVersionAttribute("2.0.50")>]
 [<assembly: InternalsVisibleToAttribute("SqlClient.Tests")>]
 do ()
 
@@ -15,6 +15,6 @@ module internal AssemblyVersionInformation =
     let [<Literal>] AssemblyTitle = "SqlClient"
     let [<Literal>] AssemblyProduct = "FSharp.Data.SqlClient"
     let [<Literal>] AssemblyDescription = "SqlClient F# type providers"
-    let [<Literal>] AssemblyVersion = "1.8.4"
-    let [<Literal>] AssemblyFileVersion = "1.8.4"
+    let [<Literal>] AssemblyVersion = "2.0.50"
+    let [<Literal>] AssemblyFileVersion = "2.0.50"
     let [<Literal>] InternalsVisibleTo = "SqlClient.Tests"

@@ -12,11 +12,8 @@ open System.Reflection
 open System.Data.SqlTypes
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
-
 open Microsoft.SqlServer.Server
-
 open ProviderImplementation.ProvidedTypes
-
 open FSharp.Data.SqlClient
 
 [<TypeProvider>]

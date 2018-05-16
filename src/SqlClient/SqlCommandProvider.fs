@@ -27,6 +27,15 @@ do()
 type SqlCommandProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces(config)
 
+    static do
+      // When SqlCommandProvider is installed via NuGet/Paket, the Newtonsoft.Json assembly and
+      // will appear typically in "../../*/lib/net40". To support this, we look at
+      // SwaggerProvider.dll.config which has this pattern in custom key "ProbingLocations".
+      // Here, we resolve assemblies by looking into the specified search paths.
+      AppDomain.CurrentDomain.add_AssemblyResolve(fun source args ->
+          Resolver.resolveReferencedAssembly args.Name
+      )
+
     let nameSpace = this.GetType().Namespace
     let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, hideObjectMethods = true)
