@@ -18,7 +18,6 @@ open Microsoft.FSharp.Quotations
 open FSharp.Data.SqlClient
 
 open ProviderImplementation.ProvidedTypes
-open System.Text.RegularExpressions
 
 [<assembly:TypeProviderAssembly()>]
 #if DEBUG

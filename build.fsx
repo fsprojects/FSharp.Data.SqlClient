@@ -35,7 +35,7 @@ let release =
 
 let version = release.AssemblyVersion
 let releaseNotes = release.Notes |> String.concat "\n"
-let testDir = "Build/Tests"
+let testDir = "bin"
 
 // --------------------------------------------------------------------------------------
 // Generate assembly info files with the right version & up-to-date information
@@ -48,7 +48,8 @@ Target "AssemblyInfo" (fun _ ->
              Attribute.Product project
              Attribute.Description summary
              Attribute.Version version
-             Attribute.FileVersion version] )
+             Attribute.FileVersion version
+             Attribute.InternalsVisibleTo "SqlClient.Tests" ] )
 )
 
 // --------------------------------------------------------------------------------------

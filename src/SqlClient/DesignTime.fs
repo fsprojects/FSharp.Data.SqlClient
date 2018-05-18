@@ -58,34 +58,33 @@ type TempTableLoader(fieldCount, items: obj seq) =
 
         member __.Close(): unit = invalidOp "NotImplementedException"
         member __.Depth: int = invalidOp "NotImplementedException"
-        member __.GetBoolean(i: int): bool = invalidOp "NotImplementedException"
-        member __.GetByte(i: int): byte = invalidOp "NotImplementedException"
-        member __.GetBytes(i: int, fieldOffset: int64, buffer: byte [], bufferoffset: int, length: int): int64 = invalidOp "NotImplementedException"
-        member __.GetChar(i: int): char = invalidOp "NotImplementedException"
-        member __.GetChars(i: int, fieldoffset: int64, buffer: char [], bufferoffset: int, length: int): int64 = invalidOp "NotImplementedException"
-        member __.GetData(i: int): IDataReader = invalidOp "NotImplementedException"
-        member __.GetDataTypeName(i: int): string = invalidOp "NotImplementedException"
-        member __.GetDateTime(i: int): System.DateTime = invalidOp "NotImplementedException"
-        member __.GetDecimal(i: int): decimal = invalidOp "NotImplementedException"
-        member __.GetDouble(i: int): float = invalidOp "NotImplementedException"
-        member __.GetFieldType(i: int): System.Type = invalidOp "NotImplementedException"
-        member __.GetFloat(i: int): float32 = invalidOp "NotImplementedException"
-        member __.GetGuid(i: int): System.Guid = invalidOp "NotImplementedException"
-        member __.GetInt16(i: int): int16 = invalidOp "NotImplementedException"
-        member __.GetInt32(i: int): int = invalidOp "NotImplementedException"
-        member __.GetInt64(i: int): int64 = invalidOp "NotImplementedException"
-        member __.GetName(i: int): string = invalidOp "NotImplementedException"
-        member __.GetOrdinal(name: string): int = invalidOp "NotImplementedException"
+        member __.GetBoolean(_: int): bool = invalidOp "NotImplementedException"
+        member __.GetByte(_ : int): byte = invalidOp "NotImplementedException"
+        member __.GetBytes(_ : int, _ : int64, _ : byte [], _ : int, _ : int): int64 = invalidOp "NotImplementedException"
+        member __.GetChar(_ : int): char = invalidOp "NotImplementedException"
+        member __.GetChars(_ : int, _ : int64, _ : char [], _ : int, _ : int): int64 = invalidOp "NotImplementedException"
+        member __.GetData(_ : int): IDataReader = invalidOp "NotImplementedException"
+        member __.GetDataTypeName(_ : int): string = invalidOp "NotImplementedException"
+        member __.GetDateTime(_ : int): System.DateTime = invalidOp "NotImplementedException"
+        member __.GetDecimal(_ : int): decimal = invalidOp "NotImplementedException"
+        member __.GetDouble(_ : int): float = invalidOp "NotImplementedException"
+        member __.GetFieldType(_ : int): System.Type = invalidOp "NotImplementedException"
+        member __.GetFloat(_ : int): float32 = invalidOp "NotImplementedException"
+        member __.GetGuid(_ : int): System.Guid = invalidOp "NotImplementedException"
+        member __.GetInt16(_ : int): int16 = invalidOp "NotImplementedException"
+        member __.GetInt32(_ : int): int = invalidOp "NotImplementedException"
+        member __.GetInt64(_ : int): int64 = invalidOp "NotImplementedException"
+        member __.GetName(_ : int): string = invalidOp "NotImplementedException"
+        member __.GetOrdinal(_ : string): int = invalidOp "NotImplementedException"
         member __.GetSchemaTable(): DataTable = invalidOp "NotImplementedException"
-        member __.GetString(i: int): string = invalidOp "NotImplementedException"
-        member __.GetValues(values: obj []): int = invalidOp "NotImplementedException"
+        member __.GetString(_ : int): string = invalidOp "NotImplementedException"
+        member __.GetValues(_ : obj []): int = invalidOp "NotImplementedException"
         member __.IsClosed: bool = invalidOp "NotImplementedException"
-        member __.IsDBNull(i: int): bool = invalidOp "NotImplementedException"
-        member __.Item with get (i: int): obj = invalidOp "NotImplementedException"
-        member __.Item with get (name: string): obj = invalidOp "NotImplementedException"
+        member __.IsDBNull(_ : int): bool = invalidOp "NotImplementedException"
+        member __.Item with get (_ : int): obj = invalidOp "NotImplementedException"
+        member __.Item with get (_ : string): obj = invalidOp "NotImplementedException"
         member __.NextResult(): bool = invalidOp "NotImplementedException"
         member __.RecordsAffected: int = invalidOp "NotImplementedException"
-
 
 type DesignTime private() =
     static member internal AddGeneratedMethod
@@ -276,6 +275,38 @@ type DesignTime private() =
                         columns.[columnName]
                     @@>
 
+            let getValueMethod =
+                ProvidedMethod(
+                    "GetValue"
+                    , [ProvidedParameter("row", dataRowType)]
+                    , column.ErasedToType
+                )
+
+            let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode(column)
+
+            getValueMethod.InvokeCode <-
+                fun args ->
+                    // we don't care of args.[0] (the DataColumn) because getter code is already made for that column
+                    getter args.Tail
+
+            let setValueMethod =
+                ProvidedMethod(
+                    "SetValue"
+                    , [
+                        ProvidedParameter("row", dataRowType)
+                        ProvidedParameter("value", column.ErasedToType)
+                    ]
+                    , typeof<unit>
+                )
+
+            setValueMethod.InvokeCode <-
+                fun args ->
+                    // we don't care of args.[0] (the DataColumn) because setter code is already made for that column
+                    setter args.Tail
+
+            propertyType.AddMember getValueMethod
+            propertyType.AddMember setValueMethod
+
             columnsType.AddMember property
             columnsType.AddMember propertyType
 
@@ -439,7 +470,7 @@ type DesignTime private() =
     static member internal RewriteSqlStatementToEnableMoreThanOneParameterDeclaration(cmd: SqlCommand, why: SqlException) =
 
         let getVariables tsql =
-            let parser = Microsoft.SqlServer.TransactSql.ScriptDom.TSql120Parser( true)
+            let parser = Microsoft.SqlServer.TransactSql.ScriptDom.TSql140Parser( true)
             let tsqlReader = new System.IO.StringReader(tsql)
             let errors = ref Unchecked.defaultof<_>
             let fragment = parser.Parse(tsqlReader, errors)

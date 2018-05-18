@@ -25,7 +25,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>..\..\Build\Tests</OutputPath>
+    <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>
@@ -39,10 +39,10 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <Tailcalls>true</Tailcalls>
-    <OutputPath>..\..\Build\Tests</OutputPath>
+    <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\Build\Tests\SqlClient.Tests.XML</DocumentationFile>
+    <DocumentationFile>..\..\bin\SqlClient.Tests.XML</DocumentationFile>
     <OtherFlags>--warnon:1182</OtherFlags>
     <NoWarn>101</NoWarn>
   </PropertyGroup>
@@ -102,8 +102,8 @@
       <HintPath>..\..\packages\FSharp.Configuration.0.5.3\lib\net40\FSharp.Configuration.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="FSharp.Core">
-      <HintPath>..\..\packages\FSharp.Core.4.2.1\lib\net45\FSharp.Core.dll</HintPath>
+    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.Data.SqlClient">
       <HintPath>..\..\bin\FSharp.Data.SqlClient.dll</HintPath>

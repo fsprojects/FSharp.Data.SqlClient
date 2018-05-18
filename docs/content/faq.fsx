@@ -71,7 +71,7 @@ Following command allows to filter dynamically information on sales people based
 (**
 ### 4. Why do I get compile time error " ... The undeclared parameter '@p1' is used more than once in the batch being analyzed."?  
 
-This is a limitation of [sys.sp_describe_undeclared_parameters](https://msdn.microsoft.com/en-us/library/ff878260.aspx).
+This is a limitation of [sys.sp\_describe\_undeclared\_parameters](https://msdn.microsoft.com/en-us/library/ff878260.aspx).
 
 To work around this limitation, you can declare another variable in your script:
 
