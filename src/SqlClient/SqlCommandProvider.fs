@@ -57,7 +57,7 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("TableVarMapping", typeof<string>, "")
             ],
             instantiationFunction = (fun typeName args ->
-                let value = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6])
+                let value = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5], unbox args.[6], unbox args.[7], unbox args.[8])
                 cache.GetOrAdd(typeName, value)
             ) 
         )
@@ -85,7 +85,7 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
         |> defaultArg 
         <| base.ResolveAssembly args
 
-    member internal this.CreateRootType(typeName, sqlStatement, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, dataDirectory) = 
+    member internal this.CreateRootType(typeName, sqlStatement, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, dataDirectory, tempTableDefinitions, tableVarMapping) = 
 
         if singleRow && not (resultType = ResultType.Records || resultType = ResultType.Tuples)
         then 
