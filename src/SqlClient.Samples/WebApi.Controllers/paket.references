@@ -1,0 +1,7 @@
+FSharp.Core
+
+group Samples
+	FSharp.Data.SqlClient
+	Microsoft.AspNet.WebApi.Client
+	Microsoft.AspNet.WebApi.Core
+	Newtonsoft.Json
