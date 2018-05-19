@@ -16,38 +16,27 @@ open Microsoft.FSharp.Quotations.Patterns
 open Microsoft.FSharp.Reflection
 open ProviderImplementation.ProvidedTypes
 
-[<AutoOpen>]
-module Utils = 
-    let isNull x = match x with null -> true | _ -> false
+/// Simulate a real host of TypeProviderConfig 
+type internal DllInfo(path: string) = 
+    member x.FileName = path
 
-
-/// Simulate a real host of TypeProviderConfig
-type internal DllInfo(path: string) =
-    member __.FileName = path
-
-/// Simulate a real host of TypeProviderConfig
+/// Simulate a real host of TypeProviderConfig 
 type internal TcImports(bas: TcImports option, dllInfos: DllInfo list) =
-    member __.Base = bas
-    member __.DllInfos = dllInfos
+    member x.Base = bas
+    member x.DllInfos = dllInfos
 
 
-type internal Testing() =
+type internal Testing() = 
 
-    /// Simulates a real instance of TypeProviderConfig
-    static member MakeSimulatedTypeProviderConfig (resolutionFolder: string, runtimeAssembly: string, runtimeAssemblyRefs: string list, ?isHostedExecution, ?isInvalidationSupported) =
+    /// Simulates a real instance of TypeProviderConfig 
+    static member MakeSimulatedTypeProviderConfig (resolutionFolder: string, runtimeAssembly: string, runtimeAssemblyRefs: string list) =
 
-        let cfg = TypeProviderConfig(fun _ -> false)
-        cfg.IsHostedExecution <- defaultArg isHostedExecution false
-        cfg.IsInvalidationSupported <- defaultArg isInvalidationSupported true
+        let cfg = new TypeProviderConfig(fun _ -> false)
         let (?<-) cfg prop value =
             let ty = cfg.GetType()
-            match ty.GetProperty(prop,BindingFlags.Instance ||| BindingFlags.Public ||| BindingFlags.NonPublic) with
-            | null -> 
-                let fld = ty.GetField(prop,BindingFlags.Instance ||| BindingFlags.Public ||| BindingFlags.NonPublic)
-                if fld = null then failwith ("expected TypeProviderConfig to have a property or field "+prop)
-                fld.SetValue(cfg, value)|> ignore
-            | p -> 
-                p.GetSetMethod(nonPublic = true).Invoke(cfg, [| box value |]) |> ignore
+            match ty.GetProperty(prop,BindingFlags.Instance ||| BindingFlags.Public ||| BindingFlags.NonPublic) with 
+            | null -> ty.GetField(prop,BindingFlags.Instance ||| BindingFlags.Public ||| BindingFlags.NonPublic).SetValue(cfg, value)|> ignore
+            | p -> p.GetSetMethod(nonPublic = true).Invoke(cfg, [| box value |]) |> ignore
         cfg?ResolutionFolder <- resolutionFolder
         cfg?RuntimeAssembly <- runtimeAssembly
         cfg?ReferencedAssemblies <- Array.zeroCreate<string> 0
@@ -56,31 +45,25 @@ type internal Testing() =
         let dllInfos = [yield DllInfo(runtimeAssembly); for r in runtimeAssemblyRefs do yield DllInfo(r)]
         let tcImports = TcImports(Some(TcImports(None,[])),dllInfos)
         let systemRuntimeContainsType = (fun (_s:string) -> if tcImports.DllInfos.Length = 1 then true else true)
-        cfg?systemRuntimeContainsType <- systemRuntimeContainsType
+        cfg?systemRuntimeContainsType <- systemRuntimeContainsType 
 
         //Diagnostics.Debugger.Launch() |> ignore
-        Diagnostics.Debug.Assert(cfg.GetType().GetField("systemRuntimeContainsType",BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Instance) |> isNull |> not)
-        Diagnostics.Debug.Assert(systemRuntimeContainsType.GetType().GetField("tcImports",BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Instance) |> isNull |> not)
-        Diagnostics.Debug.Assert(typeof<TcImports>.GetField("dllInfos",BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Instance) |> isNull |> not)
-        Diagnostics.Debug.Assert(typeof<TcImports>.GetProperty("Base",BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Instance) |> isNull |> not)
-        Diagnostics.Debug.Assert(typeof<DllInfo>.GetProperty("FileName",BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Instance) |> isNull |> not)
+        Diagnostics.Debug.Assert(cfg.GetType().GetField("systemRuntimeContainsType",BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Instance) <> null)
+        Diagnostics.Debug.Assert(systemRuntimeContainsType.GetType().GetField("tcImports",BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Instance) <> null)
+        Diagnostics.Debug.Assert(typeof<TcImports>.GetField("dllInfos",BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Instance) <> null)
+        Diagnostics.Debug.Assert(typeof<TcImports>.GetProperty("Base",BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Instance) <> null)
+        Diagnostics.Debug.Assert(typeof<DllInfo>.GetProperty("FileName",BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Instance) <> null)
 
         cfg
 
     /// Simulates a real instance of TypeProviderConfig and then creates an instance of the last
     /// type provider added to a namespace by the type provider constructor
-    static member GenerateProvidedTypeInstantiation (resolutionFolder: string, runtimeAssembly: string, runtimeAssemblyRefs: string list, typeProviderForNamespacesConstructor, args: obj[]) =
-        let cfg = Testing.MakeSimulatedTypeProviderConfig (resolutionFolder, runtimeAssembly, runtimeAssemblyRefs)
+    static member GenerateProvidedTypeInstantiation (resolutionFolder: string, runtimeAssembly: string, runtimeAssemblyRefs: string list, typeProviderForNamespacesConstructor, args) =
+        let cfg = Testing.MakeSimulatedTypeProviderConfig (resolutionFolder, runtimeAssembly, runtimeAssemblyRefs) 
 
-        let tp = typeProviderForNamespacesConstructor cfg :> TypeProviderForNamespaces
+        let typeProviderForNamespaces = typeProviderForNamespacesConstructor cfg :> TypeProviderForNamespaces
 
-        let providedNamespace = tp.Namespaces.[0] 
-        let providedTypes  = providedNamespace.GetTypes()
-        let providedType = 
-            providedTypes 
-            |> Array.tryFind (fun ty -> (tp :> ITypeProvider).GetStaticParameters(ty).Length = args.Length ) 
-            |> function None -> failwithf "couldn't find a type in type provider with %d static args " args.Length | Some ty -> ty
-        let providedTypeDefinition = providedType :?> ProvidedTypeDefinition
+        let providedTypeDefinition = typeProviderForNamespaces.Namespaces |> Seq.last |> snd |> Seq.last
 
         match args with
         | [||] -> providedTypeDefinition
@@ -90,13 +73,13 @@ type internal Testing() =
                     providedTypeDefinition.Name + (args |> Seq.map (fun s -> ",\"" + (if s = null then "" else s.ToString()) + "\"") |> Seq.reduce (+))
                 else
                     // The type name ends up quite mangled in the dll output if we combine the name using static parameters, so for generated types we don't do that
-                    providedTypeDefinition.Name
-            providedTypeDefinition.ApplyStaticArguments(typeName, args)
+                    providedTypeDefinition.Name 
+            providedTypeDefinition.MakeParametricType(typeName, args)
 
     /// Returns a string representation of the signature (and optionally also the body) of all the
     /// types generated by the type provider up to a certain depth and width
     /// If ignoreOutput is true, this will still visit the full graph, but it will output an empty string to be faster
-    static member FormatProvidedType (t: ProvidedTypeDefinition, ?signatureOnly, ?ignoreOutput, ?maxDepth, ?maxWidth, ?useQualifiedNames) =
+    static member FormatProvidedType (t: ProvidedTypeDefinition, ?signatureOnly, ?ignoreOutput, ?maxDepth, ?maxWidth, ?useQualifiedNames) = 
 
         let signatureOnly = defaultArg signatureOnly false
         let ignoreOutput = defaultArg ignoreOutput false
@@ -104,7 +87,7 @@ type internal Testing() =
         let maxWidth = defaultArg maxWidth 100
         let useQualifiedNames = defaultArg useQualifiedNames false
 
-        let knownNamespaces =
+        let knownNamespaces = 
             [ t.Namespace
               "Microsoft.FSharp.Core"
               "Microsoft.FSharp.Core.Operators"
@@ -121,9 +104,9 @@ type internal Testing() =
                 pending.Enqueue t
 
         let fullName (t: Type) =
-            let fullName =
+            let fullName = 
                 if useQualifiedNames && not (t :? ProvidedTypeDefinition) then
-                    t.AssemblyQualifiedName
+                    t.AssemblyQualifiedName 
                 else t.Namespace + "." + t.Name
             if fullName.StartsWith "FSI_" then
                 fullName.Substring(fullName.IndexOf('.') + 1)
@@ -132,18 +115,18 @@ type internal Testing() =
 
         let rec toString useFullName (t: Type) =
 
-            let hasUnitOfMeasure = (match t with :? ProvidedTypeSymbol as p -> p.IsFSharpUnitAnnotated | _ -> false) 
+            let hasUnitOfMeasure = t.Name.Contains("[")
 
             let innerToString (t: Type) =
                 match t with
-                | _ when t.Name = typeof<bool>.Name && not hasUnitOfMeasure -> "bool"
-                | _ when t.Name = typeof<obj>.Name && not hasUnitOfMeasure  -> "obj"
-                | _ when t.Name = typeof<int>.Name && not hasUnitOfMeasure  -> "int"
-                | _ when t.Name = typeof<int64>.Name && not hasUnitOfMeasure  -> "int64"
-                | _ when t.Name = typeof<float>.Name && not hasUnitOfMeasure  -> "float"
-                | _ when t.Name = typeof<float32>.Name && not hasUnitOfMeasure  -> "float32"
-                | _ when t.Name = typeof<decimal>.Name && not hasUnitOfMeasure  -> "decimal"
-                | _ when t.Name = typeof<string>.Name && not hasUnitOfMeasure  -> "string"
+                | _ when t.Name = typeof<bool>.Name -> "bool"
+                | _ when t.Name = typeof<obj>.Name -> "obj"
+                | _ when t.Name = typeof<int>.Name -> "int"
+                | _ when t.Name = typeof<int64>.Name -> "int64"
+                | _ when t.Name = typeof<float>.Name -> "float"
+                | _ when t.Name = typeof<float32>.Name -> "float32"
+                | _ when t.Name = typeof<decimal>.Name -> "decimal"
+                | _ when t.Name = typeof<string>.Name -> "string"
                 | _ when t.Name = typeof<Void>.Name -> "()"
                 | _ when t.Name = typeof<unit>.Name -> "()"
                 | t when t.IsArray -> (t.GetElementType() |> toString useFullName) + "[]"
@@ -153,21 +136,21 @@ type internal Testing() =
                 | t when t.IsGenericType ->
                     let args =
                         if useFullName then
-                            t.GetGenericArguments()
+                            t.GetGenericArguments() 
                             |> Seq.map (if hasUnitOfMeasure then (fun t -> t.Name) else toString useFullName)
                         else
-                            t.GetGenericArguments()
+                            t.GetGenericArguments() 
                             |> Seq.map (fun _ -> "_")
                     if t.FullName.StartsWith "System.Tuple`" then
                         String.concat " * " args
                     elif t.Name.StartsWith "FSharpFunc`" then
                         "(" + (String.concat " -> " args) + ")"
-                    else
+                    else 
                         let args = String.concat "," args
-                        let name, reverse =
+                        let name, reverse = 
                             match t with
                             | t when hasUnitOfMeasure -> toString useFullName t.UnderlyingSystemType, false
-                            // Short names for some known generic types
+                            // Short names for some known generic types 
                             | t when not useQualifiedNames && t.GetGenericTypeDefinition().Name = typeof<int seq>.GetGenericTypeDefinition().Name -> "seq", true
                             | t when not useQualifiedNames && t.GetGenericTypeDefinition().Name = typeof<int list>.GetGenericTypeDefinition().Name -> "list", true
                             | t when not useQualifiedNames && t.GetGenericTypeDefinition().Name = typeof<int option>.GetGenericTypeDefinition().Name -> "option", true
@@ -178,7 +161,7 @@ type internal Testing() =
                             | t -> (if useFullName then fullName t else t.Name), false
                         let name = name.Split('`').[0]
                         if reverse then
-                            args + " " + name
+                            args + " " + name 
                         else
                             name + "<" + args + ">"
                 // Short names for types in F# namespaces
@@ -205,7 +188,7 @@ type internal Testing() =
             if parameters.Length = 0 then
                 "()"
             else
-                parameters
+                parameters 
                 |> Seq.map (fun p -> p.Name + ":" + (toString true p.ParameterType))
                 |> String.concat " -> "
 
@@ -213,27 +196,27 @@ type internal Testing() =
 
             let sb = StringBuilder ()
             let print (str:string) = sb.Append(str) |> ignore
-
+        
             let getCurrentIndent() =
                 let lastEnterPos = sb.ToString().LastIndexOf('\n')
                 if lastEnterPos = -1 then sb.Length + 4 else sb.Length - lastEnterPos - 1
 
-            let breakLine indent =
+            let breakLine indent = 
                 print "\n"
-                print (String(' ', indent))
+                print (new String(' ', indent))
 
             let isBigExpression = function
             | Let _ | NewArray _ | NewTuple _ -> true
             | _ -> false
 
-            let inline getAttrs attrName m =
+            let inline getAttrs attrName m = 
                 ( ^a : (member GetCustomAttributesData : unit -> IList<CustomAttributeData>) m)
-                |> Seq.filter (fun attr -> attr.Constructor.DeclaringType.Name = attrName)
+                |> Seq.filter (fun attr -> attr.Constructor.DeclaringType.Name = attrName) 
 
-            let inline hasAttr attrName m =
+            let inline hasAttr attrName m = 
                 not (Seq.isEmpty (getAttrs attrName m))
 
-            let rec printSeparatedByCommas exprs =
+            let rec printSeparatedByCommas exprs = 
                 match exprs with
                 | [] -> ()
                 | e::es ->
@@ -241,9 +224,8 @@ type internal Testing() =
                     for e in es do
                         print ", "
                         printExpr false true e
-
-            and printCall fromPipe printName (mi:MethodInfo) args =
-                //eprintfn "printCall: %s" mi.Name
+                     
+            and printCall fromPipe printName (mi:MethodInfo) args = 
                 if fromPipe && List.length args = 1 then
                     printName()
                 elif not (hasAttr "CompilationArgumentCountsAttribute" mi) then
@@ -276,19 +258,19 @@ type internal Testing() =
                         printExpr false true args.Tail.Head
                         print "]"
                     elif mi.DeclaringType.IsGenericType && mi.DeclaringType.GetGenericTypeDefinition().Name = typeof<int option>.GetGenericTypeDefinition().Name then
-                        if args.IsEmpty then
+                        if args.IsEmpty then 
                             match instance with
                             | None -> print "None"
-                            | Some instance ->
+                            | Some instance -> 
                                 printExpr false true instance
                                 print "."
                                 print <| mi.Name.Substring("get_".Length)
-                        else
+                        else 
                           print "Some "
                           printExpr false true args.Head
                     elif mi.Name.Contains "." && not args.IsEmpty then
                         // instance method in type extension
-                        let printName() =
+                        let printName() = 
                             printExpr false true args.Head
                             print "."
                             print (mi.Name.Substring(mi.Name.IndexOf '.' + 1))
@@ -305,7 +287,7 @@ type internal Testing() =
                         print " |> "
                         match args.Tail.Head with
                         | Lambda (_, (Call(_,_,_) as call)) -> printExpr true false call
-                        | expr -> printExpr false false expr
+                        | _ as expr -> printExpr false false expr
                     else
                         let printName() =
                             match instance with
@@ -316,12 +298,12 @@ type internal Testing() =
                         let isOptional (arg:Expr, param:ParameterInfo) =
                             hasAttr "OptionalArgumentAttribute" param
                             && arg.ToString() = "Call (None, get_None, [])"
-                        let args =
+                        let args = 
                             mi.GetParameters()
-                            |> List.ofArray
+                            |> List.ofArray 
                             |> List.zip args
                             |> List.filter (not << isOptional)
-                            |> List.map fst
+                            |> List.map fst                        
                         printCall fromPipe printName mi args
                 | Let (var1, TupleGet (Var x, 1), Let (var2, TupleGet (Var y, 0), body)) when x = y ->
                     let indent = getCurrentIndent()
@@ -331,19 +313,19 @@ type internal Testing() =
                 | Let (var, value, body) ->
                     let indent = getCurrentIndent()
                     let usePattern = sprintf "IfThenElse(TypeTest(IDisposable,Coerce(%s,Object)),Call(Some(Call(None,UnboxGeneric,[Coerce(%s,Object)])),Dispose,[]),Value(<null>))" var.Name var.Name
-                    let body =
+                    let body = 
                         match body with
                         | TryFinally (tryExpr, finallyExpr) when finallyExpr.ToString().Replace("\n", null).Replace(" ", null) = usePattern ->
                             bprintf sb "use %s = " var.Name
                             tryExpr
-                        | _ ->
+                        | _ -> 
                             if var.IsMutable then
                                 bprintf sb "let mutable %s = " var.Name
                             else
                                 bprintf sb "let %s = " var.Name
                             body
-                    match value with
-                    | Let _ ->
+                    match value with 
+                    | Let _ -> 
                         breakLine (indent + 4)
                         printExpr false false value
                     | _ -> printExpr false false value
@@ -360,7 +342,7 @@ type internal Testing() =
                 | NewObject (ci, args) ->
                     let getSourceConstructFlags (attr:CustomAttributeData) =
                         let arg = attr.ConstructorArguments
-                                  |> Seq.filter (fun arg -> arg.ArgumentType.Name = "SourceConstructFlags")
+                                  |> Seq.filter (fun arg -> arg.ArgumentType.Name = "SourceConstructFlags") 
                                   |> Seq.head
                         arg.Value :?> int
                     let compilationMappings = getAttrs "CompilationMappingAttribute" ci.DeclaringType
@@ -430,7 +412,7 @@ type internal Testing() =
                     print "(let "
                     let rec getTupleLength (typ:Type) =
                         let length = typ.GetGenericArguments().Length
-                        if length = 0 then // happens in the Apiary provider
+                        if length = 0 then // happens in the Apiary provider                            
                             let typeNameSuffix = typ.Name.Substring(typ.Name.IndexOf('`') + 1)
                             typeNameSuffix.Substring(0, typeNameSuffix.IndexOf('[')) |> Int32.Parse
                         else
@@ -460,34 +442,35 @@ type internal Testing() =
         let print (str: string) =
             if not ignoreOutput then
                 sb.Append(str) |> ignore
-
+        
         let println() =
             if not ignoreOutput then
                 sb.AppendLine() |> ignore
-
-        let printMember (memberInfo: MemberInfo) =
+              
+        let printMember (memberInfo: MemberInfo) =        
 
             let print str =
-                print "    "
+                print "    "                
                 print str
                 println()
 
-            let getMethodBody (m: ProvidedMethod) =
-                let vs = 
-                    [ if not m.IsStatic then yield ("this", ProvidedTypeDefinition.EraseType m.DeclaringType)
-                      for p in m.GetParameters() do yield (p.Name, ProvidedTypeDefinition.EraseType p.ParameterType) ]
-                    |> List.map (Var.Global >> Expr.Var)
-                m.GetInvokeCode  vs
+            let getMethodBody (m: ProvidedMethod) = 
+                seq { if not m.IsStatic then yield (ProvidedTypeDefinition.EraseType m.DeclaringType)
+                      for param in m.GetParameters() do yield (ProvidedTypeDefinition.EraseType param.ParameterType) }
+                |> Seq.map (fun typ -> Expr.Value(null, typ))
+                |> Array.ofSeq
+                |> m.GetInvokeCodeInternal false
 
-            let getConstructorBody (c: ProvidedConstructor) =
-                let vs = 
-                    [ for p in c.GetParameters() do yield (p.Name, ProvidedTypeDefinition.EraseType p.ParameterType) ]
-                    |> List.map (Var.Global >> Expr.Var)
-                c.GetInvokeCode vs
+            let getConstructorBody (c: ProvidedConstructor) = 
+                if c.IsImplicitCtor then Expr.Value(()) else
+                seq { for param in c.GetParameters() do yield (ProvidedTypeDefinition.EraseType param.ParameterType) }
+                |> Seq.map (fun typ -> Expr.Value(null, typ))
+                |> Array.ofSeq
+                |> c.GetInvokeCodeInternal false
 
-            let printExpr x =
+            let printExpr x = 
                 if not ignoreOutput then
-                    let rec removeParams x =
+                    let rec removeParams x = 
                       match x with
                       | Let (_, Value(null, _), body) -> removeParams body
                       | _ -> x
@@ -495,13 +478,13 @@ type internal Testing() =
                     print formattedExpr
                     println()
 
-            let printObj x =
-                if ignoreOutput then
+            let printObj x = 
+                if ignoreOutput then 
                     ""
-                else
+                else 
                     sprintf "\n%O\n" x
 
-            let getName (m:MemberInfo) =
+            let getName (m:MemberInfo) = 
                 if memberInfo.Name.Contains(" ") then
                     "``" + m.Name + "``"
                 else
@@ -509,27 +492,27 @@ type internal Testing() =
 
             match memberInfo with
 
-            | :? ProvidedConstructor as cons ->
+            | :? ProvidedConstructor as cons -> 
                 if not ignoreOutput then
-                    print <| "new : " +
-                             (toSignature <| cons.GetParameters()) + " -> " +
+                    print <| "new : " + 
+                             (toSignature <| cons.GetParameters()) + " -> " + 
                              (toString true memberInfo.DeclaringType)
                 if not signatureOnly then
                     cons |> getConstructorBody |> printExpr
 
-            | :? ProvidedField as field ->
-                let value =
+            | :? ProvidedLiteralField as field -> 
+                let value = 
                     if signatureOnly then ""
                     else field.GetRawConstantValue() |> printObj
                 if not ignoreOutput then
-                    print <| "val " + (getName field) + ": " +
-                             (toString true field.FieldType) +
+                    print <| "val " + (getName field) + ": " + 
+                             (toString true field.FieldType) + 
                              value
-
-            | :? ProvidedProperty as prop ->
+                         
+            | :? ProvidedProperty as prop -> 
                 if not ignoreOutput then
-                    print <| (if prop.IsStatic then "static " else "") + "member " +
-                             (getName prop) + ": " + (toString true prop.PropertyType) +
+                    print <| (if prop.IsStatic then "static " else "") + "member " + 
+                             (getName prop) + ": " + (toString true prop.PropertyType) + 
                              " with " + (if prop.CanRead && prop.CanWrite then "get, set" else if prop.CanRead then "get" else "set")
                 if not signatureOnly then
                     if prop.CanRead then
@@ -540,8 +523,8 @@ type internal Testing() =
             | :? ProvidedMethod as m ->
                 if m.Attributes &&& MethodAttributes.SpecialName <> MethodAttributes.SpecialName then
                     if not ignoreOutput then
-                        print <| (if m.IsStatic then "static " else "") + "member " +
-                        (getName m) + ": " + (toSignature <| m.GetParameters()) +
+                        print <| (if m.IsStatic then "static " else "") + "member " + 
+                        (getName m) + ": " + (toSignature <| m.GetParameters()) + 
                         " -> " + (toString true m.ReturnType)
                     if not signatureOnly then
                         m |> getMethodBody |> printExpr
@@ -555,7 +538,7 @@ type internal Testing() =
         while pending.Count <> 0 && !currentDepth <= maxDepth do
             let pendingForThisDepth = new List<_>(pending)
             pending.Clear()
-            let pendingForThisDepth =
+            let pendingForThisDepth = 
                 pendingForThisDepth
                 |> Seq.sortBy (fun m -> m.Name)
                 |> Seq.truncate maxWidth
@@ -574,488 +557,104 @@ type internal Testing() =
                 | _ -> ""
                 |> print
                 print (toString true t)
-                let bt = if isNull t.BaseType then typeof<obj> else t.BaseType
+                let bt = if t.BaseType = null then typeof<obj> else t.BaseType
                 print " : "
                 print (toString true bt)
                 println()
-                t.GetMembers(BindingFlags.DeclaredOnly ||| BindingFlags.Instance ||| BindingFlags.Static ||| BindingFlags.Public)
+                t.GetMembers(BindingFlags.DeclaredOnly ||| BindingFlags.Instance ||| BindingFlags.Static ||| BindingFlags.Public) 
                 |> Seq.sortBy (fun m -> m.Name)
                 |> Seq.iter printMember
                 println()
             currentDepth := !currentDepth + 1
-
+    
         sb.ToString()
 
 
-module internal Targets =
+module internal Targets = 
 
     let private (++) a b = System.IO.Path.Combine(a,b)
-
-    let runningOnMono = Type.GetType("Mono.Runtime") |> isNull |> not
-
-    let runningOnMac =
+    
+    let runningOnMono = Type.GetType("Mono.Runtime") <> null
+    let runningOnMac = 
         (Environment.OSVersion.Platform = PlatformID.MacOSX)
         || (Environment.OSVersion.Platform = PlatformID.Unix) && Directory.Exists("/Applications") && Directory.Exists("/System") && Directory.Exists("/Users") && Directory.Exists("/Volumes")
-
-    let runningOnLinux =
+    let runningOnLinux = 
         (Environment.OSVersion.Platform = PlatformID.Unix) && not runningOnMac
 
-    let runningOnWindows = 
-        match System.Environment.OSVersion.Platform with
-        | System.PlatformID.Win32NT -> true
-        | _ -> false
+    // Assumes OSX
+    let monoRoot = 
+        Path.GetFullPath(Path.Combine(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory(),".."))
+        //match System.Environment.OSVersion.Platform with 
+        //| System.PlatformID.MacOSX -> "/Library/Frameworks/Mono.framework/Versions/Current/lib/mono"
+        //| System.PlatformID.MacOSX -> "/Library/Frameworks/Mono.framework/Versions/Current/lib/mono"
+        //| _ -> 
 
-    /// When compiling .NET 4.5 code on Linux, use the Mono reference assemblies, even when running with the .NET Core toolchain
-    let monoRoot() =
-        let tryDir dir = if (try Directory.Exists dir with _ -> false) then Some dir else None
-        match tryDir "/Library/Frameworks/Mono.framework/Versions/Current/lib/mono" with 
-        | Some d -> d
-        | None -> 
-        match tryDir "/usr/lib/mono" with 
-        | Some d -> d
-        | None -> 
-        match tryDir "/usr/local/lib/mono" with 
-        | Some d -> d
-        | None -> "/usr/lib/mono"
+    let referenceAssembliesPath = 
+        (if runningOnMono then monoRoot else Environment.GetFolderPath Environment.SpecialFolder.ProgramFilesX86)
+        ++ "Reference Assemblies" 
+        ++ "Microsoft" 
 
-    let installedReferenceAssembliesRootOnWindows() = Environment.GetFolderPath Environment.SpecialFolder.ProgramFilesX86 ++ "Reference Assemblies" ++ "Microsoft"
-    let fsharpInstalledAssembliesRoot() = if runningOnWindows then installedReferenceAssembliesRootOnWindows() ++ "FSharp" else monoRoot() ++ "fsharp" ++ "api" 
-    let installedPortableAssembliesRoot() = (if runningOnWindows then installedReferenceAssembliesRootOnWindows() ++ "Framework" else monoRoot() ++ "xbuild-frameworks") ++ ".NETPortable"  
-    let installedNet45AssembliesRoot() = if runningOnWindows then installedReferenceAssembliesRootOnWindows() ++ "Framework" ++ ".NETFramework" ++ "v4.5" else monoRoot() ++ "4.5-api"
-    
-    let packagesDirectory() = 
-        // this takes into account both linux-on-windows (can't use __SOURCE_DIRECTORY__) and shadow copying (can't use .Location)
-        let root = Path.GetDirectoryName(Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath)
-        let rec loop dir = 
-             //printfn "looking for references in %s" dir
-             if Directory.Exists(dir ++ "packages" ) then 
-                 dir ++ "packages" 
-             else
-                 let parent = Path.GetDirectoryName(dir)
-                 match parent with
-                 | null | "" -> failwith ("couldn't find packages directory anywhere above  " + root)
-                 | _ ->  loop parent
-                 
-        loop  root
+    let private fsharpPortableAssembliesPath fsharp profile = 
+         match fsharp, profile with 
+         | "3.1", 47 -> referenceAssembliesPath ++ "FSharp" ++ ".NETPortable" ++ "2.3.5.1" ++ "FSharp.Core.dll"
+         | "3.1", 7 -> referenceAssembliesPath ++ "FSharp" ++ ".NETCore" ++ "3.3.1.0" ++ "FSharp.Core.dll"
+         | "3.1", 78 -> referenceAssembliesPath ++ "FSharp" ++ ".NETCore" ++ "3.78.3.1" ++ "FSharp.Core.dll"
+         | "3.1", 259 -> referenceAssembliesPath ++ "FSharp" ++ ".NETCore" ++ "3.259.3.1" ++ "FSharp.Core.dll"
+         | "4.0", 47 -> referenceAssembliesPath ++ "FSharp" ++ ".NETPortable" ++ "3.47.4.0" ++ "FSharp.Core.dll"
+         | "4.0", 7 -> referenceAssembliesPath ++ "FSharp" ++ ".NETCore" ++ "3.7.4.0" ++ "FSharp.Core.dll"
+         | "4.0", 78 -> referenceAssembliesPath ++ "FSharp" ++ ".NETCore" ++ "3.78.4.0" ++ "FSharp.Core.dll"
+         | "4.0", 259 -> referenceAssembliesPath ++ "FSharp" ++ ".NETCore" ++ "3.259.4.0" ++ "FSharp.Core.dll"
+         | _ -> failwith "unimplemented portable profile"
 
-    let paketPackagesGroupDirectory paketGroup = 
-        let pd = packagesDirectory()
-        if Directory.Exists (pd ++ paketGroup) then 
-            Some (pd ++ paketGroup)
-        else 
-            None
+    let private fsharpAssembliesPath fsharp = 
+        match fsharp with 
+        | "3.1" -> 
+            if runningOnMono then monoRoot ++ "gac" ++ "FSharp.Core" ++ "4.3.1.0__b03f5f7f11d50a3a"
+            else referenceAssembliesPath ++ "FSharp" ++ ".NETFramework" ++ "v4.0" ++ "4.3.1.0"
+        | "4.0" -> 
+            if runningOnMono then monoRoot ++ "gac" ++ "FSharp.Core" ++ "4.4.0.0__b03f5f7f11d50a3a"
+            else referenceAssembliesPath ++ "FSharp" ++ ".NETFramework" ++ "v4.0" ++ "4.4.0.0"
+        | _ -> failwith "unimplemented portable profile"
 
+    let private net45AssembliesPath = 
+        if runningOnMono then monoRoot ++ "4.5"
+        else referenceAssembliesPath ++ "Framework" ++ ".NETFramework" ++ "v4.5" 
 
-    let private fsharpCoreFromInstalledAssemblies fsharp profile =
-         match fsharp, profile with
-         | "3.1", "net45" -> fsharpInstalledAssembliesRoot() ++  ".NETFramework" ++ "v4.0" ++ "4.3.1.0" ++ "FSharp.Core.dll" |> Some
-         | "4.0", "net45" -> fsharpInstalledAssembliesRoot() ++  ".NETFramework" ++ "v4.0" ++ "4.4.0.0" ++ "FSharp.Core.dll" |> Some
-         | "4.1", "net45" -> fsharpInstalledAssembliesRoot() ++  ".NETFramework" ++ "v4.0" ++ "4.4.1.0" ++ "FSharp.Core.dll" |> Some
-         | "3.1", "portable47" -> fsharpInstalledAssembliesRoot() ++ ".NETPortable" ++ "2.3.5.1" ++ "FSharp.Core.dll" |> Some
-         | "3.1", "portable7" -> fsharpInstalledAssembliesRoot() ++ ".NETCore" ++ "3.3.1.0" ++ "FSharp.Core.dll" |> Some
-         | "3.1", "portable78" -> fsharpInstalledAssembliesRoot() ++ ".NETCore" ++ "3.78.3.1" ++ "FSharp.Core.dll" |> Some
-         | "3.1", "portable259" -> fsharpInstalledAssembliesRoot() ++ ".NETCore" ++ "3.259.3.1" ++ "FSharp.Core.dll" |> Some
-         | "4.0", "portable47" -> fsharpInstalledAssembliesRoot() ++ ".NETPortable" ++ "3.47.4.0" ++ "FSharp.Core.dll" |> Some
-         | "4.0", "portable7" -> fsharpInstalledAssembliesRoot() ++ ".NETCore" ++ "3.7.4.0" ++ "FSharp.Core.dll" |> Some
-         | "4.0", "portable78" -> fsharpInstalledAssembliesRoot() ++ ".NETCore" ++ "3.78.4.0" ++ "FSharp.Core.dll" |> Some
-         | "4.0", "portable259" -> fsharpInstalledAssembliesRoot() ++ ".NETCore" ++ "3.259.4.0" ++ "FSharp.Core.dll" |> Some
-         | "4.1", "portable47" -> fsharpInstalledAssembliesRoot() ++ ".NETPortable" ++ "3.47.4.1" ++ "FSharp.Core.dll" |> Some
-         | "4.1", "portable7" -> fsharpInstalledAssembliesRoot() ++ ".NETCore" ++ "3.7.4.1" ++ "FSharp.Core.dll" |> Some
-         | "4.1", "portable78" -> fsharpInstalledAssembliesRoot() ++ ".NETCore" ++ "3.78.4.1" ++ "FSharp.Core.dll" |> Some
-         | "4.1", "portable259" -> fsharpInstalledAssembliesRoot() ++ ".NETCore" ++ "3.259.4.1" ++ "FSharp.Core.dll" |> Some
-         | "4.1", "netstandard1.6" -> None
-         | "4.1", "netstandard2.0" -> None
-         | "4.1", "netcoreapp2.0" -> None
-         | _ -> failwith (sprintf "unimplemented  profile, fsharpVersion = %s, profile = %s" fsharp profile)
+    let private portableAssembliesPath profile = 
+        let portableRoot = if runningOnMono then monoRoot ++ "xbuild-frameworks" else referenceAssembliesPath ++ "Framework"
+        match profile with 
+        | 47 -> portableRoot ++ ".NETPortable" ++ "v4.0" ++ "Profile" ++ "Profile47" 
+        | 7 -> portableRoot ++ ".NETPortable" ++ "v4.5" ++ "Profile" ++ "Profile7" 
+        | 78 -> portableRoot ++ ".NETPortable" ++ "v4.5" ++ "Profile" ++ "Profile78" 
+        | 259 -> portableRoot ++ ".NETPortable" ++ "v4.5" ++ "Profile" ++ "Profile259" 
+        | _ -> failwith "unimplemented portable profile"
 
+    let private portableCoreFSharpRefs fsharp profile = 
+        [ for asm in [ "System.Runtime"; "mscorlib"; "System.Collections"; "System.Core"; "System"; "System.Globalization"; "System.IO"; "System.Linq"; "System.Linq.Expressions"; 
+                       "System.Linq.Queryable"; "System.Net"; "System.Net.NetworkInformation"; "System.Net.Primitives"; "System.Net.Requests"; "System.ObjectModel"; "System.Reflection"; 
+                       "System.Reflection.Extensions"; "System.Reflection.Primitives"; "System.Resources.ResourceManager"; "System.Runtime.Extensions"; 
+                       "System.Runtime.InteropServices.WindowsRuntime"; "System.Runtime.Serialization"; "System.Threading"; "System.Threading.Tasks"; "System.Xml"; "System.Xml.Linq"; "System.Xml.XDocument";
+                       "System.Runtime.Serialization.Json"; "System.Runtime.Serialization.Primitives"; "System.Windows" ] do 
+             yield portableAssembliesPath profile ++ asm + ".dll"
+          yield fsharpPortableAssembliesPath fsharp profile ]
 
-    let paketPackageFromMainPaketGroup packageName = 
-        let pd = packagesDirectory()
-        if Directory.Exists (pd ++ packageName) then 
-            pd ++ packageName
-        else 
-            failwithf "couldn't find %s/NETStandard.Library, whcih is needed for testing .NET Standard 2.0 code generation of a type provider using these utilities" pd
+    let DotNet45Refs = [net45AssembliesPath ++ "mscorlib.dll"; net45AssembliesPath ++ "System.Xml.dll"; net45AssembliesPath ++ "System.Core.dll"; net45AssembliesPath ++ "System.Xml.Linq.dll"; net45AssembliesPath ++ "System.dll" ]
+    let FSharpCoreRef fsharp = fsharpAssembliesPath fsharp ++ "FSharp.Core.dll"
+    let DotNet45FSharpRefs fsharp = [ yield! DotNet45Refs; yield FSharpCoreRef fsharp ]
+    let Portable47FSharpRefs fsharp = [portableAssembliesPath 47 ++ "mscorlib.dll"; portableAssembliesPath 47 ++ "System.Xml.Linq.dll"; fsharpPortableAssembliesPath fsharp 47]
 
-    /// Compute a path to an FSharp.Core suitable for the target profile
-    let private fsharpRestoredAssembliesPath fsharp profile =
-        let paketGroup =
-           match fsharp with
-           | "3.1" -> "fs31"
-           | "4.0" -> "fs40"
-           | "4.1" -> "fs41"
-           | _ -> failwith ("unimplemented F# version" + fsharp)
-        let compatProfiles =
-            match profile with
-            | "net45"    -> ["net45";"net40" ]
-            | "netstandard1.6"    -> [ "netstandard1.6" ]
-            | "netstandard2.0"    -> [ "netstandard2.0"; "netstandard1.6" ]
-            | "netcoreapp2.0"    -> [ "netcoreapp2.0"; "netstandard2.0"; "netstandard1.6" ]
-            | "portable47"    -> ["portable-net45+sl5+netcore45"]
-            | "portable7"     -> ["portable-net45+netcore45"]
-            | "portable78"    -> ["portable-net45+netcore45+wp8"]
-            | "portable259"   -> ["portable-net45+netcore45+wpa81+wp8"]
-            | _ -> failwith "unimplemented portable profile"
-        let groupDirectory = 
-            match paketPackagesGroupDirectory paketGroup with 
-            | None -> 
-                 printfn "couldn't find paket packages group %s.  Assuming %s/FSharp.Core is for F# version %s" paketGroup (packagesDirectory()) fsharp
-                 packagesDirectory()
-            | Some dir -> dir
-                
-        compatProfiles |> List.tryPick (fun profileFolder -> 
-            let file = groupDirectory ++ "FSharp.Core" ++ "lib" ++ profileFolder ++ "FSharp.Core.dll"
-            if File.Exists file then Some file else None
-        ) |> function 
-             | None -> groupDirectory ++ "no.compat.FSharp.Core.dll.found.under.here"
-             | Some res -> res
-        
+    let DotNet45FSharp31Refs = DotNet45FSharpRefs "3.1"
+    let Portable47FSharp31Refs = Portable47FSharpRefs "3.1"
+    let Portable7FSharp31Refs = portableCoreFSharpRefs "3.1" 7
+    let Portable78FSharp31Refs = portableCoreFSharpRefs "3.1" 78
+    let Portable259FSharp31Refs = portableCoreFSharpRefs "3.1" 259
 
-    let sysAssembliesPath profile =
-        match profile with
-        | "net45"-> installedNet45AssembliesRoot()
-        | "netstandard2.0"->
-            let packageDir = paketPackageFromMainPaketGroup "NETStandard.Library" 
-            packageDir ++ "build" ++ "netstandard2.0" ++ "ref"
-        | "netcoreapp2.0"->
-            let packageDir = paketPackageFromMainPaketGroup "Microsoft.NETCore.App" 
-            packageDir ++ "ref" ++ "netcoreapp2.0"
-        | "portable47" -> installedPortableAssembliesRoot() ++ "v4.0" ++ "Profile" ++ "Profile47"
-        | "portable7" -> installedPortableAssembliesRoot() ++ "v4.5" ++ "Profile" ++ "Profile7"
-        | "portable78" -> installedPortableAssembliesRoot() ++ "v4.5" ++ "Profile" ++ "Profile78"
-        | "portable259" -> installedPortableAssembliesRoot() ++ "v4.5" ++ "Profile" ++ "Profile259"
-        | _ -> failwith (sprintf "unimplemented profile '%s'" profile)
+    let FSharpCore40Ref = FSharpCoreRef "4.0"
+    let DotNet45FSharp40Refs = DotNet45FSharpRefs "4.0"
+    let Portable7FSharp40Refs = portableCoreFSharpRefs "4.0" 7
+    let Portable78FSharp40Refs = portableCoreFSharpRefs "4.0" 78
+    let Portable259FSharp40Refs = portableCoreFSharpRefs "4.0" 259
 
-    let FSharpCoreRef fsharp profile = 
-        let installedFSharpCore = fsharpCoreFromInstalledAssemblies fsharp profile
-        match installedFSharpCore with 
-        | Some path when File.Exists path -> path
-        | _ -> 
-        let restoredFSharpCore  = fsharpRestoredAssembliesPath fsharp profile
-        match restoredFSharpCore  with 
-        | path when File.Exists(restoredFSharpCore) -> path
-        | _ -> 
-        match installedFSharpCore with 
-        | Some path -> failwith ("couldn't find FSharp.Core.dll at either '" + path + "' or '" + restoredFSharpCore + "'")
-        | None  -> failwith ("couldn't find FSharp.Core.dll at '" + restoredFSharpCore + "'")
-
-    let FSharpRefs fsharp profile =
-        [ match profile with
-          | "portable7" | "portable78" | "portable259" ->
-              let sysPath = sysAssembliesPath profile
-              for asm in [ "System.Runtime"; "mscorlib"; "System.Collections"; "System.Core"; "System"; "System.Globalization"; "System.IO"; "System.Linq"; "System.Linq.Expressions";
-                           "System.Linq.Queryable"; "System.Net"; "System.Net.NetworkInformation"; "System.Net.Primitives"; "System.Net.Requests"; "System.ObjectModel"; "System.Reflection";
-                           "System.Reflection.Extensions"; "System.Reflection.Primitives"; "System.Resources.ResourceManager"; "System.Runtime.Extensions";
-                           "System.Runtime.InteropServices.WindowsRuntime"; "System.Runtime.Serialization"; "System.Threading"; "System.Threading.Tasks"; "System.Xml"; "System.Xml.Linq"; "System.Xml.XDocument";
-                           "System.Runtime.Serialization.Json"; "System.Runtime.Serialization.Primitives"; "System.Windows" ] do
-                  yield sysPath ++ asm + ".dll"
-          | "portable47" -> 
-              let sysPath = sysAssembliesPath profile
-              yield sysPath ++ "mscorlib.dll"
-              yield sysPath ++ "System.Xml.Linq.dll"
-          | "net45" ->
-              // See typical command line in https://github.com/fsprojects/FSharp.TypeProviders.SDK/issues/190#issuecomment-356564344
-              // This is just a subset
-              let sysPath = sysAssembliesPath profile
-              yield sysPath ++ "mscorlib.dll"
-              yield sysPath ++ "System.Numerics.dll" 
-              yield sysPath ++ "System.Xml.dll" 
-              yield sysPath ++ "System.Core.dll"
-              yield sysPath ++ "System.Xml.Linq.dll"
-              yield sysPath ++ "System.dll" 
-          | "netstandard2.0" ->
-             // See typical command line in https://github.com/fsprojects/FSharp.TypeProviders.SDK/issues/190#issuecomment-356564344
-             let sysPath = sysAssembliesPath profile
-             yield sysPath ++ "Microsoft.Win32.Primitives.dll"
-             yield sysPath ++ "mscorlib.dll"
-             yield sysPath ++ "netstandard.dll"
-             yield sysPath ++ "System.AppContext.dll"
-             yield sysPath ++ "System.Collections.Concurrent.dll"
-             yield sysPath ++ "System.Collections.dll"
-             yield sysPath ++ "System.Collections.NonGeneric.dll"
-             yield sysPath ++ "System.Collections.Specialized.dll"
-             yield sysPath ++ "System.ComponentModel.Composition.dll"
-             yield sysPath ++ "System.ComponentModel.dll"
-             yield sysPath ++ "System.ComponentModel.EventBasedAsync.dll"
-             yield sysPath ++ "System.ComponentModel.Primitives.dll"
-             yield sysPath ++ "System.ComponentModel.TypeConverter.dll"
-             yield sysPath ++ "System.Console.dll"
-             yield sysPath ++ "System.Core.dll"
-             yield sysPath ++ "System.Data.Common.dll"
-             yield sysPath ++ "System.Data.dll"
-             yield sysPath ++ "System.Diagnostics.Contracts.dll"
-             yield sysPath ++ "System.Diagnostics.Debug.dll"
-             yield sysPath ++ "System.Diagnostics.FileVersionInfo.dll"
-             yield sysPath ++ "System.Diagnostics.Process.dll"
-             yield sysPath ++ "System.Diagnostics.StackTrace.dll"
-             yield sysPath ++ "System.Diagnostics.TextWriterTraceListener.dll"
-             yield sysPath ++ "System.Diagnostics.Tools.dll"
-             yield sysPath ++ "System.Diagnostics.TraceSource.dll"
-             yield sysPath ++ "System.Diagnostics.Tracing.dll"
-             yield sysPath ++ "System.dll"
-             yield sysPath ++ "System.Drawing.dll"
-             yield sysPath ++ "System.Drawing.Primitives.dll"
-             yield sysPath ++ "System.Dynamic.Runtime.dll"
-             yield sysPath ++ "System.Globalization.Calendars.dll"
-             yield sysPath ++ "System.Globalization.dll"
-             yield sysPath ++ "System.Globalization.Extensions.dll"
-             yield sysPath ++ "System.IO.Compression.dll"
-             yield sysPath ++ "System.IO.Compression.FileSystem.dll"
-             yield sysPath ++ "System.IO.Compression.ZipFile.dll"
-             yield sysPath ++ "System.IO.dll"
-             yield sysPath ++ "System.IO.FileSystem.dll"
-             yield sysPath ++ "System.IO.FileSystem.DriveInfo.dll"
-             yield sysPath ++ "System.IO.FileSystem.Primitives.dll"
-             yield sysPath ++ "System.IO.FileSystem.Watcher.dll"
-             yield sysPath ++ "System.IO.IsolatedStorage.dll"
-             yield sysPath ++ "System.IO.MemoryMappedFiles.dll"
-             yield sysPath ++ "System.IO.Pipes.dll"
-             yield sysPath ++ "System.IO.UnmanagedMemoryStream.dll"
-             yield sysPath ++ "System.Linq.dll"
-             yield sysPath ++ "System.Linq.Expressions.dll"
-             yield sysPath ++ "System.Linq.Parallel.dll"
-             yield sysPath ++ "System.Linq.Queryable.dll"
-             yield sysPath ++ "System.Net.dll"
-             yield sysPath ++ "System.Net.Http.dll"
-             yield sysPath ++ "System.Net.NameResolution.dll"
-             yield sysPath ++ "System.Net.NetworkInformation.dll"
-             yield sysPath ++ "System.Net.Ping.dll"
-             yield sysPath ++ "System.Net.Primitives.dll"
-             yield sysPath ++ "System.Net.Requests.dll"
-             yield sysPath ++ "System.Net.Security.dll"
-             yield sysPath ++ "System.Net.Sockets.dll"
-             yield sysPath ++ "System.Net.WebHeaderCollection.dll"
-             yield sysPath ++ "System.Net.WebSockets.Client.dll"
-             yield sysPath ++ "System.Net.WebSockets.dll"
-             yield sysPath ++ "System.Numerics.dll"
-             yield sysPath ++ "System.ObjectModel.dll"
-             yield sysPath ++ "System.Reflection.dll"
-             yield sysPath ++ "System.Reflection.Extensions.dll"
-             yield sysPath ++ "System.Reflection.Primitives.dll"
-             yield sysPath ++ "System.Resources.Reader.dll"
-             yield sysPath ++ "System.Resources.ResourceManager.dll"
-             yield sysPath ++ "System.Resources.Writer.dll"
-             yield sysPath ++ "System.Runtime.CompilerServices.VisualC.dll"
-             yield sysPath ++ "System.Runtime.dll"
-             yield sysPath ++ "System.Runtime.Extensions.dll"
-             yield sysPath ++ "System.Runtime.Handles.dll"
-             yield sysPath ++ "System.Runtime.InteropServices.dll"
-             yield sysPath ++ "System.Runtime.InteropServices.RuntimeInformation.dll"
-             yield sysPath ++ "System.Runtime.Numerics.dll"
-             yield sysPath ++ "System.Runtime.Serialization.dll"
-             yield sysPath ++ "System.Runtime.Serialization.Formatters.dll"
-             yield sysPath ++ "System.Runtime.Serialization.Json.dll"
-             yield sysPath ++ "System.Runtime.Serialization.Primitives.dll"
-             yield sysPath ++ "System.Runtime.Serialization.Xml.dll"
-             yield sysPath ++ "System.Security.Claims.dll"
-             yield sysPath ++ "System.Security.Cryptography.Algorithms.dll"
-             yield sysPath ++ "System.Security.Cryptography.Csp.dll"
-             yield sysPath ++ "System.Security.Cryptography.Encoding.dll"
-             yield sysPath ++ "System.Security.Cryptography.Primitives.dll"
-             yield sysPath ++ "System.Security.Cryptography.X509Certificates.dll"
-             yield sysPath ++ "System.Security.Principal.dll"
-             yield sysPath ++ "System.Security.SecureString.dll"
-             yield sysPath ++ "System.ServiceModel.Web.dll"
-             yield sysPath ++ "System.Text.Encoding.dll"
-             yield sysPath ++ "System.Text.Encoding.Extensions.dll"
-             yield sysPath ++ "System.Text.RegularExpressions.dll"
-             yield sysPath ++ "System.Threading.dll"
-             yield sysPath ++ "System.Threading.Overlapped.dll"
-             yield sysPath ++ "System.Threading.Tasks.dll"
-             yield sysPath ++ "System.Threading.Tasks.Parallel.dll"
-             yield sysPath ++ "System.Threading.Thread.dll"
-             yield sysPath ++ "System.Threading.ThreadPool.dll"
-             yield sysPath ++ "System.Threading.Timer.dll"
-             yield sysPath ++ "System.Transactions.dll"
-             yield sysPath ++ "System.ValueTuple.dll"
-             yield sysPath ++ "System.Web.dll"
-             yield sysPath ++ "System.Windows.dll"
-             yield sysPath ++ "System.Xml.dll"
-             yield sysPath ++ "System.Xml.Linq.dll"
-             yield sysPath ++ "System.Xml.ReaderWriter.dll"
-             yield sysPath ++ "System.Xml.Serialization.dll"
-             yield sysPath ++ "System.Xml.XDocument.dll"
-             yield sysPath ++ "System.Xml.XmlDocument.dll"
-             yield sysPath ++ "System.Xml.XmlSerializer.dll"
-             yield sysPath ++ "System.Xml.XPath.dll"
-             yield sysPath ++ "System.Xml.XPath.XDocument.dll"
-          | "netcoreapp2.0" ->
-             // See typical command line in https://github.com/fsprojects/FSharp.TypeProviders.SDK/issues/190#issuecomment-356564344
-             let sysPath = sysAssembliesPath profile
-             yield sysPath ++ "Microsoft.CSharp.dll"
-             yield sysPath ++ "Microsoft.VisualBasic.dll"
-             yield sysPath ++ "Microsoft.Win32.Primitives.dll"
-             yield sysPath ++ "mscorlib.dll"
-             yield sysPath ++ "netstandard.dll"
-             yield sysPath ++ "System.AppContext.dll"
-             yield sysPath ++ "System.Buffers.dll"
-             yield sysPath ++ "System.Collections.Concurrent.dll"
-             yield sysPath ++ "System.Collections.dll"
-             yield sysPath ++ "System.Collections.Immutable.dll"
-             yield sysPath ++ "System.Collections.NonGeneric.dll"
-             yield sysPath ++ "System.Collections.Specialized.dll"
-             yield sysPath ++ "System.ComponentModel.Annotations.dll"
-             yield sysPath ++ "System.ComponentModel.Composition.dll"
-             yield sysPath ++ "System.ComponentModel.DataAnnotations.dll"
-             yield sysPath ++ "System.ComponentModel.dll"
-             yield sysPath ++ "System.ComponentModel.EventBasedAsync.dll"
-             yield sysPath ++ "System.ComponentModel.Primitives.dll"
-             yield sysPath ++ "System.ComponentModel.TypeConverter.dll"
-             yield sysPath ++ "System.Configuration.dll"
-             yield sysPath ++ "System.Console.dll"
-             yield sysPath ++ "System.Core.dll"
-             yield sysPath ++ "System.Data.Common.dll"
-             yield sysPath ++ "System.Data.dll"
-             yield sysPath ++ "System.Diagnostics.Contracts.dll"
-             yield sysPath ++ "System.Diagnostics.Debug.dll"
-             yield sysPath ++ "System.Diagnostics.DiagnosticSource.dll"
-             yield sysPath ++ "System.Diagnostics.FileVersionInfo.dll"
-             yield sysPath ++ "System.Diagnostics.Process.dll"
-             yield sysPath ++ "System.Diagnostics.StackTrace.dll"
-             yield sysPath ++ "System.Diagnostics.TextWriterTraceListener.dll"
-             yield sysPath ++ "System.Diagnostics.Tools.dll"
-             yield sysPath ++ "System.Diagnostics.TraceSource.dll"
-             yield sysPath ++ "System.Diagnostics.Tracing.dll"
-             yield sysPath ++ "System.dll"
-             yield sysPath ++ "System.Drawing.dll"
-             yield sysPath ++ "System.Drawing.Primitives.dll"
-             yield sysPath ++ "System.Dynamic.Runtime.dll"
-             yield sysPath ++ "System.Globalization.Calendars.dll"
-             yield sysPath ++ "System.Globalization.dll"
-             yield sysPath ++ "System.Globalization.Extensions.dll"
-             yield sysPath ++ "System.IO.Compression.dll"
-             yield sysPath ++ "System.IO.Compression.FileSystem.dll"
-             yield sysPath ++ "System.IO.Compression.ZipFile.dll"
-             yield sysPath ++ "System.IO.dll"
-             yield sysPath ++ "System.IO.FileSystem.dll"
-             yield sysPath ++ "System.IO.FileSystem.DriveInfo.dll"
-             yield sysPath ++ "System.IO.FileSystem.Primitives.dll"
-             yield sysPath ++ "System.IO.FileSystem.Watcher.dll"
-             yield sysPath ++ "System.IO.IsolatedStorage.dll"
-             yield sysPath ++ "System.IO.MemoryMappedFiles.dll"
-             yield sysPath ++ "System.IO.Pipes.dll"
-             yield sysPath ++ "System.IO.UnmanagedMemoryStream.dll"
-             yield sysPath ++ "System.Linq.dll"
-             yield sysPath ++ "System.Linq.Expressions.dll"
-             yield sysPath ++ "System.Linq.Parallel.dll"
-             yield sysPath ++ "System.Linq.Queryable.dll"
-             yield sysPath ++ "System.Net.dll"
-             yield sysPath ++ "System.Net.Http.dll"
-             yield sysPath ++ "System.Net.HttpListener.dll"
-             yield sysPath ++ "System.Net.Mail.dll"
-             yield sysPath ++ "System.Net.NameResolution.dll"
-             yield sysPath ++ "System.Net.NetworkInformation.dll"
-             yield sysPath ++ "System.Net.Ping.dll"
-             yield sysPath ++ "System.Net.Primitives.dll"
-             yield sysPath ++ "System.Net.Requests.dll"
-             yield sysPath ++ "System.Net.Security.dll"
-             yield sysPath ++ "System.Net.ServicePoint.dll"
-             yield sysPath ++ "System.Net.Sockets.dll"
-             yield sysPath ++ "System.Net.WebClient.dll"
-             yield sysPath ++ "System.Net.WebHeaderCollection.dll"
-             yield sysPath ++ "System.Net.WebProxy.dll"
-             yield sysPath ++ "System.Net.WebSockets.Client.dll"
-             yield sysPath ++ "System.Net.WebSockets.dll"
-             yield sysPath ++ "System.Numerics.dll"
-             yield sysPath ++ "System.Numerics.Vectors.dll"
-             yield sysPath ++ "System.ObjectModel.dll"
-             yield sysPath ++ "System.Reflection.DispatchProxy.dll"
-             yield sysPath ++ "System.Reflection.dll"
-             yield sysPath ++ "System.Reflection.Emit.dll"
-             yield sysPath ++ "System.Reflection.Emit.ILGeneration.dll"
-             yield sysPath ++ "System.Reflection.Emit.Lightweight.dll"
-             yield sysPath ++ "System.Reflection.Extensions.dll"
-             yield sysPath ++ "System.Reflection.Metadata.dll"
-             yield sysPath ++ "System.Reflection.Primitives.dll"
-             yield sysPath ++ "System.Reflection.TypeExtensions.dll"
-             yield sysPath ++ "System.Resources.Reader.dll"
-             yield sysPath ++ "System.Resources.ResourceManager.dll"
-             yield sysPath ++ "System.Resources.Writer.dll"
-             yield sysPath ++ "System.Runtime.CompilerServices.VisualC.dll"
-             yield sysPath ++ "System.Runtime.dll"
-             yield sysPath ++ "System.Runtime.Extensions.dll"
-             yield sysPath ++ "System.Runtime.Handles.dll"
-             yield sysPath ++ "System.Runtime.InteropServices.dll"
-             yield sysPath ++ "System.Runtime.InteropServices.RuntimeInformation.dll"
-             yield sysPath ++ "System.Runtime.InteropServices.WindowsRuntime.dll"
-             yield sysPath ++ "System.Runtime.Loader.dll"
-             yield sysPath ++ "System.Runtime.Numerics.dll"
-             yield sysPath ++ "System.Runtime.Serialization.dll"
-             yield sysPath ++ "System.Runtime.Serialization.Formatters.dll"
-             yield sysPath ++ "System.Runtime.Serialization.Json.dll"
-             yield sysPath ++ "System.Runtime.Serialization.Primitives.dll"
-             yield sysPath ++ "System.Runtime.Serialization.Xml.dll"
-             yield sysPath ++ "System.Security.Claims.dll"
-             yield sysPath ++ "System.Security.Cryptography.Algorithms.dll"
-             yield sysPath ++ "System.Security.Cryptography.Csp.dll"
-             yield sysPath ++ "System.Security.Cryptography.Encoding.dll"
-             yield sysPath ++ "System.Security.Cryptography.Primitives.dll"
-             yield sysPath ++ "System.Security.Cryptography.X509Certificates.dll"
-             yield sysPath ++ "System.Security.dll"
-             yield sysPath ++ "System.Security.Principal.dll"
-             yield sysPath ++ "System.Security.SecureString.dll"
-             yield sysPath ++ "System.ServiceModel.Web.dll"
-             yield sysPath ++ "System.ServiceProcess.dll"
-             yield sysPath ++ "System.Text.Encoding.dll"
-             yield sysPath ++ "System.Text.Encoding.Extensions.dll"
-             yield sysPath ++ "System.Text.RegularExpressions.dll"
-             yield sysPath ++ "System.Threading.dll"
-             yield sysPath ++ "System.Threading.Overlapped.dll"
-             yield sysPath ++ "System.Threading.Tasks.Dataflow.dll"
-             yield sysPath ++ "System.Threading.Tasks.dll"
-             yield sysPath ++ "System.Threading.Tasks.Extensions.dll"
-             yield sysPath ++ "System.Threading.Tasks.Parallel.dll"
-             yield sysPath ++ "System.Threading.Thread.dll"
-             yield sysPath ++ "System.Threading.ThreadPool.dll"
-             yield sysPath ++ "System.Threading.Timer.dll"
-             yield sysPath ++ "System.Transactions.dll"
-             yield sysPath ++ "System.Transactions.Local.dll"
-             yield sysPath ++ "System.ValueTuple.dll"
-             yield sysPath ++ "System.Web.dll"
-             yield sysPath ++ "System.Web.HttpUtility.dll"
-             yield sysPath ++ "System.Windows.dll"
-             yield sysPath ++ "System.Xml.dll"
-             yield sysPath ++ "System.Xml.Linq.dll"
-             yield sysPath ++ "System.Xml.ReaderWriter.dll"
-             yield sysPath ++ "System.Xml.Serialization.dll"
-             yield sysPath ++ "System.Xml.XDocument.dll"
-             yield sysPath ++ "System.Xml.XmlDocument.dll"
-             yield sysPath ++ "System.Xml.XmlSerializer.dll"
-             yield sysPath ++ "System.Xml.XPath.dll"
-             yield sysPath ++ "System.Xml.XPath.XDocument.dll"
-             yield sysPath ++ "WindowsBase.dll"
-             yield sysPath ++ "Microsoft.Win32.Primitives.dll"
-          | _ -> 
-             failwith (sprintf "unimplemented profile, fsharpVersion = %s, profile = %s" fsharp profile)
-
-          yield FSharpCoreRef fsharp profile
-        ]
-    let FSharpCore31Ref() = FSharpCoreRef "3.1" "net45"
-    let DotNet45FSharp31Refs() = FSharpRefs "3.1" "net45"
-    let Portable47FSharp31Refs() = FSharpRefs "3.1" "portable47"
-    let Portable7FSharp31Refs() = FSharpRefs "3.1" "portable7"
-    let Portable78FSharp31Refs() = FSharpRefs "3.1" "portable78"
-    let Portable259FSharp31Refs() = FSharpRefs "3.1" "portable259"
-
-    let FSharpCore40Ref() = FSharpCoreRef "4.0" "net45"
-    let DotNet45FSharp40Refs() = FSharpRefs "4.0" "net45"
-    let Portable7FSharp40Refs() = FSharpRefs "4.0" "portable7"
-    let Portable78FSharp40Refs() = FSharpRefs "4.0" "portable78"
-    let Portable259FSharp40Refs() = FSharpRefs "4.0" "portable259"
-    let DotNet45Ref r = sysAssembliesPath "net45" ++ r
-
-    let FSharpCore41Ref() = FSharpCoreRef "4.1" "net45"
-    let DotNet45FSharp41Refs() = FSharpRefs "4.1" "net45"
-    let Portable7FSharp41Refs() = FSharpRefs "4.1" "portable7"
-    let Portable78FSharp41Refs() = FSharpRefs "4.1" "portable78"
-    let Portable259FSharp41Refs() = FSharpRefs "4.1" "portable259"
-
-    let DotNetStandard20FSharp41Refs() = FSharpRefs "4.1" "netstandard2.0"
-    let DotNetCoreApp20FSharp41Refs() = FSharpRefs "4.1" "netcoreapp2.0"
-    
-    let supportsFSharp31() = (try File.Exists (FSharpCore31Ref()) with _ -> false)
-    let supportsFSharp40() = (try File.Exists (FSharpCore40Ref()) with _ -> false)
-    let supportsFSharp41() = (try File.Exists (FSharpCore41Ref()) with _ -> false)
-    let hasPortable47Assemblies() = Directory.Exists (sysAssembliesPath "portable47")
-    let hasPortable7Assemblies() = Directory.Exists (sysAssembliesPath "portable7")
-    let hasPortable78Assemblies() = Directory.Exists (sysAssembliesPath "portable78")
-    let hasPortable259Assemblies() = Directory.Exists (sysAssembliesPath "portable259")
+    let supportsFSharp40 = (try File.Exists FSharpCore40Ref with _ -> false) 
+    // Some tests disabled on Linux for now because the standard packages don't come with F# PCL FSharp.Core.dll for this profile
+    let hasPortableFSharpCoreDLLs = not runningOnLinux
