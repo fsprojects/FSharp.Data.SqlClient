@@ -221,3 +221,4 @@ pip-log.txt
 /packages
 /.nuget
 /_NCrunch_SqlProgrammabilityProvider/StoredText
+.idea
