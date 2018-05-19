@@ -103,7 +103,7 @@ END
 open FSharp.Data
 
 [<Literal>]
-let adventureWorks = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let adventureWorks = @"Data Source=(LocalDb)\v12.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 [<Literal>]
 let euler17 = "
