@@ -229,3 +229,6 @@ vagrantfile
 .fake/
 /_NCrunch_SqlProgrammabilityProvider/StoredText
 .idea
+paket-files
+paket.exe
+Paket.Restore.targets
