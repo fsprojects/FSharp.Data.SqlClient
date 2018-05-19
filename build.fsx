@@ -2,8 +2,8 @@
 // FAKE build script 
 // --------------------------------------------------------------------------------------
 
-#I @"packages/FAKE/tools"
-#r @"packages/FAKE/tools/FakeLib.dll"
+#I @"packages/build/FAKE/tools"
+#r @"packages/build/FAKE/tools/FakeLib.dll"
 
 open System.IO
 open Fake 
@@ -57,19 +57,8 @@ Core.Target.create "AssemblyInfo" (fun _ ->
              DotNet.AssemblyInfo.InternalsVisibleTo "SqlClient.Tests" ] )
 )
 
-// --------------------------------------------------------------------------------------
-// Clean build results & restore NuGet packages
-Core.Target.create "RestorePackages" (fun _ ->
-    !! "./**/packages.config"
-    |> Seq.iter (Fake.DotNet.NuGet.Restore.RestorePackage (fun p -> { p with ToolPath = "./.nuget/NuGet.exe" }))
-)
-
-Core.Target.create "Clean" (fun _ ->
-    Shell.cleanDirs ["bin"; "temp"]
-)
-
-Core.Target.create "CleanDocs" (fun _ ->
-    Shell.cleanDirs ["docs/output"]
+Target "Clean" (fun _ ->
+    CleanDirs ["bin"; "temp"]
 )
 
 let mutable dotnetExePath = "dotnet"
@@ -212,7 +201,7 @@ Core.Target.create "NuGet" (fun _ ->
 
     // Format the description to fit on a single line (remove \r\n and double-spaces)
     let description = description.Replace("\r", "").Replace("\n", "").Replace("  ", " ")
-    let nugetPath = ".nuget/nuget.exe"
+    let nugetPath = "packages/build/NuGet.CommandLine/tools/NuGet.exe"
 
     DotNet.NuGet.NuGet.NuGetPack (fun p -> 
         { p with   
@@ -257,7 +246,6 @@ Core.Target.create "Release" DoNothing
 Core.Target.create "All" DoNothing
 
 "Clean"
-  ==> "RestorePackages"
   ==> "AssemblyInfo"
   =?> ("InstallDotNetCore", installedDotnetSDKVersion <> dotnetcliVersion)
   ==> "Build"

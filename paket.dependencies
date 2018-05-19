@@ -1,51 +1,42 @@
+source https://www.nuget.org/api/v2/
+framework: >= net40
+redirects: force
+
+nuget FSharp.Core = 4.1.2
+nuget Microsoft.SqlServer.TransactSql.ScriptDom
+
+github fsprojects/FSharp.TypeProviders.SDK:0a5fd0caa73df304062c8965e61850789d9f39e7 src/ProvidedTypes.fs
+github fsprojects/FSharp.TypeProviders.SDK:0a5fd0caa73df304062c8965e61850789d9f39e7 src/ProvidedTypes.fsi
+github fsprojects/FSharp.TypeProviders.SDK:0a5fd0caa73df304062c8965e61850789d9f39e7 src/ProvidedTypesTesting.fs
+
 group Build
-	framework: netstandard2.0, net461
+	source https://www.nuget.org/api/v2/
+	framework: >= net40
 	redirects: force
-	source https://api.nuget.org/v3/index.json
-	
-	nuget FSharp.Core // >= 4.0 lowest_matching:true	
-	nuget System.Runtime
-	nuget System.Runtime.Loader
-	nuget System.Runtime.Serialization.Primitives
-	nuget System.Runtime.Serialization.Formatters
-	nuget System.IO
-	nuget System.Console
-	nuget System.Reflection
-	nuget System.Reflection.TypeExtensions
-	nuget System.Data.SqlClient
-	nuget System.Data.Common
-	nuget System.Configuration.ConfigurationManager
-	nuget Microsoft.SqlServer.TransactSql.ScriptDom
 
-	# These are for TPSDK testing of TPDTCs against .NET Core App 2.0, to make sure references can be found in a known packages/... location.  
-	# The TPSDK testing helpers like these to be placed in pacakges/...
-	# see https://github.com/fsprojects/FSharp.TypeProviders.SDK/blob/0c0c9d11135039821a380f60ec21c701354e8cdb/src/ProvidedTypesTesting.fs
-	nuget NetStandard.Library.NetFramework
-	nuget Microsoft.NETCore.App
+	nuget NuGet.CommandLine
+	nuget FAKE = 4.1.2
 
-	github fsprojects/FSharp.TypeProviders.SDK src/ProvidedTypes.fs
-	github fsprojects/FSharp.TypeProviders.SDK src/ProvidedTypes.fsi
-	github fsprojects/FSharp.TypeProviders.SDK src/ProvidedTypesTesting.fs
-
-group Tests
-	framework: net461, netcoreapp2.0
+group Test
+	source https://www.nuget.org/api/v2/
+	framework: >= net40
 	redirects: force
-	source https://api.nuget.org/v3/index.json
 
-	nuget FSharp.Core //>= 4.0 lowest_matching:true
-	nuget System.Configuration.ConfigurationManager
-	nuget Microsoft.SqlServer.TransactSql.ScriptDom
+	nuget FSharp.Core = 4.1.2
+	nuget FSharp.Configuration
 	nuget Newtonsoft.Json
-	nuget xunit
+	nuget xunit = 1.9.2
+	nuget xunit.runner.visualstudio = 2.1.0
 
 group Samples
-	framework: netstandard2.0, net461, netcoreapp2.0
+	source https://www.nuget.org/api/v2/
+	framework: >= net40
 	redirects: force
-	source https://api.nuget.org/v3/index.json
 
-	nuget FSharp.Core //>= 4.0 lowest_matching:true
-	nuget FSharp.Data.SqlClient
 	nuget Microsoft.AspNet.WebApi
 	nuget Microsoft.AspNet.WebApi.Client
 	nuget Microsoft.AspNet.WebApi.Core
 	nuget Microsoft.AspNet.WebApi.WebHost
+
+	nuget Newtonsoft.Json
+	nuget FSharp.Data.SqlClient

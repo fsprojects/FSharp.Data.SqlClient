@@ -227,3 +227,5 @@ vagrantfile
 *.userprefs
 /sqlclientmonosample
 .fake/
+/_NCrunch_SqlProgrammabilityProvider/StoredText
+.idea
