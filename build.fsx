@@ -2,8 +2,8 @@
 // FAKE build script 
 // --------------------------------------------------------------------------------------
 
-#I @"packages/FAKE/tools"
-#r @"packages/FAKE/tools/FakeLib.dll"
+#I @"packages/build/FAKE/tools"
+#r @"packages/build/FAKE/tools/FakeLib.dll"
 
 open System
 open System.IO
@@ -50,13 +50,6 @@ Target "AssemblyInfo" (fun _ ->
              Attribute.Version version
              Attribute.FileVersion version
              Attribute.InternalsVisibleTo "SqlClient.Tests" ] )
-)
-
-// --------------------------------------------------------------------------------------
-// Clean build results & restore NuGet packages
-Target "RestorePackages" (fun _ ->
-    !! "./**/packages.config"
-    |> Seq.iter (RestorePackage (fun p -> { p with ToolPath = "./.nuget/NuGet.exe" }))
 )
 
 Target "Clean" (fun _ ->
@@ -167,7 +160,7 @@ Target "NuGet" (fun _ ->
 
     // Format the description to fit on a single line (remove \r\n and double-spaces)
     let description = description.Replace("\r", "").Replace("\n", "").Replace("  ", " ")
-    let nugetPath = ".nuget/nuget.exe"
+    let nugetPath = "packages/build/NuGet.CommandLine/tools/NuGet.exe"
 
     NuGet (fun p -> 
         { p with   
@@ -211,7 +204,6 @@ Target "Release" DoNothing
 Target "All" DoNothing
 
 "Clean"
-  ==> "RestorePackages"
   ==> "AssemblyInfo"
   ==> "Build"
   ==> "DeployTestDB"
