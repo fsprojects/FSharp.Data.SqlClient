@@ -3,5 +3,14 @@ language: csharp
 mono:
   - latest
 
+services:
+  - docker
+
+env:
+  MSSQL_PWD=DockerPassword123
+  
+before_install:
+  - ./tools/launch-mssql-in-docker.sh -p "$MSSQL_PWD";
+
 script: 
   - ./build.sh Build
