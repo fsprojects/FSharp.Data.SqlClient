@@ -8,6 +8,7 @@ open System.Configuration
 open System.Collections.Specialized
 
 open FSharp.Data.SqlClient
+open System.Linq
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type ISqlCommand = 
@@ -185,6 +186,13 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                 | _ ->
                     match p.SqlDbType with 
                     | SqlDbType.Structured -> 
+                        // TODO: Maybe make this lazy?
+
+                        //p.Value <- value |> unbox |> Seq.cast<Microsoft.SqlServer.Server.SqlDataRecord>
+
+                        //done via reflection because not implemented on Mono
+                        
+                        let sqlDataRecordType = typeof<SqlCommand>.Assembly.GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
                         let records = typeof<Linq.Enumerable>.GetMethod("Cast").MakeGenericMethod(sqlDataRecordType).Invoke(null, [| value |]) 
                         let hasAny = 
                             typeof<Linq.Enumerable>
