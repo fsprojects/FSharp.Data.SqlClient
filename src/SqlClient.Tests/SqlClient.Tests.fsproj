@@ -82,6 +82,7 @@
     <Compile Include="SynonymsTests.fs" />
     <Compile Include="CreateCommand.fs" />
     <Compile Include="UnitsOfMeasure.fs" />
+    <Compile Include="TempTableTests.fs" />
     <None Include="sampleCommand.sql" />
     <None Include="extensions.sql" />
     <None Include="MySqlFolder\sampleCommand.sql" />
@@ -101,8 +102,8 @@
       <HintPath>..\..\packages\FSharp.Configuration.0.5.3\lib\net40\FSharp.Configuration.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <Private>True</Private>
+    <Reference Include="FSharp.Core">
+      <HintPath>..\..\packages\FSharp.Core.4.0.0.1\lib\net40\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.Data.SqlClient">
       <HintPath>..\..\bin\FSharp.Data.SqlClient.dll</HintPath>

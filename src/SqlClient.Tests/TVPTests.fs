@@ -145,3 +145,23 @@ let UsingTVPInQuery() =
         |> Seq.toList
 
     Assert.Equal<_ list>(expected, actual)
+
+type MappedTVP = 
+    SqlCommandProvider<"
+        SELECT myId, myName from @input
+    ", ConnectionStrings.AdventureWorksLiteral, TableVarMapping = "@input=dbo.MyTableType">
+[<Fact>]
+let UsingMappedTVPInQuery() = 
+    printfn "%s" ConnectionStrings.AdventureWorksLiteral
+    use cmd = new MappedTVP(ConnectionStrings.AdventureWorksLiteral)
+    let expected = [ 
+        1, Some "monkey"
+        2, Some "donkey"
+    ]
+
+    let actual =
+        cmd.Execute(input = [ for id, name in expected -> MappedTVP.MyTableType(id, name) ])
+        |> Seq.map(fun x -> x.myId, x.myName)
+        |> Seq.toList
+
+    Assert.Equal<_ list>(expected, actual)

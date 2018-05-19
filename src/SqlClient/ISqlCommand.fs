@@ -8,6 +8,7 @@ open System.Configuration
 open System.Collections.Specialized
 
 open FSharp.Data.SqlClient
+open System.Linq
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type ISqlCommand = 
@@ -185,10 +186,16 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                 | _ ->
                     match p.SqlDbType with 
                     | SqlDbType.Structured -> 
+                        // TODO: Maybe make this lazy?
                         //done via reflection because not implemented on Mono
                         let sqlDataRecordType = typeof<SqlCommand>.Assembly.GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
-                        let records = typeof<Linq.Enumerable>.GetMethod("Cast").MakeGenericMethod(sqlDataRecordType).Invoke(null, [| value |]) :?> seq<Microsoft.SqlServer.Server.SqlDataRecord>
-                        p.Value <- if Seq.isEmpty records then null else records
+                        let records = typeof<Linq.Enumerable>.GetMethod("Cast").MakeGenericMethod(sqlDataRecordType).Invoke(null, [| value |]) 
+                        let hasAny = typeof<Linq.Enumerable>
+                                        .GetMethods(BindingFlags.Static ||| BindingFlags.Public)
+                                        .First(fun m -> m.Name = "Any" && m.GetParameters().Count() = 1)
+                                        .MakeGenericMethod(sqlDataRecordType).Invoke(null, [| records |]) :?> bool
+
+                        p.Value <- if not hasAny then null else records
                     | _ -> p.Value <- value
                             
             elif p.Direction.HasFlag(ParameterDirection.Output) && value :? Array then

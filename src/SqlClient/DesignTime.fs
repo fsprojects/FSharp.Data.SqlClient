@@ -10,6 +10,7 @@ open System.Diagnostics
 open Microsoft.FSharp.Quotations
 open ProviderImplementation.ProvidedTypes
 open FSharp.Data
+open System.Text.RegularExpressions
 
 type internal RowType = {
     Provided: Type
@@ -40,7 +41,52 @@ module internal SharedLogic =
             // add .Table
             returnType.Single |> cmdProvidedType.AddMember
 
-type DesignTime private() = 
+module Prefixes =
+    let tempTable = "##SQLCOMMANDPROVIDER_"
+    let tableVar = "@SQLCOMMANDPROVIDER_"
+
+type TempTableLoader(fieldCount, items: obj seq) =
+    let enumerator = items.GetEnumerator()
+
+    interface IDataReader with
+        member this.FieldCount: int = fieldCount
+        member this.Read(): bool = enumerator.MoveNext()
+        member this.GetValue(i: int): obj =
+            let row : obj[] = unbox enumerator.Current
+            row.[i]
+        member this.Dispose(): unit = ()
+
+        member __.Close(): unit = invalidOp "NotImplementedException"
+        member __.Depth: int = invalidOp "NotImplementedException"
+        member __.GetBoolean(_: int): bool = invalidOp "NotImplementedException"
+        member __.GetByte(_ : int): byte = invalidOp "NotImplementedException"
+        member __.GetBytes(_ : int, _ : int64, _ : byte [], _ : int, _ : int): int64 = invalidOp "NotImplementedException"
+        member __.GetChar(_ : int): char = invalidOp "NotImplementedException"
+        member __.GetChars(_ : int, _ : int64, _ : char [], _ : int, _ : int): int64 = invalidOp "NotImplementedException"
+        member __.GetData(_ : int): IDataReader = invalidOp "NotImplementedException"
+        member __.GetDataTypeName(_ : int): string = invalidOp "NotImplementedException"
+        member __.GetDateTime(_ : int): System.DateTime = invalidOp "NotImplementedException"
+        member __.GetDecimal(_ : int): decimal = invalidOp "NotImplementedException"
+        member __.GetDouble(_ : int): float = invalidOp "NotImplementedException"
+        member __.GetFieldType(_ : int): System.Type = invalidOp "NotImplementedException"
+        member __.GetFloat(_ : int): float32 = invalidOp "NotImplementedException"
+        member __.GetGuid(_ : int): System.Guid = invalidOp "NotImplementedException"
+        member __.GetInt16(_ : int): int16 = invalidOp "NotImplementedException"
+        member __.GetInt32(_ : int): int = invalidOp "NotImplementedException"
+        member __.GetInt64(_ : int): int64 = invalidOp "NotImplementedException"
+        member __.GetName(_ : int): string = invalidOp "NotImplementedException"
+        member __.GetOrdinal(_ : string): int = invalidOp "NotImplementedException"
+        member __.GetSchemaTable(): DataTable = invalidOp "NotImplementedException"
+        member __.GetString(_ : int): string = invalidOp "NotImplementedException"
+        member __.GetValues(_ : obj []): int = invalidOp "NotImplementedException"
+        member __.IsClosed: bool = invalidOp "NotImplementedException"
+        member __.IsDBNull(_ : int): bool = invalidOp "NotImplementedException"
+        member __.Item with get (_ : int): obj = invalidOp "NotImplementedException"
+        member __.Item with get (_ : string): obj = invalidOp "NotImplementedException"
+        member __.NextResult(): bool = invalidOp "NotImplementedException"
+        member __.RecordsAffected: int = invalidOp "NotImplementedException"
+
+type DesignTime private() =
     static member internal AddGeneratedMethod
         (sqlParameters: Parameter list, hasOutputParameters, executeArgs: ProvidedParameter list, erasedType, providedOutputType, name) =
 
@@ -632,3 +678,133 @@ type DesignTime private() =
             then 
                 yield upcast ProvidedMethod(factoryMethodName.Value, parameters2, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body2)
         ]
+
+    static member private CreateTempTableRecord(name, cols) =
+        let rowType = ProvidedTypeDefinition(name, Some typeof<obj>, HideObjectMethods = true)
+
+        let parameters =
+            [
+                for (p : Column) in cols do
+                    let name = p.Name
+                    let param = ProvidedParameter( name, p.GetProvidedType(), ?optionalValue = if p.Nullable then Some null else None)
+                    yield param
+            ]
+
+        let ctor = ProvidedConstructor( parameters)
+        ctor.InvokeCode <- fun args ->
+            let optionsToNulls = QuotationsFactory.MapArrayNullableItems(cols, "MapArrayOptionItemToObj")
+
+            <@@ let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for a in args -> Expr.Coerce(a, typeof<obj>) ])
+                (%%optionsToNulls) values
+                values @@>
+
+        rowType.AddMember ctor
+        rowType.AddXmlDoc "Type Table Type"
+
+        rowType
+
+    // Changes any temp tables in to a global temp table (##name) then creates them on the open connection.
+    static member internal SubstituteTempTables(connection, commandText: string, tempTableDefinitions : string, connectionId) =
+        // Extract and temp tables
+        let tempTableRegex = Regex("#([a-z0-9\-_]+)", RegexOptions.IgnoreCase)
+        let tempTableNames =
+            tempTableRegex.Matches(tempTableDefinitions)
+            |> Seq.cast<Match>
+            |> Seq.map (fun m -> m.Groups.[1].Value)
+            |> Seq.toList
+
+        match tempTableNames with
+        | [] -> commandText, None
+        | _ ->
+            // Create temp table(s), extracts the columns then drop it.
+            let tableTypes =
+                use create = new SqlCommand(tempTableDefinitions, connection)
+                create.ExecuteScalar() |> ignore
+
+                tempTableNames
+                |> List.map(fun name ->
+                    let cols = DesignTime.GetOutputColumns(connection, "SELECT * FROM #"+name, [], isStoredProcedure = false)
+                    use drop = new SqlCommand("DROP TABLE #"+name, connection)
+                    drop.ExecuteScalar() |> ignore
+                    DesignTime.CreateTempTableRecord(name, cols), cols)
+
+            let parameters =
+                tableTypes
+                |> List.map (fun (typ, _) ->
+                    ProvidedParameter(typ.Name, parameterType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ seq>, [ typ ])))
+
+            // Build the values load method.
+            let loadValues (exprArgs: Expr list) (connection) =
+                (exprArgs.Tail, tableTypes)
+                ||> List.map2 (fun expr (typ, cols) ->
+                    let destinationTableName = typ.Name
+                    let colsLength = cols.Length
+
+                    <@@
+                        let items = (%%expr : obj seq)
+                        use reader = new TempTableLoader(colsLength, items)
+
+                        use bulkCopy = new SqlBulkCopy((%%connection : SqlConnection))
+                        bulkCopy.BulkCopyTimeout <- 0
+                        bulkCopy.BatchSize <- 5000
+                        bulkCopy.DestinationTableName <- "#" + destinationTableName
+                        bulkCopy.WriteToServer(reader)
+
+                         @@>
+                )
+                |> List.fold (fun acc x -> Expr.Sequential(acc, x)) <@@ () @@>
+
+            let loadTempTablesMethod = ProvidedMethod("LoadTempTables", parameters, typeof<unit>)
+
+            loadTempTablesMethod.InvokeCode <- fun exprArgs ->
+
+                let command = Expr.Coerce(exprArgs.[0], typedefof<ISqlCommand>)
+
+                let connection =
+                    <@@ let cmd = (%%command : ISqlCommand)
+                        cmd.Raw.Connection @@>
+
+                <@@ do
+                        use create = new SqlCommand(tempTableDefinitions, (%%connection : SqlConnection))
+                        create.ExecuteNonQuery() |> ignore
+
+                    (%%loadValues exprArgs connection)
+                    ignore() @@>
+
+            // Create the temp table(s) but as a global temp table with a unique name. This can be used later down stream on the open connection.
+            use cmd = new SqlCommand(tempTableRegex.Replace(tempTableDefinitions, Prefixes.tempTable+connectionId+"$1"), connection)
+            cmd.ExecuteScalar() |> ignore
+
+            // Only replace temp tables we find in our list.
+            tempTableRegex.Replace(commandText, MatchEvaluator(fun m ->
+                match tempTableNames |> List.tryFind((=) m.Groups.[1].Value) with
+                | Some name -> Prefixes.tempTable + connectionId + name
+                | None -> m.Groups.[0].Value)),
+
+            Some(loadTempTablesMethod, tableTypes |> List.unzip |> fst)
+
+    static member internal RemoveSubstitutedTempTables(connection, tempTables : ProvidedTypeDefinition list, connectionId) =
+        if not tempTables.IsEmpty then
+            use cmd = new SqlCommand(tempTables |> List.map(fun tempTable -> sprintf "DROP TABLE [%s%s%s]" Prefixes.tempTable connectionId tempTable.Name) |> String.concat ";", connection)
+            cmd.ExecuteScalar() |> ignore
+
+    // tableVarMapping(s) is converted into DECLARE statements then prepended to the command text.
+    static member internal SubstituteTableVar(commandText: string, tableVarMapping : string) =
+        let varRegex = Regex("@([a-z0-9_]+)", RegexOptions.IgnoreCase)
+
+        let vars =
+            tableVarMapping.Split([|';'|], System.StringSplitOptions.RemoveEmptyEntries)
+            |> Array.choose(fun (x : string) ->
+                match x.Split([|'='|]) with
+                | [|name;typ|] -> Some(name.TrimStart('@'), typ)
+                | _ ->  None)
+
+        // Only replace table vars we find in our list.
+        let commandText =
+            varRegex.Replace(commandText, MatchEvaluator(fun m ->
+                match vars |> Array.tryFind(fun (n,_) -> n = m.Groups.[1].Value) with
+                | Some (name, _) -> Prefixes.tableVar + name
+                | None -> m.Groups.[0].Value))
+
+        (vars |> Array.map(fun (name,typ) -> sprintf "DECLARE %s%s %s = @%s" Prefixes.tableVar name typ name) |> String.concat "; ") + "; " + commandText
+
