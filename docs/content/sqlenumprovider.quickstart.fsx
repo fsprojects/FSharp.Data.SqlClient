@@ -194,7 +194,7 @@ type Roles =
     SqlEnumProvider<"
         SELECT * 
         FROM (VALUES(('Read'), 1), ('Write', 2), ('Admin', 4)) AS T(Name, Value)
-    ", @"Data Source=(LocalDb)\v11.0;Integrated Security=True", Kind = SqlEnumKind.CLI>
+    ", @"Data Source=(LocalDb)\v12.0;Integrated Security=True", Kind = SqlEnumKind.CLI>
 
 type CustomAuthorizeAttribute(roles: Roles) = 
     inherit AuthorizeAttribute()

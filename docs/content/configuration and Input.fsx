@@ -105,7 +105,7 @@ For example, it can be handed over to DBA team for optimization. It's harder to 
 are mixed together (LINQ).
 *)
 
-let cmd = new SqlCommandProvider<"GetDate.sql", connStr>(connStr)
+let cmd = new SqlCommandProvider<const(SqlFile<"GetDate.sql">.Text), connStr>(connStr)
 cmd.Execute() |> ignore
 
 (**

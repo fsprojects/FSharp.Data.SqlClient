@@ -4,7 +4,7 @@
 open FSharp.Data
 
 [<Literal>]
-let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
     
 (**
 Transactions 
@@ -156,7 +156,7 @@ do
                 HumanResources.Employee 
             WHERE 
                 BusinessEntityID = @id
-            ", connectionString, ResultType.Tuples, SingleRow = true>()
+            ", connectionString, ResultType.Tuples, SingleRow = true>(connectionString)
 
         jamesKramerId |> cmd.Execute |> Option.get
 
@@ -164,7 +164,7 @@ do
     
     let newJobTitle = "Uber " + jobTitle
 
-    use updatedJobTitle = new AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo()
+    use updatedJobTitle = new AdventureWorks.HumanResources.uspUpdateEmployeeHireInfo(connectionString)
     let recordsAffrected = 
         updatedJobTitle.Execute(
             businessEntityID, 
@@ -177,7 +177,7 @@ do
         )
     
     let updatedJobTitle = 
-        use cmd = new AdventureWorks.dbo.ufnGetContactInformation()
+        use cmd = new AdventureWorks.dbo.ufnGetContactInformation(connectionString)
         //Use ExecuteSingle on sproc/function generated types
         //if you're sure it return 0 or 1 rows
         let result = cmd.ExecuteSingle(PersonID = jamesKramerId) 
@@ -247,7 +247,7 @@ do
         INSERT INTO Sales.CurrencyRate 
         VALUES (@currencyRateDate, @fromCurrencyCode, @toCurrencyCode, 
                 @averageRate, @endOfDayRate, @modifiedDate) 
-    ", connectionString>()
+    ", connectionString>(connectionString)
 
     let today = DateTime.Now.Date
 
