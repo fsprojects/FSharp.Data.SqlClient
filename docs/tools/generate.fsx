@@ -1,19 +1,22 @@
 ﻿// Binaries that have XML documentation (in a corresponding generated XML file)
-let referenceBinaries = [  ]
+let referenceBinaries = [ ]
 // Web site location for the generated documentation
-let website = "http://fsprojects.github.io/FSharp.Data.Experimental.SqlCommandProvider/"
+let website = "/FSharp.Data.SqlClient"
+
+let githubLink = "http://github.com/fsprojects/FSharp.Data.SqlClient"
 
 // Specify more information about your project
 let info =
-  [ "project-name", "SqlCommandProvider"
+  [ "project-name", "FSharp.Data.SqlClient"
     "project-logo-url", "img/logo.png"
     "project-author", "Dmitry Morozov, Dmitry Sevastianov"
-    "project-summary", "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way."
-    "project-github", "https://github.com/fsprojects/FSharp.Data.Experimental.SqlCommandProvider"
-    "project-nuget", "http://www.nuget.org/packages/FSharp.Data.Experimental.SqlCommandProvider" ]
+    "project-summary", "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way. SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code."
+    "project-github", githubLink
+    "project-nuget", "http://www.nuget.org/packages/FSharp.Data.SqlClient" ]
 
-#I "../../packages/FSharp.Formatting.2.1.6/lib/net40"
-#I "../../packages/RazorEngine.3.3.0/lib/net40/"
+#I "../../packages/FSharp.Formatting.2.4.1/lib/net40"
+#I "../../packages/RazorEngine.3.3.0/lib/net40"
+#I "../../packages/FSharp.Compiler.Service.0.0.36/lib/net40"
 #r "../../packages/Microsoft.AspNet.Razor.2.0.30506.0/lib/net40/System.Web.Razor.dll"
 #r "../../packages/FAKE/tools/FakeLib.dll"
 #r "RazorEngine.dll"
@@ -38,9 +41,10 @@ let content    = __SOURCE_DIRECTORY__ @@ "../content"
 let output     = __SOURCE_DIRECTORY__ @@ "../output"
 let files      = __SOURCE_DIRECTORY__ @@ "../files"
 let templates  = __SOURCE_DIRECTORY__ @@ "templates"
-let formatting = __SOURCE_DIRECTORY__ @@ "../../packages/FSharp.Formatting.2.1.6/"
+let formatting = __SOURCE_DIRECTORY__ @@ "../../packages/FSharp.Formatting.2.4.1/"
 let docTemplate = formatting @@ "templates/docpage.cshtml"
 
+// Where to look for *.csproj templates (in this order)
 let layoutRoots =
   [ templates; formatting @@ "templates"
     formatting @@ "templates/reference" ]
@@ -49,7 +53,7 @@ let layoutRoots =
 let copyFiles () =
   CopyRecursive files output true |> Log "Copying file: "
   ensureDirectory (output @@ "content")
-  CopyRecursive (formatting @@ "content") (output @@ "content") true 
+  CopyRecursive (formatting @@ "styles") (output @@ "content") true 
     |> Log "Copying styles and scripts: "
 
 // Build API reference from XML comments
@@ -58,7 +62,10 @@ let buildReference () =
   for lib in referenceBinaries do
     MetadataFormat.Generate
       ( bin @@ lib, output @@ "reference", layoutRoots, 
-        parameters = ("root", root)::info )
+        parameters = ("root", root)::info,
+        sourceRepo = githubLink @@ "tree/master",
+        sourceFolder = __SOURCE_DIRECTORY__ @@ ".." @@ "..",
+        publicOnly = true )
 
 // Build documentation from `fsx` and `md` files in `docs/content`
 let buildDocumentation () =
@@ -73,4 +80,3 @@ let buildDocumentation () =
 copyFiles()
 buildDocumentation()
 buildReference()
-

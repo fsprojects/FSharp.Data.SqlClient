@@ -2,6 +2,7 @@ nuget/*.nupkg
 packages
 docs/output
 temp
+.vs/
 
 #################
 ## Eclipse
@@ -112,6 +113,7 @@ _TeamCity*
 # NCrunch
 *.ncrunch*
 .*crunch*.local.xml
+_NCrunch_*
 
 # Installshield output folder
 [Ee]xpress/
@@ -220,5 +222,10 @@ pip-log.txt
 .mr.developer.cfg
 /packages
 /.nuget
+.vagrant/
+vagrantfile
+*.userprefs
+/sqlclientmonosample
+.fake/
 /_NCrunch_SqlProgrammabilityProvider/StoredText
 .idea

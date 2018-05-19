@@ -1,24 +1,39 @@
 (*** hide ***)
-#r "../../bin/FSharp.Data.Experimental.SqlCommandProvider.dll"
-
+#r @"..\..\bin\FSharp.Data.SqlClient.dll"
+#r "Microsoft.SqlServer.Types.dll"
 (**
 
 Configuration and Input
 ===================
 
-Provider parameters 
+SqlCommandProvider parameters 
 -------------------------------------
 
 <table class="table table-bordered table-striped">
 <thead><tr><td>Name</td><td>Default</td><td>Accepted values</td></tr></thead>
 <tbody>
-  <tr><td class="title">CommandText</td><td>-</td><td>T-SQL script or *.sql file</td></tr></thead>
-  <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr></thead>
-  <tr><td class="title">CommandType</td><td>CommandType.Text</td><td>Text or StoredProcedure</td></tr></thead>
-  <tr><td class="title">ResultType</td><td>ResultType.Tuples</td><td>Tuples, Records, DataTable or Maps</td></tr></thead>
-  <tr><td class="title">SingleRow</td><td>false</td><td>true/false</td></tr></thead>
-  <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>valid file name</td></tr></thead>
-  <tr><td class="title">AllParametersOptional</td><td>false</td><td>true/false</td></tr></thead>
+  <tr><td class="title">CommandText</td><td>-</td><td>T-SQL script or *.sql file</td></tr>
+  <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr>
+  <tr><td class="title">ResultType</td><td>ResultType.Records</td><td>Tuples, Records, DataTable, or DataReader</td></tr>
+  <tr><td class="title">SingleRow</td><td>false</td><td>true/false</td></tr>
+  <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>Valid file name</td></tr>
+  <tr><td class="title">AllParametersOptional</td><td>false</td><td>true/false</td></tr>
+  <tr><td class="title">ResolutionFolder</td><td>The folder that contains the project or script.</td><td>Valid file system path. Absolute or relative.</td></tr>
+  <tr><td class="title">DataDirectory</td><td>The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.</td><td>Valid file system path.</td></tr>
+</tbody>
+</table>
+
+SqlProgrammabilityProvider parameters 
+-------------------------------------
+
+<table class="table table-bordered table-striped">
+<thead><tr><td>Name</td><td>Default</td><td>Accepted values</td></tr></thead>
+<tbody>
+  <tr><td class="title">ConnectionStringOrName</td><td>-</td><td>Connection string or name</td></tr>
+  <tr><td class="title">ConfigFile</td><td>app.config or web.config</td><td>valid file name</td></tr>
+  <tr><td class="title">ResolutionFolder</td><td>The folder that contains the project or script.</td><td>Valid file system path. Absolute or relative.</td></tr>
+  <tr><td class="title">DataDirectory</td><td>The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.</td><td>Valid file system path.</td></tr>
+  <tr><td class="title">UseReturnValue</td><td>false</td><td>Support for stored procedure return value.</td></tr>
 </tbody>
 </table>
 
@@ -28,13 +43,13 @@ CommandText
 ### T-SQL script
 *)
 
-open FSharp.Data.Experimental
+open FSharp.Data
 
 [<Literal>]
-let connectionString = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+let connStr = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 //Inline T-SQL text convinient for short queries 
-type GetDate = SqlCommand<"SELECT GETDATE() AS Now", connectionString>
+type GetDate = SqlCommandProvider<"SELECT GETDATE() AS Now", connStr>
 
 //More complex queries are better off extracted to stand-alone literals
 
@@ -56,10 +71,12 @@ let fibonacci = "
     FROM Fibonacci
 "
 
-type FibonacciQuery = SqlCommand<fibonacci, connectionString>
+type FibonacciQuery = SqlCommandProvider<fibonacci, connStr>
 
-FibonacciQuery()
-    .Execute(10L) 
+do 
+    let cmd = new FibonacciQuery(connStr)
+
+    cmd.Execute(10L) 
     |> Seq.map Option.get 
     |> Seq.toArray 
     |> printfn "First 10 fibonacci numbers: %A" 
@@ -88,8 +105,7 @@ For example, it can be handed over to DBA team for optimization. It's harder to 
 are mixed together (LINQ).
 *)
 
-type CommandFromFile = SqlCommand<"GetDate.sql", connectionString>
-let cmd = CommandFromFile()
+let cmd = new SqlCommandProvider<"GetDate.sql", connStr>(connStr)
 cmd.Execute() |> ignore
 
 (**
@@ -103,31 +119,29 @@ Stored procedures can be used too but they resemble imperative programming with 
 Below is an example of SQL Table-Valued Function usage. 
 *)
 
-type GetContactInformation = SqlCommand<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connectionString>
+type GetContactInformation = 
+    SqlCommandProvider<"SELECT * FROM dbo.ufnGetContactInformation(@PersonId)", connStr>
 
 (**
-### Syntax erros
+### Syntax errors
 
-In case of syntax errors in T-SQL the type provider shows fairly clear error message. 
-An instantaneous feedback is one of the most handy features of SqlCommandProvider. 
+The type provider shows fairly clear error message if there are any syntax errors in T-SQL. 
+An instantaneous feedback is one of the most handy features of `SqlCommandProvider`. 
 
 ### Limitation: a single parameter in a query may only be used once. 
 
 For example, an attempt to use following query will fail:
 
-<pre>
-<code>
-WHEN @x % 3 = 0 AND @x % 5 = 0 THEN 'FizzBuzz' 
-WHEN @x % 3 = 0 THEN 'Fizz' 
-WHEN @x % 5 = 0 THEN 'Buzz' 
-ELSE CAST(@x AS NVARCHAR) 
-</code>
-</pre>
+    [lang=sql]
+    WHEN @x % 3 = 0 AND @x % 5 = 0 THEN 'FizzBuzz' 
+    WHEN @x % 3 = 0 THEN 'Fizz' 
+    WHEN @x % 5 = 0 THEN 'Buzz' 
+    ELSE CAST(@x AS NVARCHAR) 
 
-You can work around this by declaring a local intermediate variable in t-sql script and assigning a paramater in question to that variable.
+You can work around this by declaring a local intermediate variable in t-sql script and assigning a parameter in question to that variable.
 *)
     
-type FizzOrBuzz = SqlCommand<"
+type FizzOrBuzz = SqlCommandProvider<"
     DECLARE @x AS INT = @xVal
     SELECT 
 	    CASE 
@@ -135,9 +149,9 @@ type FizzOrBuzz = SqlCommand<"
 		    WHEN @x % 3 = 0 THEN 'Fizz' 
 		    WHEN @x % 5 = 0 THEN 'Buzz' 
 		    ELSE CONCAT(@x, '') --use concat to avoid nullable column
-	    END", connectionString>
+	    END", connStr>
 
-let fizzOrBuzz = FizzOrBuzz()
+let fizzOrBuzz = new FizzOrBuzz(connStr)
 printfn "Answer on interview:\n%A" [ for i = 1 to 100 do yield! fizzOrBuzz.Execute(i) ]
 
 (**
@@ -151,11 +165,12 @@ Connection string can be provided either via literal (all examples above) or inl
 *)
 
 //Inline 
-type Get42 = SqlCommand<"SELECT 42", @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True">
+type Get42 = 
+    SqlCommandProvider<"SELECT 42", @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True">
 
 (**
 
-The literal version is more practical because connection string definition can be shared between different declarations of `SqlCommand<...>`.
+The literal version is more practical because connection string definition can be shared between different declarations of `SqlCommandProvider<...>`.
 
 ### By name
 
@@ -163,10 +178,10 @@ The other option is to supply connection string name from config file.
 *)
 
 //default config file name is app.config or web.config
-type Get43 = SqlCommand<"SELECT 43", "name=AdventureWorks2012">
+type Get43 = SqlCommandProvider<"SELECT 43", "name=AdventureWorks">
 
 //specify ANY other file name (including web.config) explicitly
-type Get44 = SqlCommand<"SELECT 44", "name=AdventureWorks2012", ConfigFile = "user.config">
+type Get44 = SqlCommandProvider<"SELECT 44", "name=AdventureWorks", ConfigFile = "user.config">
 
 (**
 I would like to emphasize that `ConfigFile` is about ***design time only*. 
@@ -187,7 +202,7 @@ Let me give you couple examples to clarify:
     <img src="img/ConnStrByNameUserConfig.png"/>
     </br></br> 
     F# controllers project is a simple library project. It has data access layer module.
-    `SqlCommand<...>` definitions refer to connection string by name form user.config file.  
+    `SqlCommandProvider<...>` definitions refer to connection string by name form user.config file.  
     </br></br>
     <img src="img/ConnStrByNameUserConfig2.png"/>
     </br></br> 
@@ -197,28 +212,32 @@ Let me give you couple examples to clarify:
 ### Overriding connection string at run-time
 
 Run-time database connectivity configuration is rarely (almost never) the same as design-time. 
-All `SqlCommand<_>`-generated types can be re-configured at run-time via optional constructor parameter.
+All `SqlCommandProvider<_>`-generated types can be re-configured at run-time via optional constructor parameter.
 The parameter is optional because "config file + name" approach is an acceptable way to have run-time configuration different from design-time.
 Several use cases are possible:
 *)
 
 //Case 1: pass run-time connection string into ctor
 let runTimeConnStr = "..." //somehow get connection string at run-time
-let get42 = Get42(runTimeConnStr)
+let get42 = new Get42(runTimeConnStr)
 
 //Case 2: bunch of command types, single database
 //Factory or IOC of choice to avoid logic duplication. Use F# ctor static constraints.
 module DB = 
     [<Literal>]
-    let connStr = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+    let connStr = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
-    type MyCmd1 = SqlCommand<"SELECT 42", connStr>
-    type MyCmd2 = SqlCommand<"SELECT 42", connStr>
+    open System.Data.SqlClient
+
+    type MyCmd1 = SqlCommandProvider<"SELECT 42", connStr>
+    type MyCmd2 = SqlCommandProvider<"SELECT 42", connStr>
 
     let inline createCommand() : 'a = 
-        let connStr = "..." //somehow get connection string at run-time
+        let runtimeConnStr = "..." //somehow get connection string at run-time
         //invoke ctor
-        (^a : (new : string -> ^a) connStr) 
+        (^a : (new : string * int -> ^a) (runtimeConnStr, 30)) 
+        //or
+        //(^a : (static member Create: string -> ^a) runtimeConnStr) 
 
 let dbCmd1: DB.MyCmd1 = DB.createCommand()
 let dbCmd2: DB.MyCmd2 = DB.createCommand()
@@ -228,12 +247,12 @@ let dbCmd2: DB.MyCmd2 = DB.createCommand()
 //Static type property ConnectionStringOrName that has exactly same value as passed into SqlCommandProvider helps.
 module DataAccess = 
     [<Literal>]
-    let adventureWorks = @"Data Source=(LocalDb)\v11.0;Initial Catalog=AdventureWorks2012;Integrated Security=True"
+    let adventureWorks = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
     [<Literal>]
-    let master = @"Data Source=(LocalDb)\v11.0;Initial Catalog=master;Integrated Security=True"
+    let master = @"Data Source=.;Initial Catalog=master;Integrated Security=True"
 
-    type MyCmd1 = SqlCommand<"SELECT 42", adventureWorks>
-    type MyCmd2 = SqlCommand<"SELECT 42", master>
+    type MyCmd1 = SqlCommandProvider<"SELECT 42", adventureWorks>
+    type MyCmd2 = SqlCommandProvider<"SELECT 42", master>
 
     let inline createCommand() : 'a = 
         let designTimeConnectionString = (^a : (static member get_ConnectionStringOrName : unit -> string) ())
@@ -244,77 +263,87 @@ module DataAccess =
             then "..." //somehow get master connection string at run-time
             else failwith "Unexpected"
         //invoke ctor
-        (^a : (new : string -> ^a) connStr) 
+        (^a : (new : string * int -> ^a) (connStr, 30)) 
 
 let adventureWorksCmd: DataAccess.MyCmd1 = DataAccess.createCommand()
 let masterCmd: DataAccess.MyCmd2 = DataAccess.createCommand()
 (**
 
 Another related case, albeit not that common, is local transaction.
-  
+
+**Important:** `SqlConnection` associated with passed transaction, is not closed automatically in this case. 
+It is responsibility of the client code to close and dispose it.
 *)
 [<Literal>]
 let bitCoinCode = "BTC"
 [<Literal>]
 let bitCoinName = "Bitcoin"
 
-type DeleteBitCoin = SqlCommand<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code", connectionString>
-type InsertBitCoin = SqlCommand<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())", connectionString>
-type GetBitCoin = SqlCommand<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code", connectionString>
+type DeleteBitCoin = 
+    SqlCommandProvider<"DELETE FROM Sales.Currency WHERE CurrencyCode = @Code"
+                        , connStr>
+type InsertBitCoin = 
+    SqlCommandProvider<"INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())"
+                        , connStr>
+type GetBitCoin = 
+    SqlCommandProvider<"SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code"
+                        , connStr>
 
-DeleteBitCoin().Execute(bitCoinCode) |> ignore
-let conn = new System.Data.SqlClient.SqlConnection(connectionString)
-conn.Open()
-let tran = conn.BeginTransaction()
-InsertBitCoin(tran).Execute(bitCoinCode, bitCoinName) = 1
-(GetBitCoin(tran).Execute(bitCoinCode) |> Seq.length) = 1
-tran.Rollback()
-(GetBitCoin(tran).Execute(bitCoinCode) |> Seq.length) = 0
+do 
+    let cmd = new DeleteBitCoin(connStr) in cmd.Execute(bitCoinCode) |> ignore
+    let conn = new System.Data.SqlClient.SqlConnection(connStr)
+    conn.Open()
+    let tran = conn.BeginTransaction()
+
+    let cmd = 
+        new SqlCommandProvider<"
+            INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())
+        ", connStr>(connStr)
+
+    use insert = InsertBitCoin.Create(conn, transaction = tran) 
+    assert(insert.Execute(bitCoinCode, bitCoinName) = 1)
+
+    use get = new GetBitCoin(conn, transaction = tran)
+    assert( get.Execute(bitCoinCode) |> Seq.length = 1)
+
+    tran.Rollback()
+
+    assert( GetBitCoin.Create(connStr).Execute(bitCoinCode) |> Seq.length = 0)
 
 (**
 
 It is worth noting that because of "erased types" nature of this type provider reflection and other dynamic techniques cannot be used 
 to create command instances.
-  
-### Stored procedures
 
-  - Set `CommandType` parameter to `CommandType.StoredProcedure` to specify it directly by name
-  - Stored procedures' out parameters and return value are not supported 
-
+`SqlProgrammabilityProvider<...>` supports connection name syntax as well. 
 *)
 
-open System.Data
+open System
 
-type UpdateEmplInfoCommandSp = 
-    SqlCommand<
-        "HumanResources.uspUpdateEmployeePersonalInfo", 
-        connectionString, 
-        CommandType = CommandType.StoredProcedure >
-
-let sp = new UpdateEmplInfoCommandSp()
-
-sp.AsyncExecute(BusinessEntityID = 2, NationalIDNumber = "245797967", 
-    BirthDate = System.DateTime(1965, 09, 01), MaritalStatus = "S", Gender = "F") 
-|> Async.RunSynchronously
+type AdventureWorks2012 = SqlProgrammabilityProvider<connStr>
 
 (**
 
 ### Optional input parameters
     
-By default all input parameters to `AsyncExecute/Execute` are mandatory. 
+By default all input parameters of `AsyncExecute/Execute` generated by `SqlCommandProvider<...>` are mandatory. 
 But there are rare cases when you prefer to handle NULL input values inside T-SQL script. 
 `AllParametersOptional` set to true makes all parameters (guess what) optional.
-
 *)
 
-type IncrBy = SqlCommand<"SELECT @x + ISNULL(CAST(@y AS INT), 1) ", connectionString, AllParametersOptional = true, SingleRow = true>
-let incrBy = IncrBy()
+type IncrBy = SqlCommandProvider<"SELECT @x + ISNULL(CAST(@y AS INT), 1) ", 
+                                    connStr, 
+                                    AllParametersOptional = true, 
+                                    SingleRow = true>
+let incrBy = new IncrBy(connStr)
 //pass both params passed 
 incrBy.Execute(Some 10, Some 2) = Some( Some 12) //true
 //omit second parameter. default to 1
 incrBy.Execute(Some 10) = Some( Some 11) //true
 
 (**
+Note that `AllParametersOptional` is not supported by `SQlProgrammabilityProvider<...>` as it is able to 
+infer default values for Stored Procedures and UDFs so `AsyncExecute` signature makes corresponding parameters optional.
 
 ### Table-valued parameters (TVPs)
 
@@ -324,10 +353,10 @@ Set up sample type and sproc:
 
 <pre>
 <code>
-CREATE TYPE myTableType AS TABLE (myId int not null, myName nvarchar(30) null) 
+CREATE TYPE dbo.myTableType AS TABLE (myId int not null, myName nvarchar(30) null) 
 GO 
 CREATE PROCEDURE myProc 
-   @p1 myTableType readonly 
+   @p1 dbo.myTableType readonly 
 AS 
 BEGIN 
    SELECT myName from @p1 p 
@@ -336,9 +365,84 @@ END
 </pre>
 *)
 
-type TableValuedSample = SqlCommand<"exec myProc @x", connectionString>
+type TableValuedSample = SqlCommandProvider<"exec myProc @x", connStr>
 type TVP = TableValuedSample.MyTableType
-let tvpSp = new TableValuedSample()
+let tvpSp = new TableValuedSample(connStr)
 //nullable columns mapped to optional ctor params
-tvpSp.Execute(x = [ TVP(myId = 1, myName = "monkey"); TVP(myId = 2) ]) 
+tvpSp.Execute(x = [ TVP(myId = 1, myName = Some "monkey"); TVP(myId = 2) ]) 
 
+(**
+Same with `SqlProgrammabilityProvider<...>`
+*)
+
+type T = AdventureWorks2012.dbo.``User-Defined Table Types``.MyTableType
+
+do 
+    use cmd = new AdventureWorks2012.dbo.MyProc(connStr)
+    cmd.Execute([ T(myId = 2); T(myId = 1) ]) |> printfn "%A"
+
+(**  
+### Stored procedures
+
+Command types generated by `SqlProgrammabilityProvider<...>` largely have same interface with exceptions: 
+There is no static Create factory method because intellisense issue doesn’t exist for these types
+There is additional ExecuteSingle/ AsyncExecuteSingle to opt-in for singleton result set.
+*)
+
+do 
+    use cmd = new AdventureWorks2012.dbo.uspGetWhereUsedProductID(connStr)
+
+    //sync
+    cmd.Execute( StartProductID = 1, CheckDate = DateTime(2013,1,1)) |> printfn "%A"
+
+    //async
+    cmd.AsyncExecute( StartProductID = 1, CheckDate = DateTime(2013,1,1)) 
+    |> Async.RunSynchronously 
+    |> Array.ofSeq
+    |> printfn "%A"
+
+(**
+   Stored Procedures output parameters are mapped into F# byref method parameters. 
+   Because byref parameters cannot be combined with lazily evaluated computation expression, 
+   AsyncExecute and AsyncExecuteSingle methods are not provided. 
+*)
+
+do 
+    use cmd = new AdventureWorks2012.dbo.uspLogError(connStr)
+    let errorLogId = ref -1
+    let recordsAffected = cmd.Execute(errorLogId)
+    printfn "errorLogId: %i" !errorLogId
+
+do  //tupled invocation syntax
+    //works only in VS 2015 or later because of F# compiler bug
+    use cmd = new AdventureWorks2012.dbo.uspLogError(connStr)
+    let _, errorLogId = cmd.Execute()
+    printfn "errorLogId: %i" errorLogId
+
+do  //mutable bindgings 
+    use cmd = new AdventureWorks2012.dbo.uspLogError(connStr)
+    let mutable errorLogId = -1
+    let recordsAffected = cmd.Execute(&errorLogId)
+    printfn "errorLogId: %i" errorLogId
+
+(**
+By default stored procedure return values are not surfaced. 
+To make it available specify UseReturnValue = true static parameter of SqlProgrammabilityProvider. 
+RETURN_VALUE will be the last byref parameter.    
+*)
+
+do 
+    use cmd = 
+        new SqlProgrammabilityProvider<connStr, UseReturnValue = true>.dbo.uspLogError(connStr)
+    let recordsAffected, errorLogId, returnValue = cmd.Execute()
+    printfn "recordsAffected: %i, errorLogId: %i, returnValue: %i" recordsAffected errorLogId returnValue
+
+(**
+Things get interesting when stored procedure return both set of rows and output parameters. 
+I won't show any sample code because AdventureWorks database doesn't have such procedure. 
+But the only change comparing to non-query stored procedure that instead of returning number 
+of affected records it returns F# list of records. 
+Notice that list is data structure as oppose to lazy evaluated seq<_> computation. 
+This caused by a fact Sql Server + ADO.NET populates output parameter only after row set reader is closed. 
+See [http://stackoverflow.com/questions/65662/output-parameters-not-readable-when-used-with-a-datareader].
+*)  
