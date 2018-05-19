@@ -107,7 +107,7 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
         let conn = new SqlConnection(designTimeConnectionString.Value)
         use closeConn = conn.UseLocally()
         conn.CheckVersion()
-        conn.LoadDataTypesMap()
+        conn.LoadDataTypesMap() 
 
         let parameters = DesignTime.ExtractParameters(conn, sqlStatement, allParametersOptional)
 
