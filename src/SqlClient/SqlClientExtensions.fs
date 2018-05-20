@@ -553,15 +553,15 @@ type SqlConnection with
             let system_type_id = cursor.["system_type_id"] |> unbox<int>
 
             { 
-                Column.Name = string cursor.["name"]
-                TypeInfo = findTypeInfoBySqlEngineTypeId (this.ConnectionString, system_type_id, user_type_id)
-                Nullable = unbox cursor.["is_nullable"]
-                MaxLength = cursor.["max_length"] |> unbox<int16> |> int
-                ReadOnly = not( cursor.GetValueOrDefault("is_updateable", true))
-                Identity = cursor.GetValueOrDefault("is_identity_column", false)
-                PartOfUniqueKey = cursor.GetValueOrDefault( "is_part_of_unique_key", false)
+                Column.Name       = string cursor.["name"]
+                TypeInfo          = findTypeInfoBySqlEngineTypeId (this.ConnectionString, system_type_id, user_type_id)
+                Nullable          = unbox cursor.["is_nullable"]
+                MaxLength         = cursor.["max_length"] |> unbox<int16> |> int
+                ReadOnly          = not( cursor.GetValueOrDefault("is_updateable", true))
+                Identity          = cursor.GetValueOrDefault("is_identity_column", false)
+                PartOfUniqueKey   = cursor.GetValueOrDefault( "is_part_of_unique_key", false)
                 DefaultConstraint = null
-                Description = null
+                Description       = null
             }
         )
         |> Seq.toList 

@@ -1,12 +1,12 @@
 (*** hide ***)
 #r @"..\..\bin\FSharp.Data.SqlClient.dll"
-#r @"..\..\packages\xunit.1.9.2\lib\net20\xunit.dll"
+#r @"..\..\packages\Test\xunit\lib\net20\xunit.dll"
 #r "System.Transactions"
 open FSharp.Data
 open System
 
 [<Literal>]
-let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+let connectionString = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 (**
 
@@ -40,14 +40,14 @@ type IRepository =
     abstract GetSalesChampion: country: string -> option<GetSalesChampion.Record>
 
 //Production implementation
-type Repository(?connectionString: string) = 
+type Repository(connectionString: string) = 
     interface IRepository with 
         member __.GetEmployeesByLevel(orgLevel) = 
-            use cmd = new GetEmployeesByLevel()
+            use cmd = new GetEmployeesByLevel(connectionString)
             cmd.Execute(orgLevel) |> Seq.toList
 
         member __.GetSalesChampion( region) = 
-            use cmd = new GetSalesChampion()
+            use cmd = new GetSalesChampion(connectionString)
             cmd.Execute(region) 
         
 //logic to test
@@ -74,7 +74,7 @@ module MyTests =
                 else []
 
             member __.GetSalesChampion( region) = 
-                use cmd = new GetSalesChampion()
+                use cmd = new GetSalesChampion(connectionString)
                 cmd.Execute(region) 
     }
 

@@ -6,7 +6,7 @@ open FSharp.Data
 
 [<Literal>]
 let connectionString = 
-    @"Data Source=.;Initial Catalog=AdventureWorks2014;Integrated Security=True"
+    @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 type DB = SqlProgrammabilityProvider<connectionString>
 
@@ -27,7 +27,7 @@ do
             FROM Sales.vSalesPerson
             WHERE CountryRegionName = @regionName AND SalesYTD > @salesMoreThan 
             ORDER BY SalesYTD
-        ">()
+        ">(connectionString)
     cmd.Execute(topN = 3L, regionName = "United States", salesMoreThan = 1000000M) |> printfn "%A"
 
 (**
@@ -36,7 +36,7 @@ and accessing to built-in objects like stored procedures, functoins and tables.
 Connectivity information (connection string and/or config file name) is defined in one place 
 and doesn't have be carried around like in SqlCommandProvider case.
 
-```CreateCommand``` optionally accepts connection, transaction and command timeout parameters. 
+`CreateCommand` optionally accepts connection, transaction and command timeout parameters. 
 Any of these parameters can be ommited.  
 *)
 
@@ -62,14 +62,14 @@ do
 Access to command and record types
 -------------------------------------
 
-```CreateMethod``` combines command type definition and constructor invocation. 
-Compare it with usage of ```SqlCommandProvider``` where generated command type aliased explicitly.
+`CreateMethod` combines command type definition and constructor invocation. 
+Compare it with usage of `SqlCommandProvider` where generated command type aliased explicitly.
 *)
 
-let cmd1 = DB.CreateCommand<"SELECT name, create_date FROM sys.databases">()
+let cmd1 = DB.CreateCommand<"SELECT name, create_date FROM sys.databases">(connectionString)
 // vs
 type Get42 = SqlCommandProvider<"SELECT name, create_date FROM sys.databases", connectionString>
-let cmd2 = new Get42()
+let cmd2 = new Get42(connectionString)
 
 //access to Record type
 type Cmd2Record = Get42.Record
@@ -95,7 +95,7 @@ but auto-competition still chokes on multi-line definitions.
 A workaround is to provide explicit name for generated command type
 *)
 
-let cmd3 = DB.CreateCommand<"SELECT name, create_date FROM sys.databases", TypeName = "Get42">()
+let cmd3 = DB.CreateCommand<"SELECT name, create_date FROM sys.databases", TypeName = "Get42">(connectionString)
 type Cmd3Record = DB.Commands.Get42.Record
 
 (**

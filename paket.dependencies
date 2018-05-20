@@ -1,0 +1,50 @@
+source https://www.nuget.org/api/v2/
+framework: >= net40
+redirects: force
+generate_load_scripts: on
+
+nuget FSharp.Core = 4.1.2
+nuget Microsoft.SqlServer.TransactSql.ScriptDom
+
+github fsprojects/FSharp.TypeProviders.SDK:0a5fd0caa73df304062c8965e61850789d9f39e7 src/ProvidedTypes.fs
+github fsprojects/FSharp.TypeProviders.SDK:0a5fd0caa73df304062c8965e61850789d9f39e7 src/ProvidedTypes.fsi
+github fsprojects/FSharp.TypeProviders.SDK:0a5fd0caa73df304062c8965e61850789d9f39e7 src/ProvidedTypesTesting.fs
+
+group Build
+	source https://www.nuget.org/api/v2/
+	framework: >= net40
+	redirects: force
+	generate_load_scripts: on
+
+	nuget FAKE     = 5.0.0-rc014.167
+	nuget Fake.Lib = 5.0.0-rc014.167
+
+	nuget FSharp.Formatting = 2.4.1
+	nuget FSharp.Compiler.Service = 0.0.36
+	nuget RazorEngine = 3.3.0
+
+	nuget NuGet.CommandLine
+
+group Test
+	source https://www.nuget.org/api/v2/
+	framework: >= net40
+	redirects: force
+
+	nuget FSharp.Core = 4.1.2
+	nuget FSharp.Configuration
+	nuget Newtonsoft.Json
+	nuget xunit = 1.9.2
+	nuget xunit.runner.visualstudio = 2.1.0
+
+group Samples
+	source https://www.nuget.org/api/v2/
+	framework: >= net40
+	redirects: force
+
+	nuget Microsoft.AspNet.WebApi
+	nuget Microsoft.AspNet.WebApi.Client
+	nuget Microsoft.AspNet.WebApi.Core
+	nuget Microsoft.AspNet.WebApi.WebHost
+
+	nuget Newtonsoft.Json
+	nuget FSharp.Data.SqlClient

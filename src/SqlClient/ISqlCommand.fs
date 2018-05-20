@@ -187,14 +187,18 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                     match p.SqlDbType with 
                     | SqlDbType.Structured -> 
                         // TODO: Maybe make this lazy?
+
+                        //p.Value <- value |> unbox |> Seq.cast<Microsoft.SqlServer.Server.SqlDataRecord>
+
                         //done via reflection because not implemented on Mono
+                        
                         let sqlDataRecordType = typeof<SqlCommand>.Assembly.GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
                         let records = typeof<Linq.Enumerable>.GetMethod("Cast").MakeGenericMethod(sqlDataRecordType).Invoke(null, [| value |]) 
-                        let hasAny = typeof<Linq.Enumerable>
-                                        .GetMethods(BindingFlags.Static ||| BindingFlags.Public)
-                                        .First(fun m -> m.Name = "Any" && m.GetParameters().Count() = 1)
-                                        .MakeGenericMethod(sqlDataRecordType).Invoke(null, [| records |]) :?> bool
-
+                        let hasAny = 
+                            typeof<Linq.Enumerable>
+                                .GetMethods(BindingFlags.Static ||| BindingFlags.Public)
+                                .First(fun m -> m.Name = "Any" && m.GetParameters().Count() = 1)
+                                .MakeGenericMethod(sqlDataRecordType).Invoke(null, [| records |]) :?> bool
                         p.Value <- if not hasAny then null else records
                     | _ -> p.Value <- value
                             

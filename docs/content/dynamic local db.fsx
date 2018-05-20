@@ -1,6 +1,6 @@
 (*** hide ***)
 #r "../../bin/FSharp.Data.SqlClient.dll"
-#r "../../bin/Microsoft.SqlServer.Types.dll"
+#r "Microsoft.SqlServer.Types"
 
 (**
 Dynamic creation of offline MDF
@@ -13,7 +13,7 @@ Sometimes you don't want to have to be online just to compile your programs. Wit
 open FSharp.Data
 
 [<Literal>]
-let connectionString=@"Data Source=(LocalDB)\v11.0;AttachDbFilename=C:\git\Project1\Database1.mdf;Integrated Security=True;Connect Timeout=10"
+let connectionString = @"Data Source=(LocalDB)\v12.0;AttachDbFilename=C:\git\Project1\Database1.mdf;Integrated Security=True;Connect Timeout=10"
 
 (**
 However, binary files like this are difficult to diff/merge when working with multiple developers. For this reason wouldn't it be nice
@@ -73,7 +73,7 @@ Then change your connection string to look like this
 *)
 
 [<Literal>]
-let connectionStringForCompileTime = @"Data Source=(LocalDB)\v11.0;AttachDbFilename=" + __SOURCE_DIRECTORY__ + @"\Database1.mdf;Integrated Security=True;Connect Timeout=10"
+let connectionStringForCompileTime = @"Data Source=(LocalDB)\v12.0;AttachDbFilename=" + __SOURCE_DIRECTORY__ + @"\Database1.mdf;Integrated Security=True;Connect Timeout=10"
 
 type Foo = SqlCommandProvider<"SELECT * FROM Foo", connectionStringForCompileTime>
 
