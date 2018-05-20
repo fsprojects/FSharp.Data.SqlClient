@@ -15,7 +15,7 @@ group Build
 	redirects: force
 
 	nuget NuGet.CommandLine
-	nuget FAKE = 4.1.2
+	nuget FAKE = 5.0.0-rc014.167
 
 group Test
 	source https://www.nuget.org/api/v2/

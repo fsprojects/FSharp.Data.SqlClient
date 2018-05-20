@@ -102,7 +102,7 @@ REDIRECTS: FORCE
 RESTRICTION: >= net40
 NUGET
   remote: https://www.nuget.org/api/v2
-    FAKE (4.1.2)
+    FAKE (5.0.0-rc014.167)
     NuGet.CommandLine (4.6.2)
 
 GROUP Samples
