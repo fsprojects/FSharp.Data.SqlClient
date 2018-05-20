@@ -14,8 +14,14 @@ group Build
 	framework: >= net40
 	redirects: force
 
+	nuget FAKE     = 5.0.0-rc014.167
+	nuget Fake.Lib = 5.0.0-rc014.167
+
+	nuget FSharp.Formatting = 2.4.1
+	nuget FSharp.Compiler.Service = 0.0.36
+	nuget RazorEngine = 3.3.0
+
 	nuget NuGet.CommandLine
-	nuget FAKE = 5.0.0-rc014.167
 
 group Test
 	source https://www.nuget.org/api/v2/

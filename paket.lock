@@ -103,7 +103,16 @@ RESTRICTION: >= net40
 NUGET
   remote: https://www.nuget.org/api/v2
     FAKE (5.0.0-rc014.167)
+    FAKE.Lib (5.0.0-rc014.167)
+    FSharp.Compiler.Service (0.0.36)
+    FSharp.Formatting (2.4.1)
+      FSharp.Compiler.Service (>= 0.0.32)
+      Microsoft.AspNet.Razor (>= 2.0.30506)
+      RazorEngine (>= 3.3)
+    Microsoft.AspNet.Razor (3.2.6)
     NuGet.CommandLine (4.6.2)
+    RazorEngine (3.3)
+      Microsoft.AspNet.Razor (>= 2.0.30506)
 
 GROUP Samples
 REDIRECTS: FORCE

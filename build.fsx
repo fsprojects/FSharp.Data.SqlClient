@@ -4,6 +4,7 @@
 
 #r @"packages/build/FAKE/tools/FakeLib.dll"
 #load "tools/fakexunithelper.fsx" // helper for xunit 1 is gone, work around by having our own copy for now
+#load "tools/fakeiisexpress.fsx"  // helper for iisexpress is not ready, work around by having our own copy for now
 
 open System
 open System.IO
@@ -189,6 +190,11 @@ Target.create "NuGet" (fun _ ->
 
 Target.create "GenerateDocs" (fun _ ->
     Fake.FSIHelper.executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"] [] |> ignore
+)
+
+Target.create "ServeDocs" (fun _ -> 
+  Fakeiisexpress.HostStaticWebsite id (__SOURCE_DIRECTORY__ @@ @"docs\output\") |> ignore
+  Fakeiisexpress.OpenUrlInBrowser "http://localhost:8080"
 )
 
 Target.create "ReleaseDocs" (fun _ ->
