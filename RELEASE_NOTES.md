@@ -1,3 +1,6 @@
+#### 1.8.5 - May 20, 2018
+	* Issue #278 Add TempTableDefinitions and TableVarMapping
+
 #### 1.8.4 - May 12, 2018
     * Issue #221 - Expose custom getter/setter methods on provided DataColumn properties
 	* Issue #224 - TVP generated type implicitly from SqlDataRecord. 
