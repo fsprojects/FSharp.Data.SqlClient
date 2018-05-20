@@ -235,3 +235,4 @@ Paket.Restore.targets
 .paket
 /docs/output
 docs/output/**/*.*
+*.orig

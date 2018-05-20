@@ -87,6 +87,7 @@
     <Compile Include="SynonymsTests.fs" />
     <Compile Include="CreateCommand.fs" />
     <Compile Include="UnitsOfMeasure.fs" />
+    <Compile Include="TempTableTests.fs" />
     <None Include="sampleCommand.sql" />
     <None Include="extensions.sql" />
     <None Include="MySqlFolder\sampleCommand.sql" />
