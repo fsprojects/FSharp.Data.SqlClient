@@ -27,11 +27,7 @@ open FSharp.MetadataFormat
 let execContext = Fake.Core.Context.FakeExecutionContext.Create false (Path.Combine(__SOURCE_DIRECTORY__, __SOURCE_FILE__)) []
 Fake.Core.Context.setExecutionContext (Fake.Core.Context.RuntimeContext.Fake execContext)
 
-#if RELEASE
-let root = website
-#else
-let root = "file://" + (__SOURCE_DIRECTORY__ @@ "../output")
-#endif
+let root = "."
 
 // Paths with template/source/output locations
 let bin        = __SOURCE_DIRECTORY__ @@ "../../bin"
