@@ -103,13 +103,6 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FSharp.Configuration">
-      <HintPath>..\..\packages\FSharp.Configuration.0.5.3\lib\net40\FSharp.Configuration.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="FSharp.Core">
-      <HintPath>..\..\packages\FSharp.Core.4.0.0.1\lib\net40\FSharp.Core.dll</HintPath>
-    </Reference>
     <Reference Include="FSharp.Data.SqlClient">
       <HintPath>..\..\bin\FSharp.Data.SqlClient.dll</HintPath>
     </Reference>
