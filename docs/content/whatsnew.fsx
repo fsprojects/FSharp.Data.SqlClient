@@ -36,7 +36,7 @@ and accessing to built-in objects like stored procedures, functoins and tables.
 Connectivity information (connection string and/or config file name) is defined in one place 
 and doesn't have be carried around like in SqlCommandProvider case.
 
-```CreateCommand``` optionally accepts connection, transaction and command timeout parameters. 
+`CreateCommand` optionally accepts connection, transaction and command timeout parameters. 
 Any of these parameters can be ommited.  
 *)
 
@@ -62,8 +62,8 @@ do
 Access to command and record types
 -------------------------------------
 
-```CreateMethod``` combines command type definition and constructor invocation. 
-Compare it with usage of ```SqlCommandProvider``` where generated command type aliased explicitly.
+`CreateMethod` combines command type definition and constructor invocation. 
+Compare it with usage of `SqlCommandProvider` where generated command type aliased explicitly.
 *)
 
 let cmd1 = DB.CreateCommand<"SELECT name, create_date FROM sys.databases">(connectionString)
