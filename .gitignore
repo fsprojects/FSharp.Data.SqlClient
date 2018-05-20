@@ -232,3 +232,6 @@ vagrantfile
 paket-files
 paket.exe
 Paket.Restore.targets
+.paket
+/docs/output
+docs/output/**/*.*
