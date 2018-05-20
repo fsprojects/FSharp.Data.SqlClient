@@ -14,20 +14,18 @@ let info =
     "project-github", githubLink
     "project-nuget", "http://www.nuget.org/packages/FSharp.Data.SqlClient" ]
 
-#I "../../packages/FSharp.Formatting.2.4.1/lib/net40"
-#I "../../packages/RazorEngine.3.3.0/lib/net40"
-#I "../../packages/FSharp.Compiler.Service.0.0.36/lib/net40"
-#r "../../packages/Microsoft.AspNet.Razor.2.0.30506.0/lib/net40/System.Web.Razor.dll"
-#r "../../packages/FAKE/tools/FakeLib.dll"
-#r "RazorEngine.dll"
-#r "FSharp.Literate.dll"
-#r "FSharp.CodeFormat.dll"
-#r "FSharp.MetadataFormat.dll"
+#load "../../.paket/load/net46/Build/FSharp.Formatting.fsx"
+#load "../../.paket/load/net46/Build/FAKE.Lib.fsx"
+
 open Fake
 open System.IO
-open Fake.FileHelper
+open Fake.IO.FileSystemOperators
 open FSharp.Literate
 open FSharp.MetadataFormat
+
+// see https://github.com/fsharp/FAKE/issues/1579#issuecomment-306580820
+let execContext = Fake.Core.Context.FakeExecutionContext.Create false (Path.Combine(__SOURCE_DIRECTORY__, __SOURCE_FILE__)) []
+Fake.Core.Context.setExecutionContext (Fake.Core.Context.RuntimeContext.Fake execContext)
 
 #if RELEASE
 let root = website
@@ -41,7 +39,7 @@ let content    = __SOURCE_DIRECTORY__ @@ "../content"
 let output     = __SOURCE_DIRECTORY__ @@ "../output"
 let files      = __SOURCE_DIRECTORY__ @@ "../files"
 let templates  = __SOURCE_DIRECTORY__ @@ "templates"
-let formatting = __SOURCE_DIRECTORY__ @@ "../../packages/FSharp.Formatting.2.4.1/"
+let formatting = __SOURCE_DIRECTORY__ @@ "../../packages/Build/FSharp.Formatting/"
 let docTemplate = formatting @@ "templates/docpage.cshtml"
 
 // Where to look for *.csproj templates (in this order)
@@ -51,14 +49,14 @@ let layoutRoots =
 
 // Copy static files and CSS + JS from F# Formatting
 let copyFiles () =
-  CopyRecursive files output true |> Log "Copying file: "
-  ensureDirectory (output @@ "content")
-  CopyRecursive (formatting @@ "styles") (output @@ "content") true 
-    |> Log "Copying styles and scripts: "
+  Fake.IO.Shell.copyRecursive files output true |> Fake.Core.Trace.logItems "Copying file: "
+  Fake.IO.Directory.ensure (output @@ "content")
+  Fake.IO.Shell.copyRecursive (formatting @@ "styles") (output @@ "content") true 
+    |> Fake.Core.Trace.logItems "Copying styles and scripts: "
 
 // Build API reference from XML comments
 let buildReference () =
-  CleanDir (output @@ "reference")
+  Fake.IO.Shell.cleanDir (output @@ "reference")
   for lib in referenceBinaries do
     MetadataFormat.Generate
       ( bin @@ lib, output @@ "reference", layoutRoots, 
