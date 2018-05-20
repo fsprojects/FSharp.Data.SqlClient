@@ -2,14 +2,18 @@
 // FAKE build script 
 // --------------------------------------------------------------------------------------
 
-#I @"packages/build/FAKE/tools"
 #r @"packages/build/FAKE/tools/FakeLib.dll"
+#load "tools/fakexunithelper.fsx" // helper for xunit 1 is gone, work around by having our own copy for now
 
 open System
 open System.IO
-open Fake 
-open Fake.AssemblyInfoFile
+open Fake.Core
 open Fake.Git
+open Fake.IO
+open Fake.IO.FileSystemOperators
+open Fake.IO.Globbing
+open Fake.IO.Globbing.Operators
+open Fake.DotNet
 
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
@@ -31,7 +35,7 @@ let gitName = "FSharp.Data.SqlClient"
 // Read release notes & version info from RELEASE_NOTES.md
 let release = 
     File.ReadLines "RELEASE_NOTES.md" 
-    |> ReleaseNotesHelper.parseReleaseNotes
+    |> Fake.Core.ReleaseNotes.parse
 
 let version = release.AssemblyVersion
 let releaseNotes = release.Notes |> String.concat "\n"
@@ -40,33 +44,33 @@ let testDir = "bin"
 // --------------------------------------------------------------------------------------
 // Generate assembly info files with the right version & up-to-date information
 
-Target "AssemblyInfo" (fun _ ->
+Target.create "AssemblyInfo" (fun _ ->
     [ "src/SqlClient/AssemblyInfo.fs", "SqlClient", project, summary ]
     |> Seq.iter (fun (fileName, title, project, summary) ->
-        CreateFSharpAssemblyInfo fileName
-           [ Attribute.Title title
-             Attribute.Product project
-             Attribute.Description summary
-             Attribute.Version version
-             Attribute.FileVersion version
-             Attribute.InternalsVisibleTo "SqlClient.Tests" ] )
+        AssemblyInfoFile.createFSharp fileName
+           [ AssemblyInfo.Title              title
+             AssemblyInfo.Product            project
+             AssemblyInfo.Description        summary
+             AssemblyInfo.Version            version
+             AssemblyInfo.FileVersion        version
+             AssemblyInfo.InternalsVisibleTo "SqlClient.Tests" ] )
 )
 
-Target "Clean" (fun _ ->
-    CleanDirs ["bin"; "temp"]
+Target.create "Clean" (fun _ ->
+    Shell.cleanDirs ["bin"; "temp"]
 )
 
-Target "CleanDocs" (fun _ ->
-    CleanDirs ["docs/output"]
+Target.create "CleanDocs" (fun _ ->
+    Shell.cleanDirs ["docs/output"]
 )
 
 // --------------------------------------------------------------------------------------
 // Build library (builds Visual Studio solution, which builds multiple versions
 // of the runtime library & desktop + Silverlight version of design time library)
 
-Target "Build" (fun _ ->
+Target.create "Build" (fun _ ->
     files (["SqlClient.sln"])
-    |> MSBuildRelease "" "Rebuild"
+    |> MSBuild.runRelease id "" "Rebuild"
     |> ignore
 )
 
@@ -80,7 +84,7 @@ open System.Data.SqlClient
 open System.Configuration
 open System.IO.Compression
 
-Target "DeployTestDB" (fun() ->
+Target.create "DeployTestDB" (fun _ ->
     let testsSourceRoot = Path.GetFullPath(@"src\SqlClient.Tests")
     let map = ExeConfigurationFileMap()
     map.ExeConfigFilename <- testsSourceRoot @@ "app.config"
@@ -135,34 +139,35 @@ Target "DeployTestDB" (fun() ->
             cmd.ExecuteNonQuery() |> ignore
 )
 
-Target "BuildTests" (fun _ ->
+Target.create "BuildTests" (fun _ ->
     files ["Tests.sln"]
-    |> MSBuildReleaseExt "" ([]) "Rebuild"
+    |> MSBuild.runReleaseExt id "" ([]) "Rebuild"
     |> ignore
 )
 
 // --------------------------------------------------------------------------------------
 // Run the unit tests 
-Target "RunTests" (fun _ ->
+Target.create "RunTests" (fun _ ->
     !! (testDir + "/*.Tests.dll")
-        |> xUnit (fun p -> 
+        |> Fake.XUnitHelper.xUnit (fun p -> 
             {p with 
-                ShadowCopy = false;
-                HtmlOutput = true;
-                XmlOutput = true;
-                OutputDir = testDir})
+                ShadowCopy = false
+                HtmlOutput = true
+                XmlOutput = true
+                WorkingDir = testDir
+                })
 )
 
 // --------------------------------------------------------------------------------------
 // Build a NuGet package
 
-Target "NuGet" (fun _ ->
+Target.create "NuGet" (fun _ ->
 
     // Format the description to fit on a single line (remove \r\n and double-spaces)
     let description = description.Replace("\r", "").Replace("\n", "").Replace("  ", " ")
     let nugetPath = "packages/build/NuGet.CommandLine/tools/NuGet.exe"
-
-    NuGet (fun p -> 
+    
+    Fake.DotNet.NuGet.NuGet.NuGet (fun p -> 
         { p with   
             Authors = authors
             Project = project
@@ -173,8 +178,8 @@ Target "NuGet" (fun _ ->
             Tags = tags
             OutputPath = "nuget"
             ToolPath = nugetPath
-            AccessKey = getBuildParamOrDefault "nugetkey" ""
-            Publish = hasBuildParam "nugetkey"
+            AccessKey = Fake.Core.Environment.environVarOrDefault "nugetkey" ""
+            Publish = Fake.Core.Environment.hasEnvironVar "nugetkey"
             Dependencies = [] })
         "nuget/SqlClient.nuspec"
 )
@@ -182,26 +187,28 @@ Target "NuGet" (fun _ ->
 // --------------------------------------------------------------------------------------
 // Generate the documentation
 
-Target "GenerateDocs" (fun _ ->
-    executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"] [] |> ignore
+Target.create "GenerateDocs" (fun _ ->
+    Fake.FSIHelper.executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"] [] |> ignore
 )
 
-Target "ReleaseDocs" (fun _ ->
+Target.create "ReleaseDocs" (fun _ ->
     Repository.clone "" (gitHome + "/" + gitName + ".git") "temp/gh-pages"
     Branches.checkoutBranch "temp/gh-pages" "gh-pages"
-    CopyRecursive "docs/output" "temp/gh-pages" true |> printfn "%A"
+    Shell.copyRecursive "docs/output" "temp/gh-pages" true |> printfn "%A"
     CommandHelper.runSimpleGitCommand "temp/gh-pages" "add ." |> printfn "%s"
     let cmd = sprintf """commit -a -m "Update generated documentation for version %s""" release.NugetVersion
     CommandHelper.runSimpleGitCommand "temp/gh-pages" cmd |> printfn "%s"
     Branches.push "temp/gh-pages"
 )
 
-Target "Release" DoNothing
+Target.create "Release" Target.DoNothing
 
 // --------------------------------------------------------------------------------------
 // Run all targets by default. Invoke 'build <Target>' to override
 
-Target "All" DoNothing
+Target.create "All" Target.DoNothing
+
+open Fake.Core.TargetOperators // for ==>
 
 "Clean"
   ==> "AssemblyInfo"
@@ -220,5 +227,5 @@ Target "All" DoNothing
   ==> "GenerateDocs"
   ==> "ReleaseDocs"
 
-RunTargetOrDefault "All"
+Target.runOrDefault "All"
 
