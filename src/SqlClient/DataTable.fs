@@ -41,7 +41,11 @@ type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionStri
     member private this.IsDirectTable = this.TableName <> null
     
     member this.Update(?connection, ?transaction, ?batchSize, ?continueUpdateOnError) = 
-        
+        // not supported on all DataTable instances
+        match selectCommand with
+        | null -> failwith "This command wasn't constructed from SqlProgrammabilityProvider, call to Update is not supported."
+        | _ -> ()
+
         connection |> Option.iter selectCommand.set_Connection
         transaction |> Option.iter selectCommand.set_Transaction 
         
@@ -88,6 +92,9 @@ type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionStri
             | _, Some(t: SqlTransaction) -> t.Connection, t
             | Some c, None -> c, null
             | None, None ->
+                match selectCommand with
+                | null -> failwith "To issue BulkCopy on this table, you need to provide your own connection or transaction"
+                | _ -> ()
                 if this.IsDirectTable
                 then 
                     assert(connectionString.IsSome)
