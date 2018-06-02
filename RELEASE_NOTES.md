@@ -1,3 +1,6 @@
+#### 1.8.6 - June 2, 2018
+	* Issue #303 Enable typed data table constructor to initialize an empty datatable with the expected columns
+
 #### 1.8.5 - May 20, 2018
 	* Issue #278 Add TempTableDefinitions and TableVarMapping
 
