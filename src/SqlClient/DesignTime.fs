@@ -12,6 +12,28 @@ open ProviderImplementation.ProvidedTypes
 open FSharp.Data
 open System.Text.RegularExpressions
 
+module RuntimeInternals =
+    let setupTableFromSerializedColumns (serializedSchema: string) (table: System.Data.DataTable) =
+        let primaryKey = ResizeArray()
+        for line in serializedSchema.Split('\n') do
+            let xs = line.Split('\t')
+            let col = new DataColumn()
+            col.ColumnName <- xs.[0]
+            col.DataType <- Type.GetType( xs.[1], throwOnError = true)  
+            col.AllowDBNull <- Boolean.Parse xs.[2]
+            if col.DataType = typeof<string>
+            then 
+                col.MaxLength <- int xs.[3]
+            col.ReadOnly <- Boolean.Parse xs.[4]
+            col.AutoIncrement <- Boolean.Parse xs.[5]
+            if Boolean.Parse xs.[6]
+            then    
+                primaryKey.Add col 
+            table.Columns.Add col
+
+        table.PrimaryKey <- Array.ofSeq primaryKey
+
+
 type internal RowType = {
     Provided: Type
     ErasedTo: Type
@@ -30,6 +52,10 @@ type internal ReturnType = {
         match this.PerRow with
         | Some x -> Expr.Value( x.ErasedTo.AssemblyQualifiedName)
         | None -> <@@ null: string @@>
+
+type internal DataTableType =
+| SqlProgrammabilityTable of isHostedExecution: bool * connectionString: DesignTimeConnectionString * schemaName: string * tableName: string * columns: Column list
+| CommandResultTable 
 
 module internal SharedLogic =
     /// Adds .Record or .Table inner type depending on resultType
@@ -246,7 +272,7 @@ type DesignTime private() =
 
         rowType
 
-    static member internal GetDataTableType(typeName, dataRowType: ProvidedTypeDefinition, outputColumns: Column list) =
+    static member internal GetDataTableType(typeName, dataRowType: ProvidedTypeDefinition, outputColumns: Column list, dataTableType: DataTableType) =
         let tableType = ProvidedTypeBuilder.MakeGenericType(typedefof<_ DataTable>, [ dataRowType ])
         let tableProvidedType = ProvidedTypeDefinition(typeName, Some tableType)
       
@@ -325,6 +351,41 @@ type DesignTime private() =
             )
         dataRowType.AddMember tableProperty
 
+        let getColumnsSerializedSchema columns =
+            columns 
+            |> List.map (fun x ->
+                let nullable = x.Nullable || x.HasDefaultConstraint
+                sprintf "%s\t%s\t%b\t%i\t%b\t%b\t%b" 
+                    x.Name x.TypeInfo.ClrTypeFullName nullable x.MaxLength x.ReadOnly x.Identity x.PartOfUniqueKey                                 
+            ) 
+            |> String.concat "\n"
+
+        let ctorCode =
+            fun _ ->
+                let serializedSchema = getColumnsSerializedSchema outputColumns
+                match dataTableType with
+                | SqlProgrammabilityTable (isHostedExecution, connectionString, schemaName, tableName, _) ->
+                    
+                    let twoPartTableName = sprintf "[%s].[%s]" schemaName tableName 
+
+                    <@@ 
+                        let connectionString = lazy %%connectionString.RunTimeValueExpr(isHostedExecution)
+                        let selectCommand = new SqlCommand("SELECT * FROM " + twoPartTableName)
+                        let table = new DataTable<DataRow>(selectCommand, connectionString)
+                        table.TableName <- twoPartTableName
+                        RuntimeInternals.setupTableFromSerializedColumns serializedSchema table
+                        table
+                    @@>
+                | CommandResultTable ->
+                    <@@ 
+                        let table = new DataTable<DataRow>(null, null)
+                        RuntimeInternals.setupTableFromSerializedColumns serializedSchema table
+                        table
+                    @@>
+          
+
+        ProvidedConstructor([], InvokeCode = ctorCode) |> tableProvidedType.AddMember
+
         tableProvidedType
 
     static member internal GetOutputTypes (outputColumns: Column list, resultType, rank: ResultRank, hasOutputParameters, ?unitsOfMeasurePerSchema) =    
@@ -337,7 +398,7 @@ type DesignTime private() =
         elif resultType = ResultType.DataTable 
         then
             let dataRowType = DesignTime.GetDataRowType(outputColumns, ?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
-            let dataTableType = DesignTime.GetDataTableType("Table", dataRowType, outputColumns)
+            let dataTableType = DesignTime.GetDataTableType("Table", dataRowType, outputColumns, CommandResultTable)
             dataTableType.AddMember dataRowType
 
             { Single = dataTableType; PerRow = None }
@@ -807,4 +868,3 @@ type DesignTime private() =
                 | None -> m.Groups.[0].Value))
 
         (vars |> Array.map(fun (name,typ) -> sprintf "DECLARE %s%s %s = @%s" Prefixes.tableVar name typ name) |> String.concat "; ") + "; " + commandText
-

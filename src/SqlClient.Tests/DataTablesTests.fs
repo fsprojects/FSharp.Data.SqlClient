@@ -407,3 +407,25 @@ type DataTablesTests() =
 
         Assert.Equal(1, rowsAffected)
     
+    [<Fact>]
+    member __.``can build arbitrary data table from inline sql``() =
+        use table = new SqlCommandProvider<"SELECT 1 a, 2 b", ConnectionStrings.AdventureWorksNamed, ResultType.DataTable>.Table()
+        let r = table.NewRow()
+        table.Columns.a.set_ReadOnly false
+        table.Columns.a.SetValue(r, 2)
+        Assert.Equal(r.a , 2)
+        
+    [<Fact>]
+    member __.``can build arbitrary table and columns exist``() =
+        let t = new GetArbitraryDataAsDataTable.Table()
+        let r = t.NewRow()
+        t.Columns.a.set_ReadOnly false
+        t.Columns.a.SetValue(r, 1)
+        Assert.Equal(r.a , 1)
+               
+    [<Fact>]
+    member __.``can't update on arbitrarilly constructed table``() =
+        let t = new GetArbitraryDataAsDataTable.Table()
+        let e = Assert.Throws(fun () -> t.Update() |> ignore)
+        Assert.Equal<string>("This command wasn't constructed from SqlProgrammabilityProvider, call to Update is not supported.", e.Message)
+       

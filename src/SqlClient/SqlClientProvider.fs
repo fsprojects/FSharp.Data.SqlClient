@@ -248,8 +248,6 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             conn.GetTables(schema, isSqlAzure)
             |> List.map (fun (tableName, baseTableName, baseSchemaName, description) -> 
 
-                let twoPartTableName = sprintf "[%s].[%s]" schema tableName 
-
                 let descriptionSelector = 
                     if isSqlAzure 
                     then "(SELECT NULL AS Value)"
@@ -352,55 +350,13 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         dataRowType.AddMember property
 
                 //type data table
-                let dataTableType = DesignTime.GetDataTableType(tableName, dataRowType, columns)
+                let dataTableType = DesignTime.GetDataTableType(tableName, dataRowType, columns, SqlProgrammabilityTable(config.IsHostedExecution, connectionString, schema, tableName, columns))
                 tagProvidedType dataTableType
                 dataTableType.AddMember dataRowType
         
                 do
                     description |> Option.iter (fun x -> dataTableType.AddXmlDoc( sprintf "<summary>%s</summary>" x))
 
-                do //ctor
-                    let ctor = ProvidedConstructor []
-                    ctor.InvokeCode <- fun _ -> 
-                        let serializedSchema = 
-                            columns 
-                            |> List.map (fun x ->
-                                let nullable = x.Nullable || x.HasDefaultConstraint
-                                sprintf "%s\t%s\t%b\t%i\t%b\t%b\t%b" 
-                                    x.Name x.TypeInfo.ClrTypeFullName nullable x.MaxLength x.ReadOnly x.Identity x.PartOfUniqueKey                                 
-                            ) 
-                            |> String.concat "\n"
-
-                        <@@ 
-                            
-                            let connectionString = lazy %%connectionString.RunTimeValueExpr(config.IsHostedExecution)
-                            let selectCommand = new SqlCommand("SELECT * FROM " + twoPartTableName)
-                            let table = new DataTable<DataRow>(selectCommand, connectionString)
-                            table.TableName <- twoPartTableName
-
-                            let primaryKey = ResizeArray()
-                            for line in serializedSchema.Split('\n') do
-                                let xs = line.Split('\t')
-                                let col = new DataColumn()
-                                col.ColumnName <- xs.[0]
-                                col.DataType <- Type.GetType( xs.[1], throwOnError = true)  
-                                col.AllowDBNull <- Boolean.Parse xs.[2]
-                                if col.DataType = typeof<string>
-                                then 
-                                    col.MaxLength <- int xs.[3]
-                                col.ReadOnly <- Boolean.Parse xs.[4]
-                                col.AutoIncrement <- Boolean.Parse xs.[5]
-                                if Boolean.Parse xs.[6]
-                                then    
-                                    primaryKey.Add col 
-                                table.Columns.Add col
-
-                            table.PrimaryKey <- Array.ofSeq primaryKey
-
-                            table
-                        @@>
-                    dataTableType.AddMember ctor
-                
                 do
                     let parameters, updateableColumns = 
                         [ 
