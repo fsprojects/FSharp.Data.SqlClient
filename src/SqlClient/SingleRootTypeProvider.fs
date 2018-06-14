@@ -55,7 +55,7 @@ type CacheWithMonitors (providerName) =
 [<AbstractClass>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters, ?isErased) as this = 
-    inherit TypeProviderForNamespaces()
+    inherit TypeProviderForNamespaces(config)
 
     let cache = new CacheWithMonitors(providerName)
     do 
@@ -63,7 +63,7 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
         let nameSpace = this.GetType().Namespace
         let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
 
-        let providerType = ProvidedTypeDefinition(assembly, nameSpace, providerName, Some typeof<obj>, HideObjectMethods = true, IsErased = isErased)
+        let providerType = ProvidedTypeDefinition(assembly, nameSpace, providerName, Some typeof<obj>, hideObjectMethods = true, isErased = isErased)
 
         providerType.DefineStaticParameters(
             parameters = parameters,             

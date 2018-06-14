@@ -74,7 +74,6 @@
       <Paket>True</Paket>
       <Link>ProvidedTypesTesting.fs</Link>
     </Compile>
-    <Compile Include="DebugProvidedTypes.fs" />
     <Compile Include="Configuration.fs" />
     <Compile Include="ProvidedTypesCache.fs" />
     <Compile Include="DynamicRecord.fs" />
