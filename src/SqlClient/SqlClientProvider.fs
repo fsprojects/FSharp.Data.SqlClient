@@ -29,6 +29,19 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
     let cache = new MemoryCache(name = this.GetType().Name)
     let methodsCache = new MemoryCache(name = this.GetType().Name)
+    
+    let splitKeyVal (s : string) = 
+        match s.Split(':') with 
+        | [|key; value|] -> (key.Trim().ToLower(), value)
+        |_ -> invalidArg "s" "parameter must be of type key:value"
+    
+    let mapFromString (s : string) =
+        match s with 
+        | "" -> Map.empty 
+        | x -> 
+            x.Split('|')
+            |> Array.map splitKeyVal
+            |> Map.ofArray
 
     do 
         this.Disposing.Add <| fun _ -> 
@@ -44,10 +57,11 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("DataDirectory", typeof<string>, "") 
                 ProvidedStaticParameter("UseReturnValue", typeof<bool>, false) 
-                ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Records) 
+                ProvidedStaticParameter("ResultType", typeof<ResultType>, ResultType.Records)
+                ProvidedStaticParameter("ProcResultSets", typeof<string>, "") 
             ],
             instantiationFunction = (fun typeName args ->
-                let root = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4])
+                let root = lazy this.CreateRootType(typeName, unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4], unbox args.[5] |> mapFromString)
                 cache.GetOrAdd(typeName, root)
             ) 
         )
@@ -59,6 +73,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 <param name='DataDirectory'>The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.</param>
 <param name='UseReturnValue'>To be documented.</param>
 <param name='ResultType'>A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader, this affects only Stored Procedures.</param>
+<param name='ProcResultSets'>String defining a dictionary using the format key1:value1|key2:value2|...</param>
 """
 
         this.AddNamespace(nameSpace, [ providerType ])
@@ -70,7 +85,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         |> defaultArg 
         <| base.ResolveAssembly args
 
-    member internal this.CreateRootType( typeName, connectionStringOrName, configFile, dataDirectory, useReturnValue, resultType) =
+    member internal this.CreateRootType(typeName, connectionStringOrName, configFile, dataDirectory, useReturnValue, resultType, procResultSets) =
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         
         let designTimeConnectionString = DesignTimeConnectionString.Parse(connectionStringOrName, config.ResolutionFolder, configFile)
@@ -124,7 +139,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
             schemaType.AddMembersDelayed <| fun() -> 
                 [
-                    let routines = this.Routines(conn, schemaType.Name, udttsPerSchema, resultType, designTimeConnectionString, useReturnValue, uomPerSchema)
+                    let routines = this.Routines(conn, schemaType.Name, udttsPerSchema, resultType, designTimeConnectionString, useReturnValue, uomPerSchema, procResultSets)
                     routines |> List.iter tagProvidedType
                     yield! routines
 
@@ -159,11 +174,16 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 yield units
     ]
 
-    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, designTimeConnectionString, useReturnValue, unitsOfMeasurePerSchema) = 
+    member internal __.Routines(conn, schema, uddtsPerSchema, resultType, designTimeConnectionString, useReturnValue, unitsOfMeasurePerSchema, procResultSets: Map<string, string>) = 
         [
             use _ = conn.UseLocally()
             let isSqlAzure = conn.IsSqlAzure
             let routines = conn.GetRoutines( schema, isSqlAzure) 
+            
+            let appendResultSet (commandText: string) =
+                commandText + " " + defaultArg (procResultSets.TryFind (commandText.ToLower()) ) ""  
+                
+                
             for routine in routines do
              
                 let cmdProvidedType = ProvidedTypeDefinition(snd routine.TwoPartName, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
@@ -176,7 +196,12 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         use __ = conn.UseLocally()
                         let parameters = conn.GetParameters( routine, isSqlAzure, useReturnValue)
 
-                        let commandText = routine.ToCommantText(parameters)
+                        // there is a typo in function name `ToCommantText` should be Command instead of Commant 
+                        let commandText = 
+                            if not routine.IsStoredProc 
+                                then routine.ToCommantText(parameters) 
+                                else routine.ToCommantText(parameters) |> appendResultSet
+                                 
                         let outputColumns = DesignTime.GetOutputColumns(conn, commandText, parameters, routine.IsStoredProc)
                         let rank = if routine.Type = ScalarValuedFunction then ResultRank.ScalarValue else ResultRank.Sequence
 
