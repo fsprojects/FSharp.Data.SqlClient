@@ -250,12 +250,12 @@ let internal providerTypes =
         "time", (SqlDbType.Time, "System.TimeSpan", true)
 
         // character strings
-        "char", (SqlDbType.Char, "System.String", true)
+        "char", (SqlDbType.Char, "System.String", false)
         "text", (SqlDbType.Text, "System.String", false)
         "varchar", (SqlDbType.VarChar, "System.String", false)
 
         // unicode character strings
-        "nchar", (SqlDbType.NChar, "System.String", true)
+        "nchar", (SqlDbType.NChar, "System.String", false)
         "ntext", (SqlDbType.NText, "System.String", false)
         "nvarchar", (SqlDbType.NVarChar, "System.String", false)
         "sysname", (SqlDbType.NVarChar, "System.String", false)

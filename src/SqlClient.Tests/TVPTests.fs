@@ -165,3 +165,23 @@ let UsingMappedTVPInQuery() =
         |> Seq.toList
 
     Assert.Equal<_ list>(expected, actual)
+
+type MappedTVPFixed = 
+    SqlCommandProvider<"
+        SELECT myId, myName from @input
+    ", ConnectionStrings.AdventureWorksLiteral, TableVarMapping = "@input=dbo.MyTableTypeFixed">
+[<Fact>]
+let UsingMappedTVPFixedInQuery() = 
+    printfn "%s" ConnectionStrings.AdventureWorksLiteral
+    use cmd = new MappedTVPFixed(ConnectionStrings.AdventureWorksLiteral)
+    let expected = [ 
+        1, Some "monkey"
+        2, Some "donkey"
+    ]
+
+    let actual =
+        cmd.Execute(input = [ for id, name in expected -> MappedTVPFixed.MyTableTypeFixed(id, name) ])
+        |> Seq.map(fun x -> x.myId, x.myName |> Option.map (fun s -> s.Trim()))
+        |> Seq.toList
+
+    Assert.Equal<_ list>(expected, actual)

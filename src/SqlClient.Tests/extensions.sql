@@ -90,6 +90,9 @@ GO
 IF TYPE_ID(N'Person.MyTableType') IS NOT NULL
 	DROP TYPE Person.MyTableType
 GO
+IF TYPE_ID(N'dbo.MyTableTypeFixed') IS NOT NULL
+	DROP TYPE dbo.MyTableTypeFixed
+GO
 IF TYPE_ID(N'dbo.u_int64') IS NOT NULL
 	DROP TYPE dbo.u_int64
 GO
@@ -110,6 +113,9 @@ CREATE TYPE dbo.MyTableType AS TABLE (myId int not null, myName nvarchar(30) nul
 GO
 
 CREATE TYPE Person.MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
+GO
+
+CREATE TYPE dbo.MyTableTypeFixed AS TABLE (myId int not null, myName nchar(30) null)
 GO
 
 CREATE TYPE dbo.SingleElementType AS TABLE (myId int not null)
