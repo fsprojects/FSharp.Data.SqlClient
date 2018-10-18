@@ -8,6 +8,7 @@ open System.Data.SqlTypes
 let connectionString = ConnectionStrings.AdventureWorksNamed
 
 type GetEmployeeByLevel = SqlCommandProvider<"SELECT OrganizationNode FROM HumanResources.Employee WHERE OrganizationNode = @OrganizationNode", connectionString, SingleRow = true>
+
 [<Fact>]
 let SqlHierarchyIdParam() =    
     let getEmployeeByLevel = new GetEmployeeByLevel()

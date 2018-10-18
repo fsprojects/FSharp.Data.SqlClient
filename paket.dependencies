@@ -32,7 +32,7 @@ group Test
 	redirects: force
 
 	nuget FSharp.Core = 4.1.2
-	nuget FSharp.Configuration
+	nuget FSharp.Configuration = 1.4.0
 	nuget Newtonsoft.Json
 	nuget xunit = 1.9.2
 	nuget xunit.runner.visualstudio = 2.1.0

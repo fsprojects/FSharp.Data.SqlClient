@@ -2,156 +2,12 @@
 module FSharp.Data.SqlClient.Extensions
 
 open System
-open System.Text
 open System.Data
 open System.Collections.Generic
 open System.IO
 open System.Threading.Tasks
 open System.Data.SqlClient
-open System.Reflection
-
-type SqlCommand with
-    member this.AsyncExecuteReader behavior =
-        Async.FromBeginEnd((fun(callback, state) -> this.BeginExecuteReader(callback, state, behavior)), this.EndExecuteReader)
-
-    member this.AsyncExecuteNonQuery() =
-        Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery) 
-
-    static member internal DefaultTimeout = (new SqlCommand()).CommandTimeout
-
-    member internal this.ExecuteQuery mapper = 
-        seq {
-            use cursor = this.ExecuteReader()
-            while cursor.Read() do
-                yield mapper cursor
-        }
-
-type SqlDataReader with
-    member internal this.MapRowValues<'TItem>( rowMapping) = 
-        seq {
-            use _ = this
-            let values = Array.zeroCreate this.FieldCount
-            while this.Read() do
-                this.GetValues(values) |> ignore
-                yield values |> rowMapping |> unbox<'TItem>
-        }
-
-type SqlDataReader with
-    member internal this.TryGetValue(name: string) = 
-        let value = this.[name] 
-        if Convert.IsDBNull value then None else Some(unbox<'a> value)
-    member internal this.GetValueOrDefault<'a>(name: string, defaultValue) = 
-        let value = this.[name] 
-        if Convert.IsDBNull value then defaultValue else unbox<'a> value
-
-let DbNull = box DBNull.Value
-
-type Column = {
-    Name: string
-    TypeInfo: TypeInfo
-    Nullable: bool
-    MaxLength: int
-    ReadOnly: bool
-    Identity: bool
-    PartOfUniqueKey: bool
-    DefaultConstraint: string
-    Description: string
-}   with
-
-    member this.ErasedToType = 
-        if this.Nullable
-        then typedefof<_ option>.MakeGenericType this.TypeInfo.ClrType
-        else this.TypeInfo.ClrType
-    
-    member this.GetProvidedType(?unitsOfMeasurePerSchema: Dictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
-        let typeConsideringUOM: Type = 
-            if this.TypeInfo.IsUnitOfMeasure && unitsOfMeasurePerSchema.IsSome
-            then
-                assert(unitsOfMeasurePerSchema.IsSome)
-                let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
-                ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
-            else
-                this.TypeInfo.ClrType
-
-        if this.Nullable
-        then
-            //ProviderImplementation.ProvidedTypes.ProvidedTypeBuilder.MakeGenericType(typedefof<_ option>, [ typeConsideringUOM ])
-            typedefof<_ option>.MakeGenericType typeConsideringUOM
-        else 
-            typeConsideringUOM
-
-    member this.HasDefaultConstraint = this.DefaultConstraint <> ""
-    member this.NullableParameter = this.Nullable || this.HasDefaultConstraint
-
-    static member Parse(cursor: SqlDataReader, typeLookup: int * int option -> TypeInfo, ?defaultValue, ?description) = {
-        Name = unbox cursor.["name"]
-        TypeInfo = 
-            let system_type_id = unbox<byte> cursor.["system_type_id"] |> int
-            let user_type_id = cursor.TryGetValue "user_type_id"
-            typeLookup(system_type_id, user_type_id)
-        Nullable = unbox cursor.["is_nullable"]
-        MaxLength = cursor.["max_length"] |> unbox<int16> |> int
-        ReadOnly = not( cursor.GetValueOrDefault("is_updateable", false))
-        Identity = cursor.GetValueOrDefault( "is_identity_column", false)
-        PartOfUniqueKey = unbox cursor.["is_part_of_unique_key"]
-        DefaultConstraint = defaultArg defaultValue ""
-        Description = defaultArg description ""
-    }
-
-    override this.ToString() = 
-        sprintf "%s\t%s\t%b\t%i\t%b\t%b\t%b\t%s\t%s" 
-            this.Name 
-            this.TypeInfo.ClrTypeFullName 
-            this.Nullable 
-            this.MaxLength
-            this.ReadOnly
-            this.Identity
-            this.PartOfUniqueKey
-            this.DefaultConstraint
-            this.Description
-
-and TypeInfo = {
-    TypeName: string
-    Schema: string
-    SqlEngineTypeId: int
-    UserTypeId: int
-    SqlDbType: SqlDbType
-    IsFixedLength: bool 
-    ClrTypeFullName: string
-    UdttName: string 
-    TableTypeColumns: Column[] Lazy
-}   with
-    member this.ClrType: Type = Type.GetType( this.ClrTypeFullName, throwOnError = true)
-    member this.TableType = this.SqlDbType = SqlDbType.Structured
-    member this.IsValueType = not this.TableType && this.ClrType.IsValueType
-    member this.IsUnitOfMeasure = this.TypeName.StartsWith("<") && this.TypeName.EndsWith(">")
-    member this.UnitOfMeasureName = this.TypeName.TrimStart('<').TrimEnd('>')
-
-type Parameter = {
-    Name: string
-    TypeInfo: TypeInfo
-    Direction: ParameterDirection 
-    MaxLength: int
-    Precision: byte
-    Scale : byte
-    DefaultValue: obj option
-    Optional: bool
-    Description: string
-}   with
-    
-    member this.Size = 
-        match this.TypeInfo.SqlDbType with
-        | SqlDbType.NChar | SqlDbType.NText | SqlDbType.NVarChar -> this.MaxLength / 2
-        | _ -> this.MaxLength
-
-    member this.GetProvidedType(?unitsOfMeasurePerSchema: Dictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
-        if this.TypeInfo.IsUnitOfMeasure && unitsOfMeasurePerSchema.IsSome
-        then
-            assert(unitsOfMeasurePerSchema.IsSome)
-            let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
-            ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
-        else
-            this.TypeInfo.ClrType
+open FSharp.Data
 
 let private dataTypeMappings = Dictionary<string, TypeInfo[]>()
 
@@ -287,24 +143,12 @@ type SqlConnection with
 
  //address an issue when regular Dispose on SqlConnection needed for async computation 
  //wipes out all properties like ConnectionString in addition to closing connection to db
-    member this.UseLocally(?privateConnection) =
-        if this.State = ConnectionState.Closed 
-            && defaultArg privateConnection true
-        then 
-            this.Open()
-            { new IDisposable with member __.Dispose() = this.Close() }
-        else { new IDisposable with member __.Dispose() = () }
-    
+   
     member internal this.CheckVersion() = 
         assert (this.State = ConnectionState.Open)
         let majorVersion = this.ServerVersion.Split('.').[0]
         if int majorVersion < 11 
         then failwithf "Minimal supported major version is 11 (SQL Server 2012 and higher or Azure SQL Database). Currently used: %s" this.ServerVersion
-
-    member this.IsSqlAzure = 
-        assert (this.State = ConnectionState.Open)
-        use cmd = new SqlCommand("SELECT SERVERPROPERTY('edition')", this)
-        cmd.ExecuteScalar().Equals("SQL Azure")
 
     member internal this.GetUserSchemas() = 
         use __ = this.UseLocally()

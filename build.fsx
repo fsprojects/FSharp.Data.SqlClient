@@ -216,8 +216,8 @@ Target.create "All" Target.DoNothing
 
 open Fake.Core.TargetOperators // for ==>
 
-"Clean"
-  ==> "AssemblyInfo"
+//"Clean"
+"AssemblyInfo"
   ==> "Build"
   ==> "DeployTestDB"
   ==> "BuildTests"

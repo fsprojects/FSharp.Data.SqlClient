@@ -1,9 +1,5 @@
 module FSharp.Data.TypeProviderTest
 
-#if DEBUG
-#nowarn "101"
-#endif
-
 open System
 open System.Data
 open System.Data.SqlClient

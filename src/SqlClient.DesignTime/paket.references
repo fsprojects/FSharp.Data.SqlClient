@@ -1,0 +1,6 @@
+FSharp.Core
+Microsoft.SqlServer.TransactSql.ScriptDom
+Microsoft.SqlServer.Types
+
+File: ProvidedTypes.fsi .
+File: ProvidedTypes.fs .

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2041
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{FD7933BD-2A90-49EB-A4B2-95F9D3076BBD}"
 	ProjectSection(SolutionItems) = preProject
@@ -51,7 +51,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{
 		docs\tools\templates\template.cshtml = docs\tools\templates\template.cshtml
 	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlClient", "src\SqlClient\SqlClient.fsproj", "{8974CE2E-79B4-4887-859A-B853C2624138}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SqlClient.DesignTime", "src\SqlClient.DesignTime\SqlClient.DesignTime.fsproj", "{8974CE2E-79B4-4887-859A-B853C2624138}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlClient", "src\SqlClient\SqlClient.fsproj", "{30BA2514-534A-42EA-A0E7-46DF9FDCA954}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -63,6 +65,10 @@ Global
 		{8974CE2E-79B4-4887-859A-B853C2624138}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8974CE2E-79B4-4887-859A-B853C2624138}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8974CE2E-79B4-4887-859A-B853C2624138}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30BA2514-534A-42EA-A0E7-46DF9FDCA954}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30BA2514-534A-42EA-A0E7-46DF9FDCA954}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30BA2514-534A-42EA-A0E7-46DF9FDCA954}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30BA2514-534A-42EA-A0E7-46DF9FDCA954}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -71,5 +77,8 @@ Global
 		{4B60BF24-D078-4950-A994-A633FBC272EB} = {61AC061E-5824-41B7-8E09-8D3A73D564E5}
 		{573DBBFB-0F97-4327-8614-6A4151CD70BF} = {61AC061E-5824-41B7-8E09-8D3A73D564E5}
 		{CB79269B-025B-4D6A-AF84-0AD821F6A602} = {573DBBFB-0F97-4327-8614-6A4151CD70BF}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {82096CC6-31F2-47A5-8D46-E41C63B4DB58}
 	EndGlobalSection
 EndGlobal

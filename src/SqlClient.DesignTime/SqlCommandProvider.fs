@@ -5,7 +5,6 @@ open System.IO
 open System.Data.SqlClient
 open System.Reflection
 open System.Runtime.CompilerServices
-
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
 
@@ -14,9 +13,7 @@ open FSharp.Data.SqlClient
 open ProviderImplementation.ProvidedTypes
 
 [<assembly:TypeProviderAssembly()>]
-#if DEBUG
-[<assembly:InternalsVisibleTo("SqlClient.Tests")>]
-#endif
+[<assembly:InternalsVisibleTo("SqlClient.DesignTime.Tests")>]
 do()
 
 module X =
@@ -26,10 +23,10 @@ module X =
 [<TypeProvider>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type SqlCommandProvider(config : TypeProviderConfig) as this = 
-    inherit TypeProviderForNamespaces(config, addDefaultProbingLocation = true)        
-    
+    inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("FSharp.Data.SqlClient.DesignTime", "FSharp.Data.SqlClient")], addDefaultProbingLocation=true)
+
     let nameSpace = this.GetType().Namespace
-    let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
+    let assembly = Assembly.GetExecutingAssembly()
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, hideObjectMethods = true)
 
     let cache = new Cache<ProvidedTypeDefinition>()

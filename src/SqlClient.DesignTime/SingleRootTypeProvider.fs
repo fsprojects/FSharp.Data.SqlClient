@@ -8,13 +8,13 @@ open System
 [<AbstractClass>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters, ?isErased) as this = 
-    inherit TypeProviderForNamespaces(config, addDefaultProbingLocation = true)
+    inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("FSharp.Data.SqlClient.DesignTime", "FSharp.Data.SqlClient")], addDefaultProbingLocation=true)
 
     let cache = new Cache<ProvidedTypeDefinition>()
     do 
         let isErased = defaultArg isErased true
         let nameSpace = this.GetType().Namespace
-        let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
+        let assembly = Assembly.GetExecutingAssembly()
 
         let providerType = ProvidedTypeDefinition(assembly, nameSpace, providerName, Some typeof<obj>, hideObjectMethods = true, isErased = isErased)
 

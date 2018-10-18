@@ -25,8 +25,13 @@
   <files>
     <file src="..\bin\net40\FSharp.Data.SqlClient.dll" target="lib\net40" />
     <file src="..\bin\net40\FSharp.Data.SqlClient.pdb" target="lib\net40" />
+    <file src="..\bin\net40\FSharp.Data.SqlClient.DesignTime.dll" target="lib\net40" />
+    <file src="..\bin\net40\FSharp.Data.SqlClient.DesignTime.pdb" target="lib\net40" />
     <file src="..\bin\net40\FSharp.Data.SqlClient.xml" target="lib\net40" />
     <file src="..\bin\net40\Microsoft.SqlServer.TransactSql.ScriptDom.dll" target="lib\net40" />
     <file src="..\bin\net40\Microsoft.SqlServer.Types.dll" target="lib\net40" />
+    <file src="..\bin\net40\FSharp.Data.SqlClient.DesignTime.dll" target="lib\typeproviders\fsharp41\net40" />
+    <file src="..\bin\net40\Microsoft.SqlServer.TransactSql.ScriptDom.dll" target="lib\typeproviders\fsharp41\net40" />
+    <file src="..\bin\net40\Microsoft.SqlServer.Types.dll" target="lib\typeproviders\fsharp41\net40" />
   </files>
 </package>

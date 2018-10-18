@@ -12,28 +12,6 @@ open ProviderImplementation.ProvidedTypes
 open FSharp.Data
 open System.Text.RegularExpressions
 
-module RuntimeInternals =
-    let setupTableFromSerializedColumns (serializedSchema: string) (table: System.Data.DataTable) =
-        let primaryKey = ResizeArray()
-        for line in serializedSchema.Split('\n') do
-            let xs = line.Split('\t')
-            let col = new DataColumn()
-            col.ColumnName <- xs.[0]
-            col.DataType <- Type.GetType( xs.[1], throwOnError = true)  
-            col.AllowDBNull <- Boolean.Parse xs.[2]
-            if col.DataType = typeof<string>
-            then 
-                col.MaxLength <- int xs.[3]
-            col.ReadOnly <- Boolean.Parse xs.[4]
-            col.AutoIncrement <- Boolean.Parse xs.[5]
-            if Boolean.Parse xs.[6]
-            then    
-                primaryKey.Add col 
-            table.Columns.Add col
-
-        table.PrimaryKey <- Array.ofSeq primaryKey
-
-
 type internal RowType = {
     Provided: Type
     ErasedTo: Type
@@ -75,47 +53,6 @@ module internal SharedLogic =
 module Prefixes =
     let tempTable = "##SQLCOMMANDPROVIDER_"
     let tableVar = "@SQLCOMMANDPROVIDER_"
-
-type TempTableLoader(fieldCount, items: obj seq) =
-    let enumerator = items.GetEnumerator()
-
-    interface IDataReader with
-        member this.FieldCount: int = fieldCount
-        member this.Read(): bool = enumerator.MoveNext()
-        member this.GetValue(i: int): obj =
-            let row : obj[] = unbox enumerator.Current
-            row.[i]
-        member this.Dispose(): unit = ()
-
-        member __.Close(): unit = invalidOp "NotImplementedException"
-        member __.Depth: int = invalidOp "NotImplementedException"
-        member __.GetBoolean(_: int): bool = invalidOp "NotImplementedException"
-        member __.GetByte(_ : int): byte = invalidOp "NotImplementedException"
-        member __.GetBytes(_ : int, _ : int64, _ : byte [], _ : int, _ : int): int64 = invalidOp "NotImplementedException"
-        member __.GetChar(_ : int): char = invalidOp "NotImplementedException"
-        member __.GetChars(_ : int, _ : int64, _ : char [], _ : int, _ : int): int64 = invalidOp "NotImplementedException"
-        member __.GetData(_ : int): IDataReader = invalidOp "NotImplementedException"
-        member __.GetDataTypeName(_ : int): string = invalidOp "NotImplementedException"
-        member __.GetDateTime(_ : int): System.DateTime = invalidOp "NotImplementedException"
-        member __.GetDecimal(_ : int): decimal = invalidOp "NotImplementedException"
-        member __.GetDouble(_ : int): float = invalidOp "NotImplementedException"
-        member __.GetFieldType(_ : int): System.Type = invalidOp "NotImplementedException"
-        member __.GetFloat(_ : int): float32 = invalidOp "NotImplementedException"
-        member __.GetGuid(_ : int): System.Guid = invalidOp "NotImplementedException"
-        member __.GetInt16(_ : int): int16 = invalidOp "NotImplementedException"
-        member __.GetInt32(_ : int): int = invalidOp "NotImplementedException"
-        member __.GetInt64(_ : int): int64 = invalidOp "NotImplementedException"
-        member __.GetName(_ : int): string = invalidOp "NotImplementedException"
-        member __.GetOrdinal(_ : string): int = invalidOp "NotImplementedException"
-        member __.GetSchemaTable(): DataTable = invalidOp "NotImplementedException"
-        member __.GetString(_ : int): string = invalidOp "NotImplementedException"
-        member __.GetValues(_ : obj []): int = invalidOp "NotImplementedException"
-        member __.IsClosed: bool = invalidOp "NotImplementedException"
-        member __.IsDBNull(_ : int): bool = invalidOp "NotImplementedException"
-        member __.Item with get (_ : int): obj = invalidOp "NotImplementedException"
-        member __.Item with get (_ : string): obj = invalidOp "NotImplementedException"
-        member __.NextResult(): bool = invalidOp "NotImplementedException"
-        member __.RecordsAffected: int = invalidOp "NotImplementedException"
 
 type DesignTime private() =
     static member internal AddGeneratedMethod
@@ -163,7 +100,7 @@ type DesignTime private() =
                             if sqlParam.Direction.HasFlag( ParameterDirection.Output)
                             then 
                                 let mi = 
-                                    typeof<DesignTime>
+                                    typeof<Mapper>
                                         .GetMethod("SetRef")
                                         .MakeGenericMethod( sqlParam.TypeInfo.ClrType)
                                 Expr.Call(mi, [ argExpr; Expr.Var arr; Expr.Value index ]) |> Some
@@ -198,9 +135,6 @@ type DesignTime private() =
         if not(String.IsNullOrWhiteSpace xmlDoc) then m.AddXmlDoc xmlDoc
 
         m
-
-    static member SetRef<'t>(r : byref<'t>, arr: (string * obj)[], i) = 
-        r <- arr.[i] |> snd |> unbox
 
     static member internal GetRecordType(columns: Column list, ?unitsOfMeasurePerSchema) =
         
@@ -432,7 +366,7 @@ type DesignTime private() =
                     providedType, erasedToTupleType, mapping
             
             let nullsToOptions = QuotationsFactory.MapArrayNullableItems(outputColumns, "MapArrayObjItemToOption") 
-            let combineWithNullsToOptions = typeof<QuotationsFactory>.GetMethod("GetMapperWithNullsToOptions") 
+            let combineWithNullsToOptions = typeof<Mapper>.GetMethod("GetMapperWithNullsToOptions") 
             
             { 
                 Single = 

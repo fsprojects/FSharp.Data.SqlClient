@@ -17,9 +17,9 @@ open FSharp.Data.SqlClient
 [<TypeProvider>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type SqlProgrammabilityProvider(config : TypeProviderConfig) as this = 
-    inherit TypeProviderForNamespaces(config, addDefaultProbingLocation = true)
+    inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("FSharp.Data.SqlClient.DesignTime", "FSharp.Data.SqlClient")], addDefaultProbingLocation=true)
 
-    let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
+    let assembly = Assembly.GetExecutingAssembly()
     let nameSpace = this.GetType().Namespace
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlProgrammabilityProvider", Some typeof<obj>, hideObjectMethods = true)
 
@@ -159,7 +159,6 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
             let isSqlAzure = conn.IsSqlAzure
             let routines = conn.GetRoutines( schema, isSqlAzure) 
             for routine in routines do
-             
                 let cmdProvidedType = ProvidedTypeDefinition(snd routine.TwoPartName, Some typeof<``ISqlCommand Implementation``>, hideObjectMethods = true)
 
                 do

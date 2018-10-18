@@ -50,7 +50,7 @@ type QuotationsFactory private() =
             x
         @@>
 
-    static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> Extensions.DbNull @@>    
+    static member internal OptionToObj<'T> value = <@@ match %%value with Some (x : 'T) -> box x | None -> DbNull @@>    
         
     static member internal MapArrayOptionItemToObj<'T>(arr, index) =
         <@
@@ -102,11 +102,6 @@ type QuotationsFactory private() =
         <@
             (%%exprArgs.[0] : DataRow).[name] <- match (%%exprArgs.[1] : option<'T>) with None -> DbNull | Some value -> box value
         @> 
-
-    static member GetMapperWithNullsToOptions(nullsToOptions, mapper: obj[] -> obj) = 
-        fun values -> 
-            nullsToOptions values
-            mapper values
 
     static member private GetNonNullableValueFromDataRow<'T>(exprArgs : Expr list, name: string) =
         <@ (%%exprArgs.[0] : DataRow).[name] @>
