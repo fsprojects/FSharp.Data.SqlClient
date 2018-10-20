@@ -515,9 +515,14 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                     if resultType = ResultType.DataTable then
                         // if we don't do this, we get a compile error
                         // Error The type provider 'FSharp.Data.SqlProgrammabilityProvider' reported an error: type 'Table' was not added as a member to a declaring type <type instanciation name> 
-                        cmdProvidedType.AddMember( returnType.Single) 
+                        returnType.Single |> function
+                        | :? ProvidedTypeDefinition -> cmdProvidedType.AddMember returnType.Single
+                        | _ -> ()
                     else
-                        returnType.PerRow |> Option.iter (fun x -> cmdProvidedType.AddMember x.Provided)
+                        returnType.PerRow |> Option.iter (fun x -> 
+                            x.Provided |> function 
+                                | :? ProvidedTypeDefinition -> cmdProvidedType.AddMember x.Provided 
+                                | _ -> ())
 
                     let designTimeConfig = 
                         let expectedDataReaderColumns = 

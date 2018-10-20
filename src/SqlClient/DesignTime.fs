@@ -62,10 +62,15 @@ module internal SharedLogic =
     let alterReturnTypeAccordingToResultType (returnType: ReturnType) (cmdProvidedType: ProvidedTypeDefinition) resultType =
         if resultType = ResultType.Records then
             // Add .Record
-            returnType.PerRow |> Option.iter (fun x -> cmdProvidedType.AddMember x.Provided)
+            returnType.PerRow |> Option.iter (fun x -> 
+                if x.Provided <> x.ErasedTo
+                then cmdProvidedType.AddMember x.Provided
+            )
         elif resultType = ResultType.DataTable then
             // add .Table
-            returnType.Single |> cmdProvidedType.AddMember
+            returnType.Single |> function
+            | :? ProvidedTypeDefinition -> cmdProvidedType.AddMember returnType.Single
+            | _ -> ()
 
 module Prefixes =
     let tempTable = "##SQLCOMMANDPROVIDER_"
