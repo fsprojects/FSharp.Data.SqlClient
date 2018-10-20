@@ -29,7 +29,10 @@ do()
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type SqlCommandProvider(config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces(config, addDefaultProbingLocation = true)
-
+    
+    // need to make sure microsoft.sqlserver.types is included as a referenced assembly
+    let _ = Microsoft.SqlServer.Types.SqlGeography.Null
+    
     let nameSpace = this.GetType().Namespace
     let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, hideObjectMethods = true)
