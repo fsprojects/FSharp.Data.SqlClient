@@ -141,9 +141,7 @@ type DesignTime private() =
                 <@@ (%%Expr.Value(param.Name) : string), %%Expr.Coerce(value, typeof<obj>) @@>
             )
 
-        let m = ProvidedMethod(name, executeArgs, providedOutputType)
-        
-        m.InvokeCode <- fun exprArgs ->
+        let m = ProvidedMethod(name, executeArgs, providedOutputType, fun exprArgs ->
             let methodInfo = typeof<ISqlCommand>.GetMethod(name)
             let vals = mappedInputParamValues(exprArgs)
             let paramValues = Expr.NewArray( typeof<string * obj>, elements = vals)
@@ -180,7 +178,7 @@ type DesignTime private() =
                     ps |> %%mapOutParamValues
                     result
                 @@>
-
+        )
         let xmlDoc = 
             sqlParameters
             |> Seq.choose (fun p ->
@@ -206,7 +204,7 @@ type DesignTime private() =
             |> Seq.tryFind (fun (_, xs) -> Seq.length xs > 1)
             |> Option.iter (fun (name, _) -> failwithf "Non-unique column name %s is illegal for ResultType.Records." name)
         
-        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, HideObjectMethods = true)
+        let recordType = ProvidedTypeDefinition("Record", baseType = Some typeof<obj>, hideObjectMethods = true)
         let properties, ctorParameters = 
             columns
             |> List.mapi ( fun i col ->
@@ -216,8 +214,7 @@ type DesignTime private() =
                     
                 let propType = col.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
 
-                let property = ProvidedProperty(propertyName, propType)
-                property.GetterCode <- fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>
+                let property = ProvidedProperty(propertyName, propType, getterCode = fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>)
 
                 let ctorParameter = ProvidedParameter(propertyName, propType)  
 
@@ -227,15 +224,15 @@ type DesignTime private() =
 
         recordType.AddMembers properties
 
-        let ctor = ProvidedConstructor(ctorParameters)
-        ctor.InvokeCode <- fun args ->
+        let ctor = ProvidedConstructor(ctorParameters, fun args ->
             let pairs =  Seq.zip args properties //Because we need original names in dictionary
                         |> Seq.map (fun (arg,p) -> <@@ (%%Expr.Value(p.Name):string), %%Expr.Coerce(arg, typeof<obj>) @@>)
                         |> List.ofSeq
             <@@
                 let pairs : (string * obj) [] = %%Expr.NewArray(typeof<string * obj>, pairs)
                 DynamicRecord (dict pairs)
-            @@> 
+            @@>
+            )
         recordType.AddMember ctor
         
         recordType
@@ -261,10 +258,10 @@ type DesignTime private() =
             let propertyType = col.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
 
             let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode col
-            let property = ProvidedProperty(col.Name, propertyType, GetterCode = getter)
-
-            if not col.ReadOnly then
-              property.SetterCode <- setter
+            let property = ProvidedProperty(col.Name, propertyType, getterCode = getter, ?setterCode =
+                                if not col.ReadOnly
+                                then Some setter
+                                else None)
             
             property
         )
@@ -278,42 +275,31 @@ type DesignTime private() =
       
         let columnsType = ProvidedTypeDefinition("Columns", Some typeof<DataColumnCollection>)
 
-        let columnsProperty = ProvidedProperty("Columns", columnsType)
-        tableProvidedType.AddMember columnsType
-        
-        columnsProperty.GetterCode <-
-            fun args -> 
+        let columnsProperty = ProvidedProperty("Columns", columnsType, getterCode = fun args -> 
                 <@@
                     let table : DataTable<DataRow> = %%args.[0]
                     table.Columns
-                @@>
-
+                @@>)
+        tableProvidedType.AddMember columnsType
         tableProvidedType.AddMember columnsProperty
       
         for column in outputColumns do
             let propertyType = ProvidedTypeDefinition(column.Name, Some typeof<DataColumn>)
-            let property = ProvidedProperty(column.Name, propertyType)
-            
-            property.GetterCode <- fun args -> 
+            let property = ProvidedProperty(column.Name, propertyType, fun args -> 
                     let columnName = column.Name
                     <@@ 
                         let columns: DataColumnCollection = %%args.[0]
                         columns.[columnName]
-                    @@>
-
+                    @@>)
+                        
+            let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode(column)
             let getValueMethod =
                 ProvidedMethod(
                     "GetValue"
                     , [ProvidedParameter("row", dataRowType)]
                     , column.ErasedToType
-                )
-        
-            let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode(column)
-
-            getValueMethod.InvokeCode <- 
-                fun args -> 
-                    // we don't care of args.[0] (the DataColumn) because getter code is already made for that column
-                    getter args.Tail
+                    , fun args -> getter args.Tail // we don't care of args.[0] (the DataColumn) because getter code is already made for that column
+            ) 
            
             let setValueMethod =
                 ProvidedMethod(
@@ -323,12 +309,8 @@ type DesignTime private() =
                         ProvidedParameter("value", column.ErasedToType)
                     ]
                     , typeof<unit>
+                    , fun args -> setter args.Tail  // we don't care of args.[0] (the DataColumn) because setter code is already made for that column
                 )
-        
-            setValueMethod.InvokeCode <-
-                fun args ->
-                    // we don't care of args.[0] (the DataColumn) because setter code is already made for that column
-                    setter args.Tail
 
             propertyType.AddMember getValueMethod
             propertyType.AddMember setValueMethod
@@ -341,7 +323,7 @@ type DesignTime private() =
             ProvidedProperty(
                 "Table"
                 , tableProvidedType
-                , GetterCode = 
+                , getterCode = 
                     fun args ->
                         <@@
                             let row : DataRow = %%args.[0]
@@ -384,7 +366,7 @@ type DesignTime private() =
                     @@>
           
 
-        ProvidedConstructor([], InvokeCode = ctorCode) |> tableProvidedType.AddMember
+        ProvidedConstructor([], invokeCode = ctorCode) |> tableProvidedType.AddMember
 
         tableProvidedType
 
@@ -609,7 +591,7 @@ type DesignTime private() =
 
     static member internal CreateUDTT(t: TypeInfo) = 
         assert(t.TableType)
-        let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj>, HideObjectMethods = true)
+        let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj>, hideObjectMethods = true)
 
         let parameters, sqlMetas = 
             List.unzip [ 
@@ -627,8 +609,7 @@ type DesignTime private() =
                     yield param, sqlMeta
             ] 
 
-        let ctor = ProvidedConstructor( parameters)
-        ctor.InvokeCode <- fun args -> 
+        let ctor = ProvidedConstructor( parameters, fun args -> 
             let optionsToNulls = QuotationsFactory.MapArrayNullableItems(List.ofArray t.TableTypeColumns.Value, "MapArrayOptionItemToObj") 
 
             <@@
@@ -644,7 +625,8 @@ type DesignTime private() =
                 sqlDataRecordType.GetMethod("SetValues").Invoke(record, [| values |]) |> ignore
 
                 record
-            @@>
+            @@>)
+
         rowType.AddMember ctor
         rowType.AddXmlDoc "User-Defined Table Type"
                             
@@ -705,11 +687,11 @@ type DesignTime private() =
             let body1 (args: _ list) = 
                 Expr.NewObject(ctorImpl, designTimeConfig :: <@@ Connection.Choice1Of3 %%args.Head @@> :: args.Tail)
 
-            yield ProvidedConstructor(parameters1, InvokeCode = body1) :> MemberInfo
+            yield ProvidedConstructor(parameters1, invokeCode = body1) :> MemberInfo
             
             if factoryMethodName.IsSome
             then 
-                yield upcast ProvidedMethod(factoryMethodName.Value, parameters1, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body1)
+                yield upcast ProvidedMethod(factoryMethodName.Value, parameters1, returnType = cmdProvidedType, isStatic = true, invokeCode = body1)
            
             let parameters2 = 
                     [ 
@@ -734,14 +716,14 @@ type DesignTime private() =
                     @@>
                 Expr.NewObject(ctorImpl, [ designTimeConfig ; connArg; args.[2] ])
                     
-            yield upcast ProvidedConstructor(parameters2, InvokeCode = body2)
+            yield upcast ProvidedConstructor(parameters2, invokeCode = body2)
             if factoryMethodName.IsSome
             then 
-                yield upcast ProvidedMethod(factoryMethodName.Value, parameters2, returnType = cmdProvidedType, IsStaticMethod = true, InvokeCode = body2)
+                yield upcast ProvidedMethod(factoryMethodName.Value, parameters2, returnType = cmdProvidedType, isStatic = true, invokeCode = body2)
         ]
 
     static member private CreateTempTableRecord(name, cols) =
-        let rowType = ProvidedTypeDefinition(name, Some typeof<obj>, HideObjectMethods = true)
+        let rowType = ProvidedTypeDefinition(name, Some typeof<obj>, hideObjectMethods = true)
 
         let parameters =
             [
@@ -751,13 +733,12 @@ type DesignTime private() =
                     yield param
             ]
 
-        let ctor = ProvidedConstructor( parameters)
-        ctor.InvokeCode <- fun args ->
+        let ctor = ProvidedConstructor( parameters, fun args ->
             let optionsToNulls = QuotationsFactory.MapArrayNullableItems(cols, "MapArrayOptionItemToObj")
 
             <@@ let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for a in args -> Expr.Coerce(a, typeof<obj>) ])
                 (%%optionsToNulls) values
-                values @@>
+                values @@>)
 
         rowType.AddMember ctor
         rowType.AddXmlDoc "Type Table Type"
@@ -815,10 +796,7 @@ type DesignTime private() =
                 )
                 |> List.fold (fun acc x -> Expr.Sequential(acc, x)) <@@ () @@>
 
-            let loadTempTablesMethod = ProvidedMethod("LoadTempTables", parameters, typeof<unit>)
-
-            loadTempTablesMethod.InvokeCode <- fun exprArgs ->
-
+            let loadTempTablesMethod = ProvidedMethod("LoadTempTables", parameters, typeof<unit>, fun exprArgs ->
                 let command = Expr.Coerce(exprArgs.[0], typedefof<ISqlCommand>)
 
                 let connection =
@@ -830,7 +808,7 @@ type DesignTime private() =
                         create.ExecuteNonQuery() |> ignore
 
                     (%%loadValues exprArgs connection)
-                    ignore() @@>
+                    ignore() @@>)
 
             // Create the temp table(s) but as a global temp table with a unique name. This can be used later down stream on the open connection.
             use cmd = new SqlCommand(tempTableRegex.Replace(tempTableDefinitions, Prefixes.tempTable+connectionId+"$1"), connection)

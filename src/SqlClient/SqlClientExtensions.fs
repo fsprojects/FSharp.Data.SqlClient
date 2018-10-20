@@ -69,7 +69,7 @@ type Column = {
             then
                 assert(unitsOfMeasurePerSchema.IsSome)
                 let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
-                ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.Default.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
+                ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
             else
                 this.TypeInfo.ClrType
 
@@ -149,7 +149,7 @@ type Parameter = {
         then
             assert(unitsOfMeasurePerSchema.IsSome)
             let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
-            ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.Default.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
+            ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
         else
             this.TypeInfo.ClrType
 

@@ -6,9 +6,9 @@ generate_load_scripts: on
 nuget FSharp.Core = 4.1.2
 nuget Microsoft.SqlServer.TransactSql.ScriptDom
 
-github fsprojects/FSharp.TypeProviders.SDK:0a5fd0caa73df304062c8965e61850789d9f39e7 src/ProvidedTypes.fs
-github fsprojects/FSharp.TypeProviders.SDK:0a5fd0caa73df304062c8965e61850789d9f39e7 src/ProvidedTypes.fsi
-github fsprojects/FSharp.TypeProviders.SDK:0a5fd0caa73df304062c8965e61850789d9f39e7 src/ProvidedTypesTesting.fs
+github fsprojects/FSharp.TypeProviders.SDK:7d57cd409d7299592822713195924e42b2b7acde src/ProvidedTypes.fs
+github fsprojects/FSharp.TypeProviders.SDK:7d57cd409d7299592822713195924e42b2b7acde src/ProvidedTypes.fsi
+github fsprojects/FSharp.TypeProviders.SDK:7d57cd409d7299592822713195924e42b2b7acde src/ProvidedTypesTesting.fs
 
 group Build
 	source https://www.nuget.org/api/v2/

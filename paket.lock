@@ -95,9 +95,9 @@ NUGET
     System.Xml.ReaderWriter (4.3.1) - restriction: || (&& (>= net40) (< net45) (>= netstandard1.1) (< netstandard1.2)) (&& (>= net40) (< net45) (>= netstandard1.2) (< netstandard1.3)) (&& (>= net40) (< net45) (>= netstandard1.3) (< netstandard1.4)) (&& (>= net40) (< net45) (>= netstandard1.4) (< netstandard1.5)) (&& (>= net40) (< net45) (>= netstandard1.5) (< netstandard1.6)) (&& (>= net40) (>= netstandard1.0) (< portable-net45+win8+wpa81)) (&& (>= net40) (< netstandard1.5) (>= uap10.0)) (&& (>= net46) (< netstandard1.4))
 GITHUB
   remote: fsprojects/FSharp.TypeProviders.SDK
-    src/ProvidedTypes.fs (0a5fd0caa73df304062c8965e61850789d9f39e7)
-    src/ProvidedTypes.fsi (0a5fd0caa73df304062c8965e61850789d9f39e7)
-    src/ProvidedTypesTesting.fs (0a5fd0caa73df304062c8965e61850789d9f39e7)
+    src/ProvidedTypes.fs (7d57cd409d7299592822713195924e42b2b7acde)
+    src/ProvidedTypes.fsi (7d57cd409d7299592822713195924e42b2b7acde)
+    src/ProvidedTypesTesting.fs (7d57cd409d7299592822713195924e42b2b7acde)
 GROUP Build
 GENERATE-LOAD-SCRIPTS: ON
 REDIRECTS: FORCE
