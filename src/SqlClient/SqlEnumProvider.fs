@@ -28,10 +28,10 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
     inherit TypeProviderForNamespaces(config, addDefaultProbingLocation = true)
 
     let nameSpace = this.GetType().Namespace
-    let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
+    let assembly = Assembly.GetExecutingAssembly()
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlEnumProvider", Some typeof<obj>, hideObjectMethods = true, isErased = false)
-    let tempAssembly = ProvidedAssembly()
-    do tempAssembly.AddTypes [providerType]
+    // let tempAssembly = ProvidedAssembly()
+    // do tempAssembly.AddTypes [providerType]
 
     let cache = new MemoryCache(name = this.GetType().Name)
 
@@ -76,9 +76,8 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
     member internal this.CreateRootType( typeName, query, connectionStringOrName, provider, configFile, kind: SqlEnumKind) = 
         let tempAssembly = ProvidedAssembly()
 
-        let providedEnumType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, hideObjectMethods = true, isErased = false)
-        tempAssembly.AddTypes [ providedEnumType ]
-        
+        let providedEnumType = ProvidedTypeDefinition(tempAssembly, nameSpace, typeName, baseType = Some typeof<obj>, hideObjectMethods = true, isErased = false)
+                
         let connStr, providerName = 
             match DesignTimeConnectionString.Parse(connectionStringOrName, config.ResolutionFolder, configFile) with
             | Literal value -> value, provider
@@ -294,6 +293,7 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
 
                 providedEnumType.AddMember tryGetName
 
+        tempAssembly.AddTypes [ providedEnumType ]
         providedEnumType
 
     //Quotation factories
