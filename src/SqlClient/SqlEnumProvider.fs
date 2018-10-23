@@ -5,8 +5,6 @@ open System.Collections.Generic
 open System.Data
 open System.Data.Common
 open System
-open System.IO
-open System.Configuration
 open System.Runtime.Caching
 
 open Microsoft.FSharp.Core.CompilerServices
@@ -208,39 +206,27 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
             )
             providedEnumType.AddMember typeInit 
             
+            let tryParseImpl =
+                this.GetType()
+                    .GetMethod( "GetTryParseImpl", BindingFlags.NonPublic ||| BindingFlags.Static)
+                    .MakeGenericMethod( valueType)
+                    .Invoke( null, [| itemsExpr |])
+                    |> unbox
+
             do  //TryParse
-                let tryParse2Arg = 
+                let tryParse = 
                     ProvidedMethod(
                         methodName = "TryParse", 
                         parameters = [ 
                             ProvidedParameter("value", typeof<string>) 
-                            ProvidedParameter("ignoreCase", typeof<bool>) // optional=false 
+                            ProvidedParameter("ignoreCase", typeof<bool>, optionalValue = false) // optional=false 
                         ], 
                         returnType = typedefof<_ option>.MakeGenericType( valueType), 
                         isStatic = true,
-                        invokeCode = fun _ ->
-                            this.GetType()
-                                .GetMethod( "GetTryParseImpl", BindingFlags.NonPublic ||| BindingFlags.Static)
-                                .MakeGenericMethod( valueType)
-                                .Invoke( null, [| itemsExpr |])
-                                |> unbox
+                        invokeCode = tryParseImpl
                     )
 
-                providedEnumType.AddMember tryParse2Arg
-
-                let tryParse1Arg = 
-                    ProvidedMethod(
-                        methodName = "TryParse", 
-                        parameters = [ 
-                            ProvidedParameter("value", typeof<string>) 
-                        ], 
-                        returnType = typedefof<_ option>.MakeGenericType( valueType), 
-                        isStatic = true,
-                        invokeCode = fun args -> Expr.Call(tryParse2Arg, [args.[0]; Expr.Value false])
-
-                    )
-
-                providedEnumType.AddMember tryParse1Arg
+                providedEnumType.AddMember tryParse
 
             do  //Parse
                 let parseImpl =
@@ -250,45 +236,34 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
                         .Invoke( null, [| itemsExpr; providedEnumType.FullName |])
                         |> unbox
 
-                let parse2Arg = 
+                let parse = 
                     ProvidedMethod(
                         methodName = "Parse", 
                         parameters = [ 
                             ProvidedParameter("value", typeof<string>) 
-                            ProvidedParameter("ignoreCase", typeof<bool>) 
+                            ProvidedParameter("ignoreCase", typeof<bool>, optionalValue = false) 
                         ], 
                         returnType = valueType, 
                         isStatic = true, 
                         invokeCode = parseImpl
                     )
 
-                providedEnumType.AddMember parse2Arg
-
-                let parse1Arg = 
-                    ProvidedMethod(
-                        methodName = "Parse", 
-                        parameters = [ 
-                            ProvidedParameter("value", typeof<string>) 
-                        ], 
-                        returnType = valueType, 
-                        isStatic = true, 
-                        invokeCode = fun args -> Expr.Call(parse2Arg, [args.[0]; Expr.Value false])
-                    )
-
-                providedEnumType.AddMember parse1Arg
+                providedEnumType.AddMember parse
 
             do  //TryFindName
+                let findNameImpl = 
+                    this.GetType()
+                        .GetMethod( "GetTryFindName", BindingFlags.NonPublic ||| BindingFlags.Static)
+                        .MakeGenericMethod( valueType)
+                        .Invoke( null, [| itemsExpr |])
+                        |> unbox
+                
                 let tryGetName = 
                     ProvidedMethod( methodName = "TryFindName", 
                         parameters = [ ProvidedParameter("value", valueType) ], 
                         returnType = typeof<string option>, 
                         isStatic = true,
-                        invokeCode = fun _ ->
-                            this.GetType()
-                                .GetMethod( "GetTryFindName", BindingFlags.NonPublic ||| BindingFlags.Static)
-                                .MakeGenericMethod( valueType)
-                                .Invoke( null, [| itemsExpr |])
-                                |> unbox
+                        invokeCode = findNameImpl
                     )
 
                 providedEnumType.AddMember tryGetName
