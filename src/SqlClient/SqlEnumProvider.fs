@@ -166,7 +166,7 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
         | SqlEnumKind.UnitsOfMeasure ->
 
             for name in names do
-                let units = ProvidedTypeDefinition( name, None, isErased = false)
+                let units = ProvidedTypeDefinition( name, Some typedefof<obj>, isErased = false)
                 units.AddCustomAttribute { 
                     new CustomAttributeData() with
                         member __.Constructor = typeof<MeasureAttribute>.GetConstructor [||]
