@@ -25,13 +25,14 @@ open ProviderImplementation.ProvidedTypes
 #endif
 do()
 
+module X =
+    // need to make sure microsoft.sqlserver.types is included as a referenced assembly
+    let x = Microsoft.SqlServer.Types.SqlHierarchyId()
+
 [<TypeProvider>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type SqlCommandProvider(config : TypeProviderConfig) as this = 
-    inherit TypeProviderForNamespaces(config, addDefaultProbingLocation = true)
-    
-    // need to make sure microsoft.sqlserver.types is included as a referenced assembly
-    let _ = Microsoft.SqlServer.Types.SqlGeography.Null
+    inherit TypeProviderForNamespaces(config, addDefaultProbingLocation = true)        
     
     let nameSpace = this.GetType().Namespace
     let assembly = Assembly.LoadFrom( config.RuntimeAssembly)

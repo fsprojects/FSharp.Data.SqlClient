@@ -30,7 +30,7 @@ Fake.Core.Context.setExecutionContext (Fake.Core.Context.RuntimeContext.Fake exe
 let root = "."
 
 // Paths with template/source/output locations
-let bin        = __SOURCE_DIRECTORY__ @@ "../../bin"
+let bin        = __SOURCE_DIRECTORY__ @@ "../../bin/net40"
 let content    = __SOURCE_DIRECTORY__ @@ "../content"
 let output     = __SOURCE_DIRECTORY__ @@ "../output"
 let files      = __SOURCE_DIRECTORY__ @@ "../files"

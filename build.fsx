@@ -40,7 +40,7 @@ let release =
 
 let version = release.AssemblyVersion
 let releaseNotes = release.Notes |> String.concat "\n"
-let testDir = "bin"
+let testDir = "bin/net451"
 
 // --------------------------------------------------------------------------------------
 // Generate assembly info files with the right version & up-to-date information
@@ -71,7 +71,7 @@ Target.create "CleanDocs" (fun _ ->
 
 Target.create "Build" (fun _ ->
     files (["SqlClient.sln"])
-    |> MSBuild.runRelease id "" "Rebuild"
+    |> MSBuild.runRelease id "" "Restore;Rebuild"
     |> ignore
 )
 
@@ -142,7 +142,7 @@ Target.create "DeployTestDB" (fun _ ->
 
 Target.create "BuildTests" (fun _ ->
     files ["Tests.sln"]
-    |> MSBuild.runReleaseExt id "" ([]) "Rebuild"
+    |> MSBuild.runRelease id "" "Restore;Rebuild"
     |> ignore
 )
 
