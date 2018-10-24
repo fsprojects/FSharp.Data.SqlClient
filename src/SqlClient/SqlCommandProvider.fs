@@ -28,11 +28,14 @@ do()
 [<TypeProvider>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type SqlCommandProvider(config : TypeProviderConfig) as this = 
-    inherit TypeProviderForNamespaces()
-
+    inherit TypeProviderForNamespaces(config, addDefaultProbingLocation = true)
+    
+    // need to make sure microsoft.sqlserver.types is included as a referenced assembly
+    let _ = Microsoft.SqlServer.Types.SqlGeography.Null
+    
     let nameSpace = this.GetType().Namespace
     let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
-    let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, HideObjectMethods = true)
+    let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, hideObjectMethods = true)
 
     let cache = new MemoryCache(name = this.GetType().Name)
 
@@ -132,7 +135,7 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
         let rank = if singleRow then ResultRank.SingleRow else ResultRank.Sequence
         let returnType = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters = false)
         
-        let cmdProvidedType = ProvidedTypeDefinition(assembly, nameSpace, typeName, Some typeof<``ISqlCommand Implementation``>, HideObjectMethods = true)
+        let cmdProvidedType = ProvidedTypeDefinition(assembly, nameSpace, typeName, Some typeof<``ISqlCommand Implementation``>, hideObjectMethods = true)
 
         do  
             match tempTableTypes with
@@ -143,7 +146,7 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
             | _ -> ()
 
         do
-            cmdProvidedType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, [], IsStatic = true, GetterCode = fun _ -> <@@ connectionStringOrName @@>))
+            cmdProvidedType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, isStatic = true, getterCode = fun _ -> <@@ connectionStringOrName @@>))
 
         do
             SharedLogic.alterReturnTypeAccordingToResultType returnType cmdProvidedType resultType
