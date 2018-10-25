@@ -1,16 +1,10 @@
 ﻿namespace FSharp.Data
 
 open System
-open System.Data
 open System.IO
 open System.Data.SqlClient
 open System.Reflection
-open System.Collections.Generic
 open System.Runtime.CompilerServices
-open System.Configuration
-open System.Runtime.Caching
-
-open Microsoft.SqlServer.Server
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
@@ -38,12 +32,11 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
     let assembly = Assembly.LoadFrom( config.RuntimeAssembly)
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, hideObjectMethods = true)
 
-    let cache = new MemoryCache(name = this.GetType().Name)
+    let cache = new Cache<ProvidedTypeDefinition>()
 
     do 
         this.Disposing.Add <| fun _ ->
             try  
-                cache.Dispose()
                 clearDataTypesMap()
             with _ -> ()
 

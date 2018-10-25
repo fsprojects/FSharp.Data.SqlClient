@@ -5,7 +5,6 @@ open System.Collections.Generic
 open System.Data
 open System.Data.Common
 open System
-open System.Runtime.Caching
 
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
@@ -31,7 +30,7 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
     // let tempAssembly = ProvidedAssembly()
     // do tempAssembly.AddTypes [providerType]
 
-    let cache = new MemoryCache(name = this.GetType().Name)
+    let cache = new Cache<ProvidedTypeDefinition>()
 
     static let allowedTypesForEnum = 
         HashSet [| 
@@ -42,9 +41,6 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
         let xs = HashSet [| typeof<float32>; typeof<float>; typeof<bigint>; typeof<decimal>; typeof<string> |]
         xs.UnionWith( allowedTypesForEnum)
         xs
-
-    do 
-        this.Disposing.Add <| fun _ -> cache.Dispose()
 
     do 
         providerType.DefineStaticParameters(
