@@ -53,7 +53,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SqlClient.DesignTime", "src\SqlClient.DesignTime\SqlClient.DesignTime.fsproj", "{8974CE2E-79B4-4887-859A-B853C2624138}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SqlClient", "src\SqlClient\SqlClient.fsproj", "{30BA2514-534A-42EA-A0E7-46DF9FDCA954}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SqlClient", "src\SqlClient\SqlClient.fsproj", "{30BA2514-534A-42EA-A0E7-46DF9FDCA954}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8974CE2E-79B4-4887-859A-B853C2624138} = {8974CE2E-79B4-4887-859A-B853C2624138}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

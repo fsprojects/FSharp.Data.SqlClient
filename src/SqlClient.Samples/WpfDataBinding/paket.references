@@ -1,4 +1,3 @@
-FSharp.Core
-
-group Samples
+group Samples	
+	FSharp.Core
 	FSharp.Data.SqlClient

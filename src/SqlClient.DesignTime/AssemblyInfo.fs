@@ -3,8 +3,8 @@ namespace System
 open System.Reflection
 open System.Runtime.CompilerServices
 
-[<assembly: AssemblyTitleAttribute("SqlClient")>]
-[<assembly: AssemblyProductAttribute("FSharp.Data.SqlClient")>]
+[<assembly: AssemblyTitleAttribute("SqlClient.DesignTime")>]
+[<assembly: AssemblyProductAttribute("FSharp.Data.SqlClient.DesignTime")>]
 [<assembly: AssemblyDescriptionAttribute("SqlClient F# type providers")>]
 [<assembly: AssemblyVersionAttribute("1.8.6")>]
 [<assembly: AssemblyFileVersionAttribute("1.8.6")>]
@@ -12,8 +12,8 @@ open System.Runtime.CompilerServices
 do ()
 
 module internal AssemblyVersionInformation =
-    let [<Literal>] AssemblyTitle = "SqlClient"
-    let [<Literal>] AssemblyProduct = "FSharp.Data.SqlClient"
+    let [<Literal>] AssemblyTitle = "SqlClient.DesignTime"
+    let [<Literal>] AssemblyProduct = "FSharp.Data.SqlClient.DesignTime"
     let [<Literal>] AssemblyDescription = "SqlClient F# type providers"
     let [<Literal>] AssemblyVersion = "1.8.6"
     let [<Literal>] AssemblyFileVersion = "1.8.6"

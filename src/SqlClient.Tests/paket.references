@@ -1,8 +1,0 @@
-FSharp.Core
-Microsoft.SqlServer.Types
-
-group Test
-	FSharp.Configuration
-	Newtonsoft.Json
-	xunit
-	xunit.runner.visualstudio
