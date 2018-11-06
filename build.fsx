@@ -1,3 +1,4 @@
+open Fake.DotNet
 // --------------------------------------------------------------------------------------
 // FAKE build script 
 // --------------------------------------------------------------------------------------
@@ -25,6 +26,7 @@ let files includes =
 
 // Information about the project to be used at NuGet and in AssemblyInfo files
 let project = "FSharp.Data.SqlClient"
+let designTimeProject = "FSharp.Data.SqlClient.DesignTime"
 let authors = ["Dmitry Morozov, Dmitry Sevastianov"]
 let summary = "SqlClient F# type providers"
 let description = "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.\nSqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code."
@@ -40,7 +42,9 @@ let release =
 
 let version = release.AssemblyVersion
 let releaseNotes = release.Notes |> String.concat "\n"
-let testDir = "bin/net451"
+
+let install = lazy DotNet.install DotNet.Versions.Release_2_1_402
+let inline dnDefault arg = DotNet.Options.lift install.Value arg
 
 // --------------------------------------------------------------------------------------
 // Generate assembly info files with the right version & up-to-date information
@@ -55,24 +59,44 @@ Target.create "AssemblyInfo" (fun _ ->
              AssemblyInfo.Version            version
              AssemblyInfo.FileVersion        version
              AssemblyInfo.InternalsVisibleTo "SqlClient.Tests" ] )
+
+    [ "src/SqlClient.DesignTime/AssemblyInfo.fs", "SqlClient.DesignTime", designTimeProject, summary ]
+    |> Seq.iter (fun (fileName, title, project, summary) ->
+        AssemblyInfoFile.createFSharp fileName
+           [ AssemblyInfo.Title              title
+             AssemblyInfo.Product            project
+             AssemblyInfo.Description        summary
+             AssemblyInfo.Version            version
+             AssemblyInfo.FileVersion        version
+             AssemblyInfo.InternalsVisibleTo "SqlClient.Tests" ] )
 )
+
+let slnPath = "SqlClient.sln"
+let testProjectsSlnPath = "TestProjects.sln"
+let testSlnPath = "Tests.sln"
+let testProjectPath = "tests/SqlClient.Tests/SqlClient.Tests.fsproj"
 
 Target.create "Clean" (fun _ ->
     Shell.cleanDirs ["bin"; "temp"]
+    DotNet.exec dnDefault "clean" slnPath |> ignore
+    DotNet.exec dnDefault "clean" testProjectsSlnPath |> ignore
+    DotNet.exec dnDefault "clean" testSlnPath |> ignore
 )
 
 Target.create "CleanDocs" (fun _ ->
     Shell.cleanDirs ["docs/output"]
 )
 
-// --------------------------------------------------------------------------------------
-// Build library (builds Visual Studio solution, which builds multiple versions
-// of the runtime library & desktop + Silverlight version of design time library)
-
 Target.create "Build" (fun _ ->
-    files (["SqlClient.sln"])
-    |> MSBuild.runRelease id "" "Restore;Rebuild"
-    |> ignore
+    DotNet.build
+        (fun args -> 
+        { 
+            args with 
+                Configuration = DotNet.Release
+                //Common = { args.Common with Verbosity = Some DotNet.Verbosity.Detailed }
+        } |> dnDefault)
+        slnPath
+    
 )
 
 #r "System.Data"
@@ -86,7 +110,7 @@ open System.Configuration
 open System.IO.Compression
 
 Target.create "DeployTestDB" (fun _ ->
-    let testsSourceRoot = Path.GetFullPath(@"src\SqlClient.Tests")
+    let testsSourceRoot = Path.GetFullPath(@"tests\SqlClient.Tests")
     let map = ExeConfigurationFileMap()
     map.ExeConfigFilename <- testsSourceRoot @@ "app.config"
     let connStr = 
@@ -140,23 +164,24 @@ Target.create "DeployTestDB" (fun _ ->
             cmd.ExecuteNonQuery() |> ignore
 )
 
-Target.create "BuildTests" (fun _ ->
-    files ["Tests.sln"]
-    |> MSBuild.runRelease id "" "Restore;Rebuild"
-    |> ignore
+Target.create "BuildTestProjects" (fun _ ->
+    DotNet.build
+        (fun args -> { args with Configuration = DotNet.Release } |> dnDefault)
+        testProjectsSlnPath
 )
 
 // --------------------------------------------------------------------------------------
 // Run the unit tests 
-Target.create "RunTests" (fun _ ->
-    !! (testDir + "/*.Tests.dll")
-        |> Fake.XUnitHelper.xUnit (fun p -> 
-            {p with 
-                ShadowCopy = false
-                HtmlOutput = true
-                XmlOutput = true
-                WorkingDir = testDir
-                })
+Target.create "RunTests" (fun _ ->   
+    // if we don't compile the targets sequentially, we get an error with the generated types:
+    // System.IO.IOException: The process cannot access the file 'C:\Users\foo\AppData\Local\Temp\tmpF38.dll' because it is being used by another process.
+    try 
+        DotNet.test (fun args -> { args with Framework = Some "net461"; Common = args.Common |> dnDefault }) testSlnPath
+        DotNet.test (fun args -> { args with Framework = Some "netcoreapp2.0"; Common = args.Common |> dnDefault }) testProjectPath   
+    with
+    | ex ->
+        Trace.log (sprintf "Test exception: %A" ex)
+        raise ex
 )
 
 // --------------------------------------------------------------------------------------
@@ -216,11 +241,11 @@ Target.create "All" Target.DoNothing
 
 open Fake.Core.TargetOperators // for ==>
 
-//"Clean"
-"AssemblyInfo"
-  ==> "Build"
-  ==> "DeployTestDB"
-  ==> "BuildTests"
+"Clean"
+  ==> "AssemblyInfo"
+  ==> "Build"    
+  ==> "DeployTestDB"  
+  ==> "BuildTestProjects"
   ==> "RunTests"
   ==> "All"
 
@@ -234,4 +259,3 @@ open Fake.Core.TargetOperators // for ==>
   ==> "ReleaseDocs"
 
 Target.runOrDefault "All"
-
