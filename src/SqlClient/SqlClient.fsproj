@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\netfx.props" />
   <PropertyGroup>
     <TargetFrameworks>net40;netstandard2.0</TargetFrameworks>
     <AssemblyName>FSharp.Data.SqlClient</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <OutputPath>..\..\bin</OutputPath>
     <NoWarn>101</NoWarn>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <DisableImplicitSystemValueTupleReference>true</DisableImplicitSystemValueTupleReference>
@@ -43,10 +43,10 @@
     <Compile Include="ISqlCommand.fs" />
     <Compile Include="Runtime.fs" />
   </ItemGroup>
-  <Target Name="CopyDesignTimeAssemblies" AfterTargets="Build" Condition="$(TargetFramework) == 'net40' Or $(TargetFramework) == 'net461'">
+  <Target Name="CopyAssemblies" AfterTargets="Build">
     <ItemGroup>
-      <DesignTimeAssemblies Include="..\..\bin\typeproviders\fsharp41\$(TargetFramework)\*.*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(DesignTimeAssemblies)" DestinationFolder="..\..\bin\$(TargetFramework)" />
+      <RuntimeAssemblies Include="$(OutputPath)\FSharp.Data.SqlClient.*" /> 
+    </ItemGroup>    
+    <Copy SourceFiles="@(RuntimeAssemblies)" DestinationFolder="..\..\bin\$(TargetFramework)" />
   </Target>
 </Project>
