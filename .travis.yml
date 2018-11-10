@@ -9,7 +9,7 @@ addons:
     - libunwind8
 
 script: 
-  - ./build.sh Build
+  - ./build.sh BuildTestProjects
 
 install:
   - export FrameworkPathOverride=$(dirname $(which mono))/../lib/mono/4.5/

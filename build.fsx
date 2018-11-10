@@ -243,9 +243,9 @@ open Fake.Core.TargetOperators // for ==>
 
 "Clean"
   ==> "AssemblyInfo"
-  ==> "Build"    
-  ==> "DeployTestDB"  
+  ==> "Build"
   ==> "BuildTestProjects"
+  ==> "DeployTestDB"  
   ==> "RunTests"
   ==> "All"
 
