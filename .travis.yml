@@ -3,5 +3,13 @@ language: csharp
 mono:
   - latest
 
+addons:
+  apt:
+    packages:
+    - libunwind8
+
 script: 
   - ./build.sh Build
+
+install:
+  - export FrameworkPathOverride=$(dirname $(which mono))/../lib/mono/4.5/
