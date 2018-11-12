@@ -32,14 +32,17 @@ group Test
 	nuget xunit = 2.4.1
 	nuget xunit.runner.visualstudio = 2.4.1
 
+group Net40
+	source https://www.nuget.org/api/v2/
+	framework: net40
+
+	nuget FSharp.Core = 4.1.18
+
 group TestProjects
 	source https://www.nuget.org/api/v2/
 	framework: >= net40, netcoreapp2.0, netstandard2.0
 
 	nuget FSharp.Core = 4.3.4
-
-	nuget Microsoft.SqlServer.TransactSql.ScriptDom
-	nuget Microsoft.SqlServer.Types ~> 12
 
 	nuget System.Data.SqlClient
 	nuget System.Configuration.ConfigurationManager

@@ -1,4 +1,2 @@
-group TestProjects
+group Net40
     FSharp.Core
-    System.Data.SqlClient
-    System.Configuration.ConfigurationManager
