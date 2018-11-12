@@ -166,7 +166,12 @@ Target.create "DeployTestDB" (fun _ ->
 
 Target.create "BuildTestProjects" (fun _ ->
     DotNet.build
-        (fun args -> { args with Configuration = DotNet.Release } |> dnDefault)
+        (fun args -> 
+        { 
+            args with 
+                Configuration = DotNet.Release
+                //Common = { args.Common with Verbosity = Some DotNet.Verbosity.Detailed }
+        } |> dnDefault)
         testProjectsSlnPath
 )
 
