@@ -441,9 +441,7 @@ type SqlConnection with
         if not <| dataTypeMappings.ContainsKey this.ConnectionString
         then
             assert (this.State = ConnectionState.Open)
-
-            let runningOnMono = try System.Type.GetType("Mono.Runtime") <> null with _ -> false 
-
+            
             let sqlEngineTypes = [|
                 use cmd = new SqlCommand("
                     SELECT t.name, t.system_type_id, t.user_type_id, t.is_table_type, s.name as schema_name, t.is_user_defined
@@ -452,10 +450,8 @@ type SqlConnection with
                     ", this) 
                 use reader = cmd.ExecuteReader()
                 while reader.Read() do
-                    // #105 - disable assembly types when running on mono, because GetSchema() doesn't return these types on mono. 
                     let systemTypeId = unbox<byte> reader.["system_type_id"] 
-                    if not runningOnMono || systemTypeId <> 240uy then
-                      yield 
+                    yield 
                         string reader.["name"], 
                         int systemTypeId, 
                         unbox<int> reader.["user_type_id"], 
