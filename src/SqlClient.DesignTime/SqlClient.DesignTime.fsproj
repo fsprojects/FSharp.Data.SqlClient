@@ -59,21 +59,11 @@
     <None Include="Scripts\ReverseLineOrderForNotex.fsx" />
     <None Include="Scripts\XE.fsx" />
   </ItemGroup>
-  <!-- <ItemGroup>
-    <DesignTimeAssemblies Include="$(OutputPath)\FSharp.Data.SqlClient.DesignTime.*" />
-    <DesignTimeAssemblies Include="$(OutputPath)\Microsoft.SqlServer.*.dll" />      
-  </ItemGroup> -->
   <Target Name="CopyAssembliesToTPFolder" AfterTargets="Build">
     <ItemGroup>
       <DesignTimeAssemblies Include="$(OutputPath)\FSharp.Data.SqlClient.DesignTime.*" />
       <DesignTimeAssemblies Include="$(OutputPath)\Microsoft.SqlServer.*.dll" />      
-    </ItemGroup>
-
-    <Message Importance="high" Text="OutputPath:" />
-    <Message Importance="high" Text="$(OutputPath)" />
-    <Message Importance="high" Text="DesignTimeAssemblies:" />
-    <Message Importance="high" Text="@(DesignTimeAssemblies)" />
-    
+    </ItemGroup>   
     <Copy SourceFiles="@(DesignTimeAssemblies)" DestinationFolder="..\..\bin\typeproviders\fsharp41\$(TargetFramework)" />
   </Target>
   <Target Name="CopyAssembliesToLegacyFolder" AfterTargets="Build" Condition="$(TargetFramework) == 'net40'">
