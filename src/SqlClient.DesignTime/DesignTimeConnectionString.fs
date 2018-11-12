@@ -30,12 +30,13 @@ type internal DesignTimeConnectionString =
                 then raise <| FileNotFoundException( sprintf "Could not find config file '%s'." path)
                 else path
             else
-                let appConfig = Path.Combine(resolutionFolder, "app.config")
-                let webConfig = Path.Combine(resolutionFolder, "web.config")
+                // note: these filenames are case sensitive on linux
+                let appConfig = Path.Combine(resolutionFolder, "App.config")
+                let webConfig = Path.Combine(resolutionFolder, "Web.config")
 
                 if File.Exists appConfig then appConfig
                 elif File.Exists webConfig then webConfig
-                else failwithf "Cannot find either app.config or web.config."
+                else failwithf "Cannot find either App.config or Web.config."
         
         let map = ExeConfigurationFileMap()
         map.ExeConfigFilename <- configFilename
