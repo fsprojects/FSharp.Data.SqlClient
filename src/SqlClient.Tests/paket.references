@@ -1,7 +1,0 @@
-FSharp.Core
-
-group Test
-	FSharp.Configuration
-	Newtonsoft.Json
-	xunit
-	xunit.runner.visualstudio

@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\fsc.props" />
+  <Import Project="..\..\netfx.props" />
+  <PropertyGroup>
+    <TargetFrameworks>net461;netcoreapp2.0</TargetFrameworks>
+    <AssemblyName>SqlClient.Tests</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <NoWarn>101</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Assert.fs" />
+    <Compile Include="ConnectionStrings.fs" />
+    <Compile Include="ConfigurationTest.fs" />
+    <Compile Include="OptionalParamsTests.fs" />
+    <Compile Include="TypeProviderTest.fs" />
+    <Compile Include="FreeVarDoubleDeclTests.fs" />
+    <Compile Include="TransactionTests.fs" />
+    <Compile Include="ResultTypeTests.fs" />
+    <Compile Include="TVPTests.fs" />
+    <Compile Include="ProgrammabilityTests.fs" />
+    <Compile Include="SpReturnValueTests.fs" />
+    <Compile Include="DynamicRecordTests.fs" />
+    <Compile Include="SqlEnumTests.fs" />
+    <Compile Include="DataTablesTests.fs" />
+    <Compile Include="SynonymsTests.fs" />
+    <Compile Include="CreateCommand.fs" />
+    <Compile Include="UnitsOfMeasure.fs" />
+    <Compile Include="TempTableTests.fs" />
+    <None Include="sampleCommand.sql" />
+    <None Include="extensions.sql" />
+    <None Include="MySqlFolder\sampleCommand.sql" />
+    <None Include="Scripts\SqlCommand.fsx" />
+    <None Include="Scripts\SqlProgrammability.fsx" />
+    <None Include="Scripts\CreateCommand.fsx" />
+    <None Include="paket.references" />
+    <None Include="app.config" />
+    <Content Include="appWithInclude.config" />
+    <Content Include="connectionStrings.config" />
+    <Content Include="connectionStrings.Azure.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="FSharp.Data.SqlClient">
+      <HintPath>..\..\bin\netstandard2.0\FSharp.Data.SqlClient.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <Target Name="CopyCustomContent" AfterTargets="AfterBuild">
+    <Copy SourceFiles="app.config" DestinationFiles="$(OutDir)\testhost.dll.config" />
+  </Target>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

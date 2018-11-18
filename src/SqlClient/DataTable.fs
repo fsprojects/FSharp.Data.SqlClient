@@ -4,7 +4,6 @@ open System
 open System.Data
 open System.Data.SqlClient
 open System.Collections.Generic
-open FSharp.Data.SqlClient
 
 [<Sealed>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]

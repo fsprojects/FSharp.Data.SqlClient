@@ -1,3 +1,6 @@
+#### 2.0.1-alpha November 11, 2018
+	* Add netstandard2.0 target
+
 #### 1.8.6 - June 2, 2018
 	* Issue #303 Enable typed data table constructor to initialize an empty datatable with the expected columns
 
