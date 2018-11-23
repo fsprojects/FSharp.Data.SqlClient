@@ -1,6 +1,6 @@
 (*** hide ***)
 #r "Microsoft.SqlServer.Types.dll"
-#r @"..\..\bin\FSharp.Data.SqlClient.dll"   
+#r @"..\..\bin\net40\FSharp.Data.SqlClient.dll"   
 
 open FSharp.Data
 
