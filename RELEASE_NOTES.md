@@ -1,3 +1,6 @@
+#### 2.0.2 January 19, 2019
+	* Fix exception when using TVP parameter with fixed length string
+
 #### 2.0.1-alpha November 11, 2018
 	* Add netstandard2.0 target
 
