@@ -21,8 +21,22 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
         providerType.DefineStaticParameters(
             parameters = parameters,             
             instantiationFunction = fun typeName args ->
-                let typ, monitors = this.CreateRootType(assembly, nameSpace, typeName, args)
-                cache.GetOrAdd(typeName, typ)
+                match cache.TryGetValue(typeName) with
+                | true, cachedType -> cachedType.Value
+                | false, _ -> 
+                    let typ, monitors = this.CreateRootType(assembly, nameSpace, typeName, args)
+                    monitors
+                    |> Seq.iter(fun m ->
+                        match m with
+                        | :? System.Runtime.Caching.ChangeMonitor as monitor ->
+                            monitor.NotifyOnChanged(fun _ -> 
+                                cache.Remove(typeName)
+                                this.Invalidate()
+                                monitor.Dispose()
+                            )
+                        | _ -> ()
+                    )
+                    cache.GetOrAdd(typeName, typ)
         )
 
         this.AddNamespace( nameSpace, [ providerType ])
