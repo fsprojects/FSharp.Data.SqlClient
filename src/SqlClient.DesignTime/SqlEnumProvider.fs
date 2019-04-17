@@ -72,6 +72,10 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
             | Literal value -> value, provider
             | NameInConfig(_, value, provider) -> value, provider
 
+#if !USE_SYSTEM_DATA_COMMON_DBPROVIDERFACTORIES
+        // not supported on netstandard 20?
+        raise ("DbProviderFactories not available" |> NotImplementedException) 
+#else
         let adoObjectsFactory = DbProviderFactories.GetFactory( providerName: string)
         use conn = adoObjectsFactory.CreateConnection() 
         conn.ConnectionString <- connStr
@@ -261,6 +265,8 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
 
         tempAssembly.AddTypes [ providedEnumType ]
         providedEnumType
+
+#endif
 
     //Quotation factories
     

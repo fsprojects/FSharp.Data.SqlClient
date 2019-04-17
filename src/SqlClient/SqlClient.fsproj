@@ -20,7 +20,6 @@
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="4.1.18" Condition="'$(TargetFramework)' == 'net40'" />
     <PackageReference Include="FSharp.Core" Version="4.3.4" Condition="'$(TargetFramework)' != 'net40'" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.5.1" Condition="'$(TargetFramework)' != 'net40'" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" Condition="'$(TargetFramework)' != 'net40'" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net40'">
