@@ -216,6 +216,7 @@ type DataTablesTests() =
         let rowsInserted = t.Update(conn, tran)
         Assert.Equal(1, rowsInserted)
 
+
     [<Fact>]
     member __.SqlCommandTableUpdate() = 
         use cmd = 
@@ -229,6 +230,43 @@ type DataTablesTests() =
         row.ModifiedDate <- DateTime.Now.Date
         let rowsAffected = t.Update(conn, tran)
         Assert.Equal(1, rowsAffected)
+    
+    [<Fact(Skip = "Don't execute for usual runs. Too slow.")>]
+    member __.SqlCommandTable_RespectsTimeout() = 
+        let tbl = new AdventureWorksDataTables.Production.Tables.Location()
+
+        use conn = new SqlConnection(connectionString = adventureWorks)
+        conn.Open()
+        use tran = conn.BeginTransaction()
+    
+        tbl.AddRow("test", Some 12.12M, Some 23.23M, Some System.DateTime.UtcNow)
+        let rowcount = tbl.Update(connection = conn, transaction = tran, timeout = TimeSpan.FromSeconds(5.0))
+
+        let row = tbl.Rows |> Seq.head
+
+        row.Name <- "Slow Trigger"
+
+        let sw = new System.Diagnostics.Stopwatch()
+        sw.Start()
+
+        let mutable completed = false
+        try
+            let rowcount = tbl.Update(connection = conn, transaction = tran, timeout = TimeSpan.FromSeconds(5.0))
+            completed <- true
+        with
+        | ex ->
+            ()
+
+        sw.Stop()
+
+        if completed then
+            failwith "Update should not have completed.  Operation should have taken 15 seconds and timeout was set to 5 seconds."
+        else if sw.Elapsed.TotalSeconds > 6.0 then
+            failwith "Timeout was set to 5 seconds.  Operation should have failed earlier than this"
+        else if sw.Elapsed.TotalSeconds < 4.0 then
+            failwith "Timeout was set to 5 seconds.  Operation should have lasted longer than this.  The test may be set up incorrectly"
+
+
 
     [<Fact>]
     member __.NewRowAndBulkCopyWithTrsansactionScope() = 

@@ -69,6 +69,11 @@ IF OBJECT_ID(N'Sales.UnitedKingdomOrders') IS NOT NULL
 	DROP TABLE Sales.UnitedKingdomOrders
 GO
 
+--TRIGGERS
+IF OBJECT_ID(N'Production.tr_Location_Slow') IS NOT NULL
+	DROP TRIGGER Production.tr_Location_Slow
+GO
+
 -- SYNONYMs
 
 IF OBJECT_ID(N'HumanResources.GetContactInformation') IS NOT NULL
@@ -311,6 +316,18 @@ GO
 
 
 GO 
+
+--TRIGGERS
+CREATE TRIGGER Production.tr_Location_Slow ON Production.Location FOR UPDATE, DELETE
+AS
+	DECLARE @count int = (SELECT COUNT(*) FROM inserted WHERE Name = 'Slow Trigger')
+
+	IF @count > 0
+	BEGIN
+		WAITFOR DELAY '00:00:15'
+	END
+GO
+
 --SYNONYMS
 
 CREATE SYNONYM HumanResources.GetContactInformation FOR dbo.ufnGetContactInformation;

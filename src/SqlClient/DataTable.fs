@@ -39,7 +39,7 @@ type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionStri
 
     member private this.IsDirectTable = this.TableName <> null
     
-    member this.Update(?connection, ?transaction, ?batchSize, ?continueUpdateOnError) = 
+    member this.Update(?connection, ?transaction, ?batchSize, ?continueUpdateOnError, ?timeout: TimeSpan) = 
         // not supported on all DataTable instances
         match selectCommand with
         | null -> failwith "This command wasn't constructed from SqlProgrammabilityProvider, call to Update is not supported."
@@ -56,6 +56,8 @@ type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionStri
         use dataAdapter = new SqlDataAdapter(selectCommand)
         use commandBuilder = new SqlCommandBuilder(dataAdapter) 
         use __ = dataAdapter.RowUpdating.Subscribe(fun args ->
+            timeout |> Option.iter (fun x -> args.Command.CommandTimeout <- int x.TotalSeconds)
+
             if  args.Errors = null && args.StatementType = StatementType.Insert
                 && defaultArg batchSize dataAdapter.UpdateBatchSize = 1
             then 
