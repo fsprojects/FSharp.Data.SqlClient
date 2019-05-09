@@ -35,7 +35,11 @@ type Mapper private() =
             mapper values
             
     static member SetRef<'t>(r : byref<'t>, arr: (string * obj)[], i) = 
-        r <- arr.[i] |> snd |> unbox
+        let value = arr.[i] |> snd
+        r <-
+            match value with
+            | :? 't as v -> v
+            | _ (* dbnull *) -> Unchecked.defaultof<'t>
 
 type Column = {
     Name: string
