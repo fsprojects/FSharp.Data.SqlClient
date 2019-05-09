@@ -232,6 +232,30 @@ let ResultSetAndOutParam() =
     Assert.Equal<_ list>([ Some "donkey" ], [ for x in result -> x.myName ] )
     Assert.Equal(2L, !total)
 
+// Fix #340: 
+//    The type provider cannot use Expr.Value(Activator.CreateInstance(t),t) for
+//    non primitive types, like System.Guid.
+//    It now use Expr.DefaultValue(t) for non primite types.
+//    The PassGuid SP copies the input guid to the output parameter when the boolean
+//    parameter is true, and let the out parameter uninitialized when false
+[<Fact>]
+let NonPrimitiveOutParam() =
+    let guid = Guid.NewGuid()
+    let cmd = new AdventureWorks.dbo.PassGuid()
+    let _,result = cmd.Execute(guid, true)
+    Assert.Equal(guid, result)
+
+// Fix #340: 
+//    When an output parameter has not been set, its value is DBNull which cannot
+//    be unboxed. The fix sets the parameter to defaultOf<'t>.
+//    The PassGuid SP copies the input guid to the output parameter when the boolean
+//    parameter is true, and let the out parameter uninitialized when false
+[<Fact>]
+let NonPrimitiveNullOutParam() =
+    let guid = Guid.NewGuid()
+    let cmd = new AdventureWorks.dbo.PassGuid()
+    let _,result = cmd.Execute(guid, false)
+    Assert.Equal(Guid.Empty, result)
 
 [<Fact>]
 let PassingImageAsParamDoesntGetCut() = 
