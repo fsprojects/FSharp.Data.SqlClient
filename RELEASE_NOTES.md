@@ -1,3 +1,9 @@
+#### 2.0.4 May 27, 2019
+
+* Issue #340 Some primitive types such as Guid weren't supported as output parameters.
+
+Contributor(s): Jérémie Chassaing (https://github.com/thinkbeforecoding)
+
 #### 2.0.3 April 15, 2019
 * Issue #332 Invalidate SqlFile type when referenced SQL file is modified.
 

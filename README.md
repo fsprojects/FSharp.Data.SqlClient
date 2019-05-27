@@ -103,3 +103,4 @@ More information can be found in the [documentation](http://fsprojects.github.io
 
 The default maintainer account for projects under "fsprojects" is [@fsprojectsgit](https://github.com/fsprojectsgit) - F# Community Project Incubation Space (repo management)
 
+Thanks Jetbrains for their open source license program and providing their tool.
