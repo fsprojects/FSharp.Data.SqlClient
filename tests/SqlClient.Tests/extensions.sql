@@ -7,6 +7,9 @@ USE AdventureWorks2012
 IF OBJECT_ID('dbo.AddRef') IS NOT NULL 
 	DROP PROCEDURE dbo.AddRef;
 GO
+IF OBJECT_ID('dbo.PassGuid') IS NOT NULL 
+	DROP PROCEDURE dbo.PassGuid;
+GO
 IF OBJECT_ID('dbo.MyProc') IS NOT NULL
 	DROP PROCEDURE dbo.MyProc;
 GO
@@ -166,6 +169,16 @@ AS
 BEGIN
 	SET @sum = @x + @y
 	RETURN (@x + @y)
+END
+GO
+
+CREATE PROCEDURE dbo.PassGuid @x AS UNIQUEIDENTIFIER, @b AS BIT, @result AS UNIQUEIDENTIFIER OUTPUT 
+AS
+BEGIN
+	IF (@b = 1)
+	BEGIN
+		SET @result = @x 
+	END
 END
 GO
 

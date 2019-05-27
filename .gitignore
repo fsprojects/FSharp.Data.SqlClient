@@ -46,7 +46,7 @@ local.properties
 *.suo
 *.user
 *.sln.docstates
-
+launchSettings.json
 # Build results
 
 [Dd]ebug/

@@ -78,7 +78,10 @@ type DesignTime private() =
 
                         if t.IsArray
                         then Expr.Value(Array.CreateInstance(t.GetElementType(), param.Size))
-                        else Expr.Value(Activator.CreateInstance(t), t)
+                        elif t.IsPrimitive then
+                            Expr.Value(Activator.CreateInstance(t), t)
+                        else
+                            Expr.DefaultValue(t)
 
                 <@@ (%%Expr.Value(param.Name) : string), %%Expr.Coerce(value, typeof<obj>) @@>
             )
@@ -100,9 +103,10 @@ type DesignTime private() =
                             if sqlParam.Direction.HasFlag( ParameterDirection.Output)
                             then 
                                 let mi = 
-                                    typeof<Mapper>
-                                        .GetMethod("SetRef")
-                                        .MakeGenericMethod( sqlParam.TypeInfo.ClrType)
+                                    ProvidedTypeBuilder.MakeGenericMethod(
+                                        typeof<Mapper>
+                                            .GetMethod("SetRef"),
+                                            [sqlParam.TypeInfo.ClrType])
                                 Expr.Call(mi, [ argExpr; Expr.Var arr; Expr.Value index ]) |> Some
                             else 
                                 None
