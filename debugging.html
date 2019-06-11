@@ -13,8 +13,8 @@
     <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
     <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet" />
 
-    <link type="text/css" rel="stylesheet" href="/FSharp.Data.SqlClient/content/style.css" />
-    <script type="text/javascript" src="/FSharp.Data.SqlClient/content/tips.js"></script>
+    <link type="text/css" rel="stylesheet" href="./content/style.css" />
+    <script type="text/javascript" src="./content/tips.js"></script>
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
       <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
@@ -55,15 +55,15 @@
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs2', 2)" onmouseover="showTip(event, 'fs2', 2)" class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
+<span class="k">let</span> <span class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
 <span class="s">    </span><span class="s">SELECT</span><span class="s"> </span><span class="s">TOP</span><span class="s">(</span><span class="s">@</span><span class="s">topN</span><span class="s">)</span><span class="s"> </span><span class="s">FirstName</span><span class="s">,</span><span class="s"> </span><span class="s">LastName</span><span class="s">,</span><span class="s"> </span><span class="s">SalesYTD</span><span class="s"> </span>
 <span class="s">    </span><span class="s">FROM</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">vSalesPerson</span>
 <span class="s">    </span><span class="s">WHERE</span><span class="s"> </span><span class="s">CountryRegionName</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">@</span><span class="s">regionName</span><span class="s"> </span><span class="s">AND</span><span class="s"> </span><span class="s">SalesYTD</span><span class="s"> </span><span class="s">&gt;</span><span class="s"> </span><span class="s">@</span><span class="s">salesMoreThan</span><span class="s"> </span>
 <span class="s">    </span><span class="s">ORDER</span><span class="s"> </span><span class="s">BY</span><span class="s"> </span><span class="s">SalesYTD</span>
-<span class="s">    </span><span class="s">&quot;</span> , <span onmouseout="hideTip(event, 'fs3', 3)" onmouseover="showTip(event, 'fs3', 3)" class="i">connectionString</span><span class="o">&gt;</span>(<span onmouseout="hideTip(event, 'fs3', 4)" onmouseover="showTip(event, 'fs3', 4)" class="i">connectionString</span>)
+<span class="s">    </span><span class="s">&quot;</span> , <span class="i">connectionString</span><span class="o">&gt;</span>(<span class="i">connectionString</span>)
 
-<span onmouseout="hideTip(event, 'fs1', 5)" onmouseover="showTip(event, 'fs1', 5)" class="i">cmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs4', 6)" onmouseover="showTip(event, 'fs4', 6)" class="i">ToTraceString</span>(<span class="i">topN</span> <span class="o">=</span> <span class="n">3L</span>, <span class="i">regionName</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">United</span><span class="s"> </span><span class="s">States</span><span class="s">&quot;</span>, <span class="i">salesMoreThan</span> <span class="o">=</span> <span class="n">1000000M</span>) 
-<span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs5', 7)" onmouseover="showTip(event, 'fs5', 7)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Sql</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">s</span><span class="s">&quot;</span></pre>
+<span class="i">cmd</span><span class="o">.</span><span class="i">ToTraceString</span>(<span class="i">topN</span> <span class="o">=</span> <span class="n">3L</span>, <span class="i">regionName</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">United</span><span class="s"> </span><span class="s">States</span><span class="s">&quot;</span>, <span class="i">salesMoreThan</span> <span class="o">=</span> <span class="n">1000000M</span>) 
+<span class="o">|&gt;</span> <span class="i">printfn</span> <span class="s">&quot;</span><span class="s">Sql</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">s</span><span class="s">&quot;</span></pre>
 </td>
 </tr>
 </table>
@@ -82,10 +82,10 @@ Avoid tempering state of this SqlCommand instance otherwise all bets are off.</p
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs6', 8)" onmouseover="showTip(event, 'fs6', 8)" class="i">adonetCmd</span> <span class="o">=</span> (<span onmouseout="hideTip(event, 'fs1', 9)" onmouseover="showTip(event, 'fs1', 9)" class="i">cmd</span> <span class="o">:&gt;</span> <span class="i">ISqlCommand</span>)<span class="o">.</span><span class="i">Raw</span>
+<span class="k">let</span> <span class="i">adonetCmd</span> <span class="o">=</span> (<span class="i">cmd</span> <span class="o">:&gt;</span> <span class="i">ISqlCommand</span>)<span class="o">.</span><span class="i">Raw</span>
 
-[ <span class="k">for</span> <span onmouseout="hideTip(event, 'fs7', 10)" onmouseover="showTip(event, 'fs7', 10)" class="i">p</span> <span class="k">in</span> <span onmouseout="hideTip(event, 'fs6', 11)" onmouseover="showTip(event, 'fs6', 11)" class="i">adonetCmd</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs8', 12)" onmouseover="showTip(event, 'fs8', 12)" class="i">Parameters</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs7', 13)" onmouseover="showTip(event, 'fs7', 13)" class="i">p</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 14)" onmouseover="showTip(event, 'fs9', 14)" class="i">ParameterName</span>, <span onmouseout="hideTip(event, 'fs7', 15)" onmouseover="showTip(event, 'fs7', 15)" class="i">p</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs10', 16)" onmouseover="showTip(event, 'fs10', 16)" class="i">SqlDbType</span> ]
-<span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs5', 17)" onmouseover="showTip(event, 'fs5', 17)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Inferred</span><span class="s"> </span><span class="s">parameters</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">A</span><span class="s">&quot;</span> </pre>
+[ <span class="k">for</span> <span class="i">p</span> <span class="k">in</span> <span class="i">adonetCmd</span><span class="o">.</span><span class="i">Parameters</span> <span class="k">-&gt;</span> <span class="i">p</span><span class="o">.</span><span class="i">ParameterName</span>, <span class="i">p</span><span class="o">.</span><span class="i">SqlDbType</span> ]
+<span class="o">|&gt;</span> <span class="i">printfn</span> <span class="s">&quot;</span><span class="s">Inferred</span><span class="s"> </span><span class="s">parameters</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">A</span><span class="s">&quot;</span> </pre>
 </td>
 </tr>
 </table>
@@ -105,8 +105,8 @@ To access <code>Configuration</code> type open up <code>FSharp.Data.SqlClient</c
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">open</span> <span onmouseout="hideTip(event, 'fs11', 18)" onmouseover="showTip(event, 'fs11', 18)" class="i">FSharp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs12', 19)" onmouseover="showTip(event, 'fs12', 19)" class="i">Data</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs13', 20)" onmouseover="showTip(event, 'fs13', 20)" class="i">SqlClient</span>
-<span class="k">assert</span>(<span onmouseout="hideTip(event, 'fs14', 21)" onmouseover="showTip(event, 'fs14', 21)" class="i">Configuration</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs15', 22)" onmouseover="showTip(event, 'fs15', 22)" class="i">Current</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs16', 23)" onmouseover="showTip(event, 'fs16', 23)" class="i">ResultsetRuntimeVerification</span> <span class="o">=</span> <span class="k">false</span>) </pre>
+<span class="k">open</span> <span class="i">FSharp</span><span class="o">.</span><span class="i">Data</span><span class="o">.</span><span class="i">SqlClient</span>
+<span class="k">assert</span>(<span class="i">Configuration</span><span class="o">.</span><span class="i">Current</span><span class="o">.</span><span class="i">ResultsetRuntimeVerification</span> <span class="o">=</span> <span class="k">false</span>) </pre>
 </td>
 </tr>
 </table>
@@ -122,7 +122,7 @@ but received column [Now] of type "System.DateTime")</code>.</p>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span onmouseout="hideTip(event, 'fs14', 24)" onmouseover="showTip(event, 'fs14', 24)" class="i">Configuration</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs15', 25)" onmouseover="showTip(event, 'fs15', 25)" class="i">Current</span> <span class="o">&lt;-</span> { <span onmouseout="hideTip(event, 'fs14', 26)" onmouseover="showTip(event, 'fs14', 26)" class="i">Configuration</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs15', 27)" onmouseover="showTip(event, 'fs15', 27)" class="i">Current</span> <span class="k">with</span> <span class="i">ResultsetRuntimeVerification</span> <span class="o">=</span> <span class="k">true</span> }</pre>
+<span class="i">Configuration</span><span class="o">.</span><span class="i">Current</span> <span class="o">&lt;-</span> { <span class="i">Configuration</span><span class="o">.</span><span class="i">Current</span> <span class="k">with</span> <span class="i">ResultsetRuntimeVerification</span> <span class="o">=</span> <span class="k">true</span> }</pre>
 </td>
 </tr>
 </table>
@@ -136,22 +136,6 @@ but received column [Now] of type "System.DateTime")</code>.</p>
 <li><a href="https://azure.microsoft.com/en-us/blog/query-store-a-flight-data-recorder-for-your-database/">Query store</a></li>
 </ul>
 
-<div class="tip" id="fs1">val cmd : ISqlCommand<br /><br />Full name: Debugging.cmd</div>
-<div class="tip" id="fs2">type SqlCommandProvider<br /><br />Full name: FSharp.Data.SqlCommandProvider<br /><em><br /><br /><br />&lt;summary&gt;Typed representation of a T-SQL statement to execute against a SQL Server database.&lt;/summary&gt; <br />&lt;param name=&#39;CommandText&#39;&gt;Transact-SQL statement to execute at the data source.&lt;/param&gt;<br />&lt;param name=&#39;ConnectionStringOrName&#39;&gt;String used to open a SQL Server database or the name of the connection string in the configuration file in the form of “name=&amp;lt;connection string name&amp;gt;”.&lt;/param&gt;<br />&lt;param name=&#39;ResultType&#39;&gt;A value that defines structure of result: Records, Tuples, DataTable, or SqlDataReader.&lt;/param&gt;<br />&lt;param name=&#39;SingleRow&#39;&gt;If set the query is expected to return a single row of the result set. See MSDN documentation for details on CommandBehavior.SingleRow.&lt;/param&gt;<br />&lt;param name=&#39;ConfigFile&#39;&gt;The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.&lt;/param&gt;<br />&lt;param name=&#39;AllParametersOptional&#39;&gt;If set all parameters become optional. NULL input values must be handled inside T-SQL.&lt;/param&gt;<br />&lt;param name=&#39;ResolutionFolder&#39;&gt;A folder to be used to resolve relative file paths to *.sql script files at compile time. The default value is the folder that contains the project or script.&lt;/param&gt;<br />&lt;param name=&#39;DataDirectory&#39;&gt;The name of the data directory that replaces |DataDirectory| in connection strings. The default value is the project or script directory.&lt;/param&gt;<br /></em></div>
-<div class="tip" id="fs3">val connectionString : string<br /><br />Full name: Debugging.connectionString</div>
-<div class="tip" id="fs4">abstract member ISqlCommand.ToTraceString : parameters:(string * obj) [] -&gt; string</div>
-<div class="tip" id="fs5">val printfn : format:Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.ExtraTopLevelOperators.printfn</div>
-<div class="tip" id="fs6">val adonetCmd : Data.SqlClient.SqlCommand<br /><br />Full name: Debugging.adonetCmd</div>
-<div class="tip" id="fs7">val p : Data.SqlClient.SqlParameter</div>
-<div class="tip" id="fs8">property Data.SqlClient.SqlCommand.Parameters: Data.SqlClient.SqlParameterCollection</div>
-<div class="tip" id="fs9">property Data.SqlClient.SqlParameter.ParameterName: string</div>
-<div class="tip" id="fs10">property Data.SqlClient.SqlParameter.SqlDbType: Data.SqlDbType</div>
-<div class="tip" id="fs11">namespace FSharp</div>
-<div class="tip" id="fs12">namespace FSharp.Data</div>
-<div class="tip" id="fs13">namespace FSharp.Data.SqlClient</div>
-<div class="tip" id="fs14">Multiple items<br />namespace System.Configuration<br /><br />--------------------<br />module Configuration<br /><br />from FSharp.Data<br /><br />--------------------<br />type Configuration =<br />&#160;&#160;{ResultsetRuntimeVerification: bool;}<br /><br />Full name: FSharp.Data.SqlClient.Configuration</div>
-<div class="tip" id="fs15">property Configuration.Current: Configuration</div>
-<div class="tip" id="fs16">Configuration.ResultsetRuntimeVerification: bool</div>
 
             </div>
 
@@ -161,7 +145,7 @@ but received column [Now] of type "System.DateTime")</code>.</p>
                 </a>
                 <ul class="nav nav-list" id="menu">
                     <li class="nav-header">F# SqlClient</li>
-                    <li><a href="/FSharp.Data.SqlClient/index.html">Home page</a></li>
+                    <li><a href="./index.html">Home page</a></li>
                     <li class="divider"></li>
                     <li><a href="http://www.nuget.org/packages/FSharp.Data.SqlClient">Get Library via NuGet</a></li>
                     <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient">Source Code on GitHub</a></li>
@@ -169,21 +153,21 @@ but received column [Now] of type "System.DateTime")</code>.</p>
                     <li><a href="http://github.com/fsprojects/FSharp.Data.SqlClient/blob/master/RELEASE_NOTES.md">Release Notes</a></li>
 
                     <li class="nav-header">Documentation</li>
-                    <li><a href="/FSharp.Data.SqlClient/whatsnew.html">What's New</a></li>
-                    <li><a href="/FSharp.Data.SqlClient/configuration and input.html">Configuration and Input</a></li>
-                    <li><a href="/FSharp.Data.SqlClient/output.html">Output</a></li>
-                    <li><a href="/FSharp.Data.SqlClient/faq.html">FAQ</a></li>
+                    <li><a href="./whatsnew.html">What's New</a></li>
+                    <li><a href="./configuration and input.html">Configuration and Input</a></li>
+                    <li><a href="./output.html">Output</a></li>
+                    <li><a href="./faq.html">FAQ</a></li>
                     <li class="divider"></li>
-                    <li><a href="/FSharp.Data.SqlClient/data modification.html">Data Modification</a></li>
-                    <li><a href="/FSharp.Data.SqlClient/transactions.html">Transactions</a></li>
+                    <li><a href="./data modification.html">Data Modification</a></li>
+                    <li><a href="./transactions.html">Transactions</a></li>
                     <li class="divider"></li>
-                    <li><a href="/FSharp.Data.SqlClient/debugging.html">Debugging</a></li>
-                    <li><a href="/FSharp.Data.SqlClient/unit-testing.html">Unit Testing</a></li>
+                    <li><a href="./debugging.html">Debugging</a></li>
+                    <li><a href="./unit-testing.html">Unit Testing</a></li>
                     <li class="divider"></li>
-                    <li><a href="/FSharp.Data.SqlClient/comparison.html">Comparison</a></li>
-                    <li><a href="/FSharp.Data.SqlClient/dynamic local db.html">Dynamic local db</a></li>
+                    <li><a href="./comparison.html">Comparison</a></li>
+                    <li><a href="./dynamic local db.html">Dynamic local db</a></li>
                     <li class="divider"></li>
-                    <li><a href="/FSharp.Data.SqlClient/sqlenumprovider.quickstart.html">SqlEnumProvider</a></li>
+                    <li><a href="./sqlenumprovider.quickstart.html">SqlEnumProvider</a></li>
 
                     <li class="nav-header">Tools</li>
                     <li><a href="http://tpetricek.github.io/FSharp.Formatting/">F# Formatting</a></li>
