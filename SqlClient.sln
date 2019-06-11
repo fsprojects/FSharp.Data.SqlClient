@@ -32,6 +32,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{4B60
 		docs\content\debugging.fsx = docs\content\debugging.fsx
 		docs\content\faq.fsx = docs\content\faq.fsx
 		docs\content\index.fsx = docs\content\index.fsx
+		docs\content\netcore.md = docs\content\netcore.md
 		docs\content\output.fsx = docs\content\output.fsx
 		docs\content\setup.fsx = docs\content\setup.fsx
 		docs\content\SqlClientComparison.md = docs\content\SqlClientComparison.md

@@ -1,5 +1,5 @@
 (*** hide ***)
-#r @"..\..\bin\FSharp.Data.SqlClient.dll"
+#r @"..\..\bin\net40\FSharp.Data.SqlClient.dll"
 #r @"..\..\packages\Test\xunit\lib\net20\xunit.dll"
 #r "System.Transactions"
 open FSharp.Data
@@ -87,7 +87,7 @@ module MyTests =
 
     //unit test
     let ``best sales rep in Canada``() = 
-        let expected = Some( GetSalesChampion.Record("José", "Saraiva"))
+        let expected = Some( GetSalesChampion.Record("JosÃ©", "Saraiva"))
         assert (bestSalesRepInCanada mockRepository = expected)        
 
 
