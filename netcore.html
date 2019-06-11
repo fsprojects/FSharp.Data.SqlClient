@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Bulk Load
+    <title>Support for .NET Core
 </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way. SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code.">
@@ -34,7 +34,28 @@
         <div class="row">
             <div class="span9" id="main">
                 
-<h1>Bulk Load</h1>
+<h1>Support for .NET Core</h1>
+
+<p>As of version 2.0.1, a <code>netstandard2.0</code>-targeted version of FSharp.Data.SqlClient is available. 
+This means you should be able to reference and use the type provider from a .NET Core application, 
+with the following caveats and exceptions:</p>
+
+<ul>
+<li>The type provider is split into two different assemblies, <code>FSharp.Data.SqlClient.dll</code> 
+(the runtime component or RTC) and <code>FSharp.Data.SqlClient.DesignTime.dll</code> (the design-time component or DTC).
+<ul>
+<li>The RTC (and its dependencies) must be available at runtime; they end up in the bin folder
+alongside your application's compiled assemblies. The FSharp.Data.SqlClient RTC is available for
+both <code>net40</code> and <code>netstandard2.0</code> and is thus fully compatible with .NET Core 2.0 applications.</li>
+<li>The DTC is required to make the provided types available to your design-time tooling and to the
+compiler. The FSharp.Data.SqlClient DTC <em>has .NET Framework-only dependencies</em> (<code>Microsoft.SqlServer.Types</code>
+and <code>Microsoft.SqlServer.TransactSql.ScriptDom</code>). As such, either .NET Framework or Mono must be
+installed in order to compile your .NET Core application. Additionally, you must import <code>fsc.props</code>
+in your .fsproj/.csproj file - please see more detailed instructions <a href="https://github.com/Microsoft/visualfsharp/issues/3303">here</a>.</li>
+</ul></li>
+<li>As mentioned above, <code>Microsoft.SqlServer.Types</code> only targets .NET Framework, so you will not be able to use types such as <a href="http://technet.microsoft.com/en-us/library/bb677173.aspx">HierarchyId</a> or
+<a href="http://blogs.msdn.com/b/adonet/archive/2013/12/09/microsoft-sqlserver-types-nuget-package-spatial-on-azure.aspx">spatial types</a> from your .NET Core app.</li>
+</ul>
 
 
             </div>
