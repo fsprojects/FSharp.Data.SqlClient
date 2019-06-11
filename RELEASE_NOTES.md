@@ -1,3 +1,9 @@
+#### 2.0.5 June 11, 2019
+
+* Issue #339 Allow timeout on data table Update commands
+
+Contributor(s): VTJDailey (https://github.com/VTJDailey)
+
 #### 2.0.4 May 27, 2019
 
 * Issue #340 Some primitive types such as Guid weren't supported as output parameters.
