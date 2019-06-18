@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (c) Microsoft Corporation.  All Rights Reserved.  See License.txt in the project root for license information. -->
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- F# TP SDK STUFF -->
   <PropertyGroup>
     <!-- When compiling .NET SDK 2.0 projects targeting .NET 4.x on Mono using 'dotnet build' you -->
     <!-- have to teach MSBuild where the Mono copy of the reference asssemblies is -->
@@ -27,25 +26,10 @@
     <AssemblySearchPaths Condition="'$(BaseFrameworkPathOverrideForMono)' != ''">$(FrameworkPathOverride)/Facades;$(AssemblySearchPaths)</AssemblySearchPaths>
 
   </PropertyGroup>
-
   <ItemGroup>
     <!-- When using 'dotnet build' to compile against Mono reference assemblies it seems necessary to add some explicit references to some facade DLLs  -->
     <Reference Include="System.Runtime" Condition="'$(BaseFrameworkPathOverrideForMono)' != '' AND $(TargetFramework.StartsWith('net4'))" />
     <Reference Include="System.IO" Condition="'$(BaseFrameworkPathOverrideForMono)' != '' AND $(TargetFramework.StartsWith('net4'))" />
     
   </ItemGroup>
-
-  <!-- F# SQL CLIENT STUFF -->
-  <PropertyGroup Condition="$(TargetFramework) == 'net461'">
-    <!-- 
-    Microsoft.SqlServer.Types is currently not available for netstandard, 
-    USE_SQL_SERVER_TYPES_ASSEMBLY singles out code depending on it
-    -->
-    <DefineConstants>$(DefineConstants);USE_SQL_SERVER_TYPES_ASSEMBLY;USE_SYSTEM_DATA_COMMON_DBPROVIDERFACTORIES</DefineConstants>
-  </PropertyGroup>
-
-  <ItemGroup>
-      <PackageReference Include="System.Data.SqlClient" Version="4.5.1" Condition="'$(TargetFramework)' != 'net40'" />
-  </ItemGroup>
-
 </Project>

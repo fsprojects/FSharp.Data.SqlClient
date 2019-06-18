@@ -16,11 +16,10 @@ open ProviderImplementation.ProvidedTypes
 [<assembly:InternalsVisibleTo("SqlClient.DesignTime.Tests")>]
 do()
 
-#if USE_SQL_SERVER_TYPES_ASSEMBLY
 module X =
     // need to make sure microsoft.sqlserver.types is included as a referenced assembly
     let x = Microsoft.SqlServer.Types.SqlHierarchyId()
-#endif
+
 [<TypeProvider>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type SqlCommandProvider(config : TypeProviderConfig) as this = 
