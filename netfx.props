@@ -32,4 +32,11 @@
     <Reference Include="System.IO" Condition="'$(BaseFrameworkPathOverrideForMono)' != '' AND $(TargetFramework.StartsWith('net4'))" />
     
   </ItemGroup>
+
+    <!-- F# SQL CLIENT STUFF -->
+  <PropertyGroup Condition="$(TargetFramework) != 'netcoreapp2.0'">
+    <!-- System.Data.Common.DbProviderFactories is not available for netstandard2.0 -->
+    <DefineConstants>$(DefineConstants);USE_SYSTEM_DATA_COMMON_DBPROVIDERFACTORIES</DefineConstants>
+  </PropertyGroup>
+
 </Project>

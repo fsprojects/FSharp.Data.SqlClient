@@ -120,7 +120,7 @@ let doNotOpenConnectionOnObjectForAsyncNonQuery() =
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     use cmd = new NonQuery(conn)
     // should unwrap the aggregateexception here; not taking that on right now
-    Assert.Throws<AggregateException>(fun() -> cmd.AsyncExecute() |> Async.RunSynchronously |> ignore)    
+    Assert.Throws<AggregateException>(fun() -> cmd.AsyncExecute() |> Async.RunSynchronously |> ignore)
     
 [<Fact>]
 let prematurelyOpenConnection() =
