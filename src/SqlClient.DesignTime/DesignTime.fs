@@ -588,7 +588,7 @@ type DesignTime private() =
                         if p.Optional 
                         then 
                             assert(p.Direction = ParameterDirection.Input)
-                            ProvidedParameter(parameterName, parameterType = typedefof<_ option>.MakeGenericType(p.TypeInfo.ClrType) , optionalValue = null)
+                            ProvidedParameter(parameterName, parameterType = typedefof<_ option>.MakeGenericType(p.TypeInfo.ClrType))
                         else
                             if p.Direction.HasFlag(ParameterDirection.Output)
                             then
