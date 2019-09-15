@@ -45,7 +45,7 @@ let udttAndTuplesOutput() =
 let optionalParams() = 
     use cmd = DB.CreateCommand<"SELECT CAST(@x AS INT) + ISNULL(CAST(@y AS INT), 1)", SingleRow = true, AllParametersOptional = true>()
     Assert.Equal( Some( Some 14), cmd.Execute(Some 3, Some 11))    
-    Assert.Equal( Some( Some 12), cmd.Execute(x = Some 11))    
+    Assert.Equal( Some( Some 12), cmd.Execute(x = Some 11, y = None))    
 
 [<Literal>]
 let evenNumbers = "select value, svalue = cast(value as char(1)) from (values (2), (4), (6), (8)) as T(value)"

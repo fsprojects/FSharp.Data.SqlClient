@@ -154,17 +154,17 @@ let FunctionWithParamOfValueTypeWithNullDefault() =
     use cmd2 = new AdventureWorks.dbo.ufnGetStock2()
     Assert.Equal(cmd1.Execute(1), cmd2.Execute(Some 1))
 
-    Assert.Equal(Some 83173, cmd2.Execute())
+    Assert.Equal(Some 83173, cmd2.Execute(None))
 
 [<Fact>]
 let SpWithParamOfRefTypeWithNullDefault() = 
     use echo = new AdventureWorks.dbo.Echo()
-    Assert.Equal( Some (Some (box "Empty")), echo.ExecuteSingle())
+    Assert.Equal( Some (Some (box "Empty")), echo.ExecuteSingle(None))
 
     Assert.Equal( Some(Some (box 42)), echo.ExecuteSingle 42)
 
     use echoText = new AdventureWorks.dbo.EchoText()
-    Assert.Equal<string[]>([| "<NULL>" |], echoText.Execute() |> Seq.toArray)
+    Assert.Equal<string[]>([| "<NULL>" |], echoText.Execute(null) |> Seq.toArray)
 
     let param = "Hello, world!"
     Assert.Equal<string[]>([| param |], echoText.Execute( param) |> Seq.toArray)
