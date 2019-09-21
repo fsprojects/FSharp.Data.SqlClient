@@ -1,9 +1,27 @@
 namespace FSharp.Data
 
 open System
+open System.Text
 open System.Data
 open System.Collections.Generic
 open System.Data.SqlClient
+open System.Runtime.Serialization
+open System.Runtime.Serialization.Json
+open System.IO
+
+module Encoding =
+  let deserialize<'a> (text: string) = 
+    let deserializer = new DataContractJsonSerializer(typeof<'a>)
+    use buffer = new MemoryStream(Encoding.Default.GetBytes text)
+    deserializer.ReadObject(buffer) :?> 'a
+
+  let serialize this = 
+    use buffer = new MemoryStream()
+    let serializer = new DataContractJsonSerializer(this.GetType())
+    serializer.WriteObject(buffer, this)
+    buffer.Position <- 0L
+    use stringReader = new StreamReader(buffer)
+    stringReader.ReadToEnd()
 
 ///<summary>Enum describing output type</summary>
 type ResultType =
@@ -41,16 +59,17 @@ type Mapper private() =
             | :? 't as v -> v
             | _ (* dbnull *) -> Unchecked.defaultof<'t>
 
-type Column = {
-    Name: string
-    TypeInfo: TypeInfo
-    Nullable: bool
-    MaxLength: int
-    ReadOnly: bool
-    Identity: bool
-    PartOfUniqueKey: bool
-    DefaultConstraint: string
-    Description: string
+
+type [<DataContract;CLIMutable>] Column = {
+    [<DataMember>] Name              : string
+    [<DataMember>] Nullable          : bool
+    [<DataMember>] MaxLength         : int
+    [<DataMember>] ReadOnly          : bool
+    [<DataMember>] Identity          : bool
+    [<DataMember>] PartOfUniqueKey   : bool
+    [<DataMember>] DefaultConstraint : string
+    [<DataMember>] Description       : string
+    [<DataMember>] TypeInfo          : TypeInfo
 }   with
     member this.ErasedToType = 
         if this.Nullable
@@ -76,7 +95,7 @@ type Column = {
 
     member this.HasDefaultConstraint = this.DefaultConstraint <> ""
     member this.NullableParameter = this.Nullable || this.HasDefaultConstraint
-
+      
     static member Parse(cursor: SqlDataReader, typeLookup: int * int option -> TypeInfo, ?defaultValue, ?description) = {
         Name = unbox cursor.["name"]
         TypeInfo = 
@@ -92,28 +111,17 @@ type Column = {
         Description = defaultArg description ""
     }
 
-    override this.ToString() = 
-        sprintf "%s\t%s\t%b\t%i\t%b\t%b\t%b\t%s\t%s" 
-            this.Name 
-            this.TypeInfo.ClrTypeFullName 
-            this.Nullable 
-            this.MaxLength
-            this.ReadOnly
-            this.Identity
-            this.PartOfUniqueKey
-            this.DefaultConstraint
-            this.Description
 
-and TypeInfo = {
-    TypeName: string
-    Schema: string
-    SqlEngineTypeId: int
-    UserTypeId: int
-    SqlDbType: SqlDbType
-    IsFixedLength: bool 
-    ClrTypeFullName: string
-    UdttName: string 
-    TableTypeColumns: Column[] Lazy
+and [<DataContract;CLIMutable>] TypeInfo = {
+    [<DataMember>] TypeName       : string
+    [<DataMember>] Schema         : string
+    [<DataMember>] SqlEngineTypeId: int
+    [<DataMember>] UserTypeId     : int
+    [<DataMember>] SqlDbType      : SqlDbType
+    [<DataMember>] IsFixedLength  : bool 
+    [<DataMember>] ClrTypeFullName: string
+    [<DataMember>] UdttName       : string 
+    [<DataMember>] TableTypeColumns: Column[]
 }   with
     member this.ClrType: Type = Type.GetType( this.ClrTypeFullName, throwOnError = true)
     member this.TableType = this.SqlDbType = SqlDbType.Structured
@@ -189,22 +197,22 @@ type TempTableLoader(fieldCount, items: obj seq) =
         member __.RecordsAffected: int = invalidOp "NotImplementedException"
 
 module RuntimeInternals =
+    
     let setupTableFromSerializedColumns (serializedSchema: string) (table: System.Data.DataTable) =
+        let columns : Column array = Encoding.deserialize serializedSchema
         let primaryKey = ResizeArray()
-        for line in serializedSchema.Split('\n') do
-            let xs = line.Split('\t')
-            let col = new DataColumn()
-            col.ColumnName <- xs.[0]
-            col.DataType <- Type.GetType( xs.[1], throwOnError = true)  
-            col.AllowDBNull <- Boolean.Parse xs.[2]
-            if col.DataType = typeof<string>
-            then 
-                col.MaxLength <- int xs.[3]
-            col.ReadOnly <- Boolean.Parse xs.[4]
-            col.AutoIncrement <- Boolean.Parse xs.[5]
-            if Boolean.Parse xs.[6]
-            then    
-                primaryKey.Add col 
+        for column in columns do
+            let col = new DataColumn(column.Name,column.TypeInfo.ClrType)
+            col.AllowDBNull <- column.Nullable
+            col.ReadOnly <- column.ReadOnly
+            col.AutoIncrement <- column.Identity
+            
+            if col.DataType = typeof<string> then 
+                col.MaxLength <- int column.MaxLength
+            
+            if column.PartOfUniqueKey then    
+                primaryKey.Add col
+
             table.Columns.Add col
 
         table.PrimaryKey <- Array.ofSeq primaryKey

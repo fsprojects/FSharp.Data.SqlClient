@@ -139,6 +139,25 @@ let internal providerTypes =
     ]
 
 
+type internal SqlTypeEntry = {
+  name            : string
+  system_type_id  : byte
+  user_type_id    : int
+  is_table_type   : bool
+  schema_name     : string
+  is_user_defined : bool
+}
+type internal TableVariableEntry = {
+  name                   : string
+  system_type_id         : byte
+  user_type_id           : int
+  is_nullable            : bool
+  max_length             : int16
+  is_identity            : bool
+  is_computed            : bool
+  table_type_user_type_id: int
+}
+
 type SqlConnection with
 
  //address an issue when regular Dispose on SqlConnection needed for async computation 
@@ -442,74 +461,134 @@ type SqlConnection with
         then
             assert (this.State = ConnectionState.Open)
             
-            let sqlEngineTypes = [|
-                use cmd = new SqlCommand("
-                    SELECT t.name, t.system_type_id, t.user_type_id, t.is_table_type, s.name as schema_name, t.is_user_defined
-                    FROM sys.types AS t
-	                    JOIN sys.schemas AS s ON t.schema_id = s.schema_id
-                    ", this) 
-                use reader = cmd.ExecuteReader()
-                while reader.Read() do
-                    let systemTypeId = unbox<byte> reader.["system_type_id"] 
+            let sqlEngineTypes, tableVariableTypes = 
+              use cmd = new SqlCommand("""
+select 
+  t.name, t.system_type_id, t.user_type_id, t.is_table_type, s.name as schema_name, t.is_user_defined
+from 
+  sys.types as t
+  join sys.schemas as s on t.schema_id = s.schema_id
+
+select 
+	c.name, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length, c.is_identity, c.is_computed, tt.user_type_id table_type_user_type_id
+from sys.table_types as tt
+	inner join sys.columns as c on tt.type_table_object_id = c.object_id
+order by 
+	tt.user_type_id
+	, c.user_type_id
+	, c.column_id
+"""
+                , this)   
+              use reader = cmd.ExecuteReader()
+
+              [| while reader.Read() do
+                    let system_type_id = unbox<byte> reader.["system_type_id"] 
+                    let user_type_id = unbox<int> reader.["user_type_id"]
                     yield 
-                        string reader.["name"], 
-                        int systemTypeId, 
-                        unbox<int> reader.["user_type_id"], 
-                        unbox reader.["is_table_type"], 
-                        string reader.["schema_name"], 
-                        unbox reader.["is_user_defined"]
-            |]
+                        (system_type_id, user_type_id)
+                        , { system_type_id  = system_type_id
+                            name            = string reader.["name"]
+                            user_type_id    = user_type_id
+                            is_table_type   = unbox reader.["is_table_type"]
+                            schema_name     = string reader.["schema_name"]
+                            is_user_defined = unbox reader.["is_user_defined"] } |] |> dict
+              
+              , [|  reader.NextResult() |> ignore
+                    while reader.Read() do
+                        let table_type_user_type_id = unbox<int> reader.["table_type_user_type_id"] 
+                        yield 
+                            table_type_user_type_id
+                            , { table_type_user_type_id = table_type_user_type_id
+                                name                    = string reader.["name"]
+                                system_type_id          = unbox<byte>  reader.["system_type_id"]
+                                is_nullable             = unbox        reader.["is_nullable"]
+                                max_length              = unbox<int16> reader.["max_length"]
+                                is_identity             = unbox        reader.["is_identity"]
+                                is_computed             = unbox        reader.["is_computed"] 
+                                user_type_id            = unbox<int>   reader.["user_type_id"]
+                            } 
+              |] 
+              |> Array.groupBy fst
+              |> Array.map (fun (k,items) -> k, items |> Array.map snd)
+              |> dict
 
+            let getProvidedType name is_user_defined is_table_type system_type_id user_type_id =
+                match providerTypes.TryGetValue(name) with
+                | true, value -> value
+                | false, _ when is_user_defined && not is_table_type ->
+                    let type_name = sqlEngineTypes.[system_type_id,user_type_id].name
+                    //let system_type_name = t.name
+                    match providerTypes.TryGetValue type_name with
+                    | false, _ -> 
+                      let type_name = sqlEngineTypes.[system_type_id,int system_type_id].name
+                      providerTypes.[type_name]
+                    | true, item -> item
+                | false, _ when is_table_type -> 
+                    SqlDbType.Structured, null, false
+                | _ -> failwith ("Unexpected type: " + name)
+
+            let getProvidedTypeForSqlTypeEntry (x:SqlTypeEntry) = getProvidedType x.name x.is_user_defined x.is_table_type x.system_type_id x.user_type_id
+
+            let rec makeColumn column =
+              { Column.Name       = column.name
+                TypeInfo          = makeTypeInfo sqlEngineTypes.[column.system_type_id, column.user_type_id]
+                Nullable          = column.is_nullable
+                MaxLength         = int column.max_length
+                ReadOnly          = column.is_identity || column.is_computed
+                Identity          = column.is_identity
+                PartOfUniqueKey   = false
+                DefaultConstraint = null
+                Description       = null }      
+            and makeTypeInfo (entry: SqlTypeEntry) =
+              let sqldbtype, clrTypeFullName, isFixedLength = getProvidedTypeForSqlTypeEntry entry
+              {
+                TypeName = entry.name
+                Schema = entry.schema_name
+                SqlEngineTypeId = int entry.system_type_id
+                UserTypeId = entry.user_type_id
+                SqlDbType = sqldbtype
+                IsFixedLength = isFixedLength
+                ClrTypeFullName = clrTypeFullName
+                UdttName = if entry.is_table_type then entry.name else ""
+                TableTypeColumns = 
+                  if entry.is_table_type then 
+                    tableVariableTypes.[entry.user_type_id] |> Array.map makeColumn
+                  else 
+                    Array.empty }
+
+            let typeInfosForTableTypes =
+              sqlEngineTypes.Values
+              |> Seq.map (fun i -> i.user_type_id, makeTypeInfo i)
+              |> dict
+              
+            
             let typeInfos = [|
-                for name, system_type_id, user_type_id, is_table_type, schema_name, is_user_defined in sqlEngineTypes do
-                    let providerdbtype, clrTypeFullName, isFixedLength = 
-                        match providerTypes.TryGetValue(name) with
-                        | true, value -> value
-                        | false, _ when is_user_defined && not is_table_type ->
-                            let system_type_name = 
-                                sqlEngineTypes 
-                                |> Array.pick (fun (typename', system_type_id', _, _, _, is_user_defined') -> if system_type_id = system_type_id' && not is_user_defined' then Some typename' else None)
-                            providerTypes.[system_type_name]                        
-                        | false, _ when is_table_type -> 
-                            SqlDbType.Structured, null, false
-                        | _ -> failwith ("Unexpected type: " + name)
-
+                
+                for { name = name; system_type_id = system_type_id; user_type_id = user_type_id; is_table_type = is_table_type; schema_name = schema_name; is_user_defined = is_user_defined } in sqlEngineTypes.Values do
+                    let providerdbtype, clrTypeFullName, isFixedLength = getProvidedType name is_user_defined is_table_type system_type_id user_type_id
+                    
                     let columns = 
-                        lazy 
                             if is_table_type
                             then
-                                [|
-                                    use cmd = new SqlCommand("
-                                        SELECT c.name, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length, c.is_identity, c.is_computed
-                                        FROM sys.table_types AS tt
-                                        INNER JOIN sys.columns AS c ON tt.type_table_object_id = c.object_id
-                                        WHERE tt.user_type_id = @user_type_id
-                                        ORDER BY column_id")
-                                    cmd.Parameters.AddWithValue("@user_type_id", user_type_id) |> ignore
-                                    use _ = this.UseLocally()
-                                    cmd.Connection <- this
-                                    use reader = cmd.ExecuteReader()
-                                    while reader.Read() do 
-                                        let user_type_id = reader.TryGetValue "user_type_id"
-                                        let stid = reader.["system_type_id"] |> unbox<byte> |> int
-                                        yield {
-                                            Column.Name = string reader.["name"]
-                                            TypeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, stid, user_type_id)
-                                            Nullable = unbox reader.["is_nullable"]
-                                            MaxLength = reader.["max_length"] |> unbox<int16> |> int
-                                            ReadOnly = unbox reader.["is_identity"] || unbox reader.["is_computed"]
-                                            Identity = unbox reader.["is_identity"] 
-                                            PartOfUniqueKey = false
-                                            DefaultConstraint = null
-                                            Description = null
-                                        }
-                                |] 
+                                    let columns = tableVariableTypes.[user_type_id]
+                                    columns
+                                    |> Array.map 
+                                      (fun column -> { Column.Name       = column.name
+                                                       TypeInfo          = typeInfosForTableTypes.[user_type_id]
+                                                       Nullable          = column.is_nullable
+                                                       MaxLength         = int column.max_length
+                                                       ReadOnly          = column.is_identity || column.is_computed
+                                                       Identity          = column.is_identity
+                                                       PartOfUniqueKey   = false
+                                                       DefaultConstraint = null
+                                                       Description       = null }
+                                    )
                             else
                                 Array.empty
                     yield {
                         TypeName = name
                         Schema = schema_name
-                        SqlEngineTypeId = system_type_id
+                        SqlEngineTypeId = int system_type_id
                         UserTypeId = user_type_id
                         SqlDbType = providerdbtype
                         IsFixedLength = isFixedLength
