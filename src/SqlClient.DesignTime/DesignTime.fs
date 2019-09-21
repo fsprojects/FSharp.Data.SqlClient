@@ -277,13 +277,8 @@ type DesignTime private() =
         dataRowType.AddMember tableProperty
 
         let getColumnsSerializedSchema columns =
-            columns 
-            |> List.map (fun x ->
-                let nullable = x.Nullable || x.HasDefaultConstraint
-                sprintf "%s\t%s\t%b\t%i\t%b\t%b\t%b" 
-                    x.Name x.TypeInfo.ClrTypeFullName nullable x.MaxLength x.ReadOnly x.Identity x.PartOfUniqueKey                                 
-            ) 
-            |> String.concat "\n"
+          let columns = List.toArray columns 
+          Encoding.serialize columns
 
         let ctorCode =
             fun _ ->
@@ -538,7 +533,7 @@ type DesignTime private() =
 
         let parameters, sqlMetas = 
             List.unzip [ 
-                for p in t.TableTypeColumns.Value do
+                for p in t.TableTypeColumns do
                     let name = p.Name
                     let param = ProvidedParameter( name, p.GetProvidedType(), ?optionalValue = if p.Nullable then Some null else None) 
                     let sqlMeta =
@@ -557,7 +552,7 @@ type DesignTime private() =
             ] 
 
         let ctor = ProvidedConstructor( parameters, fun args -> 
-            let optionsToNulls = QuotationsFactory.MapArrayNullableItems(List.ofArray t.TableTypeColumns.Value, "MapArrayOptionItemToObj") 
+            let optionsToNulls = QuotationsFactory.MapArrayNullableItems(List.ofArray t.TableTypeColumns, "MapArrayOptionItemToObj") 
 
             <@@
                 let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for a in args -> Expr.Coerce(a, typeof<obj>) ])
