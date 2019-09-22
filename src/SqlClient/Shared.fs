@@ -59,17 +59,18 @@ type Mapper private() =
             | :? 't as v -> v
             | _ (* dbnull *) -> Unchecked.defaultof<'t>
 
-
+/// Resultset or User Defined Data Table Column information
+/// Remark: This is subject to change
 type [<DataContract;CLIMutable>] Column = {
-    [<DataMember>] Name              : string
-    [<DataMember>] Nullable          : bool
-    [<DataMember>] MaxLength         : int
-    [<DataMember>] ReadOnly          : bool
-    [<DataMember>] Identity          : bool
-    [<DataMember>] PartOfUniqueKey   : bool
-    [<DataMember>] DefaultConstraint : string
-    [<DataMember>] Description       : string
-    [<DataMember>] TypeInfo          : TypeInfo
+    [<DataMember>] Name              : string    /// Name of the column
+    [<DataMember>] Nullable          : bool      /// If the field is nullable
+    [<DataMember>] MaxLength         : int       /// Max Length for variable length types 
+    [<DataMember>] ReadOnly          : bool      /// Is the column readonly?
+    [<DataMember>] Identity          : bool      /// Identity (autoincremented) column
+    [<DataMember>] PartOfUniqueKey   : bool      /// Part of primary key
+    [<DataMember>] DefaultConstraint : string    /// Default value
+    [<DataMember>] Description       : string    /// Description
+    [<DataMember>] TypeInfo          : TypeInfo  /// Detailed type information
 }   with
     member this.ErasedToType = 
         if this.Nullable
@@ -111,17 +112,18 @@ type [<DataContract;CLIMutable>] Column = {
         Description = defaultArg description ""
     }
 
-
-and [<DataContract;CLIMutable>] TypeInfo = {
-    [<DataMember>] TypeName         : string
-    [<DataMember>] Schema           : string
-    [<DataMember>] SqlEngineTypeId  : int
-    [<DataMember>] UserTypeId       : int
-    [<DataMember>] SqlDbType        : SqlDbType
-    [<DataMember>] IsFixedLength    : bool 
-    [<DataMember>] ClrTypeFullName  : string
-    [<DataMember>] UdttName         : string 
-    [<DataMember>] TableTypeColumns : Column array
+/// Describes a single SQL Server Data Type
+/// Remark: This is subject to change
+and [<DataContract;CLIMutable>] TypeInfo = {       
+    [<DataMember>] TypeName         : string       /// Type name
+    [<DataMember>] Schema           : string       /// Schema owning this type (sys for system types)
+    [<DataMember>] SqlEngineTypeId  : int          /// system_type_id
+    [<DataMember>] UserTypeId       : int          /// user_type_id
+    [<DataMember>] SqlDbType        : SqlDbType    /// ADO.NET <see cref="SqlDbType"/>
+    [<DataMember>] IsFixedLength    : bool         /// Is fixed length
+    [<DataMember>] ClrTypeFullName  : string       /// Fullname of type, for use with runtime reflection
+    [<DataMember>] UdttName         : string       /// Name of the user-defined-table-type
+    [<DataMember>] TableTypeColumns : Column array /// Columns of the user-defined-table-type
 }   with
     member this.ClrType: Type = if isNull this.ClrTypeFullName then null else Type.GetType( this.ClrTypeFullName, throwOnError = true)
     member this.TableType = this.SqlDbType = SqlDbType.Structured
@@ -129,16 +131,18 @@ and [<DataContract;CLIMutable>] TypeInfo = {
     member this.IsUnitOfMeasure = this.TypeName.StartsWith("<") && this.TypeName.EndsWith(">")
     member this.UnitOfMeasureName = this.TypeName.TrimStart('<').TrimEnd('>')
 
+/// Describes a single parameter
+/// Remark: API this is subject to change
 type [<DataContract;CLIMutable>] Parameter = {
-    [<DataMember>] Name: string
-    [<DataMember>] TypeInfo: TypeInfo
-    [<DataMember>] Direction: ParameterDirection 
-    [<DataMember>] MaxLength: int
-    [<DataMember>] Precision: byte
-    [<DataMember>] Scale : byte
-    [<DataMember>] DefaultValue: obj option
-    [<DataMember>] Optional: bool
-    [<DataMember>] Description: string
+    [<DataMember>] Name         : string             /// Parameter name
+    [<DataMember>] TypeInfo     : TypeInfo           /// Parameter type details
+    [<DataMember>] Direction    : ParameterDirection /// ADO.NET <see cref="ParameterDirection"/>
+    [<DataMember>] MaxLength    : int                /// Max Length for variable length types 
+    [<DataMember>] Precision    : byte               /// Precision ???
+    [<DataMember>] Scale        : byte               /// Scale ???
+    [<DataMember>] DefaultValue : obj option         /// Default value
+    [<DataMember>] Optional     : bool               /// Is optional
+    [<DataMember>] Description  : string             /// Description
 }   with
     
     member this.Size = 
