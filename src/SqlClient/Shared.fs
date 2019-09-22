@@ -113,32 +113,32 @@ type [<DataContract;CLIMutable>] Column = {
 
 
 and [<DataContract;CLIMutable>] TypeInfo = {
-    [<DataMember>] TypeName       : string
-    [<DataMember>] Schema         : string
-    [<DataMember>] SqlEngineTypeId: int
-    [<DataMember>] UserTypeId     : int
-    [<DataMember>] SqlDbType      : SqlDbType
-    [<DataMember>] IsFixedLength  : bool 
-    [<DataMember>] ClrTypeFullName: string
-    [<DataMember>] UdttName       : string 
-    [<DataMember>] TableTypeColumns: Column[]
+    [<DataMember>] TypeName         : string
+    [<DataMember>] Schema           : string
+    [<DataMember>] SqlEngineTypeId  : int
+    [<DataMember>] UserTypeId       : int
+    [<DataMember>] SqlDbType        : SqlDbType
+    [<DataMember>] IsFixedLength    : bool 
+    [<DataMember>] ClrTypeFullName  : string
+    [<DataMember>] UdttName         : string 
+    [<DataMember>] TableTypeColumns : Column array
 }   with
-    member this.ClrType: Type = Type.GetType( this.ClrTypeFullName, throwOnError = true)
+    member this.ClrType: Type = if isNull this.ClrTypeFullName then null else Type.GetType( this.ClrTypeFullName, throwOnError = true)
     member this.TableType = this.SqlDbType = SqlDbType.Structured
     member this.IsValueType = not this.TableType && this.ClrType.IsValueType
     member this.IsUnitOfMeasure = this.TypeName.StartsWith("<") && this.TypeName.EndsWith(">")
     member this.UnitOfMeasureName = this.TypeName.TrimStart('<').TrimEnd('>')
 
-type Parameter = {
-    Name: string
-    TypeInfo: TypeInfo
-    Direction: ParameterDirection 
-    MaxLength: int
-    Precision: byte
-    Scale : byte
-    DefaultValue: obj option
-    Optional: bool
-    Description: string
+type [<DataContract;CLIMutable>] Parameter = {
+    [<DataMember>] Name: string
+    [<DataMember>] TypeInfo: TypeInfo
+    [<DataMember>] Direction: ParameterDirection 
+    [<DataMember>] MaxLength: int
+    [<DataMember>] Precision: byte
+    [<DataMember>] Scale : byte
+    [<DataMember>] DefaultValue: obj option
+    [<DataMember>] Optional: bool
+    [<DataMember>] Description: string
 }   with
     
     member this.Size = 
