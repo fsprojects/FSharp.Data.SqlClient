@@ -138,8 +138,14 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
             | _ -> ()
 
         do
+            let serializedColumns = outputColumns |> List.toArray |> Encoding.serialize
+            let serializedParameters = parameters |> List.toArray |> Encoding.serialize
             cmdProvidedType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, isStatic = true, getterCode = fun _ -> <@@ connectionStringOrName @@>))
-
+            
+            if not (List.isEmpty outputColumns) then
+              cmdProvidedType.AddMember(ProvidedProperty("Columns", typeof<Column array>, isStatic = true, getterCode = fun _ -> <@@ (serializedColumns |> Encoding.deserialize) : Column array @@>)) 
+            if not (List.isEmpty parameters) then
+              cmdProvidedType.AddMember(ProvidedProperty("Parameters", typeof<Parameter array>, isStatic = true, getterCode = fun _ -> <@@ (serializedParameters |> Encoding.deserialize) : Parameter array @@>)) 
         do
             SharedLogic.alterReturnTypeAccordingToResultType returnType cmdProvidedType resultType
 
