@@ -1,6 +1,7 @@
 ﻿namespace FSharp.Data
 
 open System
+open System.Diagnostics
 open System.IO
 open System.Data.SqlClient
 open System.Reflection
@@ -31,12 +32,16 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, hideObjectMethods = true)
 
     let cache = new Cache<ProvidedTypeDefinition>()
-
+    let whoIsClearingCache = typeof<SqlCommandProvider>.FullName + " Disposing"
     do 
         this.Disposing.Add <| fun _ ->
             try  
-                clearDataTypesMap()
-            with _ -> ()
+                sqlDataTypesCache.Clear whoIsClearingCache
+            with e -> 
+              #if DEBUG
+              Debug.WriteLine("snag during clearing of data type cache: " + whoIsClearingCache + "\n" + (string e))
+              #endif
+              ()
 
     do 
         providerType.DefineStaticParameters(
