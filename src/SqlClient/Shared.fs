@@ -84,7 +84,12 @@ type [<DataContract;CLIMutable>] Column = {
                 assert(unitsOfMeasurePerSchema.IsSome)
                 let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
                 ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
+            elif isNull this.TypeInfo.ClrType && this.TypeInfo.TableTypeColumns.Length > 0 then
+                // we need to lookup matching uddt column to resolve the type
+                let matchingUddtColumn = this.TypeInfo.TableTypeColumns |> Array.find (fun t -> t.Name = this.Name)
+                matchingUddtColumn.TypeInfo.ClrType
             else
+                // normal parameter case
                 this.TypeInfo.ClrType
 
         if this.Nullable

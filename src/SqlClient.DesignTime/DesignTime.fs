@@ -357,7 +357,7 @@ type DesignTime private() =
 
                     let providedType = 
                         match outputColumns with
-                        | [ x ] -> x.GetProvidedType()
+                        | [ x ] -> x.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
                         | xs -> Microsoft.FSharp.Reflection.FSharpType.MakeTupleType [| for x in xs -> x.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema) |]
 
                     let clrTypeName = erasedToTupleType.FullName
