@@ -8,28 +8,50 @@ open System.IO
 open System.Threading.Tasks
 open System.Data.SqlClient
 open FSharp.Data
+open System.Diagnostics
 
-let private dataTypeMappings = Dictionary<string, TypeInfo[]>()
+type internal TypeInfoPerConnectionStringCache() =
+  let dataTypeMappings = Dictionary<string, TypeInfo[]>()
+  let lock f = lock dataTypeMappings f
 
-let internal clearDataTypesMap() = dataTypeMappings.Clear()
+  member x.Clear(reason: string) =
+    lock (fun () ->
+      dataTypeMappings.Clear()
+    )
+  
+  member x.ContainsConnectionString connectionString = 
+    lock (fun () -> dataTypeMappings.ContainsKey connectionString)
 
-let internal getTypes( connectionString: string) = dataTypeMappings.[connectionString]
+  member x.RegisterTypes(connectionString, types) =
+    lock (fun () -> dataTypeMappings.Add(connectionString, types))
 
+  member x.GetTypesForConnectionString connectionString =
+    lock (fun () ->
+      match dataTypeMappings.TryGetValue connectionString with
+      | true, types -> types
+      | false, _ -> 
+        raise (new Exception(sprintf "types for connection %s were not retrieved!" connectionString))
+    )
+
+  member x.DoIfConnectionStringNotRegistered f = lock f
+    
+let internal sqlDataTypesCache = new TypeInfoPerConnectionStringCache()
 let internal findTypeInfoBySqlEngineTypeId (connStr, system_type_id, user_type_id : int option) = 
-    assert (dataTypeMappings.ContainsKey connStr)
+    assert (sqlDataTypesCache.ContainsConnectionString connStr)
 
-    dataTypeMappings.[connStr] 
+    sqlDataTypesCache.GetTypesForConnectionString connStr
     |> Array.filter(fun x -> 
         let result = 
             x.SqlEngineTypeId = system_type_id &&
-            (user_type_id.IsSome && x.UserTypeId = user_type_id.Value || user_type_id.IsNone && x.UserTypeId = system_type_id)
+            (user_type_id.IsSome && x.UserTypeId = user_type_id.Value || user_type_id.IsNone && x.UserTypeId = int system_type_id)
         result
     ) 
     |> Seq.exactlyOne
 
-let internal findTypeInfoByProviderType( connStr, sqlDbType)  = 
-    assert (dataTypeMappings.ContainsKey connStr)
-    dataTypeMappings.[connStr] |> Array.find (fun x -> x.SqlDbType = sqlDbType)
+let internal findTypeInfoByProviderType(connStr, sqlDbType) =
+    assert (sqlDataTypesCache.ContainsConnectionString connStr)
+
+    sqlDataTypesCache.GetTypesForConnectionString connStr |> Array.find (fun x -> x.SqlDbType = sqlDbType)
 
 type LiteralType = Microsoft.SqlServer.TransactSql.ScriptDom.LiteralType
 type UnaryExpression = Microsoft.SqlServer.TransactSql.ScriptDom.UnaryExpression
@@ -311,7 +333,7 @@ type SqlConnection with
                 AND OBJECT_ID('%s.%s') = object_id" descriptionSelector <|| routine.BaseObject
 
         [
-            use cmd = new SqlCommand( query, this)
+            use cmd = new SqlCommand(query, this)
             use cursor = cmd.ExecuteReader()
             while cursor.Read() do
                 let name = string cursor.["name"]
@@ -323,7 +345,7 @@ type SqlConnection with
                         assert(unbox cursor.["suggested_is_input"])
                         ParameterDirection.Input 
 
-                let system_type_id: int = unbox<byte> cursor.["suggested_system_type_id"] |> int
+                let system_type_id : int = unbox<byte> cursor.["suggested_system_type_id"] |> int
                 let user_type_id = cursor.TryGetValue "suggested_user_type_id"
 
                 let typeInfo = findTypeInfoBySqlEngineTypeId(this.ConnectionString, system_type_id, user_type_id)
@@ -464,8 +486,7 @@ type SqlConnection with
             ]
 
     member internal this.LoadDataTypesMap() = 
-        if not <| dataTypeMappings.ContainsKey this.ConnectionString
-        then
+        sqlDataTypesCache.DoIfConnectionStringNotRegistered(fun () ->
             assert (this.State = ConnectionState.Open)
             
             let sqlEngineTypes, tableVariableTypes = 
@@ -508,14 +529,15 @@ order by
                         let table_type_user_type_id = unbox<int> reader.["table_type_user_type_id"] 
                         yield 
                             table_type_user_type_id
-                            , { table_type_user_type_id = table_type_user_type_id
-                                name                    = string reader.["name"]
-                                system_type_id          = unbox<byte>  reader.["system_type_id"]
-                                is_nullable             = unbox        reader.["is_nullable"]
-                                max_length              = unbox<int16> reader.["max_length"]
-                                is_identity             = unbox        reader.["is_identity"]
-                                is_computed             = unbox        reader.["is_computed"] 
-                                user_type_id            = unbox<int>   reader.["user_type_id"]
+                            , { 
+                                  table_type_user_type_id = table_type_user_type_id
+                                  name                    = string reader.["name"]
+                                  system_type_id          = unbox<byte>  reader.["system_type_id"]
+                                  is_nullable             = unbox        reader.["is_nullable"]
+                                  max_length              = unbox<int16> reader.["max_length"]
+                                  is_identity             = unbox        reader.["is_identity"]
+                                  is_computed             = unbox        reader.["is_computed"] 
+                                  user_type_id            = unbox<int>   reader.["user_type_id"]
                             } 
               |] 
               |> Array.groupBy fst
@@ -530,8 +552,8 @@ order by
                     //let system_type_name = t.name
                     match providerTypes.TryGetValue type_name with
                     | false, _ -> 
-                      let type_name = sqlEngineTypes.[system_type_id,int system_type_id].name
-                      providerTypes.[type_name]
+                        let type_name = sqlEngineTypes.[system_type_id,int system_type_id].name
+                        providerTypes.[type_name]
                     | true, item -> item
                 | false, _ when is_table_type -> 
                     SqlDbType.Structured, null, false
@@ -554,27 +576,28 @@ order by
                 Scale             = sqlTypeEntry.scale
               }      
             and makeTypeInfo (entry: SqlTypeEntry) =
-              let sqldbtype, clrTypeFullName, isFixedLength = getProvidedTypeForSqlTypeEntry entry
-              {
-                TypeName = entry.name
-                Schema = entry.schema_name
-                SqlEngineTypeId = int entry.system_type_id
-                UserTypeId = entry.user_type_id
-                SqlDbType = sqldbtype
-                IsFixedLength = isFixedLength
-                ClrTypeFullName = clrTypeFullName
-                UdttName = if entry.is_table_type then entry.name else ""
-                TableTypeColumns = 
-                  if entry.is_table_type then 
-                    tableVariableTypes.[entry.user_type_id] |> Array.map makeColumn
-                  else 
-                    Array.empty }
+                let sqldbtype, clrTypeFullName, isFixedLength = getProvidedTypeForSqlTypeEntry entry
+                let tableTypeColumns = 
+                    if entry.is_table_type then 
+                        tableVariableTypes.[entry.user_type_id] |> Array.map makeColumn
+                    else 
+                        Array.empty 
+                {
+                    TypeName         = entry.name
+                    Schema           = entry.schema_name
+                    SqlEngineTypeId  = int entry.system_type_id
+                    UserTypeId       = entry.user_type_id
+                    SqlDbType        = sqldbtype
+                    IsFixedLength    = isFixedLength
+                    ClrTypeFullName  = clrTypeFullName
+                    UdttName         = if entry.is_table_type then entry.name else ""
+                    TableTypeColumns = tableTypeColumns
+                }
 
             let typeInfosForTableTypes =
               sqlEngineTypes.Values
               |> Seq.map (fun i -> i.user_type_id, i)
               |> dict
-              
             
             let typeInfos = [|
                 
@@ -615,6 +638,5 @@ order by
                         TableTypeColumns = columns
                     }
             |]
-
-            dataTypeMappings.Add( this.ConnectionString, typeInfos)
-
+            sqlDataTypesCache.RegisterTypes(this.ConnectionString, typeInfos)
+    )

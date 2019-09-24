@@ -25,10 +25,11 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
     let cache = new Cache<ProvidedTypeDefinition>()
     let methodsCache = new Cache<ProvidedMethod>()
+    let whoIsClearing = typeof<SqlProgrammabilityProvider>.FullName + " Disposing"
 
     do 
-        this.Disposing.Add <| fun _ -> 
-            clearDataTypesMap()
+        this.Disposing.Add <| fun _ -> sqlDataTypesCache.Clear whoIsClearing
+    
     do 
         //this.RegisterRuntimeAssemblyLocationAsProbingFolder( config) 
 
@@ -132,7 +133,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         databaseRootType           
 
      member internal __.UDTTs( connStr, schema) = [
-        for t in getTypes( connStr) do
+        for t in sqlDataTypesCache.GetTypesForConnectionString connStr do
             if t.TableType && t.Schema = schema
             then 
                 yield DesignTime.CreateUDTT( t)
@@ -140,7 +141,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     ]
 
      member internal __.UnitsOfMeasure( connStr, schema) = [
-        for t in getTypes( connStr) do
+        for t in sqlDataTypesCache.GetTypesForConnectionString connStr do
             if t.Schema = schema && t.IsUnitOfMeasure
             then 
                 let units = ProvidedTypeDefinition( t.UnitOfMeasureName, None)
