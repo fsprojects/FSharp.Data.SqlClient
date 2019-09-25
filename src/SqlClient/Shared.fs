@@ -77,12 +77,11 @@ type [<DataContract;CLIMutable>] Column = {
         then typedefof<_ option>.MakeGenericType this.TypeInfo.ClrType
         else this.TypeInfo.ClrType
     
-    member this.GetProvidedType(?unitsOfMeasurePerSchema: Dictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
+    member this.GetProvidedType(unitsOfMeasurePerSchema: IDictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
         let typeConsideringUOM: Type = 
-            if this.TypeInfo.IsUnitOfMeasure && unitsOfMeasurePerSchema.IsSome
+            if this.TypeInfo.IsUnitOfMeasure
             then
-                assert(unitsOfMeasurePerSchema.IsSome)
-                let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
+                let uomType = unitsOfMeasurePerSchema.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
                 ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
             elif isNull this.TypeInfo.ClrType && this.TypeInfo.TableTypeColumns.Length > 0 then
                 // we need to lookup matching uddt column to resolve the type
@@ -101,7 +100,15 @@ type [<DataContract;CLIMutable>] Column = {
 
     member this.HasDefaultConstraint = this.DefaultConstraint <> ""
     member this.NullableParameter = this.Nullable || this.HasDefaultConstraint
-      
+    member this.GetTypeInfoConsideringUDDT() =
+        // note: it may be better to not have this level of indirection 
+        // and just store the correct type info, need to look at usages
+        // of TypeInfo.TableTypeColumns
+        if this.TypeInfo.TableType && isNull this.TypeInfo.ClrType then
+            (this.TypeInfo.TableTypeColumns |> Array.find (fun e -> e.Name = this.Name)).TypeInfo
+        else
+            this.TypeInfo
+
     static member Parse(cursor: SqlDataReader, typeLookup: int * int option -> TypeInfo, ?defaultValue, ?description) = {
         Name = unbox cursor.["name"]
         TypeInfo = 
@@ -135,6 +142,13 @@ and [<DataContract;CLIMutable>] TypeInfo = {
     member this.IsValueType = not this.TableType && this.ClrType.IsValueType
     member this.IsUnitOfMeasure = this.TypeName.StartsWith("<") && this.TypeName.EndsWith(">")
     member this.UnitOfMeasureName = this.TypeName.TrimStart('<').TrimEnd('>')
+    
+    member this.RetrieveSchemas () =
+        seq {
+            yield this.Schema
+            yield! (this.TableTypeColumns |> Array.map (fun i -> i.TypeInfo.Schema)) 
+        }
+        |> Seq.distinct
 
 /// Describes a single parameter
 /// Remark: API this is subject to change
@@ -155,11 +169,10 @@ type [<DataContract;CLIMutable>] Parameter = {
         | SqlDbType.NChar | SqlDbType.NText | SqlDbType.NVarChar -> this.MaxLength / 2
         | _ -> this.MaxLength
 
-    member this.GetProvidedType(?unitsOfMeasurePerSchema: Dictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
-        if this.TypeInfo.IsUnitOfMeasure && unitsOfMeasurePerSchema.IsSome
+    member this.GetProvidedType(unitsOfMeasurePerSchema: IDictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
+        if this.TypeInfo.IsUnitOfMeasure
         then
-            assert(unitsOfMeasurePerSchema.IsSome)
-            let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
+            let uomType = unitsOfMeasurePerSchema.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
             ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
         else
             this.TypeInfo.ClrType

@@ -58,8 +58,8 @@
     <Compile Include="DesignTime.fs" />
     <Compile Include="SingleFileChangeMonitor.fs" />
     <Compile Include="SingleRootTypeProvider.fs" />
-    <Compile Include="SqlCommandProvider.fs" />
     <Compile Include="SqlClientProvider.fs" />
+    <Compile Include="SqlCommandProvider.fs" />
     <Compile Include="SqlEnumProvider.fs" />
     <Compile Include="SqlFileProvider.fs" />
     <Content Include="paket.references" />
