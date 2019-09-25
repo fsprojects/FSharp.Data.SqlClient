@@ -57,7 +57,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 """
 
         this.AddNamespace(nameSpace, [ providerType ])
-    
+
     override this.ResolveAssembly args = 
         config.ReferencedAssemblies 
         |> Array.tryFind (fun x -> AssemblyName.ReferenceMatchesDefinition(AssemblyName.GetAssemblyName x, AssemblyName args.Name)) 
@@ -80,7 +80,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
         let conn = new SqlConnection(designTimeConnectionString.Value)
         use closeConn = conn.UseLocally()
         conn.CheckVersion()
-        conn.LoadDataTypesMap()
+        let sqlDataTypes = conn.LoadDataTypesMap()
 
         let databaseRootType = ProvidedTypeDefinition(assembly, nameSpace, typeName, baseType = Some typeof<obj>, hideObjectMethods = true)
 
@@ -98,23 +98,23 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         for schemaType in schemas do
 
-            do //User-defined table types
-                let udttsRoot = ProvidedTypeDefinition("User-Defined Table Types", Some typeof<obj>)
-                udttsRoot.AddMembersDelayed <| fun () -> 
-                    this.UDTTs (conn.ConnectionString, schemaType.Name)
-
-                udttsPerSchema.Add( schemaType.Name, udttsRoot)
-                schemaType.AddMember udttsRoot
-                
             do //Units of measure
-                let xs = this.UnitsOfMeasure (conn.ConnectionString, schemaType.Name)
+                let xs = SqlProgrammabilityProvider.UnitsOfMeasure(conn.ConnectionString, schemaType.Name, sqlDataTypes)
                 if not (List.isEmpty xs)
                 then 
                     let uomRoot = ProvidedTypeDefinition("Units of Measure", Some typeof<obj>)
                     uomRoot.AddMembers xs
                     uomPerSchema.Add( schemaType.Name, xs)
                     schemaType.AddMember uomRoot
-                
+
+            do //User-defined table types
+                let udttsRoot = ProvidedTypeDefinition("User-Defined Table Types", Some typeof<obj>)
+                udttsRoot.AddMembersDelayed <| fun () -> 
+                    this.UDTTs (conn.ConnectionString, schemaType.Name, uomPerSchema)
+
+                udttsPerSchema.Add( schemaType.Name, udttsRoot)
+                schemaType.AddMember udttsRoot
+
         for schemaType in schemas do
 
             schemaType.AddMembersDelayed <| fun() -> 
@@ -132,16 +132,16 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         databaseRootType           
 
-     member internal __.UDTTs( connStr, schema) = [
+     member internal __.UDTTs( connStr, schema, unitsOfMeasurePerSchema) = [
         for t in sqlDataTypesCache.GetTypesForConnectionString connStr do
             if t.TableType && t.Schema = schema
             then 
-                yield DesignTime.CreateUDTT( t)
+                yield DesignTime.CreateUDTT(t, unitsOfMeasurePerSchema)
                 //tagProvidedType rowType
     ]
 
-     member internal __.UnitsOfMeasure( connStr, schema) = [
-        for t in sqlDataTypesCache.GetTypesForConnectionString connStr do
+     static member internal UnitsOfMeasure( connStr, schema, sqlDataTypesForConnection: FSharp.Data.TypeInfo array) = [
+        for t in sqlDataTypesForConnection do
             if t.Schema = schema && t.IsUnitOfMeasure
             then 
                 let units = ProvidedTypeDefinition( t.UnitOfMeasureName, None)

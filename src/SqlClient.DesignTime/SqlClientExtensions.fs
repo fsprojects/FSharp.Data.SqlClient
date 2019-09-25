@@ -11,8 +11,10 @@ open FSharp.Data
 open System.Diagnostics
 
 type internal TypeInfoPerConnectionStringCache() =
+  let key = obj()
   let dataTypeMappings = Dictionary<string, TypeInfo[]>()
-  let lock f = lock dataTypeMappings f
+
+  let lock f = lock key f
 
   member x.Clear(reason: string) =
     lock (fun () ->
@@ -23,19 +25,31 @@ type internal TypeInfoPerConnectionStringCache() =
     lock (fun () -> dataTypeMappings.ContainsKey connectionString)
 
   member x.RegisterTypes(connectionString, types) =
-    lock (fun () -> dataTypeMappings.Add(connectionString, types))
+    lock (fun () -> 
+      if dataTypeMappings.ContainsKey connectionString then
+          #if DEBUG
+          let existingTypes = dataTypeMappings.[connectionString]
+          if existingTypes = types then
+            System.Diagnostics.Debug.WriteLine(sprintf "types existing for connection %s, old types and new types are identical" connectionString)
+          else
+            System.Diagnostics.Debug.WriteLine(sprintf "types existing for connection %s, old types and new types are different" connectionString)
+          #endif
+          dataTypeMappings.[connectionString] <- types
+      else
+        dataTypeMappings.Add(connectionString, types)
+    )
 
   member x.GetTypesForConnectionString connectionString =
     lock (fun () ->
       match dataTypeMappings.TryGetValue connectionString with
       | true, types -> types
       | false, _ -> 
-        raise (new Exception(sprintf "types for connection %s were not retrieved!" connectionString))
+        raise (new InvalidOperationException(sprintf "types for connection %s were not retrieved!" connectionString))
     )
 
   member x.DoIfConnectionStringNotRegistered f = lock f
     
-let internal sqlDataTypesCache = new TypeInfoPerConnectionStringCache()
+let internal sqlDataTypesCache = new TypeInfoPerConnectionStringCache()  
 let internal findTypeInfoBySqlEngineTypeId (connStr, system_type_id, user_type_id : int option) = 
     assert (sqlDataTypesCache.ContainsConnectionString connStr)
 
@@ -639,4 +653,5 @@ order by
                     }
             |]
             sqlDataTypesCache.RegisterTypes(this.ConnectionString, typeInfos)
+            typeInfos
     )

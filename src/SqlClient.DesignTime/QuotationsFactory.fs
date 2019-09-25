@@ -65,10 +65,7 @@ type QuotationsFactory private() =
         @> 
 
     static member internal MapArrayNullableItems(outputColumns : Column list, mapper : string) = 
-        let columnTypes, isNullableColumn = outputColumns |> List.map (fun c -> c.TypeInfo.ClrTypeFullName, c.Nullable) |> List.unzip
-        QuotationsFactory.MapArrayNullableItems(columnTypes, isNullableColumn, mapper)            
-
-    static member internal MapArrayNullableItems(columnTypes : string list, isNullableColumn : bool list, mapper : string) = 
+        let columnTypes, isNullableColumn = outputColumns |> List.map (fun c -> c.GetTypeInfoConsideringUDDT().ClrTypeFullName, c.Nullable) |> List.unzip
         assert(columnTypes.Length = isNullableColumn.Length)
         let arr = Var("_", typeof<obj[]>)
         let body =
@@ -79,7 +76,7 @@ type QuotationsFactory private() =
                 then 
                     typeof<QuotationsFactory>
                         .GetMethod(mapper, BindingFlags.NonPublic ||| BindingFlags.Static)
-                        .MakeGenericMethod( Type.GetType( typeName, throwOnError = true))
+                        .MakeGenericMethod(Type.GetType(typeName, throwOnError = true))
                         .Invoke(null, [| box(Expr.Var arr); box index |])
                         |> unbox
                         |> Some
