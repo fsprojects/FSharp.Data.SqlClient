@@ -99,7 +99,7 @@ before `</Project>`:
     </ItemGroup>
 
     <Target Name="BuildDb" BeforeTargets="BeforeBuild" Inputs="@(BuildDbSqlScripts);@(BuildDbPsScript)" Outputs="SQL\%(BuildDbSqlScripts.DbName).mdf;SQL\%(BuildDbSqlScripts.DbName).ldf">
-      <Message Text="DB build scripts changed. Building out database %(BuildDbSqlScripts.DbName) using script %(BuildDbSqlScripts.Identity)" Importance="High" />
+      <Message Text="DB files missing or outdated. Building out database %(BuildDbSqlScripts.DbName) using script %(BuildDbSqlScripts.Identity)" Importance="High" />
       <Exec Command="PowerShell -NoProfile -ExecutionPolicy Bypass -Command &quot;&amp; { @(BuildDbPsScript) -DbName %(BuildDbSqlScripts.DbName) -DbScript %(BuildDbSqlScripts.Identity) }&quot;" />
     </Target>
 
