@@ -88,9 +88,10 @@ let singleRowOption() =
 
 [<Fact>]
 let ToTraceString() =
-    let now = DateTime.Now.ToString("O")
+    let now = DateTime.Now
+    let universalPrintedNow = now.ToString("O")
     let num = 42
-    let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE), CAST(@Number AS INT)',N'@Date Date,@Number Int',@Date='%s',@Number='%d'" now num
+    let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE), CAST(@Number AS INT)',N'@Date Date,@Number Int',@Date='%s',@Number='%d'" universalPrintedNow num
     let cmd = new SqlCommandProvider<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples>()
     Assert.Equal<string>(
         expected, 
