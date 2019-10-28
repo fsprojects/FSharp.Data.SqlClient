@@ -157,10 +157,10 @@ let ``ToTraceString double-quotes``() =
 
     
 [<Fact>]
-let ``ToTraceString double-quotes in paramter``() =    
+let ``ToTraceString double-quotes in parameter``() =    
     use cmd = new SqlCommandProvider<"SELECT * FROM Sales.Currency WHERE CurrencyCode = @CurrencyCode", ConnectionStrings.AdventureWorksNamed>()    
     Assert.Equal<string>(
-        expected = "exec sp_executesql N'DELETE FROM Sales.Currency WHERE CurrencyCode = @Code',N'@Code NChar(3)',@Code='A''B'",
+        expected = "exec sp_executesql N'SELECT * FROM Sales.Currency WHERE CurrencyCode = @CurrencyCode',N'@CurrencyCode NChar(3)',@CurrencyCode='A''B'",
         actual = cmd.ToTraceString("A'B")
     )
     
