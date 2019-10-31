@@ -115,80 +115,116 @@ This can be archived via <a href="http://martinfowler.com/eaaCatalog/repository.
 </td>
 <td class="snippet"><pre class="fssnip">
 <span class="c">//Command types definitions</span>
-<span class="k">type</span> <span class="i">GetEmployeesByLevel</span> <span class="o">=</span> 
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">GetEmployeesByLevel</span> <span class="o">=</span> 
     <span class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
 <span class="s">        </span><span class="s">SELECT</span><span class="s"> </span><span class="s">P</span><span class="s">.</span><span class="s">FirstName</span><span class="s">,</span><span class="s"> </span><span class="s">P</span><span class="s">.</span><span class="s">LastName</span><span class="s">,</span><span class="s"> </span><span class="s">E</span><span class="s">.</span><span class="s">JobTitle</span>
 <span class="s">        </span><span class="s">FROM</span><span class="s"> </span><span class="s">HumanResources</span><span class="s">.</span><span class="s">Employee</span><span class="s"> </span><span class="s">AS</span><span class="s"> </span><span class="s">E</span>
 <span class="s">	        </span><span class="s">JOIN</span><span class="s"> </span><span class="s">Person</span><span class="s">.</span><span class="s">Person</span><span class="s"> </span><span class="s">AS</span><span class="s"> </span><span class="s">P</span><span class="s"> </span><span class="s">ON</span><span class="s"> </span><span class="s">E</span><span class="s">.</span><span class="s">BusinessEntityID</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">P</span><span class="s">.</span><span class="s">BusinessEntityID</span>
 <span class="s">        </span><span class="s">WHERE</span><span class="s"> </span><span class="s">OrganizationLevel</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">@</span><span class="s">orgLevel</span>
-<span class="s">    </span><span class="s">&quot;</span>, <span class="i">connectionString</span><span class="o">&gt;</span>
+<span class="s">    </span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs2', 2)" onmouseover="showTip(event, 'fs2', 2)" class="i">connectionString</span><span class="o">&gt;</span>
 
-<span class="k">type</span> <span class="i">GetSalesChampion</span> <span class="o">=</span> <span class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs3', 3)" onmouseover="showTip(event, 'fs3', 3)" class="i">GetSalesChampion</span> <span class="o">=</span> <span class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span>
 <span class="s">    </span><span class="s">SELECT</span><span class="s"> </span><span class="s">TOP</span><span class="s"> </span><span class="s">1</span><span class="s"> </span><span class="s">FirstName</span><span class="s">,</span><span class="s"> </span><span class="s">LastName</span>
 <span class="s">    </span><span class="s">FROM</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">vSalesPerson</span>
 <span class="s">    </span><span class="s">WHERE</span><span class="s"> </span><span class="s">CountryRegionName</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">@</span><span class="s">countryRegionName</span>
 <span class="s">    </span><span class="s">ORDER</span><span class="s"> </span><span class="s">BY</span><span class="s"> </span><span class="s">SalesYTD</span><span class="s"> </span><span class="s">DESC</span>
-<span class="s">    </span><span class="s">&quot;</span> , <span class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>
+<span class="s">    </span><span class="s">&quot;</span> , <span onmouseout="hideTip(event, 'fs2', 4)" onmouseover="showTip(event, 'fs2', 4)" class="i">connectionString</span>, <span class="i">SingleRow</span> <span class="o">=</span> <span class="k">true</span><span class="o">&gt;</span>
 
 <span class="c">//Repository inteface</span>
-<span class="k">type</span> <span class="i">IRepository</span> <span class="o">=</span> 
-    <span class="k">abstract</span> <span class="i">GetEmployeesByLevel</span><span class="o">:</span> <span class="i">int16</span> <span class="k">-&gt;</span> <span class="i">list</span><span class="o">&lt;</span><span class="i">GetEmployeesByLevel</span><span class="o">.</span><span class="i">Record</span><span class="o">&gt;</span>
-    <span class="k">abstract</span> <span class="i">GetSalesChampion</span><span class="o">:</span> <span class="i">country</span><span class="o">:</span> <span class="i">string</span> <span class="k">-&gt;</span> <span class="i">option</span><span class="o">&lt;</span><span class="i">GetSalesChampion</span><span class="o">.</span><span class="i">Record</span><span class="o">&gt;</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs4', 5)" onmouseover="showTip(event, 'fs4', 5)" class="i">IRepository</span> <span class="o">=</span> 
+    <span class="k">abstract</span> <span onmouseout="hideTip(event, 'fs5', 6)" onmouseover="showTip(event, 'fs5', 6)" class="i">GetEmployeesByLevel</span><span class="o">:</span> <span onmouseout="hideTip(event, 'fs6', 7)" onmouseover="showTip(event, 'fs6', 7)" class="i">int16</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs7', 8)" onmouseover="showTip(event, 'fs7', 8)" class="i">list</span><span class="o">&lt;</span><span onmouseout="hideTip(event, 'fs5', 9)" onmouseover="showTip(event, 'fs5', 9)" class="i">GetEmployeesByLevel</span><span class="o">.</span><span class="i">Record</span><span class="o">&gt;</span>
+    <span class="k">abstract</span> <span onmouseout="hideTip(event, 'fs8', 10)" onmouseover="showTip(event, 'fs8', 10)" class="i">GetSalesChampion</span><span class="o">:</span> <span class="i">country</span><span class="o">:</span> <span onmouseout="hideTip(event, 'fs9', 11)" onmouseover="showTip(event, 'fs9', 11)" class="i">string</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs10', 12)" onmouseover="showTip(event, 'fs10', 12)" class="i">option</span><span class="o">&lt;</span><span onmouseout="hideTip(event, 'fs8', 13)" onmouseover="showTip(event, 'fs8', 13)" class="i">GetSalesChampion</span><span class="o">.</span><span class="i">Record</span><span class="o">&gt;</span>
 
 <span class="c">//Production implementation</span>
-<span class="k">type</span> <span class="i">Repository</span>(<span class="i">connectionString</span><span class="o">:</span> <span class="i">string</span>) <span class="o">=</span> 
-    <span class="k">interface</span> <span class="i">IRepository</span> <span class="k">with</span> 
-        <span class="k">member</span> <span class="i">__</span><span class="o">.</span><span class="i">GetEmployeesByLevel</span>(<span class="i">orgLevel</span>) <span class="o">=</span> 
-            <span class="k">use</span> <span class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span class="i">GetEmployeesByLevel</span>(<span class="i">connectionString</span>)
-            <span class="i">cmd</span><span class="o">.</span><span class="i">Execute</span>(<span class="i">orgLevel</span>) <span class="o">|&gt;</span> <span class="i">Seq</span><span class="o">.</span><span class="i">toList</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs11', 14)" onmouseover="showTip(event, 'fs11', 14)" class="i">Repository</span>(<span onmouseout="hideTip(event, 'fs12', 15)" onmouseover="showTip(event, 'fs12', 15)" class="i">connectionString</span><span class="o">:</span> <span onmouseout="hideTip(event, 'fs9', 16)" onmouseover="showTip(event, 'fs9', 16)" class="i">string</span>) <span class="o">=</span> 
+    <span class="k">interface</span> <span onmouseout="hideTip(event, 'fs4', 17)" onmouseover="showTip(event, 'fs4', 17)" class="i">IRepository</span> <span class="k">with</span> 
+        <span class="k">member</span> <span class="i">__</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs13', 18)" onmouseover="showTip(event, 'fs13', 18)" class="i">GetEmployeesByLevel</span>(<span onmouseout="hideTip(event, 'fs14', 19)" onmouseover="showTip(event, 'fs14', 19)" class="i">orgLevel</span>) <span class="o">=</span> 
+            <span class="k">use</span> <span onmouseout="hideTip(event, 'fs15', 20)" onmouseover="showTip(event, 'fs15', 20)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs1', 21)" onmouseover="showTip(event, 'fs1', 21)" class="i">GetEmployeesByLevel</span>(<span onmouseout="hideTip(event, 'fs12', 22)" onmouseover="showTip(event, 'fs12', 22)" class="i">connectionString</span>)
+            <span onmouseout="hideTip(event, 'fs15', 23)" onmouseover="showTip(event, 'fs15', 23)" class="i">cmd</span><span class="o">.</span><span class="i">Execute</span>(<span onmouseout="hideTip(event, 'fs14', 24)" onmouseover="showTip(event, 'fs14', 24)" class="i">orgLevel</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs16', 25)" onmouseover="showTip(event, 'fs16', 25)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs17', 26)" onmouseover="showTip(event, 'fs17', 26)" class="i">toList</span>
 
-        <span class="k">member</span> <span class="i">__</span><span class="o">.</span><span class="i">GetSalesChampion</span>( <span class="i">region</span>) <span class="o">=</span> 
-            <span class="k">use</span> <span class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span class="i">GetSalesChampion</span>(<span class="i">connectionString</span>)
-            <span class="i">cmd</span><span class="o">.</span><span class="i">Execute</span>(<span class="i">region</span>) 
+        <span class="k">member</span> <span onmouseout="hideTip(event, 'fs18', 27)" onmouseover="showTip(event, 'fs18', 27)" class="i">__</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs19', 28)" onmouseover="showTip(event, 'fs19', 28)" class="i">GetSalesChampion</span>( <span onmouseout="hideTip(event, 'fs20', 29)" onmouseover="showTip(event, 'fs20', 29)" class="i">region</span>) <span class="o">=</span> 
+            <span class="k">use</span> <span onmouseout="hideTip(event, 'fs21', 30)" onmouseover="showTip(event, 'fs21', 30)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs3', 31)" onmouseover="showTip(event, 'fs3', 31)" class="i">GetSalesChampion</span>(<span onmouseout="hideTip(event, 'fs12', 32)" onmouseover="showTip(event, 'fs12', 32)" class="i">connectionString</span>)
+            <span onmouseout="hideTip(event, 'fs21', 33)" onmouseover="showTip(event, 'fs21', 33)" class="i">cmd</span><span class="o">.</span><span class="i">Execute</span>(<span onmouseout="hideTip(event, 'fs20', 34)" onmouseover="showTip(event, 'fs20', 34)" class="i">region</span>) 
         
 <span class="c">//logic to test</span>
-<span class="k">let</span> <span class="i">whoReportsToCEO</span>(<span class="i">db</span><span class="o">:</span> <span class="i">IRepository</span>) <span class="o">=</span> 
-    [ <span class="k">for</span> <span class="i">x</span> <span class="k">in</span> <span class="i">db</span><span class="o">.</span><span class="i">GetEmployeesByLevel</span>(<span class="n">1s</span>) <span class="k">-&gt;</span> <span class="i">sprintf</span> <span class="s">&quot;</span><span class="s">%</span><span class="s">s</span><span class="s"> </span><span class="s">%</span><span class="s">s</span><span class="s">&quot;</span> <span class="i">x</span><span class="o">.</span><span class="i">FirstName</span> <span class="i">x</span><span class="o">.</span><span class="i">LastName</span>, <span class="i">x</span><span class="o">.</span><span class="i">JobTitle</span> ]
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs22', 35)" onmouseover="showTip(event, 'fs22', 35)" class="i">whoReportsToCEO</span>(<span onmouseout="hideTip(event, 'fs23', 36)" onmouseover="showTip(event, 'fs23', 36)" class="i">db</span><span class="o">:</span> <span onmouseout="hideTip(event, 'fs4', 37)" onmouseover="showTip(event, 'fs4', 37)" class="i">IRepository</span>) <span class="o">=</span> 
+    [ <span class="k">for</span> <span onmouseout="hideTip(event, 'fs24', 38)" onmouseover="showTip(event, 'fs24', 38)" class="i">x</span> <span class="k">in</span> <span onmouseout="hideTip(event, 'fs23', 39)" onmouseover="showTip(event, 'fs23', 39)" class="i">db</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs25', 40)" onmouseover="showTip(event, 'fs25', 40)" class="i">GetEmployeesByLevel</span>(<span class="n">1s</span>) <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs26', 41)" onmouseover="showTip(event, 'fs26', 41)" class="i">sprintf</span> <span class="s">&quot;</span><span class="s">%</span><span class="s">s</span><span class="s"> </span><span class="s">%</span><span class="s">s</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs24', 42)" onmouseover="showTip(event, 'fs24', 42)" class="i">x</span><span class="o">.</span><span class="i">FirstName</span> <span onmouseout="hideTip(event, 'fs24', 43)" onmouseover="showTip(event, 'fs24', 43)" class="i">x</span><span class="o">.</span><span class="i">LastName</span>, <span onmouseout="hideTip(event, 'fs24', 44)" onmouseover="showTip(event, 'fs24', 44)" class="i">x</span><span class="o">.</span><span class="i">JobTitle</span> ]
 
-<span class="k">let</span> <span class="i">bestSalesRepInCanada</span>(<span class="i">db</span><span class="o">:</span> <span class="i">IRepository</span>) <span class="o">=</span> 
-    <span class="i">db</span><span class="o">.</span><span class="i">GetSalesChampion</span>(<span class="s">&quot;</span><span class="s">Canada</span><span class="s">&quot;</span>)
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs27', 45)" onmouseover="showTip(event, 'fs27', 45)" class="i">bestSalesRepInCanada</span>(<span onmouseout="hideTip(event, 'fs23', 46)" onmouseover="showTip(event, 'fs23', 46)" class="i">db</span><span class="o">:</span> <span onmouseout="hideTip(event, 'fs4', 47)" onmouseover="showTip(event, 'fs4', 47)" class="i">IRepository</span>) <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs23', 48)" onmouseover="showTip(event, 'fs23', 48)" class="i">db</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs28', 49)" onmouseover="showTip(event, 'fs28', 49)" class="i">GetSalesChampion</span>(<span class="s">&quot;</span><span class="s">Canada</span><span class="s">&quot;</span>)
 
 <span class="c">//unit tests suite</span>
-<span class="k">module</span> <span class="i">MyTests</span> <span class="o">=</span> 
+<span class="k">module</span> <span onmouseout="hideTip(event, 'fs29', 50)" onmouseover="showTip(event, 'fs29', 50)" class="i">MyTests</span> <span class="o">=</span> 
     
     <span class="c">//mock the real repo</span>
-    <span class="k">let</span> <span class="i">mockRepository</span> <span class="o">=</span> {
-        <span class="k">new</span> <span class="i">IRepository</span> <span class="k">with</span> 
-            <span class="k">member</span> <span class="i">__</span><span class="o">.</span><span class="i">GetEmployeesByLevel</span>(<span class="i">orgLevel</span>) <span class="o">=</span> 
-                <span class="k">if</span> <span class="i">orgLevel</span> <span class="o">=</span> <span class="n">1s</span> 
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs30', 51)" onmouseover="showTip(event, 'fs30', 51)" class="i">mockRepository</span> <span class="o">=</span> {
+        <span class="k">new</span> <span onmouseout="hideTip(event, 'fs4', 52)" onmouseover="showTip(event, 'fs4', 52)" class="i">IRepository</span> <span class="k">with</span> 
+            <span class="k">member</span> <span class="i">__</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs1', 53)" onmouseover="showTip(event, 'fs1', 53)" class="i">GetEmployeesByLevel</span>(<span onmouseout="hideTip(event, 'fs14', 54)" onmouseover="showTip(event, 'fs14', 54)" class="i">orgLevel</span>) <span class="o">=</span> 
+                <span class="k">if</span> <span onmouseout="hideTip(event, 'fs14', 55)" onmouseover="showTip(event, 'fs14', 55)" class="i">orgLevel</span> <span class="o">=</span> <span class="n">1s</span> 
                 <span class="k">then</span> 
                     [ 
                         <span class="c">//Generated record types have single constructor that include all properties</span>
                         <span class="c">//It exists to support unit-testing.</span>
-                        <span class="i">GetEmployeesByLevel</span><span class="o">.</span><span class="i">Record</span>(<span class="s">&quot;</span><span class="s">David</span><span class="s">&quot;</span>, <span class="s">&quot;</span><span class="s">Bradley</span><span class="s">&quot;</span>, <span class="i">JobTitle</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">Marketing</span><span class="s"> </span><span class="s">Manager</span><span class="s">&quot;</span>) 
+                        <span onmouseout="hideTip(event, 'fs1', 56)" onmouseover="showTip(event, 'fs1', 56)" class="i">GetEmployeesByLevel</span><span class="o">.</span><span class="i">Record</span>(<span class="s">&quot;</span><span class="s">David</span><span class="s">&quot;</span>, <span class="s">&quot;</span><span class="s">Bradley</span><span class="s">&quot;</span>, <span class="i">JobTitle</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">Marketing</span><span class="s"> </span><span class="s">Manager</span><span class="s">&quot;</span>) 
                     ]
                 <span class="k">else</span> []
 
-            <span class="k">member</span> <span class="i">__</span><span class="o">.</span><span class="i">GetSalesChampion</span>( <span class="i">region</span>) <span class="o">=</span> 
-                <span class="k">use</span> <span class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span class="i">GetSalesChampion</span>(<span class="i">connectionString</span>)
-                <span class="i">cmd</span><span class="o">.</span><span class="i">Execute</span>(<span class="i">region</span>) 
+            <span class="k">member</span> <span onmouseout="hideTip(event, 'fs31', 57)" onmouseover="showTip(event, 'fs31', 57)" class="i">__</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs28', 58)" onmouseover="showTip(event, 'fs28', 58)" class="i">GetSalesChampion</span>( <span onmouseout="hideTip(event, 'fs20', 59)" onmouseover="showTip(event, 'fs20', 59)" class="i">region</span>) <span class="o">=</span> 
+                <span class="k">use</span> <span onmouseout="hideTip(event, 'fs21', 60)" onmouseover="showTip(event, 'fs21', 60)" class="i">cmd</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs3', 61)" onmouseover="showTip(event, 'fs3', 61)" class="i">GetSalesChampion</span>(<span onmouseout="hideTip(event, 'fs2', 62)" onmouseover="showTip(event, 'fs2', 62)" class="i">connectionString</span>)
+                <span onmouseout="hideTip(event, 'fs21', 63)" onmouseover="showTip(event, 'fs21', 63)" class="i">cmd</span><span class="o">.</span><span class="i">Execute</span>(<span onmouseout="hideTip(event, 'fs20', 64)" onmouseover="showTip(event, 'fs20', 64)" class="i">region</span>) 
     }
 
     <span class="c">//unit test</span>
-    <span class="k">let</span> <span class="i">``who reports to CEO``</span>() <span class="o">=</span> 
-        <span class="k">let</span> <span class="i">expected</span> <span class="o">=</span> [ <span class="s">&quot;</span><span class="s">David</span><span class="s"> </span><span class="s">Bradley</span><span class="s">&quot;</span>, <span class="s">&quot;</span><span class="s">Marketing</span><span class="s"> </span><span class="s">Manager</span><span class="s">&quot;</span> ]
-        <span class="k">assert</span> (<span class="i">whoReportsToCEO</span> <span class="i">mockRepository</span> <span class="o">=</span> <span class="i">expected</span>)        
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs32', 65)" onmouseover="showTip(event, 'fs32', 65)" class="i">``who reports to CEO``</span>() <span class="o">=</span> 
+        <span class="k">let</span> <span onmouseout="hideTip(event, 'fs33', 66)" onmouseover="showTip(event, 'fs33', 66)" class="i">expected</span> <span class="o">=</span> [ <span class="s">&quot;</span><span class="s">David</span><span class="s"> </span><span class="s">Bradley</span><span class="s">&quot;</span>, <span class="s">&quot;</span><span class="s">Marketing</span><span class="s"> </span><span class="s">Manager</span><span class="s">&quot;</span> ]
+        <span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs22', 67)" onmouseover="showTip(event, 'fs22', 67)" class="i">whoReportsToCEO</span> <span onmouseout="hideTip(event, 'fs30', 68)" onmouseover="showTip(event, 'fs30', 68)" class="i">mockRepository</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs33', 69)" onmouseover="showTip(event, 'fs33', 69)" class="i">expected</span>)        
         <span class="c">//replace assert invocation above with invocation to your favorite unit testing framework </span>
         <span class="c">//fro example Xunit.NET: Assert.Equal&lt;_ list&gt;(expected, actual)</span>
 
     <span class="c">//unit test</span>
-    <span class="k">let</span> <span class="i">``best sales rep in Canada``</span>() <span class="o">=</span> 
-        <span class="k">let</span> <span class="i">expected</span> <span class="o">=</span> <span class="i">Some</span>( <span class="i">GetSalesChampion</span><span class="o">.</span><span class="i">Record</span>(<span class="s">&quot;</span><span class="s">Jos&#233;</span><span class="s">&quot;</span>, <span class="s">&quot;</span><span class="s">Saraiva</span><span class="s">&quot;</span>))
-        <span class="k">assert</span> (<span class="i">bestSalesRepInCanada</span> <span class="i">mockRepository</span> <span class="o">=</span> <span class="i">expected</span>)        </pre>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs34', 70)" onmouseover="showTip(event, 'fs34', 70)" class="i">``best sales rep in Canada``</span>() <span class="o">=</span> 
+        <span class="k">let</span> <span onmouseout="hideTip(event, 'fs35', 71)" onmouseover="showTip(event, 'fs35', 71)" class="i">expected</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs36', 72)" onmouseover="showTip(event, 'fs36', 72)" class="i">Some</span>( <span onmouseout="hideTip(event, 'fs3', 73)" onmouseover="showTip(event, 'fs3', 73)" class="i">GetSalesChampion</span><span class="o">.</span><span class="i">Record</span>(<span class="s">&quot;</span><span class="s">Jos&#233;</span><span class="s">&quot;</span>, <span class="s">&quot;</span><span class="s">Saraiva</span><span class="s">&quot;</span>))
+        <span class="k">assert</span> (<span onmouseout="hideTip(event, 'fs27', 74)" onmouseover="showTip(event, 'fs27', 74)" class="i">bestSalesRepInCanada</span> <span onmouseout="hideTip(event, 'fs30', 75)" onmouseover="showTip(event, 'fs30', 75)" class="i">mockRepository</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs35', 76)" onmouseover="showTip(event, 'fs35', 76)" class="i">expected</span>)        </pre>
 </td>
 </tr>
 </table>
 
+<div class="tip" id="fs1">type GetEmployeesByLevel = obj<br /><br />Full name: Unit-testing.GetEmployeesByLevel</div>
+<div class="tip" id="fs2">val connectionString : string<br /><br />Full name: Unit-testing.connectionString</div>
+<div class="tip" id="fs3">type GetSalesChampion = obj<br /><br />Full name: Unit-testing.GetSalesChampion</div>
+<div class="tip" id="fs4">type IRepository =<br />&#160;&#160;interface<br />&#160;&#160;&#160;&#160;abstract member GetEmployeesByLevel : int16 -&gt; &#39;a0<br />&#160;&#160;&#160;&#160;abstract member GetSalesChampion : country:string -&gt; &#39;a0<br />&#160;&#160;end<br /><br />Full name: Unit-testing.IRepository</div>
+<div class="tip" id="fs5">Multiple items<br />abstract member IRepository.GetEmployeesByLevel : int16 -&gt; &#39;a0<br /><br />Full name: Unit-testing.IRepository.GetEmployeesByLevel<br /><br />--------------------<br />type GetEmployeesByLevel = obj<br /><br />Full name: Unit-testing.GetEmployeesByLevel</div>
+<div class="tip" id="fs6">Multiple items<br />val int16 : value:&#39;T -&gt; int16 (requires member op_Explicit)<br /><br />Full name: Microsoft.FSharp.Core.Operators.int16<br /><br />--------------------<br />type int16 = Int16<br /><br />Full name: Microsoft.FSharp.Core.int16<br /><br />--------------------<br />type int16&lt;&#39;Measure&gt; = int16<br /><br />Full name: Microsoft.FSharp.Core.int16&lt;_&gt;</div>
+<div class="tip" id="fs7">type &#39;T list = List&lt;&#39;T&gt;<br /><br />Full name: Microsoft.FSharp.Collections.list&lt;_&gt;</div>
+<div class="tip" id="fs8">Multiple items<br />abstract member IRepository.GetSalesChampion : country:string -&gt; &#39;a0<br /><br />Full name: Unit-testing.IRepository.GetSalesChampion<br /><br />--------------------<br />type GetSalesChampion = obj<br /><br />Full name: Unit-testing.GetSalesChampion</div>
+<div class="tip" id="fs9">Multiple items<br />val string : value:&#39;T -&gt; string<br /><br />Full name: Microsoft.FSharp.Core.Operators.string<br /><br />--------------------<br />type string = String<br /><br />Full name: Microsoft.FSharp.Core.string</div>
+<div class="tip" id="fs10">type &#39;T option = Option&lt;&#39;T&gt;<br /><br />Full name: Microsoft.FSharp.Core.option&lt;_&gt;</div>
+<div class="tip" id="fs11">Multiple items<br />type Repository =<br />&#160;&#160;interface IRepository<br />&#160;&#160;new : connectionString:string -&gt; Repository<br /><br />Full name: Unit-testing.Repository<br /><br />--------------------<br />new : connectionString:string -&gt; Repository</div>
+<div class="tip" id="fs12">val connectionString : string</div>
+<div class="tip" id="fs13">Multiple items<br />override Repository.GetEmployeesByLevel : orgLevel:int16 -&gt; &#39;b<br /><br />Full name: Unit-testing.Repository.GetEmployeesByLevel<br /><br />--------------------<br />type GetEmployeesByLevel = obj<br /><br />Full name: Unit-testing.GetEmployeesByLevel</div>
+<div class="tip" id="fs14">val orgLevel : int16</div>
+<div class="tip" id="fs15">val cmd : GetEmployeesByLevel</div>
+<div class="tip" id="fs16">module Seq<br /><br />from Microsoft.FSharp.Collections</div>
+<div class="tip" id="fs17">val toList : source:seq&lt;&#39;T&gt; -&gt; &#39;T list<br /><br />Full name: Microsoft.FSharp.Collections.Seq.toList</div>
+<div class="tip" id="fs18">val __ : Repository</div>
+<div class="tip" id="fs19">Multiple items<br />override Repository.GetSalesChampion : region:string -&gt; &#39;a<br /><br />Full name: Unit-testing.Repository.GetSalesChampion<br /><br />--------------------<br />type GetSalesChampion = obj<br /><br />Full name: Unit-testing.GetSalesChampion</div>
+<div class="tip" id="fs20">val region : string</div>
+<div class="tip" id="fs21">val cmd : GetSalesChampion</div>
+<div class="tip" id="fs22">val whoReportsToCEO : db:IRepository -&gt; (string * &#39;a) list<br /><br />Full name: Unit-testing.whoReportsToCEO</div>
+<div class="tip" id="fs23">val db : IRepository</div>
+<div class="tip" id="fs24">val x : obj</div>
+<div class="tip" id="fs25">abstract member IRepository.GetEmployeesByLevel : int16 -&gt; &#39;a0</div>
+<div class="tip" id="fs26">val sprintf : format:Printf.StringFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.ExtraTopLevelOperators.sprintf</div>
+<div class="tip" id="fs27">val bestSalesRepInCanada : db:IRepository -&gt; &#39;a<br /><br />Full name: Unit-testing.bestSalesRepInCanada</div>
+<div class="tip" id="fs28">abstract member IRepository.GetSalesChampion : country:string -&gt; &#39;a0</div>
+<div class="tip" id="fs29">module MyTests<br /><br />from Unit-testing</div>
+<div class="tip" id="fs30">val mockRepository : IRepository<br /><br />Full name: Unit-testing.MyTests.mockRepository</div>
+<div class="tip" id="fs31">val __ : IRepository</div>
+<div class="tip" id="fs32">val ( who reports to CEO ) : unit -&gt; unit<br /><br />Full name: Unit-testing.MyTests.( who reports to CEO )</div>
+<div class="tip" id="fs33">val expected : (string * string) list</div>
+<div class="tip" id="fs34">val ( best sales rep in Canada ) : unit -&gt; unit<br /><br />Full name: Unit-testing.MyTests.( best sales rep in Canada )</div>
+<div class="tip" id="fs35">val expected : obj option</div>
+<div class="tip" id="fs36">union case Option.Some: Value: &#39;T -&gt; Option&lt;&#39;T&gt;</div>
 
             </div>
 

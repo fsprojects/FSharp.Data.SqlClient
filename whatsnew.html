@@ -53,14 +53,14 @@ to support inline T-SQL.</p>
 </td>
 <td class="snippet"><pre class="fssnip">
 <span class="k">do</span>
-    <span class="k">use</span> <span class="i">cmd</span> <span class="o">=</span> 
-        <span class="i">DB</span><span class="o">.</span><span class="i">CreateCommand</span><span class="o">&lt;</span><span class="s">&quot;</span>
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">cmd</span> <span class="o">=</span> 
+        <span onmouseout="hideTip(event, 'fs2', 2)" onmouseover="showTip(event, 'fs2', 2)" class="i">DB</span><span class="o">.</span><span class="i">CreateCommand</span><span class="o">&lt;</span><span class="s">&quot;</span>
 <span class="s">            </span><span class="s">SELECT</span><span class="s"> </span><span class="s">TOP</span><span class="s">(</span><span class="s">@</span><span class="s">topN</span><span class="s">)</span><span class="s"> </span><span class="s">FirstName</span><span class="s">,</span><span class="s"> </span><span class="s">LastName</span><span class="s">,</span><span class="s"> </span><span class="s">SalesYTD</span><span class="s"> </span>
 <span class="s">            </span><span class="s">FROM</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">vSalesPerson</span>
 <span class="s">            </span><span class="s">WHERE</span><span class="s"> </span><span class="s">CountryRegionName</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">@</span><span class="s">regionName</span><span class="s"> </span><span class="s">AND</span><span class="s"> </span><span class="s">SalesYTD</span><span class="s"> </span><span class="s">&gt;</span><span class="s"> </span><span class="s">@</span><span class="s">salesMoreThan</span><span class="s"> </span>
 <span class="s">            </span><span class="s">ORDER</span><span class="s"> </span><span class="s">BY</span><span class="s"> </span><span class="s">SalesYTD</span>
-<span class="s">        </span><span class="s">&quot;</span><span class="o">&gt;</span>(<span class="i">connectionString</span>)
-    <span class="i">cmd</span><span class="o">.</span><span class="i">Execute</span>(<span class="i">topN</span> <span class="o">=</span> <span class="n">3L</span>, <span class="i">regionName</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">United</span><span class="s"> </span><span class="s">States</span><span class="s">&quot;</span>, <span class="i">salesMoreThan</span> <span class="o">=</span> <span class="n">1000000M</span>) <span class="o">|&gt;</span> <span class="i">printfn</span> <span class="s">&quot;</span><span class="s">%</span><span class="s">A</span><span class="s">&quot;</span></pre>
+<span class="s">        </span><span class="s">&quot;</span><span class="o">&gt;</span>(<span onmouseout="hideTip(event, 'fs3', 3)" onmouseover="showTip(event, 'fs3', 3)" class="i">connectionString</span>)
+    <span onmouseout="hideTip(event, 'fs1', 4)" onmouseover="showTip(event, 'fs1', 4)" class="i">cmd</span><span class="o">.</span><span class="i">Execute</span>(<span class="i">topN</span> <span class="o">=</span> <span class="n">3L</span>, <span class="i">regionName</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">United</span><span class="s"> </span><span class="s">States</span><span class="s">&quot;</span>, <span class="i">salesMoreThan</span> <span class="o">=</span> <span class="n">1000000M</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs4', 5)" onmouseover="showTip(event, 'fs4', 5)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">%</span><span class="s">A</span><span class="s">&quot;</span></pre>
 </td>
 </tr>
 </table>
@@ -96,17 +96,17 @@ Any of these parameters can be ommited.</p>
 <span class="prep">#r</span> <span class="s">&quot;</span><span class="s">System</span><span class="s">.</span><span class="s">Transactions</span><span class="s">&quot;</span>
 
 <span class="k">do</span>
-    <span class="k">use</span> <span class="i">conn</span> <span class="o">=</span> <span class="k">new</span> <span class="i">System</span><span class="o">.</span><span class="i">Data</span><span class="o">.</span><span class="i">SqlClient</span><span class="o">.</span><span class="i">SqlConnection</span>( <span class="i">connectionString</span>)
-    <span class="i">conn</span><span class="o">.</span><span class="i">Open</span>()
-    <span class="k">use</span> <span class="i">tran</span> <span class="o">=</span> <span class="i">conn</span><span class="o">.</span><span class="i">BeginTransaction</span>()
-    <span class="k">use</span> <span class="i">cmd</span> <span class="o">=</span> 
-        <span class="i">DB</span><span class="o">.</span><span class="i">CreateCommand</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">INSERT</span><span class="s"> </span><span class="s">INTO</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">Currency</span><span class="s"> </span><span class="s">VALUES</span><span class="s">(</span><span class="s">@</span><span class="s">Code</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">Name</span><span class="s">,</span><span class="s"> </span><span class="s">GETDATE</span><span class="s">(</span><span class="s">)</span><span class="s">)</span><span class="s">&quot;</span><span class="o">&gt;</span>(
-            <span class="i">connection</span> <span class="o">=</span> <span class="i">conn</span>, 
-            <span class="i">transaction</span> <span class="o">=</span> <span class="i">tran</span>, 
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs5', 6)" onmouseover="showTip(event, 'fs5', 6)" class="i">conn</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs6', 7)" onmouseover="showTip(event, 'fs6', 7)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs7', 8)" onmouseover="showTip(event, 'fs7', 8)" class="i">Data</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs8', 9)" onmouseover="showTip(event, 'fs8', 9)" class="i">SqlClient</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 10)" onmouseover="showTip(event, 'fs9', 10)" class="i">SqlConnection</span>( <span onmouseout="hideTip(event, 'fs3', 11)" onmouseover="showTip(event, 'fs3', 11)" class="i">connectionString</span>)
+    <span onmouseout="hideTip(event, 'fs5', 12)" onmouseover="showTip(event, 'fs5', 12)" class="i">conn</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs10', 13)" onmouseover="showTip(event, 'fs10', 13)" class="i">Open</span>()
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs11', 14)" onmouseover="showTip(event, 'fs11', 14)" class="i">tran</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs5', 15)" onmouseover="showTip(event, 'fs5', 15)" class="i">conn</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs12', 16)" onmouseover="showTip(event, 'fs12', 16)" class="i">BeginTransaction</span>()
+    <span class="k">use</span> <span onmouseout="hideTip(event, 'fs1', 17)" onmouseover="showTip(event, 'fs1', 17)" class="i">cmd</span> <span class="o">=</span> 
+        <span onmouseout="hideTip(event, 'fs2', 18)" onmouseover="showTip(event, 'fs2', 18)" class="i">DB</span><span class="o">.</span><span class="i">CreateCommand</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">INSERT</span><span class="s"> </span><span class="s">INTO</span><span class="s"> </span><span class="s">Sales</span><span class="s">.</span><span class="s">Currency</span><span class="s"> </span><span class="s">VALUES</span><span class="s">(</span><span class="s">@</span><span class="s">Code</span><span class="s">,</span><span class="s"> </span><span class="s">@</span><span class="s">Name</span><span class="s">,</span><span class="s"> </span><span class="s">GETDATE</span><span class="s">(</span><span class="s">)</span><span class="s">)</span><span class="s">&quot;</span><span class="o">&gt;</span>(
+            <span class="i">connection</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs5', 19)" onmouseover="showTip(event, 'fs5', 19)" class="i">conn</span>, 
+            <span class="i">transaction</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs11', 20)" onmouseover="showTip(event, 'fs11', 20)" class="i">tran</span>, 
             <span class="i">commandTimeout</span> <span class="o">=</span> <span class="n">120</span>
         )
 
-    <span class="i">cmd</span><span class="o">.</span><span class="i">Execute</span>( <span class="i">Code</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">BTC</span><span class="s">&quot;</span>, <span class="i">Name</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">Bitcoin</span><span class="s">&quot;</span>) <span class="o">|&gt;</span> <span class="i">printfn</span> <span class="s">&quot;</span><span class="s">Records</span><span class="s"> </span><span class="s">affected</span><span class="s"> </span><span class="s">%</span><span class="s">i</span><span class="s">&quot;</span>
+    <span onmouseout="hideTip(event, 'fs1', 21)" onmouseover="showTip(event, 'fs1', 21)" class="i">cmd</span><span class="o">.</span><span class="i">Execute</span>( <span class="i">Code</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">BTC</span><span class="s">&quot;</span>, <span class="i">Name</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">Bitcoin</span><span class="s">&quot;</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs4', 22)" onmouseover="showTip(event, 'fs4', 22)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Records</span><span class="s"> </span><span class="s">affected</span><span class="s"> </span><span class="s">%</span><span class="s">i</span><span class="s">&quot;</span>
     <span class="c">//Rollback by default. Uncomment a line below to commit the change.</span>
     <span class="c">//tran.Commit()</span></pre>
 </td>
@@ -129,13 +129,13 @@ Compare it with usage of <code>SqlCommandProvider</code> where generated command
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">let</span> <span class="i">cmd1</span> <span class="o">=</span> <span class="i">DB</span><span class="o">.</span><span class="i">CreateCommand</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">name</span><span class="s">,</span><span class="s"> </span><span class="s">create_date</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">sys</span><span class="s">.</span><span class="s">databases</span><span class="s">&quot;</span><span class="o">&gt;</span>(<span class="i">connectionString</span>)
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs13', 23)" onmouseover="showTip(event, 'fs13', 23)" class="i">cmd1</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs2', 24)" onmouseover="showTip(event, 'fs2', 24)" class="i">DB</span><span class="o">.</span><span class="i">CreateCommand</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">name</span><span class="s">,</span><span class="s"> </span><span class="s">create_date</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">sys</span><span class="s">.</span><span class="s">databases</span><span class="s">&quot;</span><span class="o">&gt;</span>(<span onmouseout="hideTip(event, 'fs3', 25)" onmouseover="showTip(event, 'fs3', 25)" class="i">connectionString</span>)
 <span class="c">// vs</span>
-<span class="k">type</span> <span class="i">Get42</span> <span class="o">=</span> <span class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">name</span><span class="s">,</span><span class="s"> </span><span class="s">create_date</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">sys</span><span class="s">.</span><span class="s">databases</span><span class="s">&quot;</span>, <span class="i">connectionString</span><span class="o">&gt;</span>
-<span class="k">let</span> <span class="i">cmd2</span> <span class="o">=</span> <span class="k">new</span> <span class="i">Get42</span>(<span class="i">connectionString</span>)
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs14', 26)" onmouseover="showTip(event, 'fs14', 26)" class="i">Get42</span> <span class="o">=</span> <span class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">name</span><span class="s">,</span><span class="s"> </span><span class="s">create_date</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">sys</span><span class="s">.</span><span class="s">databases</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 27)" onmouseover="showTip(event, 'fs3', 27)" class="i">connectionString</span><span class="o">&gt;</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs15', 28)" onmouseover="showTip(event, 'fs15', 28)" class="i">cmd2</span> <span class="o">=</span> <span class="k">new</span> <span onmouseout="hideTip(event, 'fs14', 29)" onmouseover="showTip(event, 'fs14', 29)" class="i">Get42</span>(<span onmouseout="hideTip(event, 'fs3', 30)" onmouseover="showTip(event, 'fs3', 30)" class="i">connectionString</span>)
 
 <span class="c">//access to Record type</span>
-<span class="k">type</span> <span class="i">Cmd2Record</span> <span class="o">=</span> <span class="i">Get42</span><span class="o">.</span><span class="i">Record</span></pre>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs16', 31)" onmouseover="showTip(event, 'fs16', 31)" class="i">Cmd2Record</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs14', 32)" onmouseover="showTip(event, 'fs14', 32)" class="i">Get42</span><span class="o">.</span><span class="i">Record</span></pre>
 </td>
 </tr>
 </table>
@@ -154,10 +154,10 @@ A type located under Commands nested type.</p>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">type</span> <span class="i">Cmd1Command</span> <span class="o">=</span> 
-    <span class="i">DB</span><span class="o">.</span><span class="i">Commands</span><span class="o">.</span><span class="i">``CreateCommand,CommandText&quot;SELECT name, create_date FROM sys.databases&quot;``</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs17', 33)" onmouseover="showTip(event, 'fs17', 33)" class="i">Cmd1Command</span> <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs2', 34)" onmouseover="showTip(event, 'fs2', 34)" class="i">DB</span><span class="o">.</span><span class="i">Commands</span><span class="o">.</span><span class="i">``CreateCommand,CommandText&quot;SELECT name, create_date FROM sys.databases&quot;``</span>
 
-<span class="k">type</span> <span class="i">Cmd1Record</span> <span class="o">=</span> <span class="i">Cmd1Command</span><span class="o">.</span><span class="i">Record</span></pre>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs18', 35)" onmouseover="showTip(event, 'fs18', 35)" class="i">Cmd1Record</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs17', 36)" onmouseover="showTip(event, 'fs17', 36)" class="i">Cmd1Command</span><span class="o">.</span><span class="i">Record</span></pre>
 </td>
 </tr>
 </table>
@@ -174,8 +174,8 @@ but auto-competition still chokes on multi-line definitions.</p>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="k">let</span> <span class="i">cmd3</span> <span class="o">=</span> <span class="i">DB</span><span class="o">.</span><span class="i">CreateCommand</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">name</span><span class="s">,</span><span class="s"> </span><span class="s">create_date</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">sys</span><span class="s">.</span><span class="s">databases</span><span class="s">&quot;</span>, <span class="i">TypeName</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">Get42</span><span class="s">&quot;</span><span class="o">&gt;</span>(<span class="i">connectionString</span>)
-<span class="k">type</span> <span class="i">Cmd3Record</span> <span class="o">=</span> <span class="i">DB</span><span class="o">.</span><span class="i">Commands</span><span class="o">.</span><span class="i">Get42</span><span class="o">.</span><span class="i">Record</span></pre>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs19', 37)" onmouseover="showTip(event, 'fs19', 37)" class="i">cmd3</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs2', 38)" onmouseover="showTip(event, 'fs2', 38)" class="i">DB</span><span class="o">.</span><span class="i">CreateCommand</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">name</span><span class="s">,</span><span class="s"> </span><span class="s">create_date</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">sys</span><span class="s">.</span><span class="s">databases</span><span class="s">&quot;</span>, <span class="i">TypeName</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">Get42</span><span class="s">&quot;</span><span class="o">&gt;</span>(<span onmouseout="hideTip(event, 'fs3', 39)" onmouseover="showTip(event, 'fs3', 39)" class="i">connectionString</span>)
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs20', 40)" onmouseover="showTip(event, 'fs20', 40)" class="i">Cmd3Record</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs2', 41)" onmouseover="showTip(event, 'fs2', 41)" class="i">DB</span><span class="o">.</span><span class="i">Commands</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs14', 42)" onmouseover="showTip(event, 'fs14', 42)" class="i">Get42</span><span class="o">.</span><span class="i">Record</span></pre>
 </td>
 </tr>
 </table>
@@ -194,6 +194,26 @@ or <a href="https://twitter.com/dsyme">Don Syme</a>.</p>
 
 </p></div>
 
+<div class="tip" id="fs1">val cmd : System.IDisposable</div>
+<div class="tip" id="fs2">type DB = obj<br /><br />Full name: Whatsnew.DB</div>
+<div class="tip" id="fs3">val connectionString : string<br /><br />Full name: Whatsnew.connectionString</div>
+<div class="tip" id="fs4">val printfn : format:Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.ExtraTopLevelOperators.printfn</div>
+<div class="tip" id="fs5">val conn : System.Data.SqlClient.SqlConnection</div>
+<div class="tip" id="fs6">namespace System</div>
+<div class="tip" id="fs7">namespace System.Data</div>
+<div class="tip" id="fs8">namespace System.Data.SqlClient</div>
+<div class="tip" id="fs9">Multiple items<br />type SqlConnection =<br />&#160;&#160;inherit DbConnection<br />&#160;&#160;new : unit -&gt; SqlConnection + 1 overload<br />&#160;&#160;member BeginTransaction : unit -&gt; SqlTransaction + 3 overloads<br />&#160;&#160;member ChangeDatabase : database:string -&gt; unit<br />&#160;&#160;member Close : unit -&gt; unit<br />&#160;&#160;member ConnectionString : string with get, set<br />&#160;&#160;member ConnectionTimeout : int<br />&#160;&#160;member CreateCommand : unit -&gt; SqlCommand<br />&#160;&#160;member DataSource : string<br />&#160;&#160;member Database : string<br />&#160;&#160;member EnlistDistributedTransaction : transaction:ITransaction -&gt; unit<br />&#160;&#160;...<br /><br />Full name: System.Data.SqlClient.SqlConnection<br /><br />--------------------<br />System.Data.SqlClient.SqlConnection() : unit<br />System.Data.SqlClient.SqlConnection(connectionString: string) : unit</div>
+<div class="tip" id="fs10">System.Data.SqlClient.SqlConnection.Open() : unit</div>
+<div class="tip" id="fs11">val tran : System.Data.SqlClient.SqlTransaction</div>
+<div class="tip" id="fs12">System.Data.SqlClient.SqlConnection.BeginTransaction() : System.Data.SqlClient.SqlTransaction<br />System.Data.SqlClient.SqlConnection.BeginTransaction(transactionName: string) : System.Data.SqlClient.SqlTransaction<br />System.Data.SqlClient.SqlConnection.BeginTransaction(iso: System.Data.IsolationLevel) : System.Data.SqlClient.SqlTransaction<br />System.Data.SqlClient.SqlConnection.BeginTransaction(iso: System.Data.IsolationLevel, transactionName: string) : System.Data.SqlClient.SqlTransaction</div>
+<div class="tip" id="fs13">val cmd1 : obj<br /><br />Full name: Whatsnew.cmd1</div>
+<div class="tip" id="fs14">type Get42 = obj<br /><br />Full name: Whatsnew.Get42</div>
+<div class="tip" id="fs15">val cmd2 : Get42<br /><br />Full name: Whatsnew.cmd2</div>
+<div class="tip" id="fs16">type Cmd2Record = obj<br /><br />Full name: Whatsnew.Cmd2Record</div>
+<div class="tip" id="fs17">type Cmd1Command = obj<br /><br />Full name: Whatsnew.Cmd1Command</div>
+<div class="tip" id="fs18">type Cmd1Record = obj<br /><br />Full name: Whatsnew.Cmd1Record</div>
+<div class="tip" id="fs19">val cmd3 : obj<br /><br />Full name: Whatsnew.cmd3</div>
+<div class="tip" id="fs20">type Cmd3Record = obj<br /><br />Full name: Whatsnew.Cmd3Record</div>
 
             </div>
 
