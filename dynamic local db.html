@@ -36,31 +36,41 @@
                 
 <h1>Dynamic creation of offline MDF</h1>
 
-<p>Sometimes you don't want to have to be online just to compile your programs. With FSharp.Data.SqlClient you can use a local
-.MDF file as the compile time connection string, and then change your connection string at runtime when you deploy your application.</p>
+<p>Sometimes you don't want to have to be online just to compile your programs, or
+you might not have access to your production database from your CI systems. With
+FSharp.Data.SqlClient you can use a local .MDF file as the compile-time
+connection string, and then use a different connection string when you deploy
+your application.</p>
+
+<p>A connection string to a local .MDF file might look like this:</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l">1: </span>
 <span class="l">2: </span>
 <span class="l">3: </span>
 <span class="l">4: </span>
+<span class="l">5: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
 <span class="k">open</span> <span class="i">FSharp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">Data</span>
 
 [&lt;<span onmouseout="hideTip(event, 'fs2', 2)" onmouseover="showTip(event, 'fs2', 2)" class="i">Literal</span>&gt;]
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs3', 3)" onmouseover="showTip(event, 'fs3', 3)" class="i">connectionString</span> <span class="o">=</span> <span class="s">@&quot;</span><span class="s">Data</span><span class="s"> </span><span class="s">Source</span><span class="s">=</span><span class="s">(</span><span class="s">LocalDB</span><span class="s">)</span><span class="s">\</span><span class="s">v12</span><span class="s">.</span><span class="s">0</span><span class="s">;</span><span class="s">AttachDbFilename</span><span class="s">=</span><span class="s">C</span><span class="s">:</span><span class="s">\</span><span class="s">git</span><span class="s">\</span><span class="s">Project1</span><span class="s">\</span><span class="s">Database1</span><span class="s">.</span><span class="s">mdf</span><span class="s">;</span><span class="s">Integrated</span><span class="s"> </span><span class="s">Security</span><span class="s">=</span><span class="s">True</span><span class="s">;</span><span class="s">Connect</span><span class="s"> </span><span class="s">Timeout</span><span class="s">=</span><span class="s">10</span><span class="s">&quot;</span></pre>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs3', 3)" onmouseover="showTip(event, 'fs3', 3)" class="i">compileConnectionString</span> <span class="o">=</span>
+    <span class="s">@&quot;</span><span class="s">Data</span><span class="s"> </span><span class="s">Source</span><span class="s">=</span><span class="s">(</span><span class="s">LocalDB</span><span class="s">)</span><span class="s">\</span><span class="s">MSSQLLocalDB</span><span class="s">;</span><span class="s">AttachDbFilename</span><span class="s">=</span><span class="s">C</span><span class="s">:</span><span class="s">\</span><span class="s">git</span><span class="s">\</span><span class="s">Project1</span><span class="s">\</span><span class="s">Database1</span><span class="s">.</span><span class="s">mdf</span><span class="s">;</span><span class="s">Integrated</span><span class="s"> </span><span class="s">Security</span><span class="s">=</span><span class="s">True</span><span class="s">&quot;</span></pre>
 </td>
 </tr>
 </table>
 
-<p>However, binary files like this are difficult to diff/merge when working with multiple developers. For this reason wouldn't it be nice
-to store your schema in a plain text file, and have it dynamically create the MDF file for compile time?</p>
+<p>However, binary files like this are difficult to diff/merge when working with
+multiple developers, so you might not want to check them in. Wouldn't it be nice
+to store your schema in a plain text file, and have it dynamically create the
+MDF file for compile time?</p>
 
 <p>Well the following scripts can do that for your project.</p>
 
-<p>First create a file called <code>createdb.ps1</code>:</p>
+<p>First create a file called <code>createDb.ps1</code> and place it in an <code>SQL</code> subfolder in
+your project (you can place it in the project root to, if you want):</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
 <span class="l"> 1: </span>
@@ -101,61 +111,47 @@ to store your schema in a plain text file, and have it dynamically create the MD
 <span class="l">36: </span>
 <span class="l">37: </span>
 <span class="l">38: </span>
-<span class="l">39: </span>
-<span class="l">40: </span>
-<span class="l">41: </span>
-<span class="l">42: </span>
-<span class="l">43: </span>
-<span class="l">44: </span>
-<span class="l">45: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-#<span class="i">this</span> <span class="i">is</span> <span class="i">the</span> <span class="i">name</span> <span class="i">that</span> <span class="i">Fsharp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs1', 4)" onmouseover="showTip(event, 'fs1', 4)" class="i">Data</span><span class="o">.</span><span class="i">SqlClient</span> <span class="i">TypeProvider</span> <span class="i">expects</span> <span class="i">it</span> <span class="k">to</span> <span class="i">be</span> <span class="i">at</span> <span class="i">build</span> <span class="i">time</span>
-<span class="o">$</span><span class="i">new_db_name</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">Database1</span><span class="s">&quot;</span> 
+<span class="i">param</span>(
+  [<span class="i">Parameter</span>(<span class="i">Mandatory</span><span class="o">=$</span><span class="k">true</span>)][<span onmouseout="hideTip(event, 'fs4', 4)" onmouseover="showTip(event, 'fs4', 4)" class="i">String</span>]<span class="o">$</span><span class="i">DbName</span>,
+  [<span class="i">Parameter</span>(<span class="i">Mandatory</span><span class="o">=$</span><span class="k">true</span>)][<span onmouseout="hideTip(event, 'fs4', 5)" onmouseover="showTip(event, 'fs4', 5)" class="i">String</span>]<span class="o">$</span><span class="i">DbScript</span>
+)
 
 <span class="o">$</span><span class="i">detach_db_sql</span> <span class="o">=</span> <span class="s">@&quot;</span>
-<span class="s">use</span><span class="s"> </span><span class="s">master</span><span class="s">;</span>
-<span class="s">GO</span>
-<span class="s">EXEC</span><span class="s"> </span><span class="s">sp_detach_db</span><span class="s"> </span><span class="s">@</span><span class="s">dbname</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">N&#39;</span><span class="s">$</span><span class="s">new_db_name&#39;</span><span class="s">;</span>
-<span class="s">GO</span>
+<span class="s">IF</span><span class="s"> </span><span class="s">(</span><span class="s">SELECT</span><span class="s"> </span><span class="s">COUNT</span><span class="s">(</span><span class="s">*</span><span class="s">)</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">sys</span><span class="s">.</span><span class="s">databases</span><span class="s"> </span><span class="s">WHERE</span><span class="s"> </span><span class="s">name</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">&#39;</span><span class="s">$</span><span class="s">DbName&#39;</span><span class="s">)</span><span class="s"> </span><span class="s">&gt;</span><span class="s"> </span><span class="s">0</span>
+<span class="s">  </span><span class="s">EXEC</span><span class="s"> </span><span class="s">sp_detach_db</span><span class="s"> </span><span class="s">@</span><span class="s">dbname</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">N&#39;</span><span class="s">$</span><span class="s">DbName&#39;</span>
 <span class="s">&quot;</span><span class="o">@</span>
 
 <span class="o">$</span><span class="i">detach_db_sql</span> | <span class="i">Out</span><span class="o">-</span><span class="i">File</span> <span class="s">&quot;</span><span class="s">detachdb</span><span class="s">.</span><span class="s">sql</span><span class="s">&quot;</span>
-<span class="i">sqlcmd</span> <span class="o">-</span><span class="i">S</span> <span class="s">&quot;</span><span class="s">(</span><span class="s">localdb</span><span class="s">)</span><span class="s">\v</span><span class="s">11</span><span class="s">.</span><span class="s">0</span><span class="s">&quot;</span> <span class="o">-</span><span class="i">i</span> <span class="i">detachdb</span><span class="o">.</span><span class="i">sql</span>
-<span class="i">Remove</span><span class="o">-</span><span class="i">Item</span> <span class="o">.</span>
+<span class="i">sqlcmd</span> <span class="o">-</span><span class="i">S</span> <span class="s">&quot;</span><span class="s">(</span><span class="s">LocalDB</span><span class="s">)</span><span class="s">\</span><span class="s">MSSQLLocalDB</span><span class="s">&quot;</span> <span class="o">-</span><span class="i">i</span> <span class="s">&quot;</span><span class="s">detachdb</span><span class="s">.</span><span class="s">sql</span><span class="s">&quot;</span>
+<span class="i">Remove</span><span class="o">-</span><span class="i">Item</span> <span class="s">&quot;</span><span class="s">detachdb</span><span class="s">.</span><span class="s">sql</span><span class="s">&quot;</span>
 
-<span class="i">Remove</span><span class="o">-</span><span class="i">Item</span> <span class="s">&quot;</span><span class="s">$</span><span class="s">new_db_name</span><span class="s">.</span><span class="s">mdf</span><span class="s">&quot;</span>
-<span class="i">Remove</span><span class="o">-</span><span class="i">Item</span> <span class="s">&quot;</span><span class="s">$</span><span class="s">new_db_name</span><span class="s">.</span><span class="s">ldf</span><span class="s">&quot;</span>
+<span class="k">if</span> (<span class="i">Test</span><span class="o">-</span><span class="i">Path</span> <span class="s">&quot;</span><span class="s">$</span><span class="s">PSScriptRoot</span><span class="s">\</span><span class="s">$</span><span class="s">DbName</span><span class="s">.</span><span class="s">mdf</span><span class="s">&quot;</span>) { <span class="i">Remove</span><span class="o">-</span><span class="i">Item</span> <span class="s">&quot;</span><span class="s">$</span><span class="s">PSScriptRoot</span><span class="s">\</span><span class="s">$</span><span class="s">DbName</span><span class="s">.</span><span class="s">mdf</span><span class="s">&quot;</span> }
+<span class="k">if</span> (<span class="i">Test</span><span class="o">-</span><span class="i">Path</span> <span class="s">&quot;</span><span class="s">$</span><span class="s">PSScriptRoot</span><span class="s">\</span><span class="s">$</span><span class="s">DbName</span><span class="s">.</span><span class="s">ldf</span><span class="s">&quot;</span>) { <span class="i">Remove</span><span class="o">-</span><span class="i">Item</span> <span class="s">&quot;</span><span class="s">$</span><span class="s">PSScriptRoot</span><span class="s">\</span><span class="s">$</span><span class="s">DbName</span><span class="s">.</span><span class="s">ldf</span><span class="s">&quot;</span> }
 
 <span class="o">$</span><span class="i">create_db_sql</span> <span class="o">=</span> <span class="s">@&quot;</span>
-<span class="s">    </span><span class="s">USE</span><span class="s"> </span><span class="s">master</span><span class="s"> </span><span class="s">;</span>
-<span class="s">    </span><span class="s">GO</span>
-<span class="s">    </span><span class="s">CREATE</span><span class="s"> </span><span class="s">DATABASE</span><span class="s"> </span><span class="s">$</span><span class="s">new_db_name</span>
-<span class="s">    </span><span class="s">ON</span><span class="s"> </span>
-<span class="s">    </span><span class="s">(</span><span class="s"> </span><span class="s">NAME</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">Sales_dat</span><span class="s">,</span>
-<span class="s">        </span><span class="s">FILENAME</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">&#39;</span><span class="s">$</span><span class="s">PSScriptRoot</span><span class="s">\</span><span class="s">$</span><span class="s">new_db_name</span><span class="s">.</span><span class="s">mdf&#39;</span><span class="s">,</span>
-<span class="s">        </span><span class="s">SIZE</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">10</span><span class="s">,</span>
-<span class="s">        </span><span class="s">MAXSIZE</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">50</span><span class="s">,</span>
-<span class="s">        </span><span class="s">FILEGROWTH</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">5</span><span class="s"> </span><span class="s">)</span>
-<span class="s">    </span><span class="s">LOG</span><span class="s"> </span><span class="s">ON</span>
-<span class="s">    </span><span class="s">(</span><span class="s"> </span><span class="s">NAME</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">Sales_log</span><span class="s">,</span>
-<span class="s">        </span><span class="s">FILENAME</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">&#39;</span><span class="s">$</span><span class="s">PSScriptRoot</span><span class="s">\</span><span class="s">$</span><span class="s">new_db_name</span><span class="s">.</span><span class="s">ldf&#39;</span><span class="s">,</span>
-<span class="s">        </span><span class="s">SIZE</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">5</span><span class="s">MB</span><span class="s">,</span>
-<span class="s">        </span><span class="s">MAXSIZE</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">25</span><span class="s">MB</span><span class="s">,</span>
-<span class="s">        </span><span class="s">FILEGROWTH</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">5</span><span class="s">MB</span><span class="s"> </span><span class="s">)</span><span class="s"> </span><span class="s">;</span>
-<span class="s">    </span><span class="s">GO</span>
+<span class="s">CREATE</span><span class="s"> </span><span class="s">DATABASE</span><span class="s"> </span><span class="s">$</span><span class="s">DbName</span>
+<span class="s">ON</span><span class="s"> </span><span class="s">(</span>
+<span class="s">  </span><span class="s">NAME</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">$</span><span class="s">{</span><span class="s">DbName</span><span class="s">}</span><span class="s">_dat</span><span class="s">,</span>
+<span class="s">  </span><span class="s">FILENAME</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">&#39;</span><span class="s">$</span><span class="s">PSScriptRoot</span><span class="s">\</span><span class="s">$</span><span class="s">DbName</span><span class="s">.</span><span class="s">mdf&#39;</span>
+<span class="s">)</span>
+<span class="s">LOG</span><span class="s"> </span><span class="s">ON</span><span class="s"> </span><span class="s">(</span>
+<span class="s">  </span><span class="s">NAME</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">$</span><span class="s">{</span><span class="s">DbName</span><span class="s">}</span><span class="s">_log</span><span class="s">,</span>
+<span class="s">  </span><span class="s">FILENAME</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">&#39;</span><span class="s">$</span><span class="s">PSScriptRoot</span><span class="s">\</span><span class="s">$</span><span class="s">DbName</span><span class="s">.</span><span class="s">ldf&#39;</span>
+<span class="s">)</span>
 <span class="s">&quot;</span><span class="o">@</span>
 
 <span class="o">$</span><span class="i">create_db_sql</span> | <span class="i">Out</span><span class="o">-</span><span class="i">File</span> <span class="s">&quot;</span><span class="s">createdb</span><span class="s">.</span><span class="s">sql</span><span class="s">&quot;</span>
-<span class="i">sqlcmd</span> <span class="o">-</span><span class="i">S</span> <span class="s">&quot;</span><span class="s">(</span><span class="s">localdb</span><span class="s">)</span><span class="s">\v</span><span class="s">11</span><span class="s">.</span><span class="s">0</span><span class="s">&quot;</span> <span class="o">-</span><span class="i">i</span> <span class="i">createdb</span><span class="o">.</span><span class="i">sql</span>
-<span class="i">Remove</span><span class="o">-</span><span class="i">Item</span> <span class="o">.</span>
+<span class="i">sqlcmd</span> <span class="o">-</span><span class="i">S</span> <span class="s">&quot;</span><span class="s">(</span><span class="s">LocalDB</span><span class="s">)</span><span class="s">\</span><span class="s">MSSQLLocalDB</span><span class="s">&quot;</span> <span class="o">-</span><span class="i">i</span> <span class="s">&quot;</span><span class="s">createdb</span><span class="s">.</span><span class="s">sql</span><span class="s">&quot;</span>
+<span class="i">Remove</span><span class="o">-</span><span class="i">Item</span> <span class="s">&quot;</span><span class="s">createdb</span><span class="s">.</span><span class="s">sql</span><span class="s">&quot;</span>
 
-<span class="i">sqlcmd</span> <span class="o">-</span><span class="i">S</span> <span class="s">&quot;</span><span class="s">(</span><span class="s">localdb</span><span class="s">)</span><span class="s">\v</span><span class="s">11</span><span class="s">.</span><span class="s">0</span><span class="s">&quot;</span> <span class="o">-</span><span class="i">i</span> <span class="i">schema</span><span class="o">.</span><span class="i">sql</span>
+<span class="i">sqlcmd</span> <span class="o">-</span><span class="i">S</span> <span class="s">&quot;</span><span class="s">(</span><span class="s">LocalDB</span><span class="s">)</span><span class="s">\</span><span class="s">MSSQLLocalDB</span><span class="s">&quot;</span> <span class="o">-</span><span class="i">i</span> <span class="s">&quot;</span><span class="s">$</span><span class="s">DbScript</span><span class="s">&quot;</span>
 
 <span class="o">$</span><span class="i">detach_db_sql</span> | <span class="i">Out</span><span class="o">-</span><span class="i">File</span> <span class="s">&quot;</span><span class="s">detachdb</span><span class="s">.</span><span class="s">sql</span><span class="s">&quot;</span>
-<span class="i">sqlcmd</span> <span class="o">-</span><span class="i">S</span> <span class="s">&quot;</span><span class="s">(</span><span class="s">localdb</span><span class="s">)</span><span class="s">\v</span><span class="s">11</span><span class="s">.</span><span class="s">0</span><span class="s">&quot;</span> <span class="o">-</span><span class="i">i</span> <span class="i">detachdb</span><span class="o">.</span><span class="i">sql</span>
-<span class="i">Remove</span><span class="o">-</span><span class="i">Item</span> <span class="o">.</span></pre>
+<span class="i">sqlcmd</span> <span class="o">-</span><span class="i">S</span> <span class="s">&quot;</span><span class="s">(</span><span class="s">LocalDB</span><span class="s">)</span><span class="s">\</span><span class="s">MSSQLLocalDB</span><span class="s">&quot;</span> <span class="o">-</span><span class="i">i</span> <span class="s">&quot;</span><span class="s">detachdb</span><span class="s">.</span><span class="s">sql</span><span class="s">&quot;</span>
+<span class="i">Remove</span><span class="o">-</span><span class="i">Item</span> <span class="s">&quot;</span><span class="s">detachdb</span><span class="s">.</span><span class="s">sql</span><span class="s">&quot;</span></pre>
 </td>
 </tr>
 </table>
@@ -169,45 +165,108 @@ to store your schema in a plain text file, and have it dynamically create the MD
 <span class="l">4: </span>
 <span class="l">5: </span>
 <span class="l">6: </span>
+<span class="l">7: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-[&lt;<span onmouseout="hideTip(event, 'fs2', 5)" onmouseover="showTip(event, 'fs2', 5)" class="i">Literal</span>&gt;]
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs4', 6)" onmouseover="showTip(event, 'fs4', 6)" class="i">connectionStringForCompileTime</span> <span class="o">=</span> <span class="s">@&quot;</span><span class="s">Data</span><span class="s"> </span><span class="s">Source</span><span class="s">=</span><span class="s">(</span><span class="s">LocalDB</span><span class="s">)</span><span class="s">\</span><span class="s">v12</span><span class="s">.</span><span class="s">0</span><span class="s">;</span><span class="s">AttachDbFilename</span><span class="s">=</span><span class="s">&quot;</span> <span class="o">+</span> <span class="k">__SOURCE_DIRECTORY__</span> <span class="o">+</span> <span class="s">@&quot;</span><span class="s">\</span><span class="s">Database1</span><span class="s">.</span><span class="s">mdf</span><span class="s">;</span><span class="s">Integrated</span><span class="s"> </span><span class="s">Security</span><span class="s">=</span><span class="s">True</span><span class="s">;</span><span class="s">Connect</span><span class="s"> </span><span class="s">Timeout</span><span class="s">=</span><span class="s">10</span><span class="s">&quot;</span>
+[&lt;<span onmouseout="hideTip(event, 'fs2', 6)" onmouseover="showTip(event, 'fs2', 6)" class="i">Literal</span>&gt;]
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs3', 7)" onmouseover="showTip(event, 'fs3', 7)" class="i">compileConnectionString</span> <span class="o">=</span>
+    <span class="s">@&quot;</span><span class="s">Data</span><span class="s"> </span><span class="s">Source</span><span class="s">=</span><span class="s">(</span><span class="s">LocalDB</span><span class="s">)</span><span class="s">\</span><span class="s">MSSQLLocalDB</span><span class="s">;</span><span class="s">AttachDbFilename</span><span class="s">=</span><span class="s">&quot;</span> <span class="o">+</span> <span class="k">__SOURCE_DIRECTORY__</span> <span class="o">+</span> <span class="s">@&quot;</span><span class="s">\</span><span class="s">Database1</span><span class="s">.</span><span class="s">mdf</span><span class="s">;</span><span class="s">Integrated</span><span class="s"> </span><span class="s">Security</span><span class="s">=</span><span class="s">True</span><span class="s">;</span><span class="s">Connect</span><span class="s"> </span><span class="s">Timeout</span><span class="s">=</span><span class="s">10</span><span class="s">&quot;</span>
 
-<span class="k">type</span> <span onmouseout="hideTip(event, 'fs5', 7)" onmouseover="showTip(event, 'fs5', 7)" class="i">Foo</span> <span class="o">=</span> <span class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">*</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">Foo</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs4', 8)" onmouseover="showTip(event, 'fs4', 8)" class="i">connectionStringForCompileTime</span><span class="o">&gt;</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs5', 8)" onmouseover="showTip(event, 'fs5', 8)" class="i">Foo</span> <span class="o">=</span> <span class="i">SqlCommandProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">SELECT</span><span class="s"> </span><span class="s">*</span><span class="s"> </span><span class="s">FROM</span><span class="s"> </span><span class="s">Foo</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs3', 9)" onmouseover="showTip(event, 'fs3', 9)" class="i">compileConnectionString</span><span class="o">&gt;</span>
 
-<span class="k">let</span> <span onmouseout="hideTip(event, 'fs6', 9)" onmouseover="showTip(event, 'fs6', 9)" class="i">myResults</span> <span class="o">=</span> (<span class="k">new</span> <span onmouseout="hideTip(event, 'fs5', 10)" onmouseover="showTip(event, 'fs5', 10)" class="i">Foo</span>(<span class="s">&quot;</span><span class="s">Use</span><span class="s"> </span><span class="s">your</span><span class="s"> </span><span class="s">Runtime</span><span class="s"> </span><span class="s">connectionString</span><span class="s"> </span><span class="s">here</span><span class="s">&quot;</span>))<span class="o">.</span><span class="i">Execute</span>()</pre>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs6', 10)" onmouseover="showTip(event, 'fs6', 10)" class="i">myResults</span> <span class="o">=</span> (<span class="k">new</span> <span onmouseout="hideTip(event, 'fs5', 11)" onmouseover="showTip(event, 'fs5', 11)" class="i">Foo</span>(<span class="s">&quot;</span><span class="s">Use</span><span class="s"> </span><span class="s">your</span><span class="s"> </span><span class="s">Runtime</span><span class="s"> </span><span class="s">connectionString</span><span class="s"> </span><span class="s">here</span><span class="s">&quot;</span>))<span class="o">.</span><span class="i">Execute</span>()</pre>
 </td>
 </tr>
 </table>
 
-<p>Lastly, edit your <code>.fsproj</code> file and add the following to the very end right before <code>&lt;/Project&gt;</code></p>
+<p>Lastly, edit your <code>.fsproj</code> file and add the following to the very end right
+before <code>&lt;/Project&gt;</code>:</p>
 
 <table class="pre"><tr><td class="lines"><pre class="fssnip">
-<span class="l">1: </span>
-<span class="l">2: </span>
-<span class="l">3: </span>
-<span class="l">4: </span>
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+<span class="l">14: </span>
+<span class="l">15: </span>
+<span class="l">16: </span>
+<span class="l">17: </span>
+<span class="l">18: </span>
+<span class="l">19: </span>
+<span class="l">20: </span>
+<span class="l">21: </span>
 </pre>
 </td>
 <td class="snippet"><pre class="fssnip">
-<span class="o">&lt;</span><span class="i">Target</span> <span class="i">Name</span><span class="o">=</span><span class="s">&quot;</span><span class="s">BeforeBuild</span><span class="s">&quot;</span><span class="o">&gt;</span>
-    <span class="o">&lt;</span><span class="i">Message</span> <span class="i">Text</span><span class="o">=</span><span class="s">&quot;</span><span class="s">Building</span><span class="s"> </span><span class="s">out</span><span class="s"> </span><span class="s">SQL</span><span class="s"> </span><span class="s">Database</span><span class="s">:</span><span class="s"> </span><span class="s">Database1</span><span class="s">.</span><span class="s">mdf</span><span class="s">&quot;</span> <span class="i">Importance</span><span class="o">=</span><span class="s">&quot;</span><span class="s">High</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
-    <span class="o">&lt;</span><span class="i">Exec</span> <span class="i">Command</span><span class="o">=</span><span class="s">&quot;</span><span class="s">PowerShell</span><span class="s"> </span><span class="s">-</span><span class="s">NoProfile</span><span class="s"> </span><span class="s">-</span><span class="s">ExecutionPolicy</span><span class="s"> </span><span class="s">Bypass</span><span class="s"> </span><span class="s">-</span><span class="s">Command</span><span class="s"> </span><span class="s">&amp;</span><span class="s">quot</span><span class="s">;</span><span class="s">&amp;</span><span class="s">amp</span><span class="s">;</span><span class="s"> </span><span class="s">{</span><span class="s"> </span><span class="s">$</span><span class="s">(</span><span class="s">ProjectDir</span><span class="s">)</span><span class="s">Createdb</span><span class="s">.</span><span class="s">ps1</span><span class="s"> </span><span class="s">}</span><span class="s">&amp;</span><span class="s">quot</span><span class="s">;</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
+<span class="o">&lt;</span><span class="i">ItemGroup</span><span class="o">&gt;</span>
+  <span class="o">&lt;</span><span class="i">SqlFiles</span> <span class="i">Include</span><span class="o">=</span><span class="s">&quot;</span><span class="s">*</span><span class="s">*</span><span class="s">\</span><span class="s">*</span><span class="s">.</span><span class="s">sql</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
+  <span class="o">&lt;</span><span class="i">BuildDbPsScript</span> <span class="i">Include</span><span class="o">=</span><span class="s">&quot;</span><span class="s">SQL</span><span class="s">\</span><span class="s">createDb</span><span class="s">.</span><span class="s">ps1</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
+  <span class="o">&lt;</span><span class="i">BuildDbSqlScripts</span> <span class="i">Include</span><span class="o">=</span><span class="s">&quot;</span><span class="s">SQL</span><span class="s">\</span><span class="s">create_myDb1</span><span class="s">.</span><span class="s">sql</span><span class="s">&quot;</span> <span class="i">DbName</span><span class="o">=</span><span class="s">&quot;</span><span class="s">Db1</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
+  <span class="o">&lt;</span><span class="i">BuildDbSqlScripts</span> <span class="i">Include</span><span class="o">=</span><span class="s">&quot;</span><span class="s">SQL</span><span class="s">\</span><span class="s">create_myDb2</span><span class="s">.</span><span class="s">sql</span><span class="s">&quot;</span> <span class="i">DbName</span><span class="o">=</span><span class="s">&quot;</span><span class="s">Db2</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
+  <span class="o">&lt;</span><span class="i">UpToDateCheckInput</span> <span class="i">Include</span><span class="o">=</span><span class="s">&quot;</span><span class="s">@</span><span class="s">(</span><span class="s">SqlFiles</span><span class="s">)</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
+  <span class="o">&lt;</span><span class="i">UpToDateCheckInput</span> <span class="i">Include</span><span class="o">=</span><span class="s">&quot;</span><span class="s">@</span><span class="s">(</span><span class="s">BuildDbPsScript</span><span class="s">)</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
+  <span class="o">&lt;</span><span class="i">UpToDateCheckInput</span> <span class="i">Include</span><span class="o">=</span><span class="s">&quot;</span><span class="s">@</span><span class="s">(</span><span class="s">BuildDbSqlScripts</span><span class="s">)</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
+  <span class="o">&lt;</span><span class="i">UpToDateCheckInput</span> <span class="i">Include</span><span class="o">=</span><span class="s">&quot;</span><span class="s">@</span><span class="s">(</span><span class="s">BuildDbSqlScripts</span><span class="s"> </span><span class="s">-</span><span class="s">&gt;</span><span class="s"> </span><span class="s">&#39;</span><span class="s">SQL</span><span class="s">\</span><span class="s">%</span><span class="s">(</span><span class="s">DbName</span><span class="s">)</span><span class="s">.</span><span class="s">mdf&#39;</span><span class="s">)</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
+  <span class="o">&lt;</span><span class="i">UpToDateCheckInput</span> <span class="i">Include</span><span class="o">=</span><span class="s">&quot;</span><span class="s">@</span><span class="s">(</span><span class="s">BuildDbSqlScripts</span><span class="s"> </span><span class="s">-</span><span class="s">&gt;</span><span class="s"> </span><span class="s">&#39;</span><span class="s">SQL</span><span class="s">\</span><span class="s">%</span><span class="s">(</span><span class="s">DbName</span><span class="s">)</span><span class="s">.</span><span class="s">ldf&#39;</span><span class="s">)</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
+<span class="o">&lt;/</span><span class="i">ItemGroup</span><span class="o">&gt;</span>
+
+<span class="o">&lt;</span><span class="i">Target</span> <span class="i">Name</span><span class="o">=</span><span class="s">&quot;</span><span class="s">BuildDb</span><span class="s">&quot;</span> <span class="i">BeforeTargets</span><span class="o">=</span><span class="s">&quot;</span><span class="s">BeforeBuild</span><span class="s">&quot;</span> <span class="i">Inputs</span><span class="o">=</span><span class="s">&quot;</span><span class="s">@</span><span class="s">(</span><span class="s">BuildDbSqlScripts</span><span class="s">)</span><span class="s">;</span><span class="s">@</span><span class="s">(</span><span class="s">BuildDbPsScript</span><span class="s">)</span><span class="s">&quot;</span> <span class="i">Outputs</span><span class="o">=</span><span class="s">&quot;</span><span class="s">SQL</span><span class="s">\</span><span class="s">%</span><span class="s">(</span><span class="s">BuildDbSqlScripts</span><span class="s">.</span><span class="s">DbName</span><span class="s">)</span><span class="s">.</span><span class="s">mdf</span><span class="s">;</span><span class="s">SQL</span><span class="s">\</span><span class="s">%</span><span class="s">(</span><span class="s">BuildDbSqlScripts</span><span class="s">.</span><span class="s">DbName</span><span class="s">)</span><span class="s">.</span><span class="s">ldf</span><span class="s">&quot;</span><span class="o">&gt;</span>
+  <span class="o">&lt;</span><span class="i">Message</span> <span class="i">Text</span><span class="o">=</span><span class="s">&quot;</span><span class="s">DB</span><span class="s"> </span><span class="s">files</span><span class="s"> </span><span class="s">missing</span><span class="s"> </span><span class="s">or</span><span class="s"> </span><span class="s">outdated</span><span class="s">.</span><span class="s"> </span><span class="s">Building</span><span class="s"> </span><span class="s">out</span><span class="s"> </span><span class="s">database</span><span class="s"> </span><span class="s">%</span><span class="s">(</span><span class="s">BuildDbSqlScripts</span><span class="s">.</span><span class="s">DbName</span><span class="s">)</span><span class="s"> </span><span class="s">using</span><span class="s"> </span><span class="s">script</span><span class="s"> </span><span class="s">%</span><span class="s">(</span><span class="s">BuildDbSqlScripts</span><span class="s">.</span><span class="s">Identity</span><span class="s">)</span><span class="s">&quot;</span> <span class="i">Importance</span><span class="o">=</span><span class="s">&quot;</span><span class="s">High</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
+  <span class="o">&lt;</span><span class="i">Exec</span> <span class="i">Command</span><span class="o">=</span><span class="s">&quot;</span><span class="s">PowerShell</span><span class="s"> </span><span class="s">-</span><span class="s">NoProfile</span><span class="s"> </span><span class="s">-</span><span class="s">ExecutionPolicy</span><span class="s"> </span><span class="s">Bypass</span><span class="s"> </span><span class="s">-</span><span class="s">Command</span><span class="s"> </span><span class="s">&amp;</span><span class="s">quot</span><span class="s">;</span><span class="s">&amp;</span><span class="s">amp</span><span class="s">;</span><span class="s"> </span><span class="s">{</span><span class="s"> </span><span class="s">@</span><span class="s">(</span><span class="s">BuildDbPsScript</span><span class="s">)</span><span class="s"> </span><span class="s">-</span><span class="s">DbName</span><span class="s"> </span><span class="s">%</span><span class="s">(</span><span class="s">BuildDbSqlScripts</span><span class="s">.</span><span class="s">DbName</span><span class="s">)</span><span class="s"> </span><span class="s">-</span><span class="s">DbScript</span><span class="s"> </span><span class="s">%</span><span class="s">(</span><span class="s">BuildDbSqlScripts</span><span class="s">.</span><span class="s">Identity</span><span class="s">)</span><span class="s"> </span><span class="s">}</span><span class="s">&amp;</span><span class="s">quot</span><span class="s">;</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
+<span class="o">&lt;/</span><span class="i">Target</span><span class="o">&gt;</span>
+
+<span class="o">&lt;</span><span class="i">Target</span> <span class="i">Name</span><span class="o">=</span><span class="s">&quot;</span><span class="s">TouchProjectFileIfSqlOrDbChanged</span><span class="s">&quot;</span> <span class="i">BeforeTargets</span><span class="o">=</span><span class="s">&quot;</span><span class="s">BeforeBuild</span><span class="s">&quot;</span> <span class="i">Inputs</span><span class="o">=</span><span class="s">&quot;</span><span class="s">@</span><span class="s">(</span><span class="s">SqlFiles</span><span class="s">)</span><span class="s">;</span><span class="s">@</span><span class="s">(</span><span class="s">BuildDbPsScript</span><span class="s">)</span><span class="s">;</span><span class="s">@</span><span class="s">(</span><span class="s">BuildDbSqlScripts</span><span class="s">)</span><span class="s">&quot;</span> <span class="i">Outputs</span><span class="o">=</span><span class="s">&quot;</span><span class="s">$</span><span class="s">(</span><span class="s">MSBuildProjectFile</span><span class="s">)</span><span class="s">&quot;</span><span class="o">&gt;</span>
+  <span class="o">&lt;</span><span class="i">Message</span> <span class="i">Text</span><span class="o">=</span><span class="s">&quot;</span><span class="s">SQL</span><span class="s"> </span><span class="s">or</span><span class="s"> </span><span class="s">DB</span><span class="s"> </span><span class="s">files</span><span class="s"> </span><span class="s">changed</span><span class="s">.</span><span class="s"> </span><span class="s">Changing</span><span class="s"> </span><span class="s">project</span><span class="s"> </span><span class="s">file</span><span class="s"> </span><span class="s">modification</span><span class="s"> </span><span class="s">time</span><span class="s"> </span><span class="s">to</span><span class="s"> </span><span class="s">force</span><span class="s"> </span><span class="s">recompilation</span><span class="s">.</span><span class="s">&quot;</span> <span class="i">Importance</span><span class="o">=</span><span class="s">&quot;</span><span class="s">High</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
+  <span class="o">&lt;</span><span class="i">Exec</span> <span class="i">Command</span><span class="o">=</span><span class="s">&quot;</span><span class="s">PowerShell</span><span class="s"> </span><span class="s">-</span><span class="s">NoProfile</span><span class="s"> </span><span class="s">-</span><span class="s">ExecutionPolicy</span><span class="s"> </span><span class="s">Bypass</span><span class="s"> </span><span class="s">-</span><span class="s">Command</span><span class="s"> </span><span class="s">&amp;</span><span class="s">quot</span><span class="s">;</span><span class="s">(</span><span class="s">dir</span><span class="s"> </span><span class="s">$</span><span class="s">(</span><span class="s">MSBuildProjectFile</span><span class="s">)</span><span class="s">)</span><span class="s">.</span><span class="s">LastWriteTime</span><span class="s"> </span><span class="s">=</span><span class="s"> </span><span class="s">Get</span><span class="s">-</span><span class="s">Date</span><span class="s">&amp;</span><span class="s">quot</span><span class="s">;</span><span class="s">&quot;</span> <span class="o">/&gt;</span>
 <span class="o">&lt;/</span><span class="i">Target</span><span class="o">&gt;</span></pre>
 </td>
 </tr>
 </table>
 
-<p>Now when you build, it will create a database named <code>Database1</code> and then look for a file called <code>schema.sql</code> which will be used
-to create the database.  It will then compile against this dynamically generated MDF file so you'll get full static type checking
-without the hassle of having to have an internet connection, or deal with binary .MDF files!</p>
+<p>Now when you build, it will create the databases <code>SQL\Db1.mdf</code> and <code>SQL\Db2.mdf</code>
+using the scripts <code>SQL\create_myDb1.sql</code> and <code>SQL\create_myDb2.sql</code>. It will
+then compile against this dynamically generated MDF file so you'll get full
+static type checking without the hassle of having to have an internet
+connection, or deal with binary .MDF files!</p>
+
+<p>Furthermore, the <code>.fsproj</code> edits above give the following benefits:
+<em> The DBs are rebuilt if their corresponding SQL scripts have changed, or if the
+  PowerShell script has changed
+</em> The project is rebuilt if the PowerShell script has changed
+<em> The project is rebuilt if any SQL file has changed (both the database creation
+  scripts, and any other SQL scripts that SqlClient might use though the
+  <code>SqlFile</code> type provider)
+</em> Incremental build - each database is only built if its corresponding SQL
+  script or the PowerShell script has changed</p>
+
+<p>When it comes to actually making the database creation scripts (such as the
+<code>create_myDb1.sql</code> in the example above), you can do this if you use SQL Server
+Management Studio (SSMS):
+<em> Connect to the database you want to copy
+</em> Right-click the database and select Tasks -> Generate scripts
+<em> Select what you need to be exported (for example, everything except Users).
+</em> If SqlClient throws errors when connecting to your local database, you might
+  be missing important objects from your database. Make sure everything you need
+  is enabled in SSMS under Tools -> Options -> SQL Server Object Explorer ->
+  Scripting. For example, if you have indexed views and use the <code>WITH
+  (NOEXPAND)</code> hint in your SQL, you need the indexes too, which are not enabled
+  by default. In this case, enable "Script indexes" under the "Table and view
+  options" heading.</p>
 
 <div class="tip" id="fs1">namespace Microsoft.FSharp.Data</div>
 <div class="tip" id="fs2">Multiple items<br />type LiteralAttribute =<br />&#160;&#160;inherit Attribute<br />&#160;&#160;new : unit -&gt; LiteralAttribute<br /><br />Full name: Microsoft.FSharp.Core.LiteralAttribute<br /><br />--------------------<br />new : unit -&gt; LiteralAttribute</div>
-<div class="tip" id="fs3">val connectionString : string<br /><br />Full name: Dynamic local db.connectionString</div>
-<div class="tip" id="fs4">val connectionStringForCompileTime : string<br /><br />Full name: Dynamic local db.connectionStringForCompileTime</div>
+<div class="tip" id="fs3">val compileConnectionString : string<br /><br />Full name: Dynamic local db.compileConnectionString</div>
+<div class="tip" id="fs4">module String<br /><br />from Microsoft.FSharp.Core</div>
 <div class="tip" id="fs5">type Foo = obj<br /><br />Full name: Dynamic local db.Foo</div>
 <div class="tip" id="fs6">val myResults : obj<br /><br />Full name: Dynamic local db.myResults</div>
 
