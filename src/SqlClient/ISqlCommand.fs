@@ -134,8 +134,13 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
         member this.ToTraceString parameters =  
             ``ISqlCommand Implementation``.SetParameters(cmd, parameters)
             let parameterDefinition (p : SqlParameter) =
+                // decimal uses precision and scale instead of size
+                if p.SqlDbType = SqlDbType.Money then
+                    // maximum size is 38
+                    sprintf "%s %A(%u,%u)" p.ParameterName p.SqlDbType p.Precision p.Scale
+                    
                 // tinyint and Xml have size 1 and -1 respectively, but MSSQL will throw if they are specified
-                if p.Size <> 0 && 
+                elif p.Size <> 0 && 
                    p.SqlDbType <> SqlDbType.Xml && 
                    p.SqlDbType <> SqlDbType.TinyInt then
                    
