@@ -97,28 +97,28 @@ module TraceTests =
 
     [<Fact>]
     let traceDate() = 
-        testTraceString (DB.CreateCommand<traceQuery + DATETIME + ")">) DATETIME (System.DateTime.Now) (System.DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fff"))
+        testTraceString (DB.CreateCommand<traceQuery + DATETIME + ")">()) DATETIME (System.DateTime.Now) (System.DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fff"))
         
     [<Fact>]
     let traceDateTimeOffset() = 
-        testTraceString (DB.CreateCommand<traceQuery + DATETIMEOFFSET + ")">) DATETIMEOFFSET (System.DateTimeOffset.Now) (System.DateTimeOffset.Now.ToString("O"))
+        testTraceString (DB.CreateCommand<traceQuery + DATETIMEOFFSET + ")">()) DATETIMEOFFSET (System.DateTimeOffset.Now) (System.DateTimeOffset.Now.ToString("O"))
         
     [<Fact>]
     let traceTimestamp() =
-        testTraceString (DB.CreateCommand<traceQuery + TIMESTAMP + ")">) TIMESTAMP (System.DateTime.Now.TimeOfDay) (System.DateTime.Now.TimeOfDay.ToString("c"))
+        testTraceString (DB.CreateCommand<traceQuery + TIMESTAMP + ")">()) TIMESTAMP (System.DateTime.Now.TimeOfDay) (System.DateTime.Now.TimeOfDay.ToString("c"))
         
     [<Fact>]
     let traceInt() =
-        testTraceString (DB.CreateCommand<traceQuery + INT + ")">) INT 42 "42"
+        testTraceString (DB.CreateCommand<traceQuery + INT + ")">()) INT 42 "42"
 
     [<Fact>]
     let traceDecimal() =
-        testTraceString (DB.CreateCommand<traceQuery + DECIMAL63 + ")">) DECIMAL63 123.456m (123.456m.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        testTraceString (DB.CreateCommand<traceQuery + DECIMAL63 + ")">()) DECIMAL63 123.456m (123.456m.ToString(System.Globalization.CultureInfo.InvariantCulture)
 
     [<Fact>]
     let traceNull() =
         let expected = sprintf "exec sp_executesql N'SELECT CAST(@Value AS NVARCHAR(20))',N'@Value NVARCHAR(20)',@Value=NULL"
-        Assert.Equal<string>(expected, actual = DB.CreateCommand<"SELECT CAST(@Value AS NVARCHAR(20))">.ToTraceString(Unchecked.defaultof<string>))
+        Assert.Equal<string>(expected, actual = DB.CreateCommand<"SELECT CAST(@Value AS NVARCHAR(20))">().ToTraceString(Unchecked.defaultof<string>))
 
 [<Fact>]
 let resultSetMapping() =
