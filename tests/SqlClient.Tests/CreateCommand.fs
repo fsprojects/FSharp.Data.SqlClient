@@ -113,7 +113,7 @@ module TraceTests =
 
     [<Fact>]
     let traceDecimal() =
-        testTraceString (DB.CreateCommand<traceQuery + DECIMAL63 + ")">()) DECIMAL63 123.456m (123.456m.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        testTraceString (DB.CreateCommand<traceQuery + DECIMAL63 + ")">()) DECIMAL63 123.456m (123.456m.ToString(System.Globalization.CultureInfo.InvariantCulture))
 
     [<Fact>]
     let traceNull() =
