@@ -165,7 +165,7 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                         |> Seq.map(fun (name,value) ->   
                             // NULL isn't escaped
                             match value with
-                            | null | DBNull.Value ->  sprintf "%s=NULL" name
+                            | null | :? DBNull ->  sprintf "%s=NULL" name
                             | nonNullValue ->
                                 let printedValue =                                 
                                     match nonNullValue with
