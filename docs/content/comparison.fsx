@@ -45,6 +45,7 @@ Type providers + Query Expressions
 
 Good:
 
+- Supports .NET Standard and .NET Core
 - User has full control of SQL
 - Which allows full utilization of database indexes with complex queries
 - SQL syntax is already familiar for many
@@ -58,14 +59,13 @@ Not so good:
 - By default supports only Microsoft SQLServer and T-SQL
 - Code overhead if you have a large amount of different small operations
 - Doesn't generate domain model for work with C#
-- No support for .NET Standard / .NET Core
 
 ### SQLProvider
 
 Good:
 
-- Supports any database (MSSQL, MySQL, PostgreSQL, Oracle, Odbc, ...)
 - Supports .NET Standard and .NET Core
+- Supports any database (MSSQL, MySQL, PostgreSQL, Oracle, Odbc, ...)
 - Changing the database is not actually huge work
 - Makes effective simple SQL
 - Supports async database operations

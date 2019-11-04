@@ -134,7 +134,11 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
         member this.ToTraceString parameters =  
             ``ISqlCommand Implementation``.SetParameters(cmd, parameters)
             let parameterDefinition (p : SqlParameter) =
-                if p.Size <> 0 then
+                // tinyint and Xml have size 1 and -1 respectively, but MSSQL will throw if they are specified
+                if p.Size <> 0 && 
+                   p.SqlDbType <> SqlDbType.Xml && 
+                   p.SqlDbType <> SqlDbType.TinyInt then
+                   
                     sprintf "%s %A(%d)" p.ParameterName p.SqlDbType p.Size
                 else
                     sprintf "%s %A" p.ParameterName p.SqlDbType 
@@ -153,7 +157,17 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                 if parameters.Length > 0 
                 then 
                     yield parameters
-                        |> Seq.map(fun (name,value) -> sprintf "%s='%O'" name value) 
+                        |> Seq.map(fun (name,value) ->                             
+                            let printedValue =                                 
+                                match value with
+                                // print dates in roundtrip ISO8601 format "O"
+                                | :? System.DateTime as d -> d.ToString("O")
+                                // print timespans in constant format "c
+                                | :? System.TimeSpan as t -> t.ToString("c")
+                                | v -> sprintf "%O" v
+                            // escapes the resulting value
+                            sprintf "%s='%s'" name (printedValue.Replace("'", "''"))
+                        )                            
                         |> String.concat ","
             } |> String.concat "," //Using string.concat to handle annoying case with no parameters
 

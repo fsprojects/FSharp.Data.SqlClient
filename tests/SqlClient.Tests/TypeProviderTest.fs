@@ -89,13 +89,47 @@ let singleRowOption() =
 [<Fact>]
 let ToTraceString() =
     let now = DateTime.Now
+    let universalPrintedNow = now.ToString("O")
     let num = 42
-    let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE), CAST(@Number AS INT)',N'@Date Date,@Number Int',@Date='%A',@Number='%d'" now num
+    let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE), CAST(@Number AS INT)',N'@Date Date,@Number Int',@Date='%s',@Number='%d'" universalPrintedNow num
     let cmd = new SqlCommandProvider<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples>()
     Assert.Equal<string>(
         expected, 
         actual = cmd.ToTraceString( now, num)
     )
+    
+let runString query = 
+    use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
+    conn.Open()
+    use cmd = new System.Data.SqlClient.SqlCommand()
+    cmd.Connection <- conn  
+    cmd.CommandText <- query
+    cmd.ExecuteNonQuery()
+    
+[<Fact>]
+let ``ToTraceString for dates``() =    
+    let cmd = new SqlCommandProvider<"SELECT CAST(@Date AS DATE)", ConnectionStrings.AdventureWorksNamed>()
+    runString <| cmd.ToTraceString(System.DateTime.Now)
+    
+[<Fact>]
+let ``ToTraceString for times``() =    
+    let cmd = new SqlCommandProvider<"SELECT CAST(@Time AS Time)", ConnectionStrings.AdventureWorksNamed>()
+    runString <| cmd.ToTraceString(System.DateTime.Now.TimeOfDay)
+    
+[<Fact>]
+let ``ToTraceString for tinyint``() =    
+    let cmd = new SqlCommandProvider<"SELECT CAST(@ti AS TINYINT)", ConnectionStrings.AdventureWorksNamed>()
+    runString <| cmd.ToTraceString(0uy)
+    
+[<Fact>]
+let ``ToTraceString for xml``() =    
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS XML)", ConnectionStrings.AdventureWorksNamed>()
+    runString <| cmd.ToTraceString("<foo>bar</foo>")
+    
+[<Fact>]
+let ``ToTraceString for xml with single quotes``() =    
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS XML)", ConnectionStrings.AdventureWorksNamed>()
+    runString <| cmd.ToTraceString("<foo>b'ar</foo>")    
 
 [<Fact>]
 let ``ToTraceString for CRUD``() =    
@@ -121,6 +155,15 @@ let ``ToTraceString double-quotes``() =
     let trace = cmd.ToTraceString()
     Assert.Equal<string>("exec sp_executesql N'SELECT OBJECT_ID(''Sales.Currency'')'", trace)
 
+    
+[<Fact>]
+let ``ToTraceString double-quotes in parameter``() =    
+    use cmd = new SqlCommandProvider<"SELECT * FROM Sales.Currency WHERE CurrencyCode = @CurrencyCode", ConnectionStrings.AdventureWorksNamed>()    
+    Assert.Equal<string>(
+        expected = "exec sp_executesql N'SELECT * FROM Sales.Currency WHERE CurrencyCode = @CurrencyCode',N'@CurrencyCode NChar(3)',@CurrencyCode='A''B'",
+        actual = cmd.ToTraceString("A'B")
+    )
+    
 [<Fact(
     Skip = "Don't execute for usual runs. Too slow."
     )>]

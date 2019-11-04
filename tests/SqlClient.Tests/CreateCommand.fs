@@ -85,8 +85,9 @@ let columnsShouldNotBeNull2() =
 [<Fact>]
 let toTraceString() =
     let now = System.DateTime.Now
+    let universalNow = now.ToString("O")
     let num = 42
-    let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE), CAST(@Number AS INT)',N'@Date Date,@Number Int',@Date='%A',@Number='%d'" now num
+    let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE), CAST(@Number AS INT)',N'@Date Date,@Number Int',@Date='%s',@Number='%d'" universalNow num
     let cmd = DB.CreateCommand<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", ResultType.Tuples>()
     Assert.Equal<string>(
         expected, 
