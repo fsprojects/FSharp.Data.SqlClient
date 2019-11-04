@@ -157,16 +157,35 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                 if parameters.Length > 0 
                 then 
                     yield parameters
-                        |> Seq.map(fun (name,value) ->                             
-                            let printedValue =                                 
-                                match value with
-                                // print dates in roundtrip ISO8601 format "O"
-                                | :? System.DateTime as d -> d.ToString("O")
-                                // print timespans in constant format "c
-                                | :? System.TimeSpan as t -> t.ToString("c")
-                                | v -> sprintf "%O" v
-                            // escapes the resulting value
-                            sprintf "%s='%s'" name (printedValue.Replace("'", "''"))
+                        |> Seq.map(fun (name,value) ->   
+                            // NULL isn't escaped
+                            match value with
+                            | null | DBNull.Value ->  sprintf "%s=NULL" name
+                            | nonNullValue ->
+                                let printedValue =                                 
+                                    match nonNullValue with
+                                    // print dates with timezone in roundtrip ISO8601 format "O"
+                                    | :? System.DateTimeOffset as d -> d.ToString("O")
+                                    // print dates without timezones in legacy SQL Server format
+                                    | :? System.DateTime as d -> d.ToString("yyyy-MM-ddTHH:mm:ss.fff")                          
+                                    // print timespans in constant format "c
+                                    | :? System.TimeSpan as t -> t.ToString("c")
+                                    // print numeric values in culture-invariant format
+                                    | :? decimal as n -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? double as n  -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? single as n  -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? bigint as n  -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? uint64 as n  -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? int64 as n   -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)                                
+                                    | :? uint32 as n  -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)                                
+                                    | :? int as n     -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)                                
+                                    | :? uint16 as n  -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)                                
+                                    | :? int16 as n   -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? byte as n    -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? sbyte as n   -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)      
+                                    | v -> sprintf "%O" v
+                                // escapes the resulting value, with Unicode notation
+                                sprintf "%s=N'%s'" name (printedValue.Replace("'", "''"))
                         )                            
                         |> String.concat ","
             } |> String.concat "," //Using string.concat to handle annoying case with no parameters
