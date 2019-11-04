@@ -93,7 +93,7 @@ module TraceTests =
     
     let inline testTraceString (cmd : ^cmd) dbType (value : ^value) printedValue = 
         let expected = sprintf "exec sp_executesql N'%s%s)',N'@Value %s',@Value=N'%s'" traceQuery dbType dbType printedValue    
-        Assert.Equal<string>(expected, actual = (^cmd : (member ToTraceString : ^value -> string) (cmd, value))
+        Assert.Equal<string>(expected, actual = (^cmd : (member ToTraceString : ^value -> string) (cmd, value)))
 
     [<Fact>]
     let traceDate() = 
