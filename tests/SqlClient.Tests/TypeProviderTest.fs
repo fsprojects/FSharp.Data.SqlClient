@@ -148,8 +148,18 @@ let ``Roundtrip ToTraceString for decimals with maximum precision``() =
 [<Fact>]
 let ``Roundtrip ToTraceString for date time ``() = 
     let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DATETIME)", ConnectionStrings.AdventureWorksNamed>()
+    // SQL Server DATETIME has precision up to .00333 seconds
+    let tolerance = 0.00334
     let now = System.DateTime.Now
-    let result = runScalarQuery <| cmd.ToTraceString(now)
+    let result = runScalarQuery <| cmd.ToTraceString(now)    
+    Assert.InRange(unbox<DateTime> result, now.AddSeconds(-1. * tolerance), now.AddSeconds(tolerance))
+
+[<Fact>]
+let ``Roundtrip ToTraceString for datetime2 ``() = 
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DATETIME2)", ConnectionStrings.AdventureWorksNamed>()
+    // SQL Server DATETIME2 has the same nanosecond precision as DATETIMEOFFSET so there shouldn't be any discrepance
+    let now = System.DateTime.Now
+    let result = runScalarQuery <| cmd.ToTraceString(now)    
     Assert.Equal(expected = now, actual = unbox<DateTime> result)
 
 [<Fact>]
