@@ -98,38 +98,45 @@ let ToTraceString() =
         actual = cmd.ToTraceString( now, num)
     )
     
-let runString query = 
+let runScalarQuery query = 
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
     use cmd = new System.Data.SqlClient.SqlCommand()
     cmd.Connection <- conn  
     cmd.CommandText <- query
-    cmd.ExecuteNonQuery()
+    cmd.ExecuteScalar()
     
 [<Fact>]
 let ``ToTraceString for dates``() =    
     let cmd = new SqlCommandProvider<"SELECT CAST(@Date AS DATE)", ConnectionStrings.AdventureWorksNamed>()
-    runString <| cmd.ToTraceString(System.DateTime.Now)
+    runScalarQuery <| cmd.ToTraceString(System.DateTime.Now)
     
 [<Fact>]
 let ``ToTraceString for times``() =    
     let cmd = new SqlCommandProvider<"SELECT CAST(@Time AS Time)", ConnectionStrings.AdventureWorksNamed>()
-    runString <| cmd.ToTraceString(System.DateTime.Now.TimeOfDay)
+    runScalarQuery <| cmd.ToTraceString(System.DateTime.Now.TimeOfDay)
     
 [<Fact>]
 let ``ToTraceString for tinyint``() =    
     let cmd = new SqlCommandProvider<"SELECT CAST(@ti AS TINYINT)", ConnectionStrings.AdventureWorksNamed>()
-    runString <| cmd.ToTraceString(0uy)
+    runScalarQuery <| cmd.ToTraceString(0uy)
     
 [<Fact>]
 let ``ToTraceString for xml``() =    
     let cmd = new SqlCommandProvider<"SELECT CAST(@x AS XML)", ConnectionStrings.AdventureWorksNamed>()
-    runString <| cmd.ToTraceString("<foo>bar</foo>")
+    runScalarQuery <| cmd.ToTraceString("<foo>bar</foo>")
     
 [<Fact>]
 let ``ToTraceString for xml with single quotes``() =    
     let cmd = new SqlCommandProvider<"SELECT CAST(@x AS XML)", ConnectionStrings.AdventureWorksNamed>()
-    runString <| cmd.ToTraceString("<foo>b'ar</foo>")    
+    runScalarQuery <| cmd.ToTraceString("<foo>b'ar</foo>")  
+    
+[<Fact>]
+let ``ToTraceString for unicode``() =    
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS NVARCHAR(20))", ConnectionStrings.AdventureWorksNamed>()
+    let rocket = runScalarQuery <| cmd.ToTraceString("🚀")      
+    Assert.Equal<string>(expected = "🚀", actual = unbox<string> rocket)
+    
 
 [<Fact>]
 let ``ToTraceString for CRUD``() =    
