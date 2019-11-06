@@ -89,7 +89,7 @@ let singleRowOption() =
 [<Fact>]
 let ToTraceString() =
     let now = DateTime.Now
-    let universalPrintedNow = now.ToString("O")
+    let universalPrintedNow = now.ToString("yyyy-MM-ddTHH:mm:ss.fff")
     let num = 42
     let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE), CAST(@Number AS INT)',N'@Date Date,@Number Int',@Date='%s',@Number='%d'" universalPrintedNow num
     let cmd = new SqlCommandProvider<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples>()
@@ -135,12 +135,12 @@ let ``ToTraceString for xml with single quotes``() =
 let ``ToTraceString for CRUD``() =    
 
     Assert.Equal<string>(
-        expected = "exec sp_executesql N'SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code',N'@code NChar(3)',@code='BTC'",
+        expected = "exec sp_executesql N'SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code',N'@code NChar(3)',@code=N'BTC'",
         actual = let cmd = new GetBitCoin() in cmd.ToTraceString( bitCoinCode)
     )
     
     Assert.Equal<string>(
-        expected = "exec sp_executesql N'INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())',N'@Code NChar(3),@Name NVarChar(50)',@Code='BTC',@Name='Bitcoin'",
+        expected = "exec sp_executesql N'INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())',N'@Code NChar(3),@Name NVarChar(50)',@Code='BTC',@Name=N'Bitcoin'",
         actual = let cmd = new InsertBitCoin() in cmd.ToTraceString( bitCoinCode, bitCoinName)
     )
 
@@ -160,7 +160,7 @@ let ``ToTraceString double-quotes``() =
 let ``ToTraceString double-quotes in parameter``() =    
     use cmd = new SqlCommandProvider<"SELECT * FROM Sales.Currency WHERE CurrencyCode = @CurrencyCode", ConnectionStrings.AdventureWorksNamed>()    
     Assert.Equal<string>(
-        expected = "exec sp_executesql N'SELECT * FROM Sales.Currency WHERE CurrencyCode = @CurrencyCode',N'@CurrencyCode NChar(3)',@CurrencyCode='A''B'",
+        expected = "exec sp_executesql N'SELECT * FROM Sales.Currency WHERE CurrencyCode = @CurrencyCode',N'@CurrencyCode NChar(3)',@CurrencyCode=N'A''B'",
         actual = cmd.ToTraceString("A'B")
     )
     
