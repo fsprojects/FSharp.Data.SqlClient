@@ -140,10 +140,12 @@ let ``Roundtrip ToTraceString for unicode``() =
     
 [<Fact>]
 let ``Roundtrip ToTraceString for decimals with maximum precision``() = 
-    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DECIMAL(38, 18))", ConnectionStrings.AdventureWorksNamed>()
-    let decimal_38_18 = 12345678901234567890.123456789012345678m
-    let result = runScalarQuery <| cmd.ToTraceString(decimal_38_18)
-    Assert.Equal(expected = decimal_38_18, actual = unbox<decimal> result)
+    // Note: maximum precision for MSSQL decimals is 38, but maximum for MSSQL <-> .NET conversion is 29
+    // https://weblogs.sqlteam.com/mladenp/2010/08/31/when-does-sql-server-decimal-not-convert-to-net-decimal/
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DECIMAL(29, 19))", ConnectionStrings.AdventureWorksNamed>()
+    let decimal_29_19 = 1234567890.1234567890123456789m
+    let result = runScalarQuery <| cmd.ToTraceString(decimal_29_19)
+    Assert.Equal(expected = decimal_29_19, actual = unbox<decimal> result)
     
 [<Fact>]
 let ``Roundtrip ToTraceString for date time ``() = 
