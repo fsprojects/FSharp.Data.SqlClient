@@ -118,8 +118,9 @@ module TraceTests =
         
     [<Fact>]
     let traceTimestamp() =
+        let timeOfDay = System.DateTime.Now.TimeOfDay
         testTraceString queryTIMESTAMP (DB.CreateCommand<queryTIMESTAMP>()) TIMESTAMP 
-                        (System.DateTime.Now.TimeOfDay) (System.DateTime.Now.TimeOfDay.ToString("c"))
+                        timeOfDay (timeOfDay.ToString("c"))
         
     [<Fact>]
     let traceInt() =
@@ -133,7 +134,7 @@ module TraceTests =
 
     [<Fact>]
     let traceNull() =
-        let expected = sprintf "exec sp_executesql N'SELECT CAST(@Value AS NVARCHAR(20))',N'@Value NVARCHAR(20)',@Value=NULL"
+        let expected = sprintf "exec sp_executesql N'SELECT CAST(@Value AS NVARCHAR(20))',N'@Value NVarChar(20)',@Value=NULL"
         Assert.Equal<string>(expected, actual = DB.CreateCommand<"SELECT CAST(@Value AS NVARCHAR(20))">().ToTraceString(Unchecked.defaultof<string>))
 
 [<Fact>]
