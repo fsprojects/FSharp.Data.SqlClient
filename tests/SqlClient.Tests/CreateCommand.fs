@@ -108,13 +108,15 @@ module TraceTests =
 
     [<Fact>]
     let traceDate() =     
+        let now = System.DateTime.Now
         testTraceString queryDATETIME (DB.CreateCommand<queryDATETIME>()) DATETIME 
-                        (System.DateTime.Now) (System.DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fff"))
+                        now (now.ToString("yyyy-MM-ddTHH:mm:ss.fff"))
     
     [<Fact>]
     let traceDateTimeOffset() = 
+        let now = System.DateTimeOffset.Now
         testTraceString queryDATETIMEOFFSET (DB.CreateCommand<queryDATETIMEOFFSET>()) DATETIMEOFFSET 
-                        (System.DateTimeOffset.Now) (System.DateTimeOffset.Now.ToString("O"))
+                        now (now.ToString("O"))
         
     [<Fact>]
     let traceTimestamp() =
