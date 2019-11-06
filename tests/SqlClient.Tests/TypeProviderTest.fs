@@ -150,7 +150,7 @@ let ``Roundtrip ToTraceString for date time ``() =
     let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DATETIME)", ConnectionStrings.AdventureWorksNamed>()
     let now = System.DateTime.Now
     let result = runScalarQuery <| cmd.ToTraceString(now)
-    Assert.Equal(expected = now, actual = unbox<DateTime> result))
+    Assert.Equal(expected = now, actual = unbox<DateTime> result)
 
 [<Fact>]
 let ``Roundtrip ToTraceString for date time offsets``() = 
