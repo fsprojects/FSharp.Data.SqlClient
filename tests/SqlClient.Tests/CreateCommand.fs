@@ -84,36 +84,47 @@ let columnsShouldNotBeNull2() =
 
 module TraceTests = 
 
-    let [<Literal>] traceQuery = "SELECT CAST(@Value AS "
-    let [<Literal>] DATETIME = "DATETIME"
-    let [<Literal>] DATETIMEOFFSET = "DATETIMEOFFSET"
-    let [<Literal>] TIMESTAMP = "TIME"
-    let [<Literal>] INT = "INT"
-    let [<Literal>] DECIMAL63 = "DECIMAL(6,3)"
+    let [<Literal>] queryStart = "SELECT CAST(@Value AS "
+    let [<Literal>] queryEnd = ")"
     
-    let inline testTraceString (cmd : ^cmd) dbType (value : ^value) printedValue = 
-        let expected = sprintf "exec sp_executesql N'%s%s)',N'@Value %s',@Value=N'%s'" traceQuery dbType dbType printedValue    
+    let [<Literal>] DATETIME = "DATETIME"
+    let [<Literal>] queryDATETIME = queryStart + DATETIME + queryEnd
+    
+    let [<Literal>] DATETIMEOFFSET = "DATETIMEOFFSET"
+    let [<Literal>] queryDATETIME = queryStart + DATETIME + queryEnd
+    
+    let [<Literal>] TIMESTAMP = "TIME"
+    let [<Literal>] queryDATETIME = queryStart + DATETIME + queryEnd
+    
+    let [<Literal>] INT = "INT"
+    let [<Literal>] queryDATETIME = queryStart + DATETIME + queryEnd
+    
+    let [<Literal>] DECIMAL63 = "DECIMAL(6,3)"
+    let [<Literal>] queryDATETIME = queryStart + DECIMAL63 + queryEnd
+    
+    let inline testTraceString traceQuery (cmd : ^cmd) dbType (value : ^value) printedValue = 
+        let expected = sprintf "exec sp_executesql N'%s',N'@Value %s',@Value=N'%s'" traceQuery dbType printedValue    
         Assert.Equal<string>(expected, actual = (^cmd : (member ToTraceString : ^value -> string) (cmd, value)))
 
     [<Fact>]
     let traceDate() = 
-        testTraceString (DB.CreateCommand<traceQuery + DATETIME + ")", ResultType.Tuples>()) DATETIME (System.DateTime.Now) (System.DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fff"))
+        testTraceString (DB.CreateCommand<queryDATETIME>()) DATETIME (System.DateTime.Now) (System.DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fff"))
         
     [<Fact>]
     let traceDateTimeOffset() = 
-        testTraceString (DB.CreateCommand<traceQuery + DATETIMEOFFSET + ")", ResultType.Tuples>()) DATETIMEOFFSET (System.DateTimeOffset.Now) (System.DateTimeOffset.Now.ToString("O"))
+        testTraceString (DB.CreateCommand<queryDATETIMEOFFSET>()) DATETIMEOFFSET (System.DateTimeOffset.Now) (System.DateTimeOffset.Now.ToString("O"))
         
     [<Fact>]
     let traceTimestamp() =
-        testTraceString (DB.CreateCommand<traceQuery + TIMESTAMP + ")", ResultType.Tuples>()) TIMESTAMP (System.DateTime.Now.TimeOfDay) (System.DateTime.Now.TimeOfDay.ToString("c"))
+        testTraceString (DB.CreateCommand<queryTIMESTAMP>()) TIMESTAMP (System.DateTime.Now.TimeOfDay) (System.DateTime.Now.TimeOfDay.ToString("c"))
         
     [<Fact>]
     let traceInt() =
-        testTraceString (DB.CreateCommand<traceQuery + INT + ")", ResultType.Tuples>()) INT 42 "42"
+        testTraceString (DB.CreateCommand<queryINT>()) INT 42 "42"
 
     [<Fact>]
     let traceDecimal() =
-        testTraceString (DB.CreateCommand<traceQuery + DECIMAL63 + ")", ResultType.Tuples>()) DECIMAL63 123.456m (123.456m.ToString(System.Globalization.CultureInfo.InvariantCulture))
+        testTraceString (DB.CreateCommand<queryDECIMAL63>()) DECIMAL63 123.456m (123.456m.ToString(System.Globalization.CultureInfo.InvariantCulture))
 
     [<Fact>]
     let traceNull() =
