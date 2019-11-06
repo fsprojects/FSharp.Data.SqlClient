@@ -135,7 +135,7 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
             ``ISqlCommand Implementation``.SetParameters(cmd, parameters)
             let parameterDefinition (p : SqlParameter) =
                 // decimal uses precision and scale instead of size
-                if p.SqlDbType = SqlDbType.Money then
+                if List.contains p.SqlDbType [SqlDbType.Money; SqlDbType.SmallMoney; SqlDbType.Decimal] then
                     // maximum size is 38
                     sprintf "%s %A(%u,%u)" p.ParameterName p.SqlDbType p.Precision p.Scale
                     
