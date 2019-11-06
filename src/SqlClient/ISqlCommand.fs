@@ -178,9 +178,9 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                                     match nonNullValue with
                                     // print dates with high precision (SQL datetimeoffset, datetime2) in roundtrip ISO8601 format "O"
                                     | :? System.DateTimeOffset as d -> d.ToString("O")
-                                    | :? System.DateTime as d when getSqlDbType d = SqlDbType.DateTime2 -> d.ToString("O")
+                                    | :? System.DateTime as d when getSqlDbType name = SqlDbType.DateTime2 -> d.ToString("O")
                                     // print dates with low precision (SQL datetime) in legacy format
-                                    | :? System.DateTime as d when getSqlDbType d <> SqlDbType.DateTime2 -> d.ToString("yyyy-MM-ddTHH:mm:ss.fff")                          
+                                    | :? System.DateTime as d when getSqlDbType name <> SqlDbType.DateTime2 -> d.ToString("yyyy-MM-ddTHH:mm:ss.fff")                          
                                     // print timespans in constant format "c
                                     | :? System.TimeSpan as t -> t.ToString("c")
                                     // print numeric values in culture-invariant format
