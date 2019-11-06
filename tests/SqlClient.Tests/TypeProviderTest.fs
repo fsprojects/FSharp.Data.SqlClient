@@ -143,7 +143,7 @@ let ``Roundtrip ToTraceString for decimals with maximum precision``() =
     let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DECIMAL(2, 18))", ConnectionStrings.AdventureWorksNamed>()
     let decimal_20_18 = 12345678901234567890.123456789012345678m
     let result = runScalarQuery <| cmd.ToTraceString(decimal_20_18)
-    Assert.Equal(expected = decimal_20_18, actual = unbox<decimal> result
+    Assert.Equal(expected = decimal_20_18, actual = unbox<decimal> result)
     
 [<Fact>]
 let ``Roundtrip ToTraceString for date time ``() = 
