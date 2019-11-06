@@ -132,11 +132,32 @@ let ``ToTraceString for xml with single quotes``() =
     runScalarQuery <| cmd.ToTraceString("<foo>b'ar</foo>")  
     
 [<Fact>]
-let ``ToTraceString for unicode``() =    
+let ``Roundtrip ToTraceString for unicode``() =    
     let cmd = new SqlCommandProvider<"SELECT CAST(@x AS NVARCHAR(20))", ConnectionStrings.AdventureWorksNamed>()
-    let rocket = runScalarQuery <| cmd.ToTraceString("🚀")      
-    Assert.Equal<string>(expected = "🚀", actual = unbox<string> rocket)
+    let rocket = "🚀"
+    let result = runScalarQuery <| cmd.ToTraceString(rocket)      
+    Assert.Equal<string>(expected = rocket, actual = unbox<string> result)
     
+[<Fact>]
+let ``Roundtrip ToTraceString for decimals with maximum precision``() = 
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DECIMAL(2, 18))", ConnectionStrings.AdventureWorksNamed>()
+    let decimal_20_18 = 12345678901234567890.123456789012345678m
+    let result = runScalarQuery <| cmd.ToTraceString(decimal_20_18)
+    Assert.Equal<string>(expected = decimal_20_18, actual = unbox<decimal> result
+    
+[<Fact>]
+let ``Roundtrip ToTraceString for date time ``() = 
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DATETIME)", ConnectionStrings.AdventureWorksNamed>()
+    let now = System.DateTime.Now
+    let result = runScalarQuery <| cmd.ToTraceString(now)
+    Assert.Equal<string>(expected = now, actual = unbox<DateTime> result))
+
+[<Fact>]
+let ``Roundtrip ToTraceString for date time offsets``() = 
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DATETIMEOFFSET)", ConnectionStrings.AdventureWorksNamed>()
+    let now = System.DateTimeOffset.Now
+    let result = runScalarQuery <| cmd.ToTraceString(now)
+    Assert.Equal<string>(expected = now, actual = unbox<DateTimeOffset> result)
 
 [<Fact>]
 let ``ToTraceString for CRUD``() =    
