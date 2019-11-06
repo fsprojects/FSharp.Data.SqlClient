@@ -91,16 +91,16 @@ module TraceTests =
     let [<Literal>] queryDATETIME = queryStart + DATETIME + queryEnd
     
     let [<Literal>] DATETIMEOFFSET = "DATETIMEOFFSET"
-    let [<Literal>] queryDATETIME = queryStart + DATETIME + queryEnd
+    let [<Literal>] queryDATETIMEOFFSET = queryStart + DATETIME + queryEnd
     
     let [<Literal>] TIMESTAMP = "TIME"
-    let [<Literal>] queryDATETIME = queryStart + DATETIME + queryEnd
+    let [<Literal>] queryTIMESTAMP = queryStart + DATETIME + queryEnd
     
     let [<Literal>] INT = "INT"
-    let [<Literal>] queryDATETIME = queryStart + DATETIME + queryEnd
+    let [<Literal>] queryINT = queryStart + DATETIME + queryEnd
     
     let [<Literal>] DECIMAL63 = "DECIMAL(6,3)"
-    let [<Literal>] queryDATETIME = queryStart + DECIMAL63 + queryEnd
+    let [<Literal>] queryDECIMAL63 = queryStart + DECIMAL63 + queryEnd
     
     let inline testTraceString traceQuery (cmd : ^cmd) dbType (value : ^value) printedValue = 
         let expected = sprintf "exec sp_executesql N'%s',N'@Value %s',@Value=N'%s'" traceQuery dbType printedValue    
