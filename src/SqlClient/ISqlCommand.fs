@@ -150,8 +150,8 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
              
             // helper map to resolve each parameter's target type
             let getSqlDbType name = 
-               let lookup = Map.ofSeq <| Seq.zip (parameters     |> Seq.map (fun p -> p.name))
-                                                 (cmd.Parameters |> Seq.map (fun p -> p.SqlDbType))
+               let lookup = Map.ofSeq <| Seq.zip (parameters     |> Seq.map (fun (name, value) -> name))
+                                                 (cmd.Parameters |> Seq.cast<SqlParameter> |> Seq.map (fun p -> p.SqlDbType))
                Map.find name lookup
             
             seq {
