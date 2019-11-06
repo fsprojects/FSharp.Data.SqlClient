@@ -147,6 +147,13 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                     sprintf "%s %A(%d)" p.ParameterName p.SqlDbType p.Size
                 else
                     sprintf "%s %A" p.ParameterName p.SqlDbType 
+             
+            // helper map to resolve each parameter's target type
+            let getSqlDbType name = 
+               let lookup = Map.ofSeq <| Seq.zip (parameters     |> Seq.map (fun p -> p.name))
+                                                 (cmd.Parameters |> Seq.map (fun p -> p.SqlDbType))
+               Map.find name lookup
+            
             seq {
                 
                 yield sprintf "exec sp_executesql N'%s'" (cmd.CommandText.Replace("'", "''"))
@@ -169,10 +176,11 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                             | nonNullValue ->
                                 let printedValue =                                 
                                     match nonNullValue with
-                                    // print dates with timezone in roundtrip ISO8601 format "O"
+                                    // print dates with high precision (SQL datetimeoffset, datetime2) in roundtrip ISO8601 format "O"
                                     | :? System.DateTimeOffset as d -> d.ToString("O")
-                                    // print dates without timezones in legacy SQL Server format
-                                    | :? System.DateTime as d -> d.ToString("yyyy-MM-ddTHH:mm:ss.fff")                          
+                                    | :? System.DateTime as d when getSqlDbType d = SqlDbType.DateTime2 -> d.ToString("O")
+                                    // print dates with low precision (SQL datetime) in legacy format
+                                    | :? System.DateTime as d when getSqlDbType d <> SqlDbType.DateTime2 -> d.ToString("yyyy-MM-ddTHH:mm:ss.fff")                          
                                     // print timespans in constant format "c
                                     | :? System.TimeSpan as t -> t.ToString("c")
                                     // print numeric values in culture-invariant format
