@@ -91,13 +91,13 @@ module TraceTests =
     let [<Literal>] queryDATETIME = queryStart + DATETIME + queryEnd
     
     let [<Literal>] DATETIMEOFFSET = "DATETIMEOFFSET"
-    let [<Literal>] queryDATETIMEOFFSET = queryStart + DATETIME + queryEnd
+    let [<Literal>] queryDATETIMEOFFSET = queryStart + DATETIMEOFFSET + queryEnd
     
     let [<Literal>] TIMESTAMP = "TIME"
-    let [<Literal>] queryTIMESTAMP = queryStart + DATETIME + queryEnd
+    let [<Literal>] queryTIMESTAMP = queryStart + TIMESTAMP + queryEnd
     
     let [<Literal>] INT = "INT"
-    let [<Literal>] queryINT = queryStart + DATETIME + queryEnd
+    let [<Literal>] queryINT = queryStart + INT + queryEnd
     
     let [<Literal>] DECIMAL63 = "DECIMAL(6,3)"
     let [<Literal>] queryDECIMAL63 = queryStart + DECIMAL63 + queryEnd
