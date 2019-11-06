@@ -87,19 +87,19 @@ module TraceTests =
     let [<Literal>] queryStart = "SELECT CAST(@Value AS "
     let [<Literal>] queryEnd = ")"
     
-    let [<Literal>] DATETIME = "DATETIME"
+    let [<Literal>] DATETIME = "DateTime"
     let [<Literal>] queryDATETIME = queryStart + DATETIME + queryEnd
     
-    let [<Literal>] DATETIMEOFFSET = "DATETIMEOFFSET"
+    let [<Literal>] DATETIMEOFFSET = "DateTimeOffset"
     let [<Literal>] queryDATETIMEOFFSET = queryStart + DATETIMEOFFSET + queryEnd
     
-    let [<Literal>] TIMESTAMP = "TIME"
+    let [<Literal>] TIMESTAMP = "Time"
     let [<Literal>] queryTIMESTAMP = queryStart + TIMESTAMP + queryEnd
     
-    let [<Literal>] INT = "INT"
+    let [<Literal>] INT = "Int"
     let [<Literal>] queryINT = queryStart + INT + queryEnd
     
-    let [<Literal>] DECIMAL63 = "DECIMAL(6,3)"
+    let [<Literal>] DECIMAL63 = "Decimal(6,3)"
     let [<Literal>] queryDECIMAL63 = queryStart + DECIMAL63 + queryEnd
     
     let inline testTraceString traceQuery (cmd : ^cmd) dbType (value : ^value) printedValue = 
