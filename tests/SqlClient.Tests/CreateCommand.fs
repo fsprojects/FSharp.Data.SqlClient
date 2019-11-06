@@ -107,24 +107,29 @@ module TraceTests =
         Assert.Equal<string>(expected, actual = (^cmd : (member ToTraceString : ^value -> string) (cmd, value)))
 
     [<Fact>]
-    let traceDate() = 
-        testTraceString (DB.CreateCommand<queryDATETIME>()) DATETIME (System.DateTime.Now) (System.DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fff"))
-        
+    let traceDate() =     
+        testTraceString queryDATETIME (DB.CreateCommand<queryDATETIME>()) DATETIME 
+                        (System.DateTime.Now) (System.DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fff"))
+    
     [<Fact>]
     let traceDateTimeOffset() = 
-        testTraceString (DB.CreateCommand<queryDATETIMEOFFSET>()) DATETIMEOFFSET (System.DateTimeOffset.Now) (System.DateTimeOffset.Now.ToString("O"))
+        testTraceString queryDATETIMEOFFSET (DB.CreateCommand<queryDATETIMEOFFSET>()) DATETIMEOFFSET 
+                        (System.DateTimeOffset.Now) (System.DateTimeOffset.Now.ToString("O"))
         
     [<Fact>]
     let traceTimestamp() =
-        testTraceString (DB.CreateCommand<queryTIMESTAMP>()) TIMESTAMP (System.DateTime.Now.TimeOfDay) (System.DateTime.Now.TimeOfDay.ToString("c"))
+        testTraceString queryTIMESTAMP (DB.CreateCommand<queryTIMESTAMP>()) TIMESTAMP 
+                        (System.DateTime.Now.TimeOfDay) (System.DateTime.Now.TimeOfDay.ToString("c"))
         
     [<Fact>]
     let traceInt() =
-        testTraceString (DB.CreateCommand<queryINT>()) INT 42 "42"
+        testTraceString queryINT (DB.CreateCommand<queryINT>()) INT 
+                        42 "42"
 
     [<Fact>]
     let traceDecimal() =
-        testTraceString (DB.CreateCommand<queryDECIMAL63>()) DECIMAL63 123.456m (123.456m.ToString(System.Globalization.CultureInfo.InvariantCulture))
+        testTraceString queryDECIMAL63 (DB.CreateCommand<queryDECIMAL63>()) DECIMAL63 
+                        123.456m (123.456m.ToString(System.Globalization.CultureInfo.InvariantCulture))
 
     [<Fact>]
     let traceNull() =
