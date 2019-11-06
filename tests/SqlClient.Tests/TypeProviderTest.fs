@@ -136,28 +136,35 @@ let ``Roundtrip ToTraceString for unicode``() =
     let cmd = new SqlCommandProvider<"SELECT CAST(@x AS NVARCHAR(20))", ConnectionStrings.AdventureWorksNamed>()
     let rocket = "🚀"
     let result = runScalarQuery <| cmd.ToTraceString(rocket)      
-    Assert.Equal<string>(expected = rocket, actual = unbox<string> result)
+    Assert.Equal(expected = rocket, actual = unbox<string> result)
     
 [<Fact>]
 let ``Roundtrip ToTraceString for decimals with maximum precision``() = 
     let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DECIMAL(2, 18))", ConnectionStrings.AdventureWorksNamed>()
     let decimal_20_18 = 12345678901234567890.123456789012345678m
     let result = runScalarQuery <| cmd.ToTraceString(decimal_20_18)
-    Assert.Equal<string>(expected = decimal_20_18, actual = unbox<decimal> result
+    Assert.Equal(expected = decimal_20_18, actual = unbox<decimal> result
     
 [<Fact>]
 let ``Roundtrip ToTraceString for date time ``() = 
     let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DATETIME)", ConnectionStrings.AdventureWorksNamed>()
     let now = System.DateTime.Now
     let result = runScalarQuery <| cmd.ToTraceString(now)
-    Assert.Equal<string>(expected = now, actual = unbox<DateTime> result))
+    Assert.Equal(expected = now, actual = unbox<DateTime> result))
 
 [<Fact>]
 let ``Roundtrip ToTraceString for date time offsets``() = 
     let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DATETIMEOFFSET)", ConnectionStrings.AdventureWorksNamed>()
     let now = System.DateTimeOffset.Now
     let result = runScalarQuery <| cmd.ToTraceString(now)
-    Assert.Equal<string>(expected = now, actual = unbox<DateTimeOffset> result)
+    Assert.Equal(expected = now, actual = unbox<DateTimeOffset> result)
+
+[<Fact>]
+let ``Roundtrip ToTraceString for nulls``() = 
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS NVARCHAR(20))", ConnectionStrings.AdventureWorksNamed>()
+    let dbnull = Unchecked.defaultof<string>
+    let result = runScalarQuery <| cmd.ToTraceString(dbnull)
+    Assert.Equal(expected = box DBNull.Value, actual = result)
 
 [<Fact>]
 let ``ToTraceString for CRUD``() =    
