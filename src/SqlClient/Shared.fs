@@ -225,7 +225,7 @@ module RuntimeInternals =
         let primaryKey = ResizeArray()
         for column in columns do
             let col = new DataColumn(column.Name,column.TypeInfo.ClrType)
-            col.AllowDBNull <- column.Nullable
+            col.AllowDBNull <- column.Nullable || column.HasDefaultConstraint
             col.ReadOnly <- column.ReadOnly
             col.AutoIncrement <- column.Identity
             
