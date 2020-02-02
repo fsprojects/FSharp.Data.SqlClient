@@ -47,7 +47,13 @@ type internal TypeInfoPerConnectionStringCache() =
         raise (new InvalidOperationException(sprintf "types for connection %s were not retrieved!" connectionString))
     )
 
-  member x.DoIfConnectionStringNotRegistered f = lock f
+  member x.DoIfConnectionStringNotRegistered connectionString ifAlreadyDone f = 
+    lock (fun () ->
+      if x.ContainsConnectionString connectionString then
+          ifAlreadyDone ()
+      else
+          f ()
+    )
     
 let internal sqlDataTypesCache = new TypeInfoPerConnectionStringCache()  
 let internal findTypeInfoBySqlEngineTypeId (connStr, system_type_id, user_type_id : int option) = 
@@ -500,7 +506,10 @@ type SqlConnection with
             ]
 
     member internal this.LoadDataTypesMap() = 
-        sqlDataTypesCache.DoIfConnectionStringNotRegistered(fun () ->
+        sqlDataTypesCache.DoIfConnectionStringNotRegistered 
+          this.ConnectionString 
+          (fun () -> sqlDataTypesCache.GetTypesForConnectionString this.ConnectionString)
+          (fun () ->
             assert (this.State = ConnectionState.Open)
             
             let sqlEngineTypes, tableVariableTypes = 
@@ -560,17 +569,20 @@ order by
 
             let getProvidedType name is_user_defined is_table_type system_type_id user_type_id =
                 match providerTypes.TryGetValue(name) with
-                | true, value -> value
+                | true, value -> Some value
                 | false, _ when is_user_defined && not is_table_type ->
                     let type_name = sqlEngineTypes.[system_type_id,user_type_id].name
-                    //let system_type_name = t.name
+                    
                     match providerTypes.TryGetValue type_name with
                     | false, _ -> 
-                        let type_name = sqlEngineTypes.[system_type_id,int system_type_id].name
-                        providerTypes.[type_name]
-                    | true, item -> item
+                        match sqlEngineTypes.TryGetValue ((system_type_id,int system_type_id)) with
+                        | false, _ -> None
+                        | true, sqlType -> 
+                            let type_name = sqlType.name
+                            Some providerTypes.[type_name]
+                    | true, item -> Some item
                 | false, _ when is_table_type -> 
-                    SqlDbType.Structured, null, false
+                    Some (SqlDbType.Structured, null, false)
                 | _ -> failwith ("Unexpected type: " + name)
 
             let getProvidedTypeForSqlTypeEntry (x:SqlTypeEntry) = getProvidedType x.name x.is_user_defined x.is_table_type x.system_type_id x.user_type_id
@@ -578,7 +590,7 @@ order by
             let rec makeColumn column =
               let sqlTypeEntry = sqlEngineTypes.[column.system_type_id, column.user_type_id]
               { Column.Name       = column.name
-                TypeInfo          = makeTypeInfo sqlTypeEntry
+                TypeInfo          = Option.get (makeTypeInfo sqlTypeEntry)
                 Nullable          = column.is_nullable
                 MaxLength         = int column.max_length
                 ReadOnly          = column.is_identity || column.is_computed
@@ -590,67 +602,80 @@ order by
                 Scale             = sqlTypeEntry.scale
               }      
             and makeTypeInfo (entry: SqlTypeEntry) =
-                let sqldbtype, clrTypeFullName, isFixedLength = getProvidedTypeForSqlTypeEntry entry
-                let tableTypeColumns = 
-                    if entry.is_table_type then 
-                        tableVariableTypes.[entry.user_type_id] |> Array.map makeColumn
-                    else 
-                        Array.empty 
-                {
-                    TypeName         = entry.name
-                    Schema           = entry.schema_name
-                    SqlEngineTypeId  = int entry.system_type_id
-                    UserTypeId       = entry.user_type_id
-                    SqlDbType        = sqldbtype
-                    IsFixedLength    = isFixedLength
-                    ClrTypeFullName  = clrTypeFullName
-                    UdttName         = if entry.is_table_type then entry.name else ""
-                    TableTypeColumns = tableTypeColumns
-                }
+                match getProvidedTypeForSqlTypeEntry entry with
+                | None -> None
+                | Some (sqldbtype, clrTypeFullName, isFixedLength) ->
+                  let tableTypeColumns = 
+                      if entry.is_table_type then 
+                          tableVariableTypes.[entry.user_type_id] |> Array.map makeColumn
+                      else 
+                          Array.empty 
+                  Some {
+                      TypeName         = entry.name
+                      Schema           = entry.schema_name
+                      SqlEngineTypeId  = int entry.system_type_id
+                      UserTypeId       = entry.user_type_id
+                      SqlDbType        = sqldbtype
+                      IsFixedLength    = isFixedLength
+                      ClrTypeFullName  = clrTypeFullName
+                      UdttName         = if entry.is_table_type then entry.name else ""
+                      TableTypeColumns = tableTypeColumns
+                  }
 
             let typeInfosForTableTypes =
               sqlEngineTypes.Values
-              |> Seq.map (fun i -> i.user_type_id, i)
+              |> Seq.choose (fun i -> 
+                match makeTypeInfo i with
+                | Some typeInfo -> Some (i.user_type_id, (i, typeInfo))
+                | None ->
+                    // fails when, for example, a SQLCLR type definition is on the DDL but the assembly is missing from the database.
+                    // example: AdventureWorks2012 backup in the test folder tSQLt.Private
+                    // ignoring such types
+                    None
+              )
               |> dict
             
             let typeInfos = [|
                 
                 for { name = name; system_type_id = system_type_id; user_type_id = user_type_id; is_table_type = is_table_type; schema_name = schema_name; is_user_defined = is_user_defined } in sqlEngineTypes.Values do
-                    let providerdbtype, clrTypeFullName, isFixedLength = getProvidedType name is_user_defined is_table_type system_type_id user_type_id
+                    match getProvidedType name is_user_defined is_table_type system_type_id user_type_id with
+                    | None -> ()
+                    | Some (providerdbtype, clrTypeFullName, isFixedLength) ->
                     
-                    let columns = 
-                            if is_table_type
-                            then
-                                    let columns = tableVariableTypes.[user_type_id]
-                                    columns
-                                    |> Array.map 
-                                      (fun column ->
-                                        let typeInfo = typeInfosForTableTypes.[user_type_id]
-                                        { Column.Name = column.name
-                                          TypeInfo          = makeTypeInfo typeInfo
-                                          Nullable          = column.is_nullable
-                                          MaxLength         = int column.max_length
-                                          ReadOnly          = column.is_identity || column.is_computed
-                                          Identity          = column.is_identity
-                                          PartOfUniqueKey   = false
-                                          DefaultConstraint = null
-                                          Description       = null
-                                          Precision         = typeInfo.precision
-                                          Scale             = typeInfo.scale }
-                                    )
+                        let columns = 
+                            if is_table_type then
+                                let columns = tableVariableTypes.[user_type_id]
+
+                                columns
+                                |> Array.map (fun column -> 
+                                    let sqlTypeInfo, typeInfo = typeInfosForTableTypes.[user_type_id]
+                                    { 
+                                        Column.Name       = column.name
+                                        TypeInfo          = typeInfo
+                                        Nullable          = column.is_nullable
+                                        MaxLength         = int column.max_length
+                                        ReadOnly          = column.is_identity || column.is_computed
+                                        Identity          = column.is_identity
+                                        PartOfUniqueKey   = false
+                                        DefaultConstraint = null
+                                        Description       = null 
+                                        Precision         = sqlTypeInfo.precision
+                                        Scale             = sqlTypeInfo.scale
+                                    })
                             else
                                 Array.empty
-                    yield {
-                        TypeName = name
-                        Schema = schema_name
-                        SqlEngineTypeId = int system_type_id
-                        UserTypeId = user_type_id
-                        SqlDbType = providerdbtype
-                        IsFixedLength = isFixedLength
-                        ClrTypeFullName = clrTypeFullName
-                        UdttName = if is_table_type then name else ""
-                        TableTypeColumns = columns
-                    }
+                        yield 
+                            {
+                                TypeName         = name
+                                Schema           = schema_name
+                                SqlEngineTypeId  = int system_type_id
+                                UserTypeId       = user_type_id
+                                SqlDbType        = providerdbtype
+                                IsFixedLength    = isFixedLength
+                                ClrTypeFullName  = clrTypeFullName
+                                UdttName         = if is_table_type then name else ""
+                                TableTypeColumns = columns 
+                            }
             |]
             sqlDataTypesCache.RegisterTypes(this.ConnectionString, typeInfos)
             typeInfos
