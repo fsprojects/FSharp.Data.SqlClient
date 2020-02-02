@@ -537,10 +537,11 @@ type DesignTime private() =
                     let name = p.Name
                     let param = ProvidedParameter( name, p.GetProvidedType(unitsOfMeasurePerSchema), ?optionalValue = if p.Nullable then Some null else None) 
                     let sqlMeta =
-                        let dbType = p.TypeInfo.SqlDbType
+                        let typeInfo = p.GetTypeInfoConsideringUDDT()
+                        let dbType = typeInfo.SqlDbType
                         let precision = byte p.Precision
                         let scale = byte p.Scale
-                        if p.TypeInfo.IsFixedLength then
+                        if typeInfo.IsFixedLength then
                             if scale = 0uy then
                                 <@@ SqlMetaData(name, dbType) @@>
                             else
