@@ -537,8 +537,10 @@ type DesignTime private() =
                     let name = p.Name
                     let param = ProvidedParameter( name, p.GetProvidedType(unitsOfMeasurePerSchema), ?optionalValue = if p.Nullable then Some null else None) 
                     let sqlMeta =
-                        let dbType = p.TypeInfo.SqlDbType
-                        if p.TypeInfo.IsFixedLength
+                        let typeInfo = p.GetTypeInfoConsideringUDDT()
+                        let dbType = typeInfo.SqlDbType
+                        
+                        if typeInfo.IsFixedLength
                         then <@@ SqlMetaData(name, dbType) @@>
                         else 
                             let maxLength = p.MaxLength
