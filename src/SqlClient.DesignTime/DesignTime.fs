@@ -542,12 +542,14 @@ type DesignTime private() =
                     let name = p.Name
                     let param = ProvidedParameter( name, p.GetProvidedType(), ?optionalValue = if p.Nullable then Some null else None) 
                     let sqlMeta =
-                        let dbType = p.TypeInfo.SqlDbType
-                        if p.TypeInfo.IsFixedLength
-                        then <@@ SqlMetaData(name, dbType) @@>
-                        else 
-                            let maxLength = p.MaxLength
-                            <@@ SqlMetaData(name, dbType, int64 maxLength) @@>
+                        let dbType    = p.TypeInfo.SqlDbType
+                        let precision = p.Precision
+                        let scale     = p.Scale
+                        if p.TypeInfo.IsFixedLength then
+                            <@@ SqlMetaData(name, dbType, precision, scale) @@>
+                        else
+                            let maxLength = int64 p.MaxLength
+                            <@@ SqlMetaData(name, dbType, maxLength) @@>
 
                     yield param, sqlMeta
             ] 

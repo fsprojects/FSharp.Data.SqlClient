@@ -248,31 +248,33 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
                 let query = 
                     sprintf "
-                        SELECT 
-	                        columns.name
-	                        ,columns.system_type_id
-	                        ,columns.user_type_id
-	                        ,columns.max_length
-	                        ,columns.is_nullable
-	                        ,is_identity AS is_identity_column
-	                        ,is_updateable = CONVERT(BIT, CASE WHEN is_identity = 0 AND is_computed = 0 THEN 1 ELSE 0 END) 
-	                        ,is_part_of_unique_key = CONVERT(BIT, CASE WHEN index_columns.object_id IS NULL THEN 0 ELSE 1 END)
-	                        ,default_constraint = ISNULL(OBJECT_DEFINITION(default_object_id), '')
-	                        ,description = ISNULL(XProp.Value, '')
-                        FROM 
-	                        sys.schemas 
-	                        JOIN sys.tables ON 
-		                        tables.schema_id = schemas.schema_id 
-		                        AND schemas.name = @schema 
-		                        AND tables.name = @tableName
-	                        JOIN sys.columns ON columns.object_id = tables.object_id
-	                        LEFT JOIN sys.indexes ON 
-		                        tables.object_id = indexes.object_id 
-		                        AND indexes.is_primary_key = 1
-	                        LEFT JOIN sys.index_columns ON 
-		                        index_columns.object_id = tables.object_id 
-		                        AND index_columns.index_id = indexes.index_id 
-		                        AND columns.column_id = index_columns.column_id
+                        SELECT
+                            columns.name
+                            ,columns.system_type_id
+                            ,columns.user_type_id
+                            ,columns.max_length
+                            ,columns.is_nullable
+                            ,is_identity AS is_identity_column
+                            ,is_updateable = CONVERT(BIT, CASE WHEN is_identity = 0 AND is_computed = 0 THEN 1 ELSE 0 END)
+                            ,is_part_of_unique_key = CONVERT(BIT, CASE WHEN index_columns.object_id IS NULL THEN 0 ELSE 1 END)
+                            ,default_constraint = ISNULL(OBJECT_DEFINITION(default_object_id), '')
+                            ,description = ISNULL(XProp.Value, '')
+                            ,columns.[precision]
+                            ,columns.scale
+                        FROM
+                            sys.schemas
+                            JOIN sys.tables ON
+                                tables.schema_id = schemas.schema_id
+                                AND schemas.name = @schema
+                                AND tables.name = @tableName
+                            JOIN sys.columns ON columns.object_id = tables.object_id
+                            LEFT JOIN sys.indexes ON
+                                tables.object_id = indexes.object_id
+                                AND indexes.is_primary_key = 1
+                            LEFT JOIN sys.index_columns ON
+                                index_columns.object_id = tables.object_id
+                                AND index_columns.index_id = indexes.index_id
+                                AND columns.column_id = index_columns.column_id
                             OUTER APPLY %s AS XProp
                         ORDER BY 
                             columns.column_id
