@@ -406,6 +406,8 @@ type SqlConnection with
                 PartOfUniqueKey   = cursor.GetValueOrDefault( "is_part_of_unique_key", false)
                 DefaultConstraint = null
                 Description       = null
+                Precision         = unbox cursor.["precision"]
+                Scale             = unbox cursor.["scale"]
             }
         )
         |> Seq.toList 
@@ -434,6 +436,8 @@ type SqlConnection with
                         PartOfUniqueKey = false
                         DefaultConstraint = null
                         Description = null
+                        Precision = unbox row.["NumericPrecision"]
+                        Scale = unbox row.["NumericScale"]
                     }
             ]
 
@@ -480,7 +484,7 @@ type SqlConnection with
                             then
                                 [|
                                     use cmd = new SqlCommand("
-                                        SELECT c.name, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length, c.is_identity, c.is_computed
+                                        SELECT c.name, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length, c.is_identity, c.is_computed, c.[precision], c.scale
                                         FROM sys.table_types AS tt
                                         INNER JOIN sys.columns AS c ON tt.type_table_object_id = c.object_id
                                         WHERE tt.user_type_id = @user_type_id
@@ -502,6 +506,8 @@ type SqlConnection with
                                             PartOfUniqueKey = false
                                             DefaultConstraint = null
                                             Description = null
+                                            Precision = unbox reader.["precision"]
+                                            Scale = unbox reader.["scale"]
                                         }
                                 |] 
                             else

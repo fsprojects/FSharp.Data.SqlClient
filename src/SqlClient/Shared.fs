@@ -51,6 +51,8 @@ type Column = {
     PartOfUniqueKey: bool
     DefaultConstraint: string
     Description: string
+    Precision: byte
+    Scale: byte
 }   with
     member this.ErasedToType = 
         if this.Nullable
@@ -90,6 +92,8 @@ type Column = {
         PartOfUniqueKey = unbox cursor.["is_part_of_unique_key"]
         DefaultConstraint = defaultArg defaultValue ""
         Description = defaultArg description ""
+        Precision = unbox cursor.["precision"]
+        Scale = unbox cursor.["scale"]
     }
 
     override this.ToString() = 
