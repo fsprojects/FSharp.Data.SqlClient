@@ -159,7 +159,7 @@ let FunctionWithParamOfValueTypeWithNullDefault() =
 [<Fact>]
 let SpWithParamOfRefTypeWithNullDefault() = 
     use echo = new AdventureWorks.dbo.Echo()
-    Assert.Equal( Some (Some (box "Empty")), echo.ExecuteSingle(None))
+    Assert.Equal( Some (Some (box "Empty")), echo.ExecuteSingle())
 
     Assert.Equal( Some(Some (box 42)), echo.ExecuteSingle 42)
 
