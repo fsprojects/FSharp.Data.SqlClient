@@ -134,14 +134,26 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
         member this.ToTraceString parameters =  
             ``ISqlCommand Implementation``.SetParameters(cmd, parameters)
             let parameterDefinition (p : SqlParameter) =
+                // decimal uses precision and scale instead of size
+                if List.contains p.SqlDbType [SqlDbType.Money; SqlDbType.SmallMoney; SqlDbType.Decimal] then
+                    // maximum size is 38
+                    sprintf "%s %A(%u,%u)" p.ParameterName p.SqlDbType p.Precision p.Scale
+                    
                 // tinyint and Xml have size 1 and -1 respectively, but MSSQL will throw if they are specified
-                if p.Size <> 0 && 
+                elif p.Size <> 0 && 
                    p.SqlDbType <> SqlDbType.Xml && 
                    p.SqlDbType <> SqlDbType.TinyInt then
                    
                     sprintf "%s %A(%d)" p.ParameterName p.SqlDbType p.Size
                 else
                     sprintf "%s %A" p.ParameterName p.SqlDbType 
+             
+            // helper map to resolve each parameter's target type
+            let getSqlDbType = 
+               let lookup = Map.ofSeq <| Seq.zip (parameters     |> Seq.map (fun (name, value) -> name))
+                                                 (cmd.Parameters |> Seq.cast<SqlParameter> |> Seq.map (fun p -> p.SqlDbType))
+               fun name -> Map.find name lookup
+            
             seq {
                 
                 yield sprintf "exec sp_executesql N'%s'" (cmd.CommandText.Replace("'", "''"))
@@ -157,16 +169,36 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                 if parameters.Length > 0 
                 then 
                     yield parameters
-                        |> Seq.map(fun (name,value) ->                             
-                            let printedValue =                                 
-                                match value with
-                                // print dates in roundtrip ISO8601 format "O"
-                                | :? System.DateTime as d -> d.ToString("O")
-                                // print timespans in constant format "c
-                                | :? System.TimeSpan as t -> t.ToString("c")
-                                | v -> sprintf "%O" v
-                            // escapes the resulting value
-                            sprintf "%s='%s'" name (printedValue.Replace("'", "''"))
+                        |> Seq.map(fun (name,value) ->   
+                            // NULL isn't escaped
+                            match value with
+                            | null | :? DBNull ->  sprintf "%s=NULL" name
+                            | nonNullValue ->
+                                let printedValue =                                 
+                                    match nonNullValue with
+                                    // print dates with high precision (SQL datetimeoffset, datetime2) in roundtrip ISO8601 format "O"
+                                    | :? System.DateTimeOffset as d -> d.ToString("O")
+                                    | :? System.DateTime as d when getSqlDbType name = SqlDbType.DateTime2 -> d.ToString("O")
+                                    // print dates with low precision (SQL datetime) in legacy format
+                                    | :? System.DateTime as d when getSqlDbType name <> SqlDbType.DateTime2 -> d.ToString("yyyy-MM-ddTHH:mm:ss.fff")                          
+                                    // print timespans in constant format "c
+                                    | :? System.TimeSpan as t -> t.ToString("c")
+                                    // print numeric values in culture-invariant format
+                                    | :? decimal as n -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? double as n  -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? single as n  -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? bigint as n  -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? uint64 as n  -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? int64 as n   -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)                                
+                                    | :? uint32 as n  -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)                                
+                                    | :? int as n     -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)                                
+                                    | :? uint16 as n  -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)                                
+                                    | :? int16 as n   -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? byte as n    -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                    | :? sbyte as n   -> n.ToString(System.Globalization.CultureInfo.InvariantCulture)      
+                                    | v -> sprintf "%O" v
+                                // escapes the resulting value, with Unicode notation
+                                sprintf "%s=N'%s'" name (printedValue.Replace("'", "''"))
                         )                            
                         |> String.concat ","
             } |> String.concat "," //Using string.concat to handle annoying case with no parameters

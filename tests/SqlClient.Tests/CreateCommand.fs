@@ -82,17 +82,62 @@ let columnsShouldNotBeNull2() =
     let _,_,_,_,precision = cmd.Execute().Value
     Assert.Equal(None, precision) 
 
-[<Fact>]
-let toTraceString() =
-    let now = System.DateTime.Now
-    let universalNow = now.ToString("O")
-    let num = 42
-    let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE), CAST(@Number AS INT)',N'@Date Date,@Number Int',@Date='%s',@Number='%d'" universalNow num
-    let cmd = DB.CreateCommand<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", ResultType.Tuples>()
-    Assert.Equal<string>(
-        expected, 
-        actual = cmd.ToTraceString( now, num)
-    )
+module TraceTests = 
+
+    let [<Literal>] queryStart = "SELECT CAST(@Value AS "
+    let [<Literal>] queryEnd = ")"
+    
+    let [<Literal>] DATETIME = "DateTime"
+    let [<Literal>] queryDATETIME = queryStart + DATETIME + queryEnd
+    
+    let [<Literal>] DATETIMEOFFSET = "DateTimeOffset"
+    let [<Literal>] queryDATETIMEOFFSET = queryStart + DATETIMEOFFSET + queryEnd
+    
+    let [<Literal>] TIMESTAMP = "Time"
+    let [<Literal>] queryTIMESTAMP = queryStart + TIMESTAMP + queryEnd
+    
+    let [<Literal>] INT = "Int"
+    let [<Literal>] queryINT = queryStart + INT + queryEnd
+    
+    let [<Literal>] DECIMAL63 = "Decimal(6,3)"
+    let [<Literal>] queryDECIMAL63 = queryStart + DECIMAL63 + queryEnd
+    
+    let inline testTraceString traceQuery (cmd : ^cmd) dbType (value : ^value) printedValue = 
+        let expected = sprintf "exec sp_executesql N'%s',N'@Value %s',@Value=N'%s'" traceQuery dbType printedValue    
+        Assert.Equal<string>(expected, actual = (^cmd : (member ToTraceString : ^value -> string) (cmd, value)))
+
+    [<Fact>]
+    let traceDate() =     
+        let now = System.DateTime.Now
+        testTraceString queryDATETIME (DB.CreateCommand<queryDATETIME>()) DATETIME 
+                        now (now.ToString("yyyy-MM-ddTHH:mm:ss.fff"))
+    
+    [<Fact>]
+    let traceDateTimeOffset() = 
+        let now = System.DateTimeOffset.Now
+        testTraceString queryDATETIMEOFFSET (DB.CreateCommand<queryDATETIMEOFFSET>()) DATETIMEOFFSET 
+                        now (now.ToString("O"))
+        
+    [<Fact>]
+    let traceTimestamp() =
+        let timeOfDay = System.DateTime.Now.TimeOfDay
+        testTraceString queryTIMESTAMP (DB.CreateCommand<queryTIMESTAMP>()) TIMESTAMP 
+                        timeOfDay (timeOfDay.ToString("c"))
+        
+    [<Fact>]
+    let traceInt() =
+        testTraceString queryINT (DB.CreateCommand<queryINT>()) INT 
+                        42 "42"
+
+    [<Fact>]
+    let traceDecimal() =
+        testTraceString queryDECIMAL63 (DB.CreateCommand<queryDECIMAL63>()) DECIMAL63 
+                        123.456m (123.456m.ToString(System.Globalization.CultureInfo.InvariantCulture))
+
+    [<Fact>]
+    let traceNull() =
+        let expected = sprintf "exec sp_executesql N'SELECT CAST(@Value AS NVARCHAR(20))',N'@Value NVarChar(20)',@Value=NULL"
+        Assert.Equal<string>(expected, actual = DB.CreateCommand<"SELECT CAST(@Value AS NVARCHAR(20))">().ToTraceString(Unchecked.defaultof<string>))
 
 [<Fact>]
 let resultSetMapping() =

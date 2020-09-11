@@ -89,63 +89,110 @@ let singleRowOption() =
 [<Fact>]
 let ToTraceString() =
     let now = DateTime.Now
-    let universalPrintedNow = now.ToString("O")
+    let universalPrintedNow = now.ToString("yyyy-MM-ddTHH:mm:ss.fff")
     let num = 42
-    let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE), CAST(@Number AS INT)',N'@Date Date,@Number Int',@Date='%s',@Number='%d'" universalPrintedNow num
+    let expected = sprintf "exec sp_executesql N'SELECT CAST(@Date AS DATE), CAST(@Number AS INT)',N'@Date Date,@Number Int',@Date=N'%s',@Number=N'%d'" universalPrintedNow num
     let cmd = new SqlCommandProvider<"SELECT CAST(@Date AS DATE), CAST(@Number AS INT)", ConnectionStrings.AdventureWorksNamed, ResultType.Tuples>()
     Assert.Equal<string>(
         expected, 
         actual = cmd.ToTraceString( now, num)
     )
     
-let runString query = 
+let runScalarQuery query = 
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
     use cmd = new System.Data.SqlClient.SqlCommand()
     cmd.Connection <- conn  
     cmd.CommandText <- query
-    cmd.ExecuteNonQuery()
+    cmd.ExecuteScalar()
     
 [<Fact>]
 let ``ToTraceString for dates``() =    
     let cmd = new SqlCommandProvider<"SELECT CAST(@Date AS DATE)", ConnectionStrings.AdventureWorksNamed>()
-    runString <| cmd.ToTraceString(System.DateTime.Now)
+    runScalarQuery <| cmd.ToTraceString(System.DateTime.Now)
     
 [<Fact>]
 let ``ToTraceString for times``() =    
     let cmd = new SqlCommandProvider<"SELECT CAST(@Time AS Time)", ConnectionStrings.AdventureWorksNamed>()
-    runString <| cmd.ToTraceString(System.DateTime.Now.TimeOfDay)
+    runScalarQuery <| cmd.ToTraceString(System.DateTime.Now.TimeOfDay)
     
 [<Fact>]
 let ``ToTraceString for tinyint``() =    
     let cmd = new SqlCommandProvider<"SELECT CAST(@ti AS TINYINT)", ConnectionStrings.AdventureWorksNamed>()
-    runString <| cmd.ToTraceString(0uy)
+    runScalarQuery <| cmd.ToTraceString(0uy)
     
 [<Fact>]
 let ``ToTraceString for xml``() =    
     let cmd = new SqlCommandProvider<"SELECT CAST(@x AS XML)", ConnectionStrings.AdventureWorksNamed>()
-    runString <| cmd.ToTraceString("<foo>bar</foo>")
+    runScalarQuery <| cmd.ToTraceString("<foo>bar</foo>")
     
 [<Fact>]
 let ``ToTraceString for xml with single quotes``() =    
     let cmd = new SqlCommandProvider<"SELECT CAST(@x AS XML)", ConnectionStrings.AdventureWorksNamed>()
-    runString <| cmd.ToTraceString("<foo>b'ar</foo>")    
+    runScalarQuery <| cmd.ToTraceString("<foo>b'ar</foo>")  
+    
+[<Fact>]
+let ``Roundtrip ToTraceString for unicode``() =    
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS NVARCHAR(20))", ConnectionStrings.AdventureWorksNamed>()
+    let rocket = "🚀"
+    let result = runScalarQuery <| cmd.ToTraceString(rocket)      
+    Assert.Equal(expected = rocket, actual = unbox<string> result)
+    
+[<Fact>]
+let ``Roundtrip ToTraceString for decimals with maximum precision``() = 
+    // Note: maximum precision for MSSQL decimals is 38, but maximum for MSSQL <-> .NET conversion is 29
+    // https://weblogs.sqlteam.com/mladenp/2010/08/31/when-does-sql-server-decimal-not-convert-to-net-decimal/
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DECIMAL(29, 19))", ConnectionStrings.AdventureWorksNamed>()
+    let decimal_29_19 = 1234567890.1234567890123456789m
+    let result = runScalarQuery <| cmd.ToTraceString(decimal_29_19)
+    Assert.Equal(expected = decimal_29_19, actual = unbox<decimal> result)
+    
+[<Fact>]
+let ``Roundtrip ToTraceString for date time ``() = 
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DATETIME)", ConnectionStrings.AdventureWorksNamed>()
+    // SQL Server DATETIME has precision up to .00333 seconds
+    let tolerance = 0.00334
+    let now = System.DateTime.Now
+    let result = runScalarQuery <| cmd.ToTraceString(now)    
+    Assert.InRange(unbox<DateTime> result, now.AddSeconds(-1. * tolerance), now.AddSeconds(tolerance))
+
+[<Fact>]
+let ``Roundtrip ToTraceString for datetime2 ``() = 
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DATETIME2)", ConnectionStrings.AdventureWorksNamed>()
+    // SQL Server DATETIME2 has the same nanosecond precision as DATETIMEOFFSET so there shouldn't be any discrepance
+    let now = System.DateTime.Now
+    let result = runScalarQuery <| cmd.ToTraceString(now)    
+    Assert.Equal(expected = now, actual = unbox<DateTime> result)
+
+[<Fact>]
+let ``Roundtrip ToTraceString for date time offsets``() = 
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS DATETIMEOFFSET)", ConnectionStrings.AdventureWorksNamed>()
+    let now = System.DateTimeOffset.Now
+    let result = runScalarQuery <| cmd.ToTraceString(now)
+    Assert.Equal(expected = now, actual = unbox<DateTimeOffset> result)
+
+[<Fact>]
+let ``Roundtrip ToTraceString for nulls``() = 
+    let cmd = new SqlCommandProvider<"SELECT CAST(@x AS NVARCHAR(20))", ConnectionStrings.AdventureWorksNamed>()
+    let dbnull = Unchecked.defaultof<string>
+    let result = runScalarQuery <| cmd.ToTraceString(dbnull)
+    Assert.Equal(expected = box DBNull.Value, actual = result)
 
 [<Fact>]
 let ``ToTraceString for CRUD``() =    
 
     Assert.Equal<string>(
-        expected = "exec sp_executesql N'SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code',N'@code NChar(3)',@code='BTC'",
+        expected = "exec sp_executesql N'SELECT CurrencyCode, Name FROM Sales.Currency WHERE CurrencyCode = @code',N'@code NChar(3)',@code=N'BTC'",
         actual = let cmd = new GetBitCoin() in cmd.ToTraceString( bitCoinCode)
     )
     
     Assert.Equal<string>(
-        expected = "exec sp_executesql N'INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())',N'@Code NChar(3),@Name NVarChar(50)',@Code='BTC',@Name='Bitcoin'",
+        expected = "exec sp_executesql N'INSERT INTO Sales.Currency VALUES(@Code, @Name, GETDATE())',N'@Code NChar(3),@Name NVarChar(50)',@Code=N'BTC',@Name=N'Bitcoin'",
         actual = let cmd = new InsertBitCoin() in cmd.ToTraceString( bitCoinCode, bitCoinName)
     )
 
     Assert.Equal<string>(
-        expected = "exec sp_executesql N'DELETE FROM Sales.Currency WHERE CurrencyCode = @Code',N'@Code NChar(3)',@Code='BTC'",
+        expected = "exec sp_executesql N'DELETE FROM Sales.Currency WHERE CurrencyCode = @Code',N'@Code NChar(3)',@Code=N'BTC'",
         actual = let cmd = new DeleteBitCoin() in cmd.ToTraceString( bitCoinCode)
     )
     
@@ -160,7 +207,7 @@ let ``ToTraceString double-quotes``() =
 let ``ToTraceString double-quotes in parameter``() =    
     use cmd = new SqlCommandProvider<"SELECT * FROM Sales.Currency WHERE CurrencyCode = @CurrencyCode", ConnectionStrings.AdventureWorksNamed>()    
     Assert.Equal<string>(
-        expected = "exec sp_executesql N'SELECT * FROM Sales.Currency WHERE CurrencyCode = @CurrencyCode',N'@CurrencyCode NChar(3)',@CurrencyCode='A''B'",
+        expected = "exec sp_executesql N'SELECT * FROM Sales.Currency WHERE CurrencyCode = @CurrencyCode',N'@CurrencyCode NChar(3)',@CurrencyCode=N'A''B'",
         actual = cmd.ToTraceString("A'B")
     )
     
