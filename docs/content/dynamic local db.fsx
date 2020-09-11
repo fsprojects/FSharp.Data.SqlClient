@@ -30,7 +30,7 @@ MDF file for compile time?
 Well the following scripts can do that for your project.
 
 First create a file called `createDb.ps1` and place it in an `SQL` subfolder in
-your project (you can place it in the project root to, if you want):
+your project (you can place it in the project root too, if you want):
 
     param(
       [Parameter(Mandatory=$true)][String]$DbName,
@@ -115,26 +115,28 @@ static type checking without the hassle of having to have an internet
 connection, or deal with binary .MDF files!
 
 Furthermore, the `.fsproj` edits above give the following benefits:
-* The DBs are rebuilt if their corresponding SQL scripts have changed, or if the
-  PowerShell script has changed
-* The project is rebuilt if the PowerShell script has changed
-* The project is rebuilt if any SQL file has changed (both the database creation
-  scripts, and any other SQL scripts that SqlClient might use though the
-  `SqlFile` type provider)
-* Incremental build - each database is only built if its corresponding SQL
-  script or the PowerShell script has changed
+
+  * The DBs are rebuilt if their corresponding SQL scripts have changed, or if the
+    PowerShell script has changed
+  * The project is rebuilt if the PowerShell script has changed
+  * The project is rebuilt if any SQL file has changed (both the database creation
+    scripts, and any other SQL scripts that SqlClient might use though the
+    `SqlFile` type provider)
+  * Incremental build - each database is only built if its corresponding SQL
+    script or the PowerShell script has changed
 
 When it comes to actually making the database creation scripts (such as the
 `create_myDb1.sql` in the example above), you can do this if you use SQL Server
 Management Studio (SSMS):
-* Connect to the database you want to copy
-* Right-click the database and select Tasks -> Generate scripts
-* Select what you need to be exported (for example, everything except Users).
-* If SqlClient throws errors when connecting to your local database, you might
-  be missing important objects from your database. Make sure everything you need
-  is enabled in SSMS under Tools -> Options -> SQL Server Object Explorer ->
-  Scripting. For example, if you have indexed views and use the `WITH
-  (NOEXPAND)` hint in your SQL, you need the indexes too, which are not enabled
-  by default. In this case, enable "Script indexes" under the "Table and view
-  options" heading.
+
+  * Connect to the database you want to copy
+  * Right-click the database and select Tasks -> Generate scripts
+  * Select what you need to be exported (for example, everything except Users).
+  * If SqlClient throws errors when connecting to your local database, you might
+    be missing important objects from your database. Make sure everything you need
+    is enabled in SSMS under Tools -> Options -> SQL Server Object Explorer ->
+    Scripting. For example, if you have indexed views and use the `WITH
+    (NOEXPAND)` hint in your SQL, you need the indexes too, which are not enabled
+    by default. In this case, enable "Script indexes" under the "Table and view
+    options" heading.
 *)
