@@ -65,7 +65,7 @@ your project (you can place it in the project root too, if you want):
     sqlcmd -S "(LocalDB)\MSSQLLocalDB" -i "createdb.sql"
     Remove-Item "createdb.sql"
 
-    sqlcmd -S "(LocalDB)\MSSQLLocalDB" -i "$DbScript"
+    sqlcmd -S "(LocalDB)\MSSQLLocalDB" -i "$DbScript" -d "$DbName"
 
     $detach_db_sql | Out-File "detachdb.sql"
     sqlcmd -S "(LocalDB)\MSSQLLocalDB" -i "detachdb.sql"
