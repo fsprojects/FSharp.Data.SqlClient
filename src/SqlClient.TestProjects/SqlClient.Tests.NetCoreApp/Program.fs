@@ -1,7 +1,7 @@
 ﻿open FSharp.Data
 
 [<Literal>]
-let Cnx = "Data Source=mhknbn2kdz.database.windows.net;Initial Catalog=AdventureWorks2012;Integrated Security=False;User ID=sqlfamily;Password=sqlf@m1ly"
+let Cnx = "Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 type SingleColumnSelect = SqlEnumProvider<"SELECT Name FROM Purchasing.ShipMethod", Cnx>
 type TinyIntEnum = SqlEnumProvider<"SELECT * FROM (VALUES(('One'), CAST(1 AS tinyint)), ('Two', CAST(2 AS tinyint))) AS T(Tag, Value)", Cnx, Kind = SqlEnumKind.CLI>

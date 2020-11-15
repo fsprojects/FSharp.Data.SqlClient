@@ -43,7 +43,7 @@ let release =
 let version = release.AssemblyVersion
 let releaseNotes = release.Notes |> String.concat "\n"
 
-let install = lazy DotNet.install DotNet.Versions.Release_2_1_402
+let install = lazy DotNet.install DotNet.Versions.FromGlobalJson
 let inline dnDefault arg = DotNet.Options.lift install.Value arg
 
 // --------------------------------------------------------------------------------------
@@ -249,8 +249,8 @@ open Fake.Core.TargetOperators // for ==>
 "Clean"
   ==> "AssemblyInfo"
   ==> "Build"
-  ==> "BuildTestProjects"
   ==> "DeployTestDB"  
+  ==> "BuildTestProjects"  
   ==> "RunTests"
   ==> "All"
 
