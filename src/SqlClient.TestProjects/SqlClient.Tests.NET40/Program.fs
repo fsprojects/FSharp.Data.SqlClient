@@ -1,7 +1,7 @@
 open FSharp.Data
 
 [<Literal>]
-let connectionString = "Data Source=mhknbn2kdz.database.windows.net;Initial Catalog=AdventureWorks2012;Integrated Security=False;User ID=sqlfamily;Password=sqlf@m1ly"
+let connectionString = "Data Source=localhost;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 [<EntryPoint>]
 let main _ =
