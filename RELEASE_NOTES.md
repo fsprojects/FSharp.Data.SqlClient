@@ -1,3 +1,13 @@
+#### 2.0.7 November 18, 2020
+
+* Issue #345 Decimal values are trimmed when used as part of a TVP
+* Contributors: Suou Ryuu (https://github.com/suou-ryuu), Gauthier Segay (https://github.com/smoothdeveloper)
+
+#### 2.0.6 October 10, 2019
+
+* Issue #364 Fix issues in ToTraceString
+* Contributors: piaste (https://github.com/piaste)
+
 #### 2.0.5 June 11, 2019
 
 * Issue #339 Allow timeout on data table Update commands
