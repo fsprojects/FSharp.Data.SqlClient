@@ -395,7 +395,8 @@ type SqlConnection with
         cmd.ExecuteQuery(fun cursor ->
             let user_type_id = cursor.TryGetValue "user_type_id"
             let system_type_id = cursor.["system_type_id"] |> unbox<int>
-
+            let precisionOrdinal = cursor.GetOrdinal("precision")
+            let scaleOrdinal = cursor.GetOrdinal("scale")
             { 
                 Column.Name       = string cursor.["name"]
                 TypeInfo          = findTypeInfoBySqlEngineTypeId (this.ConnectionString, system_type_id, user_type_id)
@@ -403,9 +404,11 @@ type SqlConnection with
                 MaxLength         = cursor.["max_length"] |> unbox<int16> |> int
                 ReadOnly          = not( cursor.GetValueOrDefault("is_updateable", true))
                 Identity          = cursor.GetValueOrDefault("is_identity_column", false)
-                PartOfUniqueKey   = cursor.GetValueOrDefault( "is_part_of_unique_key", false)
+                PartOfUniqueKey   = cursor.GetValueOrDefault("is_part_of_unique_key", false)
                 DefaultConstraint = null
                 Description       = null
+                Precision         = int16 (cursor.GetByte precisionOrdinal)
+                Scale             = int16 (cursor.GetByte scaleOrdinal)
             }
         )
         |> Seq.toList 
@@ -434,6 +437,8 @@ type SqlConnection with
                         PartOfUniqueKey = false
                         DefaultConstraint = null
                         Description = null
+                        Precision = unbox row.["NumericPrecision"]
+                        Scale = unbox row.["NumericScale"]
                     }
             ]
 
@@ -480,7 +485,7 @@ type SqlConnection with
                             then
                                 [|
                                     use cmd = new SqlCommand("
-                                        SELECT c.name, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length, c.is_identity, c.is_computed
+                                        SELECT c.name, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length, c.is_identity, c.is_computed, c.[precision], c.scale
                                         FROM sys.table_types AS tt
                                         INNER JOIN sys.columns AS c ON tt.type_table_object_id = c.object_id
                                         WHERE tt.user_type_id = @user_type_id
@@ -490,6 +495,8 @@ type SqlConnection with
                                     cmd.Connection <- this
                                     use reader = cmd.ExecuteReader()
                                     while reader.Read() do 
+                                        let precisionOrdinal = reader.GetOrdinal "precision"
+                                        let scaleOrdinal = reader.GetOrdinal "scale"
                                         let user_type_id = reader.TryGetValue "user_type_id"
                                         let stid = reader.["system_type_id"] |> unbox<byte> |> int
                                         yield {
@@ -502,6 +509,8 @@ type SqlConnection with
                                             PartOfUniqueKey = false
                                             DefaultConstraint = null
                                             Description = null
+                                            Precision = int16 (reader.GetByte precisionOrdinal)
+                                            Scale = int16 (reader.GetByte scaleOrdinal)
                                         }
                                 |] 
                             else

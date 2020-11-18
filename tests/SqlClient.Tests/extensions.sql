@@ -352,3 +352,20 @@ GO
 CREATE SYNONYM dbo.HRShift FOR HumanResources.Shift
 GO
 
+
+-- issue #345
+if object_id('dbo.decimal_test') is not null
+	drop procedure dbo.decimal_test
+go
+if type_id('dbo.decimal_test_tvp') is not null
+	drop type dbo.decimal_test_tvp
+go
+create type dbo.decimal_test_tvp as table(quantity decimal(22,8) null)
+go
+create procedure dbo.decimal_test (@tvp dbo.decimal_test_tvp readonly)
+as
+begin
+    select quantity from @tvp
+end
+go
+

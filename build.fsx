@@ -159,7 +159,7 @@ Target.create "DeployTestDB" (fun _ ->
 
     do //create extra object to test corner case
         let script = File.ReadAllText(testsSourceRoot @@ "extensions.sql")
-        for batch in script.Split([|"GO"|], StringSplitOptions.RemoveEmptyEntries) do
+        for batch in script.Split([|"GO";"go"|], StringSplitOptions.RemoveEmptyEntries) do
             use cmd = new SqlCommand(batch, conn)
             cmd.ExecuteNonQuery() |> ignore
 )

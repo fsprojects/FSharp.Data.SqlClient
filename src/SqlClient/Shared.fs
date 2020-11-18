@@ -51,6 +51,8 @@ type Column = {
     PartOfUniqueKey: bool
     DefaultConstraint: string
     Description: string
+    Precision: int16
+    Scale: int16
 }   with
     member this.ErasedToType = 
         if this.Nullable
@@ -77,7 +79,10 @@ type Column = {
     member this.HasDefaultConstraint = this.DefaultConstraint <> ""
     member this.NullableParameter = this.Nullable || this.HasDefaultConstraint
 
-    static member Parse(cursor: SqlDataReader, typeLookup: int * int option -> TypeInfo, ?defaultValue, ?description) = {
+    static member Parse(cursor: SqlDataReader, typeLookup: int * int option -> TypeInfo, ?defaultValue, ?description) = 
+      let precisionOrdinal = cursor.GetOrdinal "precision"
+      let scaleOrdinal = cursor.GetOrdinal "scale"
+      {
         Name = unbox cursor.["name"]
         TypeInfo = 
             let system_type_id = unbox<byte> cursor.["system_type_id"] |> int
@@ -90,7 +95,9 @@ type Column = {
         PartOfUniqueKey = unbox cursor.["is_part_of_unique_key"]
         DefaultConstraint = defaultArg defaultValue ""
         Description = defaultArg description ""
-    }
+        Precision = int16 (cursor.GetByte precisionOrdinal)
+        Scale = int16 (cursor.GetByte scaleOrdinal)
+      }
 
     override this.ToString() = 
         sprintf "%s\t%s\t%b\t%i\t%b\t%b\t%b\t%s\t%s" 
