@@ -259,6 +259,8 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 	                        ,is_part_of_unique_key = CONVERT(BIT, CASE WHEN index_columns.object_id IS NULL THEN 0 ELSE 1 END)
 	                        ,default_constraint = ISNULL(OBJECT_DEFINITION(default_object_id), '')
 	                        ,description = ISNULL(XProp.Value, '')
+                          , columns.precision
+                          , columns.scale
                         FROM 
 	                        sys.schemas 
 	                        JOIN sys.tables ON 

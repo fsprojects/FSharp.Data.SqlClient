@@ -395,7 +395,8 @@ type SqlConnection with
         cmd.ExecuteQuery(fun cursor ->
             let user_type_id = cursor.TryGetValue "user_type_id"
             let system_type_id = cursor.["system_type_id"] |> unbox<int>
-
+            let precisionOrdinal = cursor.GetOrdinal("precision")
+            let scaleOrdinal = cursor.GetOrdinal("scale")
             { 
                 Column.Name       = string cursor.["name"]
                 TypeInfo          = findTypeInfoBySqlEngineTypeId (this.ConnectionString, system_type_id, user_type_id)
@@ -403,11 +404,11 @@ type SqlConnection with
                 MaxLength         = cursor.["max_length"] |> unbox<int16> |> int
                 ReadOnly          = not( cursor.GetValueOrDefault("is_updateable", true))
                 Identity          = cursor.GetValueOrDefault("is_identity_column", false)
-                PartOfUniqueKey   = cursor.GetValueOrDefault( "is_part_of_unique_key", false)
+                PartOfUniqueKey   = cursor.GetValueOrDefault("is_part_of_unique_key", false)
                 DefaultConstraint = null
                 Description       = null
-                Precision         = unbox cursor.["precision"]
-                Scale             = unbox cursor.["scale"]
+                Precision         = int16 (cursor.GetByte precisionOrdinal)
+                Scale             = int16 (cursor.GetByte scaleOrdinal)
             }
         )
         |> Seq.toList 
@@ -494,6 +495,8 @@ type SqlConnection with
                                     cmd.Connection <- this
                                     use reader = cmd.ExecuteReader()
                                     while reader.Read() do 
+                                        let precisionOrdinal = reader.GetOrdinal "precision"
+                                        let scaleOrdinal = reader.GetOrdinal "scale"
                                         let user_type_id = reader.TryGetValue "user_type_id"
                                         let stid = reader.["system_type_id"] |> unbox<byte> |> int
                                         yield {
@@ -506,8 +509,8 @@ type SqlConnection with
                                             PartOfUniqueKey = false
                                             DefaultConstraint = null
                                             Description = null
-                                            Precision = unbox reader.["precision"]
-                                            Scale = unbox reader.["scale"]
+                                            Precision = int16 (reader.GetByte precisionOrdinal)
+                                            Scale = int16 (reader.GetByte scaleOrdinal)
                                         }
                                 |] 
                             else
