@@ -1,6 +1,7 @@
 ﻿namespace FSharp.Data
 
 open System
+open System.Diagnostics
 open System.IO
 open System.Data.SqlClient
 open System.Reflection
@@ -31,12 +32,16 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, hideObjectMethods = true)
 
     let cache = new Cache<ProvidedTypeDefinition>()
-
+    let whoIsClearingCache = typeof<SqlCommandProvider>.FullName + " Disposing"
     do 
         this.Disposing.Add <| fun _ ->
             try  
-                clearDataTypesMap()
-            with _ -> ()
+                sqlDataTypesCache.Clear whoIsClearingCache
+            with e -> 
+              #if DEBUG
+              Debug.WriteLine("snag during clearing of data type cache: " + whoIsClearingCache + "\n" + (string e))
+              #endif
+              ()
 
     do 
         providerType.DefineStaticParameters(
@@ -101,15 +106,29 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
         let conn = new SqlConnection(designTimeConnectionString.Value)
         use closeConn = conn.UseLocally()
         conn.CheckVersion()
-        conn.LoadDataTypesMap()
-
+        let sqlDataTypes = conn.LoadDataTypesMap()
+        
+        let schemas =
+            sqlDataTypes
+            |> Seq.map (fun i -> i.RetrieveSchemas())
+            |> Seq.concat
+            |> Seq.distinct
+            |> Seq.toArray
+        
+        let uomsPerSchema =
+            [|
+              // doing it this way to avoid running a query to list the schemas, we only care about schemas having units of measure
+              for schema in schemas do 
+                  yield schema, SqlProgrammabilityProvider.UnitsOfMeasure (designTimeConnectionString.Value, schema, sqlDataTypes)
+            |]
+            |> dict
         let connectionId = Guid.NewGuid().ToString().Substring(0, 8)
 
         let designTimeSqlStatement, tempTableTypes =
             if String.IsNullOrWhiteSpace(tempTableDefinitions) then
                 sqlStatement, None
             else
-                DesignTime.SubstituteTempTables(conn, sqlStatement, tempTableDefinitions, connectionId)
+                DesignTime.SubstituteTempTables(conn, sqlStatement, tempTableDefinitions, connectionId, uomsPerSchema)
 
         let designTimeSqlStatement =
             if String.IsNullOrWhiteSpace(tableVarMapping) then
@@ -125,7 +144,8 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
             else []
 
         let rank = if singleRow then ResultRank.SingleRow else ResultRank.Sequence
-        let returnType = DesignTime.GetOutputTypes(outputColumns, resultType, rank, hasOutputParameters = false)
+        let noOutputParameters = false
+        let returnType = DesignTime.GetOutputTypes(outputColumns, resultType, rank, noOutputParameters, uomsPerSchema)
         
         let cmdProvidedType = ProvidedTypeDefinition(assembly, nameSpace, typeName, Some typeof<``ISqlCommand Implementation``>, hideObjectMethods = true)
 
@@ -138,8 +158,14 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
             | _ -> ()
 
         do
+            let serializedColumns = outputColumns |> List.toArray |> Encoding.serialize
+            let serializedParameters = parameters |> List.toArray |> Encoding.serialize
             cmdProvidedType.AddMember(ProvidedProperty("ConnectionStringOrName", typeof<string>, isStatic = true, getterCode = fun _ -> <@@ connectionStringOrName @@>))
-
+            
+            if not (List.isEmpty outputColumns) then
+              cmdProvidedType.AddMember(ProvidedProperty("Columns", typeof<Column array>, isStatic = true, getterCode = fun _ -> <@@ (serializedColumns |> Encoding.deserialize) : Column array @@>)) 
+            if not (List.isEmpty parameters) then
+              cmdProvidedType.AddMember(ProvidedProperty("Parameters", typeof<Parameter array>, isStatic = true, getterCode = fun _ -> <@@ (serializedParameters |> Encoding.deserialize) : Parameter array @@>)) 
         do
             SharedLogic.alterReturnTypeAccordingToResultType returnType cmdProvidedType resultType
 
@@ -173,8 +199,8 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
                 |> cmdProvidedType.AddMembers
 
         do  //AsyncExecute, Execute, and ToTraceString
-
-            let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, udttsPerSchema = null)
+            
+            let executeArgs = DesignTime.GetExecuteArgs(cmdProvidedType, parameters, udttsPerSchema = null, unitsOfMeasurePerSchema = uomsPerSchema)
 
             let hasOutputParameters = false
             let addRedirectToISqlCommandMethod outputType name = 

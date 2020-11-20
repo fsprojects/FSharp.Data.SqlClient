@@ -10,7 +10,6 @@
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <DisableImplicitSystemValueTupleReference>true</DisableImplicitSystemValueTupleReference>
   </PropertyGroup>
-    
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="4.1.18" Condition="'$(TargetFramework)' == 'net40'" />
     <PackageReference Include="FSharp.Core" Version="4.3.4" Condition="'$(TargetFramework)' == 'net461'" />
@@ -59,10 +58,11 @@
     <Compile Include="DesignTime.fs" />
     <Compile Include="SingleFileChangeMonitor.fs" />
     <Compile Include="SingleRootTypeProvider.fs" />
-    <Compile Include="SqlCommandProvider.fs" />
     <Compile Include="SqlClientProvider.fs" />
+    <Compile Include="SqlCommandProvider.fs" />
     <Compile Include="SqlEnumProvider.fs" />
     <Compile Include="SqlFileProvider.fs" />
+    <Content Include="paket.references" />
     <None Include="Scripts\Scratchpad.fsx" />
     <None Include="Scripts\ReverseLineOrderForNotex.fsx" />
     <None Include="Scripts\XE.fsx" />

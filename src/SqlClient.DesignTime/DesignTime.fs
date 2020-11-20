@@ -140,7 +140,7 @@ type DesignTime private() =
 
         m
 
-    static member internal GetRecordType(columns: Column list, ?unitsOfMeasurePerSchema) =
+    static member internal GetRecordType(columns: Column list, unitsOfMeasurePerSchema) =
         
         columns 
             |> Seq.groupBy (fun x -> x.Name) 
@@ -155,7 +155,7 @@ type DesignTime private() =
 
                 if propertyName = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
                     
-                let propType = col.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
+                let propType = col.GetProvidedType(unitsOfMeasurePerSchema)
 
                 let property = ProvidedProperty(propertyName, propType, getterCode = fun args -> <@@ (unbox<DynamicRecord> %%args.[0]).[propertyName] @@>)
 
@@ -191,14 +191,14 @@ type DesignTime private() =
             let setter = QuotationsFactory.GetBody("SetNonNullableValueInDataRow", column.TypeInfo.ClrType, name)
             getter, setter
 
-    static member internal GetDataRowType (columns: Column list, ?unitsOfMeasurePerSchema) = 
+    static member internal GetDataRowType (columns: Column list, unitsOfMeasurePerSchema) = 
         let rowType = ProvidedTypeDefinition("Row", Some typeof<DataRow>)
 
         columns |> List.mapi(fun i col ->
 
             if col.Name = "" then failwithf "Column #%i doesn't have name. Only columns with names accepted. Use explicit alias." (i + 1)
 
-            let propertyType = col.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
+            let propertyType = col.GetProvidedType(unitsOfMeasurePerSchema)
 
             let getter, setter = DesignTime.GetDataRowPropertyGetterAndSetterCode col
             let property = ProvidedProperty(col.Name, propertyType, getterCode = getter, ?setterCode =
@@ -277,13 +277,8 @@ type DesignTime private() =
         dataRowType.AddMember tableProperty
 
         let getColumnsSerializedSchema columns =
-            columns 
-            |> List.map (fun x ->
-                let nullable = x.Nullable || x.HasDefaultConstraint
-                sprintf "%s\t%s\t%b\t%i\t%b\t%b\t%b" 
-                    x.Name x.TypeInfo.ClrTypeFullName nullable x.MaxLength x.ReadOnly x.Identity x.PartOfUniqueKey                                 
-            ) 
-            |> String.concat "\n"
+          let columns = List.toArray columns 
+          Encoding.serialize columns
 
         let ctorCode =
             fun _ ->
@@ -313,7 +308,7 @@ type DesignTime private() =
 
         tableProvidedType
 
-    static member internal GetOutputTypes (outputColumns: Column list, resultType, rank: ResultRank, hasOutputParameters, ?unitsOfMeasurePerSchema) =    
+    static member internal GetOutputTypes (outputColumns: Column list, resultType, rank: ResultRank, hasOutputParameters, unitsOfMeasurePerSchema) =    
         if resultType = ResultType.DataReader 
         then 
             { Single = typeof<SqlDataReader>; PerRow = None }
@@ -322,7 +317,7 @@ type DesignTime private() =
             { Single = typeof<int>; PerRow = None }
         elif resultType = ResultType.DataTable 
         then
-            let dataRowType = DesignTime.GetDataRowType(outputColumns, ?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
+            let dataRowType = DesignTime.GetDataRowType(outputColumns, unitsOfMeasurePerSchema)
             let dataTableType = DesignTime.GetDataTableType("Table", dataRowType, outputColumns, CommandResultTable)
             dataTableType.AddMember dataRowType
 
@@ -334,14 +329,14 @@ type DesignTime private() =
                 then
                     let column0 = outputColumns.Head
                     let erasedTo = column0.ErasedToType
-                    let provided = column0.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
+                    let provided = column0.GetProvidedType(unitsOfMeasurePerSchema)
                     let values = Var("values", typeof<obj[]>)
                     let indexGet = Expr.Call(Expr.Var values, typeof<Array>.GetMethod("GetValue",[|typeof<int>|]), [Expr.Value 0])
                     provided, erasedTo, Expr.Lambda(values,  indexGet) 
 
                 elif resultType = ResultType.Records 
                 then 
-                    let provided = DesignTime.GetRecordType(outputColumns, ?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema)
+                    let provided = DesignTime.GetRecordType(outputColumns, unitsOfMeasurePerSchema)
                     let names = Expr.NewArray(typeof<string>, outputColumns |> List.map (fun x -> Expr.Value(x.Name))) 
                     let mapping = 
                         <@@ 
@@ -362,8 +357,8 @@ type DesignTime private() =
 
                     let providedType = 
                         match outputColumns with
-                        | [ x ] -> x.GetProvidedType()
-                        | xs -> Microsoft.FSharp.Reflection.FSharpType.MakeTupleType [| for x in xs -> x.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema) |]
+                        | [ x ] -> x.GetProvidedType(unitsOfMeasurePerSchema)
+                        | xs -> Microsoft.FSharp.Reflection.FSharpType.MakeTupleType [| for x in xs -> x.GetProvidedType(unitsOfMeasurePerSchema) |]
 
                     let clrTypeName = erasedToTupleType.FullName
                     let mapping = <@@ Microsoft.FSharp.Reflection.FSharpValue.PreComputeTupleConstructor (Type.GetType(clrTypeName, throwOnError = true))  @@>
@@ -532,20 +527,21 @@ type DesignTime private() =
         else
             None
 
-    static member internal CreateUDTT(t: TypeInfo) = 
+    static member internal CreateUDTT(t: TypeInfo, unitsOfMeasurePerSchema) = 
         assert(t.TableType)
         let rowType = ProvidedTypeDefinition(t.UdttName, Some typeof<obj>, hideObjectMethods = true)
 
         let parameters, sqlMetas = 
             List.unzip [ 
-                for p in t.TableTypeColumns.Value do
+                for p in t.TableTypeColumns do
                     let name = p.Name
-                    let param = ProvidedParameter( name, p.GetProvidedType(), ?optionalValue = if p.Nullable then Some null else None) 
+                    let param = ProvidedParameter( name, p.GetProvidedType(unitsOfMeasurePerSchema), ?optionalValue = if p.Nullable then Some null else None) 
                     let sqlMeta =
-                        let dbType = p.TypeInfo.SqlDbType
+                        let typeInfo = p.GetTypeInfoConsideringUDDT()
+                        let dbType = typeInfo.SqlDbType
                         let precision = byte p.Precision
                         let scale = byte p.Scale
-                        if p.TypeInfo.IsFixedLength then
+                        if typeInfo.IsFixedLength then
                             if scale = 0uy then
                                 <@@ SqlMetaData(name, dbType) @@>
                             else
@@ -557,7 +553,7 @@ type DesignTime private() =
             ] 
 
         let ctor = ProvidedConstructor( parameters, fun args -> 
-            let optionsToNulls = QuotationsFactory.MapArrayNullableItems(List.ofArray t.TableTypeColumns.Value, "MapArrayOptionItemToObj") 
+            let optionsToNulls = QuotationsFactory.MapArrayNullableItems(List.ofArray t.TableTypeColumns, "MapArrayOptionItemToObj") 
 
             <@@
                 let values: obj[] = %%Expr.NewArray(typeof<obj>, [ for a in args -> Expr.Coerce(a, typeof<obj>) ])
@@ -580,7 +576,7 @@ type DesignTime private() =
         rowType
 
                 
-    static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, udttsPerSchema: Dictionary<_, ProvidedTypeDefinition>, ?unitsOfMeasurePerSchema) = 
+    static member internal GetExecuteArgs(cmdProvidedType: ProvidedTypeDefinition, sqlParameters: Parameter list, udttsPerSchema: IDictionary<_, ProvidedTypeDefinition>, unitsOfMeasurePerSchema) = 
         [
             for p in sqlParameters do
                 assert p.Name.StartsWith("@")
@@ -592,13 +588,13 @@ type DesignTime private() =
                         if p.Optional 
                         then 
                             assert(p.Direction = ParameterDirection.Input)
-                            ProvidedParameter(parameterName, parameterType = typedefof<_ option>.MakeGenericType( p.TypeInfo.ClrType) , optionalValue = null)
+                            ProvidedParameter(parameterName, parameterType = typedefof<_ option>.MakeGenericType(p.TypeInfo.ClrType) , optionalValue = null)
                         else
                             if p.Direction.HasFlag(ParameterDirection.Output)
                             then
                                 ProvidedParameter(parameterName, parameterType = p.TypeInfo.ClrType.MakeByRefType(), isOut = true)
                             else                                 
-                                ProvidedParameter(parameterName, parameterType = p.GetProvidedType(?unitsOfMeasurePerSchema = unitsOfMeasurePerSchema), ?optionalValue = p.DefaultValue)
+                                ProvidedParameter(parameterName, parameterType = p.GetProvidedType(unitsOfMeasurePerSchema), ?optionalValue = p.DefaultValue)
                     else
                         assert(p.Direction = ParameterDirection.Input)
 
@@ -607,7 +603,7 @@ type DesignTime private() =
                             then //SqlCommandProvider case
                                 match cmdProvidedType.GetNestedType(p.TypeInfo.UdttName) with 
                                 | null -> 
-                                    let rowType = DesignTime.CreateUDTT(p.TypeInfo)
+                                    let rowType = DesignTime.CreateUDTT(p.TypeInfo, unitsOfMeasurePerSchema)
                                     cmdProvidedType.AddMember rowType
                                     rowType
                                 | x -> downcast x //same type appears more than once
@@ -669,14 +665,14 @@ type DesignTime private() =
                 yield upcast ProvidedMethod(factoryMethodName.Value, parameters2, returnType = cmdProvidedType, isStatic = true, invokeCode = body2)
         ]
 
-    static member private CreateTempTableRecord(name, cols) =
+    static member private CreateTempTableRecord(name, cols, unitsOfMeasurePerSchema) =
         let rowType = ProvidedTypeDefinition(name, Some typeof<obj>, hideObjectMethods = true)
 
         let parameters =
             [
                 for (p : Column) in cols do
                     let name = p.Name
-                    let param = ProvidedParameter( name, p.GetProvidedType(), ?optionalValue = if p.Nullable then Some null else None)
+                    let param = ProvidedParameter( name, p.GetProvidedType(unitsOfMeasurePerSchema), ?optionalValue = if p.Nullable then Some null else None)
                     yield param
             ]
 
@@ -693,7 +689,7 @@ type DesignTime private() =
         rowType
 
     // Changes any temp tables in to a global temp table (##name) then creates them on the open connection.
-    static member internal SubstituteTempTables(connection, commandText: string, tempTableDefinitions : string, connectionId) =
+    static member internal SubstituteTempTables(connection, commandText: string, tempTableDefinitions : string, connectionId, unitsOfMeasurePerSchema) =
         // Extract and temp tables
         let tempTableRegex = Regex("#([a-z0-9\-_]+)", RegexOptions.IgnoreCase)
         let tempTableNames =
@@ -715,7 +711,7 @@ type DesignTime private() =
                     let cols = DesignTime.GetOutputColumns(connection, "SELECT * FROM #"+name, [], isStoredProcedure = false)
                     use drop = new SqlCommand("DROP TABLE #"+name, connection)
                     drop.ExecuteScalar() |> ignore
-                    DesignTime.CreateTempTableRecord(name, cols), cols)
+                    DesignTime.CreateTempTableRecord(name, cols, unitsOfMeasurePerSchema), cols)
 
             let parameters =
                 tableTypes

@@ -1,9 +1,27 @@
 namespace FSharp.Data
 
 open System
+open System.Text
 open System.Data
 open System.Collections.Generic
 open System.Data.SqlClient
+open System.Runtime.Serialization
+open System.Runtime.Serialization.Json
+open System.IO
+
+module Encoding =
+  let deserialize<'a> (text: string) = 
+    let deserializer = new DataContractJsonSerializer(typeof<'a>)
+    use buffer = new MemoryStream(Encoding.Default.GetBytes text)
+    deserializer.ReadObject(buffer) :?> 'a
+
+  let serialize this = 
+    use buffer = new MemoryStream()
+    let serializer = new DataContractJsonSerializer(this.GetType())
+    serializer.WriteObject(buffer, this)
+    buffer.Position <- 0L
+    use stringReader = new StreamReader(buffer)
+    stringReader.ReadToEnd()
 
 ///<summary>Enum describing output type</summary>
 type ResultType =
@@ -41,32 +59,38 @@ type Mapper private() =
             | :? 't as v -> v
             | _ (* dbnull *) -> Unchecked.defaultof<'t>
 
-type Column = {
-    Name: string
-    TypeInfo: TypeInfo
-    Nullable: bool
-    MaxLength: int
-    ReadOnly: bool
-    Identity: bool
-    PartOfUniqueKey: bool
-    DefaultConstraint: string
-    Description: string
-    Precision: int16
-    Scale: int16
+/// Resultset or User Defined Data Table Column information
+/// Remark: This is subject to change
+type [<DataContract;CLIMutable>] Column = {
+    [<DataMember>] Name              : string    /// Name of the column
+    [<DataMember>] Nullable          : bool      /// If the field is nullable
+    [<DataMember>] MaxLength         : int       /// Max Length for variable length types 
+    [<DataMember>] ReadOnly          : bool      /// Is the column readonly?
+    [<DataMember>] Identity          : bool      /// Identity (autoincremented) column
+    [<DataMember>] PartOfUniqueKey   : bool      /// Part of primary key
+    [<DataMember>] DefaultConstraint : string    /// Default value
+    [<DataMember>] Description       : string    /// Description
+    [<DataMember>] TypeInfo          : TypeInfo  /// Detailed type information
+    [<DataMember>] Precision         : int16     /// Numeric precision
+    [<DataMember>] Scale             : int16     /// Numeric scale
 }   with
     member this.ErasedToType = 
         if this.Nullable
         then typedefof<_ option>.MakeGenericType this.TypeInfo.ClrType
         else this.TypeInfo.ClrType
     
-    member this.GetProvidedType(?unitsOfMeasurePerSchema: Dictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
+    member this.GetProvidedType(unitsOfMeasurePerSchema: IDictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
         let typeConsideringUOM: Type = 
-            if this.TypeInfo.IsUnitOfMeasure && unitsOfMeasurePerSchema.IsSome
+            if this.TypeInfo.IsUnitOfMeasure
             then
-                assert(unitsOfMeasurePerSchema.IsSome)
-                let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
+                let uomType = unitsOfMeasurePerSchema.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
                 ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
+            elif isNull this.TypeInfo.ClrType && this.TypeInfo.TableTypeColumns.Length > 0 then
+                // we need to lookup matching uddt column to resolve the type
+                let matchingUddtColumn = this.TypeInfo.TableTypeColumns |> Array.find (fun t -> t.Name = this.Name)
+                matchingUddtColumn.TypeInfo.ClrType
             else
+                // normal parameter case
                 this.TypeInfo.ClrType
 
         if this.Nullable
@@ -78,6 +102,14 @@ type Column = {
 
     member this.HasDefaultConstraint = this.DefaultConstraint <> ""
     member this.NullableParameter = this.Nullable || this.HasDefaultConstraint
+    member this.GetTypeInfoConsideringUDDT() =
+        // note: it may be better to not have this level of indirection 
+        // and just store the correct type info, need to look at usages
+        // of TypeInfo.TableTypeColumns
+        if this.TypeInfo.TableType && isNull this.TypeInfo.ClrType then
+            (this.TypeInfo.TableTypeColumns |> Array.find (fun e -> e.Name = this.Name)).TypeInfo
+        else
+            this.TypeInfo
 
     static member Parse(cursor: SqlDataReader, typeLookup: int * int option -> TypeInfo, ?defaultValue, ?description) = 
       let precisionOrdinal = cursor.GetOrdinal "precision"
@@ -99,45 +131,44 @@ type Column = {
         Scale = int16 (cursor.GetByte scaleOrdinal)
       }
 
-    override this.ToString() = 
-        sprintf "%s\t%s\t%b\t%i\t%b\t%b\t%b\t%s\t%s" 
-            this.Name 
-            this.TypeInfo.ClrTypeFullName 
-            this.Nullable 
-            this.MaxLength
-            this.ReadOnly
-            this.Identity
-            this.PartOfUniqueKey
-            this.DefaultConstraint
-            this.Description
-
-and TypeInfo = {
-    TypeName: string
-    Schema: string
-    SqlEngineTypeId: int
-    UserTypeId: int
-    SqlDbType: SqlDbType
-    IsFixedLength: bool 
-    ClrTypeFullName: string
-    UdttName: string 
-    TableTypeColumns: Column[] Lazy
+/// Describes a single SQL Server Data Type
+/// Remark: This is subject to change
+and [<DataContract;CLIMutable>] TypeInfo = {       
+    [<DataMember>] TypeName         : string       /// Type name
+    [<DataMember>] Schema           : string       /// Schema owning this type (sys for system types)
+    [<DataMember>] SqlEngineTypeId  : int          /// system_type_id
+    [<DataMember>] UserTypeId       : int          /// user_type_id
+    [<DataMember>] SqlDbType        : SqlDbType    /// ADO.NET <see cref="SqlDbType"/>
+    [<DataMember>] IsFixedLength    : bool         /// Is fixed length
+    [<DataMember>] ClrTypeFullName  : string       /// Fullname of type, for use with runtime reflection
+    [<DataMember>] UdttName         : string       /// Name of the user-defined-table-type
+    [<DataMember>] TableTypeColumns : Column array /// Columns of the user-defined-table-type
 }   with
-    member this.ClrType: Type = Type.GetType( this.ClrTypeFullName, throwOnError = true)
+    member this.ClrType: Type = if isNull this.ClrTypeFullName then null else Type.GetType( this.ClrTypeFullName, throwOnError = true)
     member this.TableType = this.SqlDbType = SqlDbType.Structured
     member this.IsValueType = not this.TableType && this.ClrType.IsValueType
     member this.IsUnitOfMeasure = this.TypeName.StartsWith("<") && this.TypeName.EndsWith(">")
     member this.UnitOfMeasureName = this.TypeName.TrimStart('<').TrimEnd('>')
+    
+    member this.RetrieveSchemas () =
+        seq {
+            yield this.Schema
+            yield! (this.TableTypeColumns |> Array.map (fun i -> i.TypeInfo.Schema)) 
+        }
+        |> Seq.distinct
 
-type Parameter = {
-    Name: string
-    TypeInfo: TypeInfo
-    Direction: ParameterDirection 
-    MaxLength: int
-    Precision: byte
-    Scale : byte
-    DefaultValue: obj option
-    Optional: bool
-    Description: string
+/// Describes a single parameter
+/// Remark: API this is subject to change
+type [<DataContract;CLIMutable>] Parameter = {
+    [<DataMember>] Name         : string             /// Parameter name
+    [<DataMember>] TypeInfo     : TypeInfo           /// Parameter type details
+    [<DataMember>] Direction    : ParameterDirection /// ADO.NET <see cref="ParameterDirection"/>
+    [<DataMember>] MaxLength    : int                /// Max Length for variable length types 
+    [<DataMember>] Precision    : byte               /// Precision ???
+    [<DataMember>] Scale        : byte               /// Scale ???
+    [<DataMember>] DefaultValue : obj option         /// Default value
+    [<DataMember>] Optional     : bool               /// Is optional
+    [<DataMember>] Description  : string             /// Description
 }   with
     
     member this.Size = 
@@ -145,11 +176,10 @@ type Parameter = {
         | SqlDbType.NChar | SqlDbType.NText | SqlDbType.NVarChar -> this.MaxLength / 2
         | _ -> this.MaxLength
 
-    member this.GetProvidedType(?unitsOfMeasurePerSchema: Dictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
-        if this.TypeInfo.IsUnitOfMeasure && unitsOfMeasurePerSchema.IsSome
+    member this.GetProvidedType(unitsOfMeasurePerSchema: IDictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
+        if this.TypeInfo.IsUnitOfMeasure
         then
-            assert(unitsOfMeasurePerSchema.IsSome)
-            let uomType = unitsOfMeasurePerSchema.Value.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
+            let uomType = unitsOfMeasurePerSchema.[this.TypeInfo.Schema] |> List.find (fun x -> x.Name = this.TypeInfo.UnitOfMeasureName)
             ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
         else
             this.TypeInfo.ClrType
@@ -196,22 +226,22 @@ type TempTableLoader(fieldCount, items: obj seq) =
         member __.RecordsAffected: int = invalidOp "NotImplementedException"
 
 module RuntimeInternals =
+    
     let setupTableFromSerializedColumns (serializedSchema: string) (table: System.Data.DataTable) =
+        let columns : Column array = Encoding.deserialize serializedSchema
         let primaryKey = ResizeArray()
-        for line in serializedSchema.Split('\n') do
-            let xs = line.Split('\t')
-            let col = new DataColumn()
-            col.ColumnName <- xs.[0]
-            col.DataType <- Type.GetType( xs.[1], throwOnError = true)  
-            col.AllowDBNull <- Boolean.Parse xs.[2]
-            if col.DataType = typeof<string>
-            then 
-                col.MaxLength <- int xs.[3]
-            col.ReadOnly <- Boolean.Parse xs.[4]
-            col.AutoIncrement <- Boolean.Parse xs.[5]
-            if Boolean.Parse xs.[6]
-            then    
-                primaryKey.Add col 
+        for column in columns do
+            let col = new DataColumn(column.Name,column.TypeInfo.ClrType)
+            col.AllowDBNull <- column.Nullable || column.HasDefaultConstraint
+            col.ReadOnly <- column.ReadOnly
+            col.AutoIncrement <- column.Identity
+            
+            if col.DataType = typeof<string> then 
+                col.MaxLength <- int column.MaxLength
+            
+            if column.PartOfUniqueKey then    
+                primaryKey.Add col
+
             table.Columns.Add col
 
         table.PrimaryKey <- Array.ofSeq primaryKey

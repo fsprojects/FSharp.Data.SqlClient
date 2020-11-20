@@ -35,7 +35,7 @@ group Test
 	source https://www.nuget.org/api/v2/
 	framework: net461, netcoreapp2.0	
 
-	nuget FSharp.Core = 4.5.2
+	nuget FSharp.Core = 4.5.2 redirects:force
 	nuget System.Data.SqlClient
 	nuget System.Configuration.ConfigurationManager
 	
