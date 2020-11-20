@@ -194,3 +194,11 @@ let ``issue #345 decimal in TVP gets rounded`` () =
     use cmd = new AdventureWorks.dbo.decimal_test(ConnectionStrings.AdventureWorksLiteral)
     let resultvalue = cmd.Execute(tvp) |> Seq.head
     Assert.Equal(value, resultvalue)
+
+[<Fact>]
+let ``issue #393 troubleshoot if datetimeoffset raises an exception`` () =
+    let value = System.DateTimeOffset.UtcNow
+    let tvp = [AdventureWorks.dbo.``User-Defined Table Types``.datetimeoffset_test_tvp(value)]
+    use cmd = new AdventureWorks.dbo.datetimeoffset_test(ConnectionStrings.AdventureWorksLiteral)
+    let resultvalue = cmd.Execute(tvp) |> Seq.head
+    Assert.Equal(value, resultvalue)
