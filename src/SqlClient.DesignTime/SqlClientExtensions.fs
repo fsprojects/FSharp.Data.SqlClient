@@ -192,14 +192,16 @@ type internal SqlTypeEntry = {
   scale           : int16
 }
 type internal TableVariableEntry = {
-  name                   : string
-  system_type_id         : byte
-  user_type_id           : int
-  is_nullable            : bool
-  max_length             : int16
-  is_identity            : bool
-  is_computed            : bool
-  table_type_user_type_id: int
+  name                    : string
+  system_type_id          : byte
+  user_type_id            : int
+  is_nullable             : bool
+  max_length              : int16
+  is_identity             : bool
+  is_computed             : bool
+  table_type_user_type_id : int
+  precision               : byte
+  scale                   : byte
 }
 
 type SqlConnection with
@@ -554,13 +556,15 @@ order by
                             table_type_user_type_id
                             , { 
                                   table_type_user_type_id = table_type_user_type_id
-                                  name                    = string reader.["name"]
+                                  name                    = string       reader.["name"]
                                   system_type_id          = unbox<byte>  reader.["system_type_id"]
                                   is_nullable             = unbox        reader.["is_nullable"]
                                   max_length              = unbox<int16> reader.["max_length"]
                                   is_identity             = unbox        reader.["is_identity"]
                                   is_computed             = unbox        reader.["is_computed"] 
                                   user_type_id            = unbox<int>   reader.["user_type_id"]
+                                  precision               = unbox<byte>  reader.["precision"]
+                                  scale                   = unbox<byte>  reader.["scale"]
                             } 
               |] 
               |> Array.groupBy fst
@@ -588,7 +592,11 @@ order by
             let getProvidedTypeForSqlTypeEntry (x:SqlTypeEntry) = getProvidedType x.name x.is_user_defined x.is_table_type x.system_type_id x.user_type_id
 
             let rec makeColumn column =
-              let sqlTypeEntry = sqlEngineTypes.[column.system_type_id, column.user_type_id]
+              let sqlTypeEntry = 
+                { sqlEngineTypes.[column.system_type_id, column.user_type_id] with 
+                    // important: retrieve the precision / scale from the table variable column entry itself
+                    precision = int16 column.precision
+                    scale     = int16 column.scale }
               { Column.Name       = column.name
                 TypeInfo          = Option.get (makeTypeInfo sqlTypeEntry)
                 Nullable          = column.is_nullable
@@ -649,6 +657,9 @@ order by
                                 columns
                                 |> Array.map (fun column -> 
                                     let sqlTypeInfo, typeInfo = typeInfosForTableTypes.[user_type_id]
+                                    // important: retrieve the precision / scale from the table variable column entry itself
+                                    let precision = int16 column.precision
+                                    let scale     = int16 column.scale
                                     { 
                                         Column.Name       = column.name
                                         TypeInfo          = typeInfo
@@ -659,8 +670,8 @@ order by
                                         PartOfUniqueKey   = false
                                         DefaultConstraint = null
                                         Description       = null 
-                                        Precision         = sqlTypeInfo.precision
-                                        Scale             = sqlTypeInfo.scale
+                                        Precision         = precision
+                                        Scale             = scale
                                     })
                             else
                                 Array.empty
