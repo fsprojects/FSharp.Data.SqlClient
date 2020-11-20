@@ -369,3 +369,19 @@ begin
 end
 go
 
+
+-- issue #393
+if object_id('dbo.datetimeoffset_test') is not null
+	drop procedure dbo.datetimeoffset_test
+go
+if type_id('dbo.datetimeoffset_test_tvp') is not null
+	drop type dbo.datetimeoffset_test_tvp
+go
+create type dbo.datetimeoffset_test_tvp as table(created_at datetimeoffset not null)
+go
+create procedure dbo.datetimeoffset_test (@tvp dbo.datetimeoffset_test_tvp readonly)
+as
+begin
+    select created_at from @tvp
+end
+go
