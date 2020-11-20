@@ -162,7 +162,7 @@ GROUP Test
 RESTRICTION: || (== net461) (== netcoreapp2.0)
 NUGET
   remote: https://www.nuget.org/api/v2
-    FSharp.Core (4.5.2)
+    FSharp.Core (4.5.2) - redirects: force
     Microsoft.CodeCoverage (15.9) - restriction: || (&& (== net461) (>= netcoreapp1.0)) (== netcoreapp2.0)
     Microsoft.DotNet.PlatformAbstractions (2.1) - restriction: || (&& (== net461) (>= netcoreapp1.0)) (== netcoreapp2.0)
       System.AppContext (>= 4.1) - restriction: || (&& (== net461) (< net45)) (== netcoreapp2.0)

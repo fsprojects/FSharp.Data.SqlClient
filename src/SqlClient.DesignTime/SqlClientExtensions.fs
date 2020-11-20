@@ -515,7 +515,7 @@ type SqlConnection with
             let sqlEngineTypes, tableVariableTypes = 
               use cmd = new SqlCommand("""
 select 
-  t.name, t.system_type_id, t.user_type_id, t.is_table_type, s.name as schema_name, t.is_user_defined
+  t.name, t.system_type_id, t.user_type_id, t.is_table_type, s.name as schema_name, t.is_user_defined, t.[precision], t.scale
 from 
   sys.types as t
   join sys.schemas as s on t.schema_id = s.schema_id
