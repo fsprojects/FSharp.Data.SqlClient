@@ -11,6 +11,15 @@ assignees: ''
 
 *A description of what the problem is, showing sample SQL and F# code and describing the issue, how it is currently worked around.*
 
+
+```sql
+
+```
+
+```fsharp
+
+```
+
 ### solution
 
 *Propose what the end result code for consumers of the library should look like, how it should be tested, documented.*
