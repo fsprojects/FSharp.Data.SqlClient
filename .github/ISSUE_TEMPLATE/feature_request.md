@@ -20,5 +20,5 @@ assignees: ''
 List possible alternatives / choices for the feature request to help user understand.
 
 ### What you can do
-[ ] I consider contributing the feature
-[ ] I consider help in testing the feature
+* [ ] I consider contributing the feature
+* [ ] I consider help in testing the feature
