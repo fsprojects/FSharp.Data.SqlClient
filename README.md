@@ -2,6 +2,28 @@
 
 This library exposes SQL Server Database objects in a type safe manner to F# code, by the mean of [Type Providers](https://docs.microsoft.com/en-us/dotnet/fsharp/tutorials/type-providers/)
 
+You can reference it in F# Interactive that ships with Visual Studio
+```fsharp
+#r "nuget: FSharp.Data.SqlClient"
+open FSharp.Data
+open FSharp.Data.SqlClient
+let [<Literal>] connectionString = "Server=.;Database=AdventureWorks2012;Trusted_Connection=True;"
+type MyCommand = SqlCommandProvider<"""
+select 
+	data.a 
+from 
+	(select 1 a union all select 2 union all select 3) data
+where
+	data.a > @data 
+    """, connectionString>;;
+
+(new MyCommand(connectionString)).Execute(data=1) 
+|> Seq.toArray
+|> printfn "%A"
+```
+
+`dotnet fsi` is not supported yet.
+
 ## Quick Links
 * [Documentation](http://fsprojects.github.io/FSharp.Data.SqlClient/)
 * [Release Notes](RELEASE_NOTES.md)
