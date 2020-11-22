@@ -20,4 +20,4 @@ jobs:
 
     - name: Build
       run: 
-        build
+        build.cmd
