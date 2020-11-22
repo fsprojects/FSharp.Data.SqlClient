@@ -1,6 +1,6 @@
 # Contribution guidelines
 
-Contributions to this repository are welcome, you can engage with users and contributors on Gitter: 
+Contributions to this repository are welcome, you can engage with users and contributors [on Gitter https://gitter.im/fsprojects/FSharp.Data.SqlClient](https://gitter.im/fsprojects/FSharp.Data.SqlClient) chat room. 
 
 ## Code and documentation contributions:
 
