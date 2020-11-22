@@ -29,7 +29,7 @@ where
 * [Release Notes](RELEASE_NOTES.md)
 * [Contribution Guide Lines](CONTRIBUTING.md)
 * [Gitter Chat Room](https://gitter.im/fsprojects/FSharp.Data.SqlClient)
-
+* [FSharp.Data.SqlClient on nuget.org](https://www.nuget.org/packages/FSharp.Data.SqlClient/)
 ## Type Providers
 
 ### SqlCommandProvider 
