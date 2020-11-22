@@ -1,8 +1,40 @@
-# SqlClient providers
+# FSharp.Data.SqlClient - Type providers for Microsoft SQL Server
 
-## SqlCommandProvider 
+This library exposes SQL Server Database objects in a type safe manner to F# code, by the mean of [Type Providers](https://docs.microsoft.com/en-us/dotnet/fsharp/tutorials/type-providers/)
 
-Provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.
+You can reference it in F# Interactive that ships with Visual Studio
+```fsharp
+#r "nuget: FSharp.Data.SqlClient"
+open FSharp.Data
+open FSharp.Data.SqlClient
+let [<Literal>] connectionString = "Server=.;Database=AdventureWorks2012;Trusted_Connection=True;"
+type MyCommand = SqlCommandProvider<"""
+select 
+	data.a 
+from 
+	(select 1 a union all select 2 union all select 3) data
+where
+	data.a > @data 
+    """, connectionString>;;
+
+(new MyCommand(connectionString)).Execute(data=1) 
+|> Seq.toArray
+|> printfn "%A"
+```
+
+`dotnet fsi` is not supported yet.
+
+## Quick Links
+* [Documentation](http://fsprojects.github.io/FSharp.Data.SqlClient/)
+* [Release Notes](RELEASE_NOTES.md)
+* [Contribution Guide Lines](CONTRIBUTING.md)
+* [Gitter Chat Room](https://gitter.im/fsprojects/FSharp.Data.SqlClient)
+* [FSharp.Data.SqlClient on nuget.org](https://www.nuget.org/packages/FSharp.Data.SqlClient/)
+## Type Providers
+
+### SqlCommandProvider 
+
+Provides statically typed access to the parameters and result set of T-SQL command in idiomatic F# way <sup>(*)</sup>.
 
 ```fsharp
 open FSharp.Data
@@ -30,7 +62,7 @@ seq
      ("Tete", "Mensa-Annan", 1576562.1966M)]
 ```
 
-## SqlProgrammabilityProvider 
+### SqlProgrammabilityProvider 
 
 Exposes Tables, Stored Procedures, User-Defined Types and User-Defined Functions in F# code.
 
@@ -52,7 +84,7 @@ ProductAssemblyID: 750, StandardCost: 2171.2942, TotalQuantity: 1.00
 ProductAssemblyID: 751, StandardCost: 2171.2942, TotalQuantity: 1.00
 ```
 
-## SqlEnumProvider
+### SqlEnumProvider
 
 Let's say we need to retrieve number of orders shipped by a certain shipping method since specific date.
 
@@ -76,7 +108,7 @@ output
 Some (Some 1085)
 ```
 
-## SqlFileProvider
+### SqlFileProvider
 
 ```fsharp
 type SampleCommand = SqlFile<"sampleCommand.sql">
