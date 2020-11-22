@@ -19,5 +19,5 @@ jobs:
         dotnet-version: 2.1.402
 
     - name: Build
-      run: 
+      run: |
         build.cmd
