@@ -6,7 +6,7 @@ This library exposes SQL Server Database objects in a type safe manner to F# cod
 * [Documentation](http://fsprojects.github.io/FSharp.Data.SqlClient/)
 * [Release Notes](RELEASE_NOTES.md)
 * [Contribution Guide Lines](CONTRIBUTING.md)
-* [Gitter Chat Room](https://gitter.im/FSharp-Data-SqlClient/community) 
+* [Gitter Chat Room](https://gitter.im/fsprojects/FSharp.Data.SqlClient)
 
 ## Type Providers
 
