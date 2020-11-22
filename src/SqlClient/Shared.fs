@@ -78,7 +78,7 @@ type [<DataContract;CLIMutable>] Column = {
         if this.Nullable
         then typedefof<_ option>.MakeGenericType this.TypeInfo.ClrType
         else this.TypeInfo.ClrType
-    
+#if DESIGNTIME_CODE_ONLY
     member this.GetProvidedType(unitsOfMeasurePerSchema: IDictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
         let typeConsideringUOM: Type = 
             if this.TypeInfo.IsUnitOfMeasure
@@ -99,7 +99,7 @@ type [<DataContract;CLIMutable>] Column = {
             typedefof<_ option>.MakeGenericType typeConsideringUOM
         else 
             typeConsideringUOM
-
+#endif
     member this.HasDefaultConstraint = this.DefaultConstraint <> ""
     member this.NullableParameter = this.Nullable || this.HasDefaultConstraint
     member this.GetTypeInfoConsideringUDDT() =
@@ -175,7 +175,7 @@ type [<DataContract;CLIMutable>] Parameter = {
         match this.TypeInfo.SqlDbType with
         | SqlDbType.NChar | SqlDbType.NText | SqlDbType.NVarChar -> this.MaxLength / 2
         | _ -> this.MaxLength
-
+#if DESIGNTIME_CODE_ONLY
     member this.GetProvidedType(unitsOfMeasurePerSchema: IDictionary<string, ProviderImplementation.ProvidedTypes.ProvidedTypeDefinition list>) = 
         if this.TypeInfo.IsUnitOfMeasure
         then
@@ -183,7 +183,7 @@ type [<DataContract;CLIMutable>] Parameter = {
             ProviderImplementation.ProvidedTypes.ProvidedMeasureBuilder.AnnotateType(this.TypeInfo.ClrType, [ uomType ])
         else
             this.TypeInfo.ClrType
-
+#endif
 type TempTableLoader(fieldCount, items: obj seq) =
     let enumerator = items.GetEnumerator()
 
