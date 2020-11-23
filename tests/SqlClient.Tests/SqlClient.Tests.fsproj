@@ -8,6 +8,11 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <NoWarn>101</NoWarn>
+    <!-- 
+    disable error FS0044: This construct is deprecated. use 'FSharp.Data.SqlClient.Internals.ISqlCommand' instead 
+    for the time necessary of the transition, this enables more coverage of the type aliases working the way expected in client code
+    -->
+    <NoWarn>$(NoWarn);0044</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
