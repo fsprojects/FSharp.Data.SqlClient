@@ -9,7 +9,7 @@ open System.Collections.Generic
 open System.Diagnostics
 open Microsoft.FSharp.Quotations
 open ProviderImplementation.ProvidedTypes
-open FSharp.Data
+open FSharp.Data.SqlClient.Internals
 open System.Text.RegularExpressions
 
 type internal RowType = {

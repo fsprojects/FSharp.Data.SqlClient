@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data
+﻿namespace FSharp.Data.SqlClient.Internals
 
 open System
 open System.Data
@@ -65,3 +65,12 @@ module Extensions =
             assert (this.State = ConnectionState.Open)
             use cmd = new SqlCommand("SELECT SERVERPROPERTY('edition')", this)
             cmd.ExecuteScalar().Equals("SQL Azure")
+
+
+#if WITH_LEGACY_NAMESPACE
+namespace FSharp.Data
+open System
+[<Obsolete("use open 'FSharp.Data.SqlClient.Internals' namespace instead");AutoOpen>]
+module ObsoleteExtensions = 
+  module Extensions = FSharp.Data.SqlClient.Internals.Extensions
+#endif

@@ -13,6 +13,7 @@ open Microsoft.FSharp.Quotations
 open ProviderImplementation.ProvidedTypes
 
 open FSharp.Data.SqlClient
+open FSharp.Data.SqlClient.Internals
 
 [<TypeProvider>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
@@ -140,7 +141,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                 //tagProvidedType rowType
     ]
 
-     static member internal UnitsOfMeasure( connStr, schema, sqlDataTypesForConnection: FSharp.Data.TypeInfo array) = [
+     static member internal UnitsOfMeasure( connStr, schema, sqlDataTypesForConnection: TypeInfo array) = [
         for t in sqlDataTypesForConnection do
             if t.Schema = schema && t.IsUnitOfMeasure
             then 
@@ -465,6 +466,9 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
             let getMethodImpl = 
                 lazy 
+                    // was hitting assert of datatypesmap not being loaded for connection
+                    let _ = conn.LoadDataTypesMap()
+                    
                     let sqlStatement, resultType, singleRow, allParametersOptional, typename = 
                         unbox args.[0], unbox args.[1], unbox args.[2], unbox args.[3], unbox args.[4]
             

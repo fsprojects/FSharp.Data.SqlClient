@@ -1,4 +1,22 @@
-namespace FSharp.Data
+namespace FSharp.Data.SqlClient
+///<summary>Enum describing output type</summary>
+type ResultType =
+///<summary>Sequence of custom records with properties matching column names and types</summary>
+    | Records = 0
+///<summary>Sequence of tuples matching column types with the same order</summary>
+    | Tuples = 1
+///<summary>Typed DataTable <see cref='T:FSharp.Data.DataTable`1'/></summary>
+    | DataTable = 2
+///<summary>raw DataReader</summary>
+    | DataReader = 3
+
+// todo: document this
+type SqlEnumKind = 
+| Default = 0
+| CLI = 1
+| UnitsOfMeasure = 2
+
+namespace FSharp.Data.SqlClient.Internals
 
 open System
 open System.Text
@@ -22,22 +40,6 @@ module Encoding =
     buffer.Position <- 0L
     use stringReader = new StreamReader(buffer)
     stringReader.ReadToEnd()
-
-///<summary>Enum describing output type</summary>
-type ResultType =
-///<summary>Sequence of custom records with properties matching column names and types</summary>
-    | Records = 0
-///<summary>Sequence of tuples matching column types with the same order</summary>
-    | Tuples = 1
-///<summary>Typed DataTable <see cref='T:FSharp.Data.DataTable`1'/></summary>
-    | DataTable = 2
-///<summary>raw DataReader</summary>
-    | DataReader = 3
-
-type SqlEnumKind = 
-| Default = 0
-| CLI = 1
-| UnitsOfMeasure = 2
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 [<RequireQualifiedAccess>]
@@ -249,3 +251,26 @@ module RuntimeInternals =
 [<AutoOpen>]
 module Shared =    
     let DbNull = box DBNull.Value
+
+
+#if WITH_LEGACY_NAMESPACE
+namespace FSharp.Data
+open System
+[<Obsolete("use open 'FSharp.Data.SqlClient' namespace instead")>]
+type ResultType  = FSharp.Data.SqlClient.ResultType
+[<Obsolete("use open 'FSharp.Data.SqlClient' namespace instead")>]
+type SqlEnumKind = FSharp.Data.SqlClient.SqlEnumKind
+[<Obsolete("use open 'FSharp.Data.SqlClient.Internals' namespace instead");AutoOpen>]
+module Obsolete = 
+
+  //module Encoding         = FSharp.Data.SqlClient.Internals.Encoding
+  //module RuntimeInternals = FSharp.Data.SqlClient.Internals.RuntimeInternals
+  //module Shared           = FSharp.Data.SqlClient.Internals.Shared
+
+  type ResultRank         = FSharp.Data.SqlClient.Internals.ResultRank
+  type Mapper             = FSharp.Data.SqlClient.Internals.Mapper
+  type Column             = FSharp.Data.SqlClient.Internals.Column
+  type TypeInfo           = FSharp.Data.SqlClient.Internals.TypeInfo
+  type Parameter          = FSharp.Data.SqlClient.Internals.Parameter
+  type TempTableLoader    = FSharp.Data.SqlClient.Internals.TempTableLoader
+#endif
