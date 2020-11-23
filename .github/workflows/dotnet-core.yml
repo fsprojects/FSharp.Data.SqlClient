@@ -19,4 +19,4 @@ jobs:
         dotnet-version: 2.1.402
 
     - name: Build
-      run: dir
+      run: ./build.cmd 
