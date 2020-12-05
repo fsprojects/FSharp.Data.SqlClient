@@ -1,4 +1,4 @@
-open FSharp.Data
+open FSharp.Data.SqlClient
 
 [<Literal>]
 let connectionString = "Data Source=localhost;Initial Catalog=AdventureWorks2012;Integrated Security=True"

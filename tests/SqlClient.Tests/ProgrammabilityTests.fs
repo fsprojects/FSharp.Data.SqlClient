@@ -1,4 +1,9 @@
-﻿module FSharp.Data.ProgrammabilityTest
+﻿#if WITH_LEGACY_NAMESPACE
+module FSharp.Data.ProgrammabilityTest
+open FSharp.Data.SqlClient
+#else
+module FSharp.Data.SqlClient.ProgrammabilityTest
+#endif
 
 open System
 open System.Data.SqlClient

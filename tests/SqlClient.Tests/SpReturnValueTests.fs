@@ -1,4 +1,9 @@
-﻿module FSharp.Data.SpReturnValueTests
+﻿#if WITH_LEGACY_NAMESPACE
+module FSharp.Data.SpReturnValueTests
+open FSharp.Data.SqlClient
+#else
+module FSharp.Data.SqlClient.SpReturnValueTests
+#endif
 
 open System
 open Xunit

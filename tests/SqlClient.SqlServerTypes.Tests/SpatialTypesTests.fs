@@ -1,4 +1,9 @@
-﻿module FSharp.Data.SpatialTypesTests
+﻿#if WITH_LEGACY_NAMESPACE
+module FSharp.Data.SpatialTypesTests
+open FSharp.Data.SqlClient
+#else
+module FSharp.Data.SqlClient.SpatialTypesTests
+#endif
 
 open Xunit
 open Microsoft.SqlServer.Types

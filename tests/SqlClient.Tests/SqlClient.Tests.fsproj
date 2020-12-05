@@ -7,6 +7,7 @@
     <AssemblyName>SqlClient.Tests</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <DefineConstants>$(DefineConstants);WITH_LEGACY_NAMESPACE</DefineConstants>
     <NoWarn>101</NoWarn>
     <!-- 
     disable error FS0044: This construct is deprecated. use 'FSharp.Data.SqlClient.Internals.ISqlCommand' instead 

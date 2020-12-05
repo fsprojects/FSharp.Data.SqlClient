@@ -1,4 +1,4 @@
-﻿open FSharp.Data
+﻿open FSharp.Data.SqlClient
 
 [<Literal>]
 let Cnx = "Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
@@ -17,7 +17,7 @@ let main _ =
     let get42 = new SqlCommandProvider<"SELECT 42", Cnx>(Cnx)
     get42.Execute() |> Seq.toArray |> printfn "SqlCommandTest: %A"
 
-    printfn "SqlEnum default test: %A" SingleColumnSelect.``CARGO TRANSPORT 5``    
+    printfn "SqlEnum default test: %A" SingleColumnSelect.``CARGO TRANSPORT 5``
     printfn "SqlEnum CLI enum test: %A" TinyIntEnum.One
-    printfn "SqlEnum UOM test: %A" 1m<CurrencyCodeUOM.USD>    
+    printfn "SqlEnum UOM test: %A" 1m<CurrencyCodeUOM.USD>
     0

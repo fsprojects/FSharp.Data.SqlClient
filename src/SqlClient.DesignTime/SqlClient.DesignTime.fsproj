@@ -9,7 +9,7 @@
     <NoWarn>101</NoWarn>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <DisableImplicitSystemValueTupleReference>true</DisableImplicitSystemValueTupleReference>
-    <DefineConstants>$(DefineConstants);DESIGNTIME_CODE_ONLY</DefineConstants>
+    <DefineConstants>$(DefineConstants);DESIGNTIME_CODE_ONLY;WITH_LEGACY_NAMESPACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="4.1.18" Condition="'$(TargetFramework)' == 'net40'" />
