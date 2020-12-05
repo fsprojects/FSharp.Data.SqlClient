@@ -28,12 +28,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="..\..\paket-files\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fsi">
-      <Link>paket-files/ProvidedTypes.fsi</Link>
-    </Compile>
-    <Compile Include="..\..\paket-files\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fs">
-      <Link>paket-files/ProvidedTypes.fs</Link>
-    </Compile>
     <Compile Include="Extensions.fs" />
     <Compile Include="Shared.fs" />
     <Compile Include="Configuration.fs" />
