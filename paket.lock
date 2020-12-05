@@ -7,7 +7,6 @@ GITHUB
     src/ProvidedTypesTesting.fs (28a24a69ada68ebd1ad25226634f4608e4875493)
 GROUP Build
 GENERATE-LOAD-SCRIPTS: ON
-STORAGE: NONE
 RESTRICTION: >= net451
 NUGET
   remote: https://www.nuget.org/api/v2
