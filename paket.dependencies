@@ -19,18 +19,6 @@ group Build
 
 	nuget NuGet.CommandLine
 
-group DesignTime
-	source https://www.nuget.org/api/v2/
-	framework: >= net461,netstandard20
-	
-	nuget System.Configuration.ConfigurationManager
-	nuget System.Data.Common
-	nuget System.Data.SqlClient
-	nuget System.Runtime.Caching
-	nuget FSharp.Core
-	nuget Microsoft.SqlServer.TransactSql.ScriptDom
-	nuget Microsoft.SqlServer.Types
-	
 group Test
 	source https://www.nuget.org/api/v2/
 	framework: net461, netcoreapp2.0	
@@ -38,7 +26,7 @@ group Test
 	nuget FSharp.Core = 4.5.2 redirects:force
 	nuget System.Data.SqlClient
 	nuget System.Configuration.ConfigurationManager
-	
+
 	nuget Microsoft.SqlServer.Types ~> 12
 	nuget Newtonsoft.Json
 	nuget xunit = 2.4.1

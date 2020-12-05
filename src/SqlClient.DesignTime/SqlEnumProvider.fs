@@ -265,7 +265,6 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
 
         tempAssembly.AddTypes [ providedEnumType ]
         providedEnumType
-
 #endif
 
     //Quotation factories
