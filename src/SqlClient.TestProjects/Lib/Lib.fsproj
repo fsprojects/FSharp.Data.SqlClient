@@ -13,9 +13,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Library1.fs" />
+    <None Include="paket.references" />
     <None Include="Script.fsx" />
     <Content Include="App.config" />
-    <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="netstandard" />

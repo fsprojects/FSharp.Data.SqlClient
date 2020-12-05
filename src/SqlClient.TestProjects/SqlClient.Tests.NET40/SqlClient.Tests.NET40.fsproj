@@ -15,7 +15,9 @@
   <ItemGroup>
     <Compile Include="Program.fs" />
     <Content Include="Uncomment.App.config" />
-    <Content Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="paket.references" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Data" />
