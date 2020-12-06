@@ -8,7 +8,7 @@ open System.Windows
 open System.Windows.Controls
 open System.Data.SqlClient
 
-open FSharp.Data
+open FSharp.Data.SqlClient
 
 [<Literal>]
 let queryTableSql = "select top 5 AddressID, AddressLine1, City, SpatialLocation from Person.Address where AddressLine1 like @startsWith"

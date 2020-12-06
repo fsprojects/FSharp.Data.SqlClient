@@ -9,7 +9,7 @@ open System.Diagnostics
 
 open Microsoft.FSharp.Quotations
 
-open FSharp.Data
+open FSharp.Data.SqlClient.Internals
 
 type QuotationsFactory private() = 
     

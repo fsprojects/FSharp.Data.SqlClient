@@ -10,6 +10,7 @@ open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
 
 open FSharp.Data.SqlClient
+open FSharp.Data.SqlClient.Internals
 
 open ProviderImplementation.ProvidedTypes
 

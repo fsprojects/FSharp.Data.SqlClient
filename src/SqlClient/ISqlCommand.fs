@@ -1,11 +1,11 @@
-﻿namespace FSharp.Data
+﻿namespace FSharp.Data.SqlClient.Internals
 
 open System
 open System.Data
 open System.Data.SqlClient
 open System.Reflection
-
 open FSharp.Data.SqlClient
+open FSharp.Data.SqlClient.Internals
 open System.Linq
 
 
@@ -245,7 +245,7 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
     //Execute/AsyncExecute versions
 
     static member internal VerifyResultsetColumns(cursor: SqlDataReader, expected) = 
-        if Configuration.Current.ResultsetRuntimeVerification
+        if FsharpDataSqlClientConfiguration.Current.ResultsetRuntimeVerification
         then 
             if cursor.FieldCount < Array.length expected
             then 
@@ -278,14 +278,14 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
     
     static member internal ExecuteDataTable(cmd, getReaderBehavior, parameters, expectedDataReaderColumns) = 
         use cursor = ``ISqlCommand Implementation``.ExecuteReader(cmd, getReaderBehavior, parameters, expectedDataReaderColumns) 
-        let result = new FSharp.Data.DataTable<DataRow>(cmd)
+        let result = new DataTable<DataRow>(cmd)
         result.Load(cursor)
         result
 
     static member internal AsyncExecuteDataTable(cmd, getReaderBehavior, parameters, expectedDataReaderColumns) = 
         async {
             use! reader = ``ISqlCommand Implementation``.AsyncExecuteReader(cmd, getReaderBehavior, parameters, expectedDataReaderColumns) 
-            let result = new FSharp.Data.DataTable<DataRow>(cmd)
+            let result = new DataTable<DataRow>(cmd)
             result.Load(reader)
             return result
         }
@@ -370,3 +370,15 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
             use _ = cmd.Connection.UseLocally(manageConnection )
             return! cmd.AsyncExecuteNonQuery() 
         }
+
+#if WITH_LEGACY_NAMESPACE
+namespace FSharp.Data
+open System
+open System.Data
+[<Obsolete("use 'FSharp.Data.SqlClient.Internals.``ISqlCommand Implementation``' instead");AutoOpen>]
+type ``ISqlCommand Implementation`` = FSharp.Data.SqlClient.Internals.``ISqlCommand Implementation``
+[<Obsolete("use 'FSharp.Data.SqlClient.Internals.ISqlCommand' instead");AutoOpen>]
+type ISqlCommand = FSharp.Data.SqlClient.Internals.ISqlCommand
+[<Obsolete("use 'FSharp.Data.SqlClient.Internals.DesignTimeConfig' instead");AutoOpen>]
+type DesignTimeConfig = FSharp.Data.SqlClient.Internals.DesignTimeConfig
+#endif

@@ -1,4 +1,10 @@
-﻿module FSharp.Data.OptionalParamsTests
+﻿#if WITH_LEGACY_NAMESPACE
+module FSharp.Data.OptionalParamsTests
+open FSharp.Data.SqlClient
+#else
+module FSharp.Data.SqlClient.OptionalParamsTests
+#endif
+
 
 open Xunit
 [<Literal>]

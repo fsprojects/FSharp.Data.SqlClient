@@ -1,4 +1,5 @@
 group Samples
+	FSharp.Core
 	FSharp.Data.SqlClient
 	Microsoft.AspNet.WebApi
 	Microsoft.AspNet.WebApi.Client

@@ -22,5 +22,5 @@ jobs:
       env:
         FSHARP_DATA_SQLCLIENT_USE_SQLLOCALDB_FOR_TESTS: 1
       run: |
-        call "C:\Program Files\Microsoft SQL Server\130\Tools\Binn\SqlLocalDB.exe" info
-        ./build.cmd 
+        "C:/Program Files/Microsoft SQL Server/130/Tools/Binn/SqlLocalDB.exe" info
+        ./build.cmd

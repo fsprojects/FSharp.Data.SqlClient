@@ -1,4 +1,9 @@
+#if WITH_LEGACY_NAMESPACE
 module FSharp.Data.TypeProviderTest
+open FSharp.Data.SqlClient
+#else
+module FSharp.Data.SqlClient.TypeProviderTest
+#endif
 
 open System
 open System.Data

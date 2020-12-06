@@ -1,9 +1,10 @@
-﻿namespace FSharp.Data
+﻿namespace FSharp.Data.SqlClient
 
 open System
 open System.Data
 open System.Data.SqlClient
 open System.Collections.Generic
+open FSharp.Data.SqlClient.Internals
 
 [<Sealed>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
@@ -111,3 +112,10 @@ type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionStri
         timeout |> Option.iter (fun x -> bulkCopy.BulkCopyTimeout <- int x.TotalSeconds)
         bulkCopy.WriteToServer this
 
+#if WITH_LEGACY_NAMESPACE
+namespace FSharp.Data
+open System
+open System.Data
+[<Obsolete("use 'FSharp.Data.SqlClient.DataTable' instead");AutoOpen>]
+type DataTable<'T when 'T :> DataRow> = FSharp.Data.SqlClient.DataTable<'T>
+#endif

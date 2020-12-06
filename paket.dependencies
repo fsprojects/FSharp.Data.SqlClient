@@ -1,6 +1,6 @@
 source https://www.nuget.org/api/v2/
 generate_load_scripts: on
-
+storage: none
 github fsprojects/FSharp.TypeProviders.SDK:28a24a69ada68ebd1ad25226634f4608e4875493 src/ProvidedTypes.fs
 github fsprojects/FSharp.TypeProviders.SDK:28a24a69ada68ebd1ad25226634f4608e4875493 src/ProvidedTypes.fsi
 github fsprojects/FSharp.TypeProviders.SDK:28a24a69ada68ebd1ad25226634f4608e4875493 src/ProvidedTypesTesting.fs
@@ -9,7 +9,7 @@ group Build
 	source https://www.nuget.org/api/v2/
 	framework: >= net451
 	generate_load_scripts: on
-
+	
 	nuget FAKE     = 5.8.4
 	nuget Fake.Lib = 5.8.4
 
@@ -21,8 +21,9 @@ group Build
 
 group DesignTime
 	source https://www.nuget.org/api/v2/
-	framework: >= net461,netstandard20
-	
+	framework: >= net461, >= netstandard20
+	storage: none
+
 	nuget System.Configuration.ConfigurationManager
 	nuget System.Data.Common
 	nuget System.Data.SqlClient
@@ -33,9 +34,10 @@ group DesignTime
 	
 group Test
 	source https://www.nuget.org/api/v2/
-	framework: net461, netcoreapp2.0	
+	framework: >= net461, >= netcoreapp2.0	
+	storage: none
 
-	nuget FSharp.Core = 4.5.2 redirects:force
+	nuget FSharp.Core = 5.0.0 redirects:force
 	nuget System.Data.SqlClient
 	nuget System.Configuration.ConfigurationManager
 	
@@ -47,12 +49,14 @@ group Test
 group Net40
 	source https://www.nuget.org/api/v2/
 	framework: net40
+	storage: none
 
 	nuget FSharp.Core = 4.1.18
 
 group TestProjects
 	source https://www.nuget.org/api/v2/
-	framework: >= net40, netcoreapp2.0, netstandard2.0
+	framework: >= net40, >= netcoreapp2.0, >= netstandard2.0
+	storage: none
 
 	nuget FSharp.Core = 4.3.4
 
@@ -61,14 +65,17 @@ group TestProjects
 
 group Samples
 	source https://www.nuget.org/api/v2/
-	framework: >= net40
-
-	nuget FSharp.Core = 4.5.2
+	framework: >= net40, >= netcoreapp2.0, >= netstandard2.0
+	redirects: on
+	
+	nuget FSharp.Core = 4.5.2 redirects: force
 	
 	nuget Microsoft.AspNet.WebApi
 	nuget Microsoft.AspNet.WebApi.Client
 	nuget Microsoft.AspNet.WebApi.Core
 	nuget Microsoft.AspNet.WebApi.WebHost
+	nuget Microsoft.SqlServer.Types
 
-	nuget Newtonsoft.Json
+	nuget Newtonsoft.Json redirects: force
 	nuget FSharp.Data.SqlClient
+	

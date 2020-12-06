@@ -75,6 +75,35 @@ let slnPath = "SqlClient.sln"
 let testProjectsSlnPath = "TestProjects.sln"
 let testSlnPath = "Tests.sln"
 let testProjectPath = "tests/SqlClient.Tests/SqlClient.Tests.fsproj"
+let runMsBuild project =
+        Fake.DotNet.MSBuild.build 
+            (fun args ->
+                let toolPath =
+                  [
+                    @"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin"
+                    @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Preview\MSBuild\current\Bin"
+                    @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\MSBuild\current\Bin"
+                    @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\current\Bin"
+                    @"C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin"
+                    @"C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\15.0\Bin"
+                    @"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin"
+                    @"C:\Program Files (x86)\MSBuild\15.0\Bin"
+                    @"\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"
+                    args.ToolPath
+                  ] 
+                  |> List.map (fun p -> Path.Combine(p, "MSBuild.exe"))
+                  |> List.find File.Exists
+                let properties = 
+                  [ yield "Configuration", "Release"
+                    for n,v in args.Properties do 
+                      if n <> "Configuration" then 
+                        yield n,v
+                  ]
+                { args
+                    with ToolPath = toolPath
+                         Properties = properties
+                } ) project
+
 
 Target.create "Clean" (fun _ ->
     Shell.cleanDirs ["bin"; "temp"]
@@ -165,14 +194,8 @@ Target.create "DeployTestDB" (fun _ ->
 )
 
 Target.create "BuildTestProjects" (fun _ ->
-    DotNet.build
-        (fun args -> 
-        { 
-            args with 
-                Configuration = DotNet.Release
-                //Common = { args.Common with Verbosity = Some DotNet.Verbosity.Detailed }
-        } |> dnDefault)
-        testProjectsSlnPath
+    DotNet.restore dnDefault testProjectsSlnPath
+    runMsBuild testProjectsSlnPath
 )
 
 // --------------------------------------------------------------------------------------
@@ -180,6 +203,8 @@ Target.create "BuildTestProjects" (fun _ ->
 Target.create "RunTests" (fun _ ->   
     // if we don't compile the targets sequentially, we get an error with the generated types:
     // System.IO.IOException: The process cannot access the file 'C:\Users\foo\AppData\Local\Temp\tmpF38.dll' because it is being used by another process.
+    DotNet.restore dnDefault testSlnPath
+    runMsBuild testSlnPath
     try 
         DotNet.test (fun args -> { args with Framework = Some "net461"; Common = args.Common |> dnDefault }) testSlnPath
         DotNet.test (fun args -> { args with Framework = Some "netcoreapp2.0"; Common = args.Common |> dnDefault }) testProjectPath   

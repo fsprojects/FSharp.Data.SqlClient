@@ -8,6 +8,7 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <NoWarn>101</NoWarn>
+    <DefineConstants>$(DefineConstants);WITH_LEGACY_NAMESPACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <None Include="app.config" />
