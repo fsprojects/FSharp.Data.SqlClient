@@ -21,7 +21,7 @@ group Build
 
 group DesignTime
 	source https://www.nuget.org/api/v2/
-	framework: >= net461,netstandard20
+	framework: >= net461, >= netstandard20
 	storage: none
 
 	nuget System.Configuration.ConfigurationManager
@@ -34,10 +34,10 @@ group DesignTime
 	
 group Test
 	source https://www.nuget.org/api/v2/
-	framework: net461, netcoreapp2.0	
+	framework: >= net461, >= netcoreapp2.0	
 	storage: none
 
-	nuget FSharp.Core = 4.5.2 redirects:force
+	nuget FSharp.Core = 5.0.0 redirects:force
 	nuget System.Data.SqlClient
 	nuget System.Configuration.ConfigurationManager
 	
@@ -55,7 +55,7 @@ group Net40
 
 group TestProjects
 	source https://www.nuget.org/api/v2/
-	framework: >= net40, netcoreapp2.0, netstandard2.0
+	framework: >= net40, >= netcoreapp2.0, >= netstandard2.0
 	storage: none
 
 	nuget FSharp.Core = 4.3.4
@@ -65,7 +65,7 @@ group TestProjects
 
 group Samples
 	source https://www.nuget.org/api/v2/
-	framework: >= net40
+	framework: >= net40, >= netcoreapp2.0, >= netstandard2.0
 	redirects: on
 	
 	nuget FSharp.Core = 4.5.2 redirects: force

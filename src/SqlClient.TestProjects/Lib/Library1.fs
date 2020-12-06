@@ -1,5 +1,5 @@
 ﻿module DataAccess
-
+open FSharp.Data
 open FSharp.Data.SqlClient
 
 type Get42 = SqlCommandProvider<"SELECT 42", "name=AdventureWorks", SingleRow = true>

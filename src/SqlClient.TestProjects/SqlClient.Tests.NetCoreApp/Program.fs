@@ -1,4 +1,5 @@
 ﻿open FSharp.Data.SqlClient
+open FSharp.Data
 
 [<Literal>]
 let Cnx = "Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
