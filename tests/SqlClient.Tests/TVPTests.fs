@@ -202,6 +202,7 @@ let ``issue #345 decimal in TVP gets rounded`` () =
 
 [<Fact>]
 let ``issue #393 troubleshoot if datetimeoffset raises an exception`` () =
+    // N.B, this should be tested against SQL Azure
     let value = System.DateTimeOffset.UtcNow
     let tvp = [AdventureWorks.dbo.``User-Defined Table Types``.datetimeoffset_test_tvp(value)]
     use cmd = new AdventureWorks.dbo.datetimeoffset_test(ConnectionStrings.AdventureWorksLiteral)

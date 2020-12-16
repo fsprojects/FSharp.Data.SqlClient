@@ -1,3 +1,10 @@
+#### 2.1.0 December dd, 2020
+
+* SQL Azure handling of `datetimeoffset`, `datetime2`, `time` causing `SqlMetaData` constructor exception (#393)
+* Breaking change: Optional parameters are required at call site (#348)
+* Breaking change: move anything defined in `FSharp.Data` namespace to `FSharp.Data.SqlClient` (#359)
+* Contributors: Christer van der Meeren (https://github.com/cmeeren), Gauthier Segay (https://github.com/smoothdeveloper)
+
 #### 2.0.7 November 18, 2020
 
 * Issue #345 Decimal values are trimmed when used as part of a TVP
