@@ -19,9 +19,9 @@ let BothOptinalParamsSupplied() =
     Assert.Equal( Some( Some 14), cmd.Execute(Some 3, Some 11))    
 
 [<Fact>]
-let SkipYParam() = 
+let YParamNull() = 
     use cmd = new QueryWithNullableParam()
-    Assert.Equal( Some( Some 12), cmd.Execute(x = Some 11))    
+    Assert.Equal( Some( Some 12), cmd.Execute(Some 11, None))    
 
 [<Fact>]
 let NullableStringInputParameter() = 
@@ -32,11 +32,6 @@ let NullableStringInputParameter() =
         actual = cmd.Execute( None)
     )
     
-    Assert.Equal(
-        expected = Some "",
-        actual = cmd.Execute()
-    )
-
     Assert.Equal(
         expected = Some "boo",
         actual = cmd.Execute( Some "boo")

@@ -33,7 +33,7 @@ echoOnly.Execute( x = (* must pass int value here *) 1)
 There is no way to pass NULL as value for parameter `@x` although the query knows how to handle it.
 
 To resolve the issue specify `AllParametersOptional = true` as static parameter to type provider. 
-It makes all parameters of type `option<_>` with default value `None`. 
+It makes all parameters of type `option<_>`.
 
 <div class="well well-small" style="margin:0px 70px 0px 20px;">
 
@@ -53,10 +53,7 @@ let echoOr42 =
 // Pass parameter value. Specifying Some constructor is mandatrory.
 echoOr42.Execute( Some 1) 
 
-// Pass NULL by omitting parameter
-echoOr42.Execute() 
-
-//Pass NULL explicitly
+// Pass NULL
 echoOr42.Execute( x = None) 
 
 (**

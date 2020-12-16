@@ -125,7 +125,7 @@ SqlCommandProvider and SqlProgrammabilityProvider features at glance
     * "ResolutionFolder" parameter - a folder to be used to resolve relative file paths at compile time. Applied to command text *.sql files only.
 * Input:
     * Unbound sql variables/input parameters mapped to mandatory typed arguments for `AsyncExecute/Execute`
-    * Set `AllParametersOptional` to true to make all parameters optional (nullable) (`SqlCommandProvider<...>` only)
+    * Set `AllParametersOptional` to true to make all parameters option-wrapped (`SqlCommandProvider<...>` only)
     * Stored Procedures and User-Defined Functions can be easily discovered with `SqlProgrammabilityProvider<...>`
     * `SqlProgrammabilityProvider<...>` infers default values for input parameters
 * Output:
