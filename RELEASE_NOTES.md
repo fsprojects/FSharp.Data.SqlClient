@@ -1,4 +1,4 @@
-#### 2.1.0 December dd, 2020
+#### 2.1.0 December 17, 2020
 
 * SQL Azure handling of `datetimeoffset`, `datetime2`, `time` causing `SqlMetaData` constructor exception (#393)
 * Breaking change: Optional parameters are required at call site (#348)
