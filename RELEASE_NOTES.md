@@ -1,3 +1,8 @@
+#### 2.1.0-beta1 December 17, 2020
+
+* fix reading from app.config vs App.config on case sensitive file system
+* move ISqlCommand out of Internals namespace
+
 #### 2.1.0-beta0 December 17, 2020
 
 * SQL Azure handling of `datetimeoffset`, `datetime2`, `time` causing `SqlMetaData` constructor exception (#393)
