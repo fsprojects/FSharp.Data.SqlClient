@@ -23,20 +23,23 @@ type internal DesignTimeConnectionString =
 
     static member ReadFromConfig(name, resolutionFolder, fileName) = 
         let configFilename = 
-            if fileName <> "" 
-            then
+            if fileName <> "" then
                 let path = Path.Combine(resolutionFolder, fileName)
                 if not <| File.Exists path 
                 then raise <| FileNotFoundException( sprintf "Could not find config file '%s'." path)
                 else path
             else
                 // note: these filenames are case sensitive on linux
-                let appConfig = Path.Combine(resolutionFolder, "App.config")
-                let webConfig = Path.Combine(resolutionFolder, "Web.config")
-
-                if File.Exists appConfig then appConfig
-                elif File.Exists webConfig then webConfig
-                else failwithf "Cannot find either App.config or Web.config."
+                let file = 
+                  seq { yield "app.config"
+                        yield "App.config"
+                        yield "web.config"
+                        yield "Web.config" }
+                  |> Seq.map (fun v -> Path.Combine(resolutionFolder,v))
+                  |> Seq.tryFind File.Exists
+                match file with
+                | None -> failwithf "Cannot find either App.config or Web.config."
+                | Some file -> file
         
         let map = ExeConfigurationFileMap()
         map.ExeConfigFilename <- configFilename
