@@ -1,13 +1,6 @@
-﻿namespace FSharp.Data.SqlClient.Internals
+﻿namespace FSharp.Data.SqlClient
 
-open System
-open System.Data
 open System.Data.SqlClient
-open System.Reflection
-open FSharp.Data.SqlClient
-open FSharp.Data.SqlClient.Internals
-open System.Linq
-
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type ISqlCommand = 
@@ -20,6 +13,17 @@ type ISqlCommand =
     abstract ToTraceString: parameters: (string * obj)[] -> string
 
     abstract Raw: SqlCommand with get
+
+
+namespace FSharp.Data.SqlClient.Internals
+
+open System
+open System.Data
+open System.Data.SqlClient
+open System.Reflection
+open FSharp.Data.SqlClient
+open FSharp.Data.SqlClient.Internals
+open System.Linq
 
 module Seq = 
 
@@ -377,8 +381,8 @@ open System
 open System.Data
 [<Obsolete("use 'FSharp.Data.SqlClient.Internals.``ISqlCommand Implementation``' instead");AutoOpen>]
 type ``ISqlCommand Implementation`` = FSharp.Data.SqlClient.Internals.``ISqlCommand Implementation``
-[<Obsolete("use 'FSharp.Data.SqlClient.Internals.ISqlCommand' instead");AutoOpen>]
-type ISqlCommand = FSharp.Data.SqlClient.Internals.ISqlCommand
+[<Obsolete("use 'FSharp.Data.SqlClient.ISqlCommand' instead");AutoOpen>]
+type ISqlCommand = FSharp.Data.SqlClient.ISqlCommand
 [<Obsolete("use 'FSharp.Data.SqlClient.Internals.DesignTimeConfig' instead");AutoOpen>]
 type DesignTimeConfig = FSharp.Data.SqlClient.Internals.DesignTimeConfig
 #endif
