@@ -31,10 +31,10 @@ type internal DesignTimeConnectionString =
             else
                 // note: these filenames are case sensitive on linux
                 let file = 
-                  seq { "app.config"
-                        "App.config"
-                        "web.config"
-                        "Web.config" }
+                  seq { yield "app.config"
+                        yield "App.config"
+                        yield "web.config"
+                        yield "Web.config" }
                   |> Seq.map (fun v -> Path.Combine(resolutionFolder,v))
                   |> Seq.tryFind File.Exists
                 match file with
