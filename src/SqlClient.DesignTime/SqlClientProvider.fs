@@ -3,7 +3,7 @@
 open System
 open System.Collections.Generic
 open System.Data
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 open System.Diagnostics
 open System.IO
 open System.Reflection

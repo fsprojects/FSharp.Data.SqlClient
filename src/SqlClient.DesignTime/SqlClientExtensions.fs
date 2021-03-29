@@ -6,8 +6,8 @@ open System.Data
 open System.Collections.Generic
 open System.IO
 open System.Threading.Tasks
-open System.Data.SqlClient
 open FSharp.Data.SqlClient.Internals
+open Microsoft.Data.SqlClient
 open System.Diagnostics
 
 type internal TypeInfoPerConnectionStringCache() =

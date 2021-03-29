@@ -4,6 +4,7 @@
   <Import Project="..\..\..\netfx.props" />
   <PropertyGroup>
     <TargetFrameworks>net471;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.0</TargetFrameworks>
     <AssemblyName>Lib</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

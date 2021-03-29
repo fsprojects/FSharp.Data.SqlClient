@@ -1,6 +1,6 @@
 ﻿namespace WebApi
 
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 open System.Net
 open System.Net.Http
 open System.Web.Http

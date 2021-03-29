@@ -6,7 +6,7 @@
 #r "Microsoft.SqlServer.XEvent.Linq.dll"
 
 open Microsoft.SqlServer.XEvent.Linq
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 let connection = "Data Source=.;Initial Catalog=master;Integrated Security=True"
 

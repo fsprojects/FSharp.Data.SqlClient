@@ -2,9 +2,9 @@ group DesignTime
 
 System.Configuration.ConfigurationManager
 System.Data.Common
-System.Data.SqlClient
 System.Runtime.Caching
+Microsoft.Data.SqlClient
 Microsoft.SqlServer.TransactSql.ScriptDom
-Microsoft.SqlServer.Types
+#Microsoft.SqlServer.Types
 
 

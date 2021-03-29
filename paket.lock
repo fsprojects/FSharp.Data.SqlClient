@@ -7,7 +7,7 @@ GITHUB
     src/ProvidedTypesTesting.fs (28a24a69ada68ebd1ad25226634f4608e4875493)
 GROUP Build
 GENERATE-LOAD-SCRIPTS: ON
-RESTRICTION: >= net451
+RESTRICTION: >= netstandard2.0
 NUGET
   remote: https://www.nuget.org/api/v2
     FAKE (5.8.4)

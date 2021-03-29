@@ -1,6 +1,9 @@
 ﻿namespace FSharp.Data.SqlClient
 
-open System.Data.SqlClient
+open System
+open System.Data
+open Microsoft.Data.SqlClient
+open System.Reflection
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type ISqlCommand = 
