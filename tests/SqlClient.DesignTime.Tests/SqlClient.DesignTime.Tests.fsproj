@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
     <AssemblyName>SqlClient.DesignTime.Tests</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -15,7 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data.SqlClient.DesignTime">
-      <HintPath>..\..\bin\typeproviders\fsharp41\net461\FSharp.Data.SqlClient.DesignTime.dll</HintPath>
+      <HintPath>..\..\bin\typeproviders\netcoreapp2.2\FSharp.Data.SqlClient.DesignTime.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

@@ -27,7 +27,7 @@ group Library
 
 group DesignTime
 	source https://www.nuget.org/api/v2/
-	framework: >= netstandard20
+	framework: >= netcoreapp2.2
 	storage: none
     
 	nuget System.Configuration.ConfigurationManager
@@ -40,9 +40,8 @@ group DesignTime
 	
 group Test
 	source https://www.nuget.org/api/v2/
-	framework: netcoreapp2.0
-    storage: none
-	framework: netcoreapp2.0
+	framework: netcoreapp2.2
+	storage: none
 
 	nuget FSharp.Core = 5.0.0 redirects:force
 	nuget System.Configuration.ConfigurationManager
@@ -65,11 +64,11 @@ group TestProjects
 
 group Samples
 	source https://www.nuget.org/api/v2/
-	framework: >= net40
-    storage: none
-	
+	framework: >= netcoreapp2.2
+	storage: none
+
 	nuget FSharp.Core = 4.5.2 redirects: force
-	
+
 	nuget Microsoft.AspNet.WebApi
 	nuget Microsoft.AspNet.WebApi.Client
 	nuget Microsoft.AspNet.WebApi.Core
