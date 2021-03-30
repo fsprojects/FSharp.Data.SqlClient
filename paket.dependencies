@@ -19,6 +19,12 @@ group Build
 
 	nuget NuGet.CommandLine
 
+group Library
+	source https://www.nuget.org/api/v2/
+	framework: >= netstandard20
+	nuget FSharp.Core
+	nuget Microsoft.Data.SqlClient
+
 group DesignTime
 	source https://www.nuget.org/api/v2/
 	framework: >= netstandard20

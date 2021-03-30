@@ -1,0 +1,4 @@
+group Library
+
+FSharp.Core
+Microsoft.Data.SqlClient
