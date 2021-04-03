@@ -27,7 +27,7 @@ STORAGE: NONE
 RESTRICTION: >= netcoreapp2.2
 NUGET
   remote: https://www.nuget.org/api/v2
-    FSharp.Core (5.0.1)
+    FSharp.Core (4.5.2)
     Microsoft.CSharp (4.7) - restriction: || (&& (>= net45) (>= netcoreapp2.2) (< netstandard2.0)) (&& (>= net46) (>= netcoreapp2.2)) (&& (>= net461) (>= netcoreapp2.2)) (&& (< netcoreapp2.1) (>= netcoreapp2.2) (>= netstandard2.1)) (&& (>= netcoreapp2.2) (< netstandard2.1)) (&& (>= netcoreapp2.2) (>= uap10.0)) (>= netcoreapp3.1)
     Microsoft.Data.SqlClient (2.1.2)
       Microsoft.Data.SqlClient.SNI.runtime (>= 2.1.1) - restriction: || (&& (< netcoreapp2.1) (>= netcoreapp2.2) (>= netstandard2.1)) (&& (>= netcoreapp2.2) (< netstandard2.1)) (>= netcoreapp3.1)
@@ -638,7 +638,7 @@ GROUP Library
 RESTRICTION: >= netstandard2.0
 NUGET
   remote: https://www.nuget.org/api/v2
-    FSharp.Core (5.0.1)
+    FSharp.Core (4.5.2)
     Microsoft.CSharp (4.7) - restriction: || (&& (>= net45) (>= netcoreapp2.1) (< netstandard2.0)) (&& (>= net45) (< netstandard2.0) (>= netstandard2.1)) (&& (< net45) (>= net46) (>= netstandard2.0)) (&& (< net45) (>= net461) (>= netstandard2.0)) (&& (< net45) (< netcoreapp2.1) (>= netstandard2.0) (< netstandard2.1)) (&& (>= net46) (>= xamarinios)) (&& (>= net461) (>= netcoreapp2.1)) (&& (>= net461) (>= netstandard2.1)) (&& (>= netcoreapp2.1) (< netstandard2.1)) (&& (>= netcoreapp2.1) (>= uap10.0)) (&& (< netcoreapp2.1) (>= netstandard2.1)) (&& (< netcoreapp2.1) (< netstandard2.1) (>= xamarinios)) (>= netcoreapp3.1) (&& (>= netstandard2.0) (>= uap10.0)) (&& (>= netstandard2.1) (>= uap10.0))
     Microsoft.Data.SqlClient (2.1.2)
       Microsoft.Data.SqlClient.SNI (>= 2.1.1) - restriction: && (>= net46) (>= netstandard2.0)

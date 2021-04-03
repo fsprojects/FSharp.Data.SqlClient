@@ -11,16 +11,16 @@
     <WithLegacyNamespaces>true</WithLegacyNamespaces>
     <DefineConstants Condition="'$(WithLegacyNamespaces)'=='true'">$(DefineConstants);WITH_LEGACY_NAMESPACE</DefineConstants>
   </PropertyGroup>
-  
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
-  
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DocumentationFile>..\..\bin\netstandard2.0\FSharp.Data.SqlClient.XML</DocumentationFile>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <None Include="paket.references" />
     <Compile Include="AssemblyInfo.fs" />
@@ -32,13 +32,13 @@
     <Compile Include="ISqlCommand.fs" />
     <Compile Include="Runtime.fs" />
   </ItemGroup>
-  
+
   <Target Name="CopyAssemblies" AfterTargets="Build">
     <ItemGroup>
       <RuntimeAssemblies Include="$(OutputPath)\FSharp.Data.SqlClient.*" />
     </ItemGroup>
     <Copy SourceFiles="@(RuntimeAssemblies)" DestinationFolder="..\..\bin\$(TargetFramework)" />
   </Target>
-  
+
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

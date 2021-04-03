@@ -43,14 +43,16 @@
     <None Include="Scripts\ReverseLineOrderForNotex.fsx" />
     <None Include="Scripts\XE.fsx" />
   </ItemGroup>
-  
+
   <Target Name="CopyAssembliesToTPFolder" AfterTargets="Build">
     <ItemGroup>
       <DesignTimeAssemblies Include="$(OutputPath)\FSharp.Data.SqlClient.DesignTime.*" />
       <DesignTimeAssemblies Include="$(OutputPath)\Microsoft.SqlServer.*.dll" />
+      <DesignTimeAssemblies Include="$(OutputPath)\Microsoft.Data.SqlClient.*" />
+      <DesignTimeAssemblies Include="$(OutputPath)\System.Configuration.ConfigurationManager.*" />
     </ItemGroup>
     <Copy SourceFiles="@(DesignTimeAssemblies)" DestinationFolder="..\..\bin\typeproviders\fsharp41\$(TargetFramework)" />
   </Target>
-  
+
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

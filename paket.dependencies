@@ -22,7 +22,7 @@ group Build
 group Library
 	source https://www.nuget.org/api/v2/
 	framework: >= netstandard20
-	nuget FSharp.Core
+	nuget FSharp.Core = 4.5.2
 	nuget Microsoft.Data.SqlClient
 
 group DesignTime
@@ -30,10 +30,10 @@ group DesignTime
 	framework: >= netcoreapp2.2
 	storage: none
     
+	nuget FSharp.Core = 4.5.2
 	nuget System.Configuration.ConfigurationManager
 	nuget System.Data.Common
 	nuget System.Runtime.Caching
-	nuget FSharp.Core
 	nuget Microsoft.Data.SqlClient
 	nuget Microsoft.SqlServer.TransactSql.ScriptDom 150.4897.1
 	#nuget Microsoft.SqlServer.Types

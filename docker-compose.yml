@@ -1,0 +1,10 @@
+version: "3"
+services:
+  fsharp-tp-sql:
+    image: microsoft/mssql-server-linux:2017-latest
+    environment:
+      SA_PASSWORD: "type-providers-are-pretty-neat-N1#"
+      ACCEPT_EULA: "Y"
+      MSSQL_AGENT_ENABLED: "true"
+    ports:
+      - "5002:1433"

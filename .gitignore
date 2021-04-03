@@ -236,3 +236,5 @@ Paket.Restore.targets
 /docs/output
 docs/output/**/*.*
 *.orig
+
+tests/SqlClient.Tests/AdventureWorks2012_Data.mdf
