@@ -15,7 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data.SqlClient.DesignTime">
-      <HintPath>..\..\bin\typeproviders\netcoreapp2.2\FSharp.Data.SqlClient.DesignTime.dll</HintPath>
+      <HintPath>..\..\bin\typeproviders\netstandard2.0\FSharp.Data.SqlClient.DesignTime.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

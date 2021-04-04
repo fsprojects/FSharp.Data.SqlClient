@@ -1,5 +1,6 @@
 group DesignTime
 
+System.Runtime
 FSharp.Core
 System.Configuration.ConfigurationManager
 System.Data.Common
