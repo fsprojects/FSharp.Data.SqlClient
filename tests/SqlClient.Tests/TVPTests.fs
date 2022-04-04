@@ -208,3 +208,18 @@ let ``issue #393 troubleshoot if datetimeoffset raises an exception`` () =
     use cmd = new AdventureWorks.dbo.datetimeoffset_test(ConnectionStrings.AdventureWorksLiteral)
     let resultvalue = cmd.Execute(tvp) |> Seq.head
     Assert.Equal(value, resultvalue)
+
+type FixedLengthBinaryTVP = SqlCommandProvider<"EXEC [dbo].[FixedLengthBinaryTVPTestProc] @fixedLengthBinaryTests", ConnectionStrings.AdventureWorksLiteral>
+[<Fact>]
+let ``Using Fixed Length Binary TVP``() =
+    printfn "%s" ConnectionStrings.AdventureWorksLiteral
+    use cmd = new FixedLengthBinaryTVP(ConnectionStrings.AdventureWorksLiteral)
+
+    [
+        [|1uy;2uy;3uy|]
+        [|4uy;5uy;6uy|]
+        [|7uy;8uy;9uy|]
+    ]
+    |> Seq.map (fun d -> FixedLengthBinaryTVP.FixedLengthBinaryTVPTest (Some d))
+    |> cmd.Execute
+    |> ignore
