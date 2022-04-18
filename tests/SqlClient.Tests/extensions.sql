@@ -58,6 +58,9 @@ GO
 IF OBJECT_ID('dbo.TestPhoto') IS NOT NULL
 	DROP PROCEDURE dbo.TestPhoto;
 GO
+IF OBJECT_ID('dbo.FixedLengthBinaryTVPTestProc') IS NOT NULL
+	DROP PROCEDURE [dbo].[FixedLengthBinaryTVPTestProc]
+GO
 IF OBJECT_ID('Sales.GetUKSalesOrders') IS NOT NULL
 	DROP FUNCTION Sales.GetUKSalesOrders;
 GO
@@ -70,6 +73,10 @@ GO
 
 IF OBJECT_ID(N'Sales.UnitedKingdomOrders') IS NOT NULL
 	DROP TABLE Sales.UnitedKingdomOrders
+GO
+
+IF OBJECT_ID(N'[dbo].[FixedLengthBinaryTVPTestTable]') IS NOT NULL
+	DROP TABLE [dbo].[FixedLengthBinaryTVPTestTable]
 GO
 
 --TRIGGERS
@@ -116,6 +123,10 @@ IF TYPE_ID(N'Sales.<USD>') IS NOT NULL
 	DROP TYPE Sales.[<USD>]
 GO
 
+IF TYPE_ID(N'dbo.FixedLengthBinaryTVPTest') IS NOT NULL
+	DROP TYPE [dbo].[FixedLengthBinaryTVPTest]
+GO
+
 
 CREATE TYPE dbo.MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
 GO
@@ -138,6 +149,11 @@ GO
 CREATE TYPE Sales.[<USD>] FROM MONEY NOT NULL
 GO
 
+CREATE TYPE [dbo].[FixedLengthBinaryTVPTest] AS TABLE (
+	[BinaryCol] BINARY(50)
+)
+GO
+
 --TABLES
 
 CREATE TABLE dbo.TableHavingColumnNamesWithSpaces (
@@ -150,7 +166,13 @@ CREATE TABLE Sales.UnitedKingdomOrders(
 	[SalesOrderID] [int] NOT NULL,
 	[TotalDue] [Sales].[<GBP>] NOT NULL
 )
-GO 
+GO
+
+CREATE TABLE [dbo].[FixedLengthBinaryTVPTestTable] (
+	ID                       INT IDENTITY (1, 1) NOT NULL,
+	FixedLengthBinaryTVPTest BINARY(50) NOT NULL
+)
+GO
 
 INSERT INTO Sales.UnitedKingdomOrders
 SELECT SalesOrderID, TotalDue
@@ -235,6 +257,16 @@ SELECT
 FROM Person.[Address]
 WHERE
 	SpatialLocation.STDistance(@SpatialLocation) = 0;
+GO
+
+CREATE PROCEDURE [dbo].[FixedLengthBinaryTVPTestProc]
+	@fixedLengthBinaryTests [dbo].[FixedLengthBinaryTVPTest] READONLY
+AS
+BEGIN
+	INSERT INTO [dbo].[FixedLengthBinaryTVPTestTable]
+	SELECT [BinaryCol]
+	FROM   @fixedLengthBinaryTests
+END
 GO
 
 

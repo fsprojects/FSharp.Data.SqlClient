@@ -159,7 +159,7 @@ let internal providerTypes =
         "sysname", (SqlDbType.NVarChar, "System.String", false)
 
         // binary
-        "binary", (SqlDbType.Binary, "System.Byte[]", true)
+        "binary", (SqlDbType.Binary, "System.Byte[]", false)
         "image", (SqlDbType.Image, "System.Byte[]", false)
         "varbinary", (SqlDbType.VarBinary, "System.Byte[]", false)
 
