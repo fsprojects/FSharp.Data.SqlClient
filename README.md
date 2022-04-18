@@ -128,9 +128,6 @@ More information can be found in the [documentation](http://fsprojects.github.io
 
 ### Maintainers
 
-- [@dmitry-a-morozov](https://github.com/dmitry-a-morozov)
-- [@dsevastianov](https://github.com/dsevastianov)
-- [@vasily-kirichenko](https://github.com/vasily-kirichenko) 
 - [@smoothdeveloper](https://github.com/smoothdeveloper)
 
 The default maintainer account for projects under "fsprojects" is [@fsprojectsgit](https://github.com/fsprojectsgit) - F# Community Project Incubation Space (repo management)
