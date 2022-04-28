@@ -3,8 +3,8 @@
 open System
 open System.Reflection
 open System.Data
-open System.Data.SqlClient
-open Microsoft.SqlServer.Server
+open Microsoft.Data.SqlClient
+open Microsoft.Data.SqlClient.Server
 open System.Collections.Generic
 open System.Diagnostics
 open Microsoft.FSharp.Quotations

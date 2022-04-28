@@ -3,7 +3,7 @@
 open System
 open System.Diagnostics
 open System.IO
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 open System.Reflection
 open System.Runtime.CompilerServices
 open Microsoft.FSharp.Core.CompilerServices

@@ -174,14 +174,19 @@ Target.create "DeployTestDB" (fun _ ->
     
             ZipFile.ExtractToDirectory(testsSourceRoot @@ (dataFileName + ".zip"), testsSourceRoot)
 
+            printfn "Copying file to docker: %s" sourceMdf
+
+            Shell.Exec("docker", "exec fsharpdatasqlclient_fsharp-tp-sql_1 mkdir -p /var/opt/mssql/attached") |> ignore
+            Shell.Exec("docker", (sprintf "cp %A %A" sourceMdf "fsharpdatasqlclient_fsharp-tp-sql_1:/var/opt/mssql/attached")) |> ignore
 
             let dataPath = 
                 use cmd = new SqlCommand("SELECT SERVERPROPERTY('InstanceDefaultDataPath')", conn)
                 cmd.ExecuteScalar() |> string
             do
-                let destFileName = dataPath @@ Path.GetFileName(sourceMdf) 
-                File.Copy(sourceMdf, destFileName, overwrite = true)
-                File.Delete( sourceMdf)
+                let parent (path: string) = path.Substring(0, path.LastIndexOf("/"))
+                let destFileName = sprintf "%s/attached/%s" (parent (parent dataPath)) (Path.GetFileName(sourceMdf))
+                //File.Copy(sourceMdf, destFileName, overwrite = true)
+                //File.Delete( sourceMdf)
                 use cmd = new SqlCommand(Connection = conn)
                 cmd.CommandText <- sprintf "CREATE DATABASE [%s] ON ( FILENAME = N'%s' ) FOR ATTACH" database destFileName
                 cmd.ExecuteNonQuery() |> ignore

@@ -6,7 +6,7 @@
 open System
 open System.Windows
 open System.Windows.Controls
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 open FSharp.Data.SqlClient
 

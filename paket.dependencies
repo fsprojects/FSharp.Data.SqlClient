@@ -7,7 +7,7 @@ github fsprojects/FSharp.TypeProviders.SDK:28a24a69ada68ebd1ad25226634f4608e4875
 
 group Build
 	source https://www.nuget.org/api/v2/
-	framework: >= net451
+	framework: >= netstandard20
 	generate_load_scripts: on
 	
 	nuget FAKE     = 5.8.4
@@ -19,57 +19,57 @@ group Build
 
 	nuget NuGet.CommandLine
 
+group Library
+	source https://www.nuget.org/api/v2/
+	framework: >= netstandard20
+	nuget FSharp.Core = 4.5.2
+	nuget Microsoft.Data.SqlClient
+
 group DesignTime
 	source https://www.nuget.org/api/v2/
-	framework: >= net461, >= netstandard20
+	framework: >= netstandard20
 	storage: none
-
-	nuget System.Configuration.ConfigurationManager
-	nuget System.Data.Common
-	nuget System.Data.SqlClient
-	nuget System.Runtime.Caching
-	nuget FSharp.Core
-	nuget Microsoft.SqlServer.TransactSql.ScriptDom
-	nuget Microsoft.SqlServer.Types
+  
+	nuget System.Runtime 4.3.1
+	nuget FSharp.Core = 4.5.2
+	nuget System.Configuration.ConfigurationManager 5.0.0
+	nuget System.Data.Common 4.3.0
+	nuget System.Runtime.Caching 5.0.0
+	nuget Microsoft.Data.SqlClient 2.1.2
+	nuget Microsoft.SqlServer.TransactSql.ScriptDom 150.4897.1
+	#nuget Microsoft.SqlServer.Types
 	
 group Test
 	source https://www.nuget.org/api/v2/
-	framework: >= net461, >= netcoreapp2.0	
+	framework: netcoreapp2.2
 	storage: none
 
 	nuget FSharp.Core = 5.0.0 redirects:force
-	nuget System.Data.SqlClient
 	nuget System.Configuration.ConfigurationManager
 	
-	nuget Microsoft.SqlServer.Types ~> 12
+	nuget Microsoft.Data.SqlClient
+	#nuget Microsoft.SqlServer.Types ~> 12
 	nuget Newtonsoft.Json
 	nuget xunit = 2.4.1
 	nuget xunit.runner.visualstudio = 2.4.1
 
-group Net40
-	source https://www.nuget.org/api/v2/
-	framework: net40
-	storage: none
-
-	nuget FSharp.Core = 4.1.18
-
 group TestProjects
 	source https://www.nuget.org/api/v2/
-	framework: >= net40, >= netcoreapp2.0, >= netstandard2.0
-	storage: none
+	framework: >= netcoreapp2.0
+    storage: none
 
-	nuget FSharp.Core = 4.3.4
+	nuget FSharp.Core = 4.5.2 redirects: force
 
-	nuget System.Data.SqlClient
 	nuget System.Configuration.ConfigurationManager
+	nuget Microsoft.Data.SqlClient
 
 group Samples
 	source https://www.nuget.org/api/v2/
-	framework: >= net40, >= netcoreapp2.0, >= netstandard2.0
-	redirects: on
-	
+	framework: >= netcoreapp2.2
+	storage: none
+
 	nuget FSharp.Core = 4.5.2 redirects: force
-	
+
 	nuget Microsoft.AspNet.WebApi
 	nuget Microsoft.AspNet.WebApi.Client
 	nuget Microsoft.AspNet.WebApi.Core
