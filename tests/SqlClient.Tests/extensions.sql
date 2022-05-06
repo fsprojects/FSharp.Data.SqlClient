@@ -61,6 +61,9 @@ GO
 IF OBJECT_ID('dbo.FixedLengthBinaryTVPTestProc') IS NOT NULL
 	DROP PROCEDURE [dbo].[FixedLengthBinaryTVPTestProc]
 GO
+IF OBJECT_ID('dbo.TestTVPColumnOrder') IS NOT NULL
+	DROP PROCEDURE [dbo].[TestTVPColumnOrder]
+GO
 IF OBJECT_ID('Sales.GetUKSalesOrders') IS NOT NULL
 	DROP FUNCTION Sales.GetUKSalesOrders;
 GO
@@ -127,6 +130,10 @@ IF TYPE_ID(N'dbo.FixedLengthBinaryTVPTest') IS NOT NULL
 	DROP TYPE [dbo].[FixedLengthBinaryTVPTest]
 GO
 
+IF TYPE_ID(N'dbo.TVPColumnOrder') IS NOT NULL
+	DROP TYPE [dbo].[TVPColumnOrder]
+GO
+
 
 CREATE TYPE dbo.MyTableType AS TABLE (myId int not null, myName nvarchar(30) null)
 GO
@@ -151,6 +158,13 @@ GO
 
 CREATE TYPE [dbo].[FixedLengthBinaryTVPTest] AS TABLE (
 	[BinaryCol] BINARY(50)
+)
+GO
+
+CREATE TYPE [dbo].[TVPColumnOrder] AS TABLE(
+	[Param1] INT NOT NULL,
+	[Param2] NVARCHAR(100) NOT NULL,
+	[Param3] BIT NOT NULL
 )
 GO
 
@@ -267,6 +281,14 @@ BEGIN
 	SELECT [BinaryCol]
 	FROM   @fixedLengthBinaryTests
 END
+GO
+
+CREATE PROCEDURE [dbo].[TestTVPColumnOrder](
+	@tvpColumnOrder [dbo].[TVPColumnOrder] READONLY
+)
+AS
+	SELECT *
+	FROM   @tvpColumnOrder
 GO
 
 

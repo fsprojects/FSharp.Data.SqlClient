@@ -525,11 +525,11 @@ from
 select 
 	c.name, c.system_type_id, c.user_type_id, c.is_nullable, c.max_length, c.is_identity, c.is_computed, tt.user_type_id table_type_user_type_id, c.[precision], c.scale
 from sys.table_types as tt
-	inner join sys.columns as c on tt.type_table_object_id = c.object_id
-order by 
-	tt.user_type_id
-	, c.user_type_id
-	, c.column_id
+    inner join sys.columns as c on tt.type_table_object_id = c.object_id
+order by
+      c.column_id
+    , tt.user_type_id
+    , c.user_type_id
 """
                 , this)   
               use reader = cmd.ExecuteReader()
