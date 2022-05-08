@@ -1,3 +1,14 @@
+#### 2.1.2 May 08, 2022
+
+* Issue #420 fix "TVP Column Ordering is incorrect as of version 2.1.0"
+* Contributor: Suou Ryuu (https://github.com/suou-ryuu)
+
+#### 2.1.1-beta0 April 07, 2022
+
+* Issue #413 fix "Fixed length binary columns in user defined table types fail when constructed"
+* Breaking change: removal of net40 support
+* Contributor: Suou Ryuu (https://github.com/suou-ryuu)
+
 #### 2.1.0-beta1 December 17, 2020
 
 * fix reading from app.config vs App.config on case sensitive file system

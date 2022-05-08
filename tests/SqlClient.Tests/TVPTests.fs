@@ -223,3 +223,19 @@ let ``Using Fixed Length Binary TVP``() =
     |> Seq.map (fun d -> FixedLengthBinaryTVP.FixedLengthBinaryTVPTest (Some d))
     |> cmd.Execute
     |> ignore
+
+
+type TestTVPColumnOrder = SqlCommandProvider<"EXEC [dbo].[TestTVPColumnOrder] @tvp", ConnectionStrings.AdventureWorksLiteral>
+[<Fact>]
+let ``User Defined Table Types should list columns orderd by Column Id (i.e. the order in which they appear in the declared type)`` () =
+    use cmd = new TestTVPColumnOrder(ConnectionStrings.AdventureWorksLiteral)
+
+    [
+        (1, "some string",        true)
+        (2, "some other string",  false)
+        (3, "yet another string", true)
+    ]
+    |> Seq.map (fun (i, s, b) -> TestTVPColumnOrder.TVPColumnOrder(i, s, b))
+    |> Seq.toList
+    |> cmd.Execute
+    |> ignore
