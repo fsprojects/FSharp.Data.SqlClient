@@ -439,3 +439,42 @@ begin
     select created_at from @tvp
 end
 go
+
+
+-- issue #424
+if object_id('dbo.testtable_424') is not null
+	drop table dbo.testtable_424
+go
+
+create table testtable_424 (
+	c1 uniqueidentifier not null,
+	c2 uniqueidentifier not null,
+	c3 uniqueidentifier not null,
+
+	c4 nvarchar(100) not null,
+	c5 nvarchar(100) not null,
+	c6 nvarchar(100) null,
+	c7 nvarchar(1000) not null,
+
+	c8 int not null,
+
+	c9 varchar(10) not null,
+	c10 uniqueidentifier not null,
+	c11 uniqueidentifier not null,
+
+	constraint pk_id_testtable_424 primary key clustered(c1, c2, c3)
+);
+
+if type_id('dbo.testtable_424_item') is not null
+	drop type dbo.testtable_424_item
+go
+
+create type dbo.testtable_424_item as table(
+	c3 uniqueidentifier not null,
+	c5 nvarchar(100) not null,
+	c6 nvarchar(100) null,
+	c7 nvarchar(1000) not null,
+	c8 int not null,
+	c9 varchar(10) not null,
+	c10 uniqueidentifier not null
+);
