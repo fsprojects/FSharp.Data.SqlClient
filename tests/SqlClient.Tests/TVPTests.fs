@@ -4,7 +4,7 @@ open FSharp.Data.SqlClient
 #else
 module FSharp.Data.SqlClient.TVPTests
 #endif
-
+open System
 open FSharp.Data
 open Xunit
 
@@ -239,3 +239,61 @@ let ``User Defined Table Types should list columns orderd by Column Id (i.e. the
     |> Seq.toList
     |> cmd.Execute
     |> ignore
+
+
+type AddSqlCommandIssue424 = SqlCommandProvider<"
+insert [testtable_424]
+(
+    c1,
+    c2,
+    c11,
+    c4,
+    c3,
+    c5,
+    c6,
+    c7,
+    c8,
+    c9,
+    c10
+)
+select
+    @c1,
+    @c2,
+    @c11,
+    @c4,
+    x.c3,
+    x.c5,
+    x.c6,
+    x.c7,
+    x.c8,
+    x.c9,
+    x.c10
+from @c12 x;
+" , ConnectionStrings.AdventureWorksLiteral, TableVarMapping = "@c12=testtable_424_item">
+
+[<Fact>]
+let ``Issue #424 conversion failed when using UDTT`` () =
+    use cmd = new AddSqlCommandIssue424(ConnectionStrings.AdventureWorksLiteral)
+    
+    let items =
+        [
+            AddSqlCommandIssue424.testtable_424_item(
+                c3 = Guid.NewGuid(),
+                c5 = "TestName",
+                c6 = Some "C6",
+                c7 = "C7",
+                c8 = 1,
+                c9 = "C9",
+                c10 = Guid.NewGuid()
+            )
+        ]
+    
+    let r =
+        cmd.Execute(
+            c1 = Guid.NewGuid(),
+            c2 = Guid.NewGuid(),
+            c4 = "C4 Name",
+            c11 = Guid.NewGuid(),
+            c12 = items
+        )
+    ()
