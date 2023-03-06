@@ -1,13 +1,13 @@
 ﻿#if WITH_LEGACY_NAMESPACE
 module FSharp.Data.SpatialTypesTests
-open FSharp.Data.SqlClient
 #else
 module FSharp.Data.SqlClient.SpatialTypesTests
 #endif
 
-open Xunit
+open FSharp.Data.SqlClient
 open Microsoft.SqlServer.Types
-open System.Data.SqlTypes
+open Microsoft.Data.SqlTypes
+open Xunit
 
 [<Literal>]
 let connectionString = @"name=AdventureWorks"
@@ -15,7 +15,7 @@ let connectionString = @"name=AdventureWorks"
 type GetEmployeeByLevel = SqlCommandProvider<"SELECT OrganizationNode FROM HumanResources.Employee WHERE OrganizationNode = @OrganizationNode", connectionString, SingleRow = true>
 
 [<Fact>]
-let SqlHierarchyIdParam() =    
+let SqlHierarchyIdParam() =
     let getEmployeeByLevel = new GetEmployeeByLevel()
     let p = SqlHierarchyId.Parse(SqlString("/1/1/"))
     let result = getEmployeeByLevel.Execute(p)

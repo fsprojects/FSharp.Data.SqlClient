@@ -14,20 +14,13 @@
     <releaseNotes>@releaseNotes@</releaseNotes>
     <copyright>Copyright 2015</copyright>
     <tags>@tags@</tags>
-    <frameworkAssemblies>
-      <frameworkAssembly assemblyName="System.Data" targetFramework="net40" />
-      <frameworkAssembly assemblyName="System.Xml" targetFramework="net40" />
-    </frameworkAssemblies>
     <references>
       <reference file="FSharp.Data.SqlClient.dll" />
     </references>
     <dependencies>
-      <group targetFramework="net40">
-        <dependency id="FSharp.Core" version="4.1.18" />
-      </group>
-      <group targetFramework="netstandard2.0">
+      <group targetFramework="netstandard2.1">
         <dependency id="FSharp.Core" version="4.3.4" />
-        <dependency id="System.Data.SqlClient" version="4.5.1" />
+        <dependency id="Microsoft.Data.SqlClient" version="4.5.1" />
         <dependency id="System.Configuration.ConfigurationManager" version="4.5.0" />
       </group>
     </dependencies>

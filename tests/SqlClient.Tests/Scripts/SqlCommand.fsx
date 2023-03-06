@@ -159,7 +159,7 @@ let getDatesQuery = "SELECT GETDATE() AS Now, GETUTCDATE() AS UtcNow"
 let localhost = "Data Source=.;Integrated Security=True;"
 type GetDates = SqlCommandProvider<getDatesQuery,  localhost>
 
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 type SqlDataReader with
     member this.ToRecords<'T>() = 
         seq {
@@ -171,7 +171,7 @@ type SqlDataReader with
 let xs = 
     use conn = new SqlConnection(localhost)
     conn.Open()
-    let cmd = new System.Data.SqlClient.SqlCommand(getDatesQuery, conn)
+    let cmd = new Microsoft.Data.SqlClient.SqlCommand(getDatesQuery, conn)
     cmd.ExecuteReader().ToRecords<GetDates.Record>() 
     |> Seq.toArray
 

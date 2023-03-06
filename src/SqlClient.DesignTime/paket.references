@@ -1,9 +1,10 @@
 group DesignTime
 
-System.Configuration.ConfigurationManager
+FSharp.Core
 System.Data.Common
-System.Data.SqlClient
+System.Configuration.ConfigurationManager
 System.Runtime.Caching
+Microsoft.Data.SqlClient copy_local: true
 Microsoft.SqlServer.TransactSql.ScriptDom
 Microsoft.SqlServer.Types
 

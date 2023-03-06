@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\netfx.props" />
   <PropertyGroup>
-    <TargetFrameworks>net461;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1</TargetFrameworks>
     <AssemblyName>FSharp.Data.SqlClient.DesignTime</AssemblyName>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <NoWarn>101</NoWarn>
@@ -11,32 +11,7 @@
     <DisableImplicitSystemValueTupleReference>true</DisableImplicitSystemValueTupleReference>
     <DefineConstants>$(DefineConstants);DESIGNTIME_CODE_ONLY;WITH_LEGACY_NAMESPACE</DefineConstants>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="FSharp.Core" Version="4.1.18" Condition="'$(TargetFramework)' == 'net40'" />
-    <PackageReference Include="FSharp.Core" Version="4.3.4" Condition="'$(TargetFramework)' == 'net461'" />
-    <!--<PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" Condition="'$(TargetFramework)' == 'net461'" />
-    
-    <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="14.0.3811.1" />
-    <PackageReference Include="Microsoft.SqlServer.Types" Version="12.0.5000" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.5.1" Condition="'$(TargetFramework)' == 'net461'" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.5.1" Condition="'$(TargetFramework)' == 'netstandard'" />
-    
-    -->
-  </ItemGroup>
-  <!--<ItemGroup Condition="$(TargetFramework) == 'net40'">
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Data" />
-  </ItemGroup>
-   <ItemGroup>
-    <Reference Include="System.IdentityModel" />
-    <Reference Include="System.Runtime.Caching" />
-    <Reference Include="System.ServiceModel" />
-    <Reference Include="System.Transactions" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>-->
-  <ItemGroup Condition="$(TargetFramework) == 'net461'">
-    <Reference Include="System.Data" />
-  </ItemGroup>
+
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="..\..\paket-files\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fsi">
@@ -66,8 +41,9 @@
     <Content Include="paket.references" />
     <None Include="Scripts\Scratchpad.fsx" />
     <None Include="Scripts\ReverseLineOrderForNotex.fsx" />
-    <None Include="Scripts\XE.fsx" />
+    <None Include="Scripts\XE.fsx.txt" />
   </ItemGroup>
+
   <Target Name="CopyAssembliesToTPFolder" AfterTargets="Build">
     <ItemGroup>
       <DesignTimeAssemblies Include="$(OutputPath)\FSharp.Data.SqlClient.DesignTime.*" />
@@ -75,13 +51,6 @@
     </ItemGroup>
     <Copy SourceFiles="@(DesignTimeAssemblies)" DestinationFolder="..\..\bin\typeproviders\fsharp41\$(TargetFramework)" />
   </Target>
-  <Target Name="CopyAssembliesToLegacyFolder" AfterTargets="Build" Condition="$(TargetFramework) == 'net40'">
-    <ItemGroup>
-      <DesignTimeAssemblies Include="$(OutputPath)\FSharp.Data.SqlClient.DesignTime.*" />
-      <DesignTimeAssemblies Include="$(OutputPath)\Microsoft.SqlServer.*.dll" />
-    </ItemGroup>
-    <Copy SourceFiles="@(DesignTimeAssemblies)" DestinationFolder="..\..\bin\$(TargetFramework)" />
-  </Target>
-  
+
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

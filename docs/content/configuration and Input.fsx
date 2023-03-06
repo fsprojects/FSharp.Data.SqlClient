@@ -227,7 +227,7 @@ module DB =
     [<Literal>]
     let connStr = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
-    open System.Data.SqlClient
+    open Microsoft.Data.SqlClient
 
     type MyCmd1 = SqlCommandProvider<"SELECT 42", connStr>
     type MyCmd2 = SqlCommandProvider<"SELECT 42", connStr>
@@ -291,7 +291,7 @@ type GetBitCoin =
 
 do 
     let cmd = new DeleteBitCoin(connStr) in cmd.Execute(bitCoinCode) |> ignore
-    let conn = new System.Data.SqlClient.SqlConnection(connStr)
+    let conn = new Microsoft.Data.SqlClient.SqlConnection(connStr)
     conn.Open()
     let tran = conn.BeginTransaction()
 

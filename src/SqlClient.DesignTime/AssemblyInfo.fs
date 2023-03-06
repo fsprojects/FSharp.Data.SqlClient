@@ -9,6 +9,7 @@ open System.Runtime.CompilerServices
 [<assembly: AssemblyVersionAttribute("2.1.2")>]
 [<assembly: AssemblyFileVersionAttribute("2.1.2")>]
 [<assembly: InternalsVisibleToAttribute("SqlClient.Tests")>]
+
 do ()
 
 module internal AssemblyVersionInformation =
@@ -18,3 +19,15 @@ module internal AssemblyVersionInformation =
     let [<Literal>] AssemblyVersion = "2.1.2"
     let [<Literal>] AssemblyFileVersion = "2.1.2"
     let [<Literal>] InternalsVisibleTo = "SqlClient.Tests"
+
+    (*
+    System.AppDomain.CurrentDomain.add_AssemblyResolve(fun _ args ->
+        let name = System.Reflection.AssemblyName(args.Name)
+        let existingAssembly = 
+            System.AppDomain.CurrentDomain.GetAssemblies()
+            |> Seq.tryFind(fun a -> System.Reflection.AssemblyName.ReferenceMatchesDefinition(name, a.GetName()))
+        match existingAssembly with
+        | Some a -> a
+        | None -> null
+    )
+    *)

@@ -2,13 +2,13 @@
 
 open System
 open System.Data
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 [<AutoOpen>]
 module Extensions =
 
     type SqlDataReader with
-        member internal this.MapRowValues<'TItem>( rowMapping) = 
+        member internal this.MapRowValues<'TItem>( rowMapping) =
             seq {
                 use _ = this
                 let values = Array.zeroCreate this.FieldCount
@@ -18,7 +18,7 @@ module Extensions =
             }
 
     type SqlDataReader with
-        member internal this.TryGetValue(name: string) = 
+        member internal this.TryGetValue(name: string) =
             let value = this.[name] 
             if Convert.IsDBNull value then None else Some(unbox<'a> value)
         member internal this.GetValueOrDefault<'a>(name: string, defaultValue) = 
@@ -26,19 +26,11 @@ module Extensions =
             if Convert.IsDBNull value then defaultValue else unbox<'a> value
 
     type SqlCommand with
-        member this.AsyncExecuteReader (behavior:CommandBehavior) = 
-            #if NET40
-            Async.FromBeginEnd((fun(callback, state) -> this.BeginExecuteReader(callback, state, behavior)), this.EndExecuteReader)            
-            #else
+        member this.AsyncExecuteReader (behavior:CommandBehavior) =
             Async.AwaitTask(this.ExecuteReaderAsync(behavior))
-            #endif
 
         member this.AsyncExecuteNonQuery() =
-            #if NET40
-            Async.FromBeginEnd(this.BeginExecuteNonQuery, this.EndExecuteNonQuery)
-            #else
-            Async.AwaitTask(this.ExecuteNonQueryAsync())            
-            #endif
+            Async.AwaitTask(this.ExecuteNonQueryAsync())
 
         static member internal DefaultTimeout = (new SqlCommand()).CommandTimeout
 

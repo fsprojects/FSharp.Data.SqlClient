@@ -1,9 +1,9 @@
 ﻿namespace ProviderImplementation.ProvidedTypes
 
+open System
+open System.Reflection
 open FSharp.Data.SqlClient
 open Microsoft.FSharp.Core.CompilerServices
-open System.Reflection
-open System
 
 [<AbstractClass>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
@@ -19,7 +19,7 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
         let providerType = ProvidedTypeDefinition(assembly, nameSpace, providerName, Some typeof<obj>, hideObjectMethods = true, isErased = isErased)
 
         providerType.DefineStaticParameters(
-            parameters = parameters,             
+            parameters = parameters,
             instantiationFunction = fun typeName args ->
                 match cache.TryGetValue(typeName) with
                 | true, cachedType -> cachedType.Value

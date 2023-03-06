@@ -7,7 +7,7 @@ module FSharp.Data.SqlClient.TempTableTests
 
 open FSharp.Data
 open Xunit
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 type TempTable =
     SqlCommandProvider<

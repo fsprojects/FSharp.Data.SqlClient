@@ -3,7 +3,7 @@
 open System
 open System.Data
 open FSharp.Data
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 [<Literal>] 
 let connectionString = "Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"

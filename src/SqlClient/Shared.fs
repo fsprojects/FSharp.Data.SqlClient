@@ -19,13 +19,13 @@ type SqlEnumKind =
 namespace FSharp.Data.SqlClient.Internals
 
 open System
+open System.IO
 open System.Text
 open System.Data
 open System.Collections.Generic
-open System.Data.SqlClient
 open System.Runtime.Serialization
 open System.Runtime.Serialization.Json
-open System.IO
+open Microsoft.Data.SqlClient
 
 module Encoding =
   let deserialize<'a> (text: string) = 

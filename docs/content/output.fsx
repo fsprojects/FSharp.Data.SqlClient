@@ -248,7 +248,7 @@ In later case, resulting `SqlDataReader` can be wrapped into something like that
 *)
 
 module SqlDataReader =  
-    open System.Data.SqlClient
+    open Microsoft.Data.SqlClient
     let toMaps (reader: SqlDataReader) = 
         seq {
             use __ = reader

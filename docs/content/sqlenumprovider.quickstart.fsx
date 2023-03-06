@@ -40,7 +40,7 @@ A typical implementation for overnight orders shipped since Jan 1, 2008 is follo
 let connStr = @"Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True"
 
 open System 
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 let conn = new SqlConnection (connStr)
 conn.Open()
@@ -220,7 +220,7 @@ Miscellaneous
 
 ### Any ADO.NET supported database
 SqlEnumProvider has a static parameter "Provider" which allows to pass ADO.NET provider [invariant name](http://msdn.microsoft.com/en-us/library/h508h681.aspx). 
-This makes it usable with any ADO.NET supported database. "System.Data.SqlClient" is default value for ADO.NET provider.
+This makes it usable with any ADO.NET supported database. "Microsoft.Data.SqlClient" is default value for ADO.NET provider.
 
 Invariant names of available ADO.NET providers can be retrieved as follows:
 *)

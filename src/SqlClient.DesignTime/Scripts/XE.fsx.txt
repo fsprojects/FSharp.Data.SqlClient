@@ -6,7 +6,7 @@
 #r "Microsoft.SqlServer.XEvent.Linq.dll"
 
 open Microsoft.SqlServer.XEvent.Linq
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 let connection = "Data Source=.;Initial Catalog=master;Integrated Security=True"
 
@@ -55,7 +55,7 @@ do
                 ALTER EVENT SESSION [%s] ON SERVER STATE = START
             END
         " xeSession xeSession targetDatabase targetDatabase targetDatabase xeSession xeSession
-    use cmd = new System.Data.SqlClient.SqlCommand(createSession, conn)
+    use cmd = new Microsoft.Data.SqlClient.SqlCommand(createSession, conn)
     cmd.ExecuteNonQuery() |> ignore
 
 do 

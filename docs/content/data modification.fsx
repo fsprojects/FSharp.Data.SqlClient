@@ -276,7 +276,7 @@ do
 
     currencyRates.Rows.Add newRow
     //Insert many more rows here
-    currencyRates.BulkCopy(copyOptions = System.Data.SqlClient.SqlBulkCopyOptions.TableLock)
+    currencyRates.BulkCopy(copyOptions = Microsoft.Data.SqlClient.SqlBulkCopyOptions.TableLock)
 
 (**
 
@@ -291,7 +291,7 @@ customize update behavior by creating your own instance of [SqlDataAdapter](http
 Pseudocode for custom data adapter:
 *)
 
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 do
     let currencyRates = new AdventureWorks.Sales.Tables.CurrencyRate()

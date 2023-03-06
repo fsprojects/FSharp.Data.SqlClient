@@ -2,9 +2,8 @@
 
 open System
 open System.Data
-open System.Data.SqlClient
 open System.Collections.Generic
-open FSharp.Data.SqlClient.Internals
+open Microsoft.Data.SqlClient
 
 [<Sealed>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
@@ -89,7 +88,7 @@ type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionStri
 
     member this.BulkCopy(?connection, ?copyOptions, ?transaction, ?batchSize, ?timeout: TimeSpan) = 
         
-        let conn', tran' = 
+        let conn, tran = 
             match connection, transaction with
             | _, Some(t: SqlTransaction) -> t.Connection, t
             | Some c, None -> c, null
@@ -104,9 +103,9 @@ type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionStri
                 else
                     selectCommand.Connection, selectCommand.Transaction
 
-        use __ = conn'.UseLocally()
+        use __ = conn
         let options = defaultArg copyOptions SqlBulkCopyOptions.Default
-        use bulkCopy = new SqlBulkCopy(conn', options, tran')
+        use bulkCopy = new SqlBulkCopy(conn, options, tran)
         bulkCopy.DestinationTableName <- this.TableName
         batchSize |> Option.iter bulkCopy.set_BatchSize
         timeout |> Option.iter (fun x -> bulkCopy.BulkCopyTimeout <- int x.TotalSeconds)
