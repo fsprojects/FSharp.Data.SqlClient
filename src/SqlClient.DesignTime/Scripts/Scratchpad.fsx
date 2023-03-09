@@ -16,7 +16,7 @@ let inline implicit arg =
 
 Convert.ToDateTime(Date(now))
 
-now |> box :> Date
+now |> box :?> Date
 
 //Convert.ChangeType(Nullable 42, typeof<int>)
 Convert.ChangeType(42M, typeof<float>)

@@ -108,7 +108,7 @@ let TwoTVPParameterOfSameUDTT() =
     let expected = [ for id, name in xs @ ys -> MyFunc.Record(id, name) ]
     Assert.Equal<_ list>(expected, cmd.Execute(xs', ys') |> Seq.toList)    
 
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 [<Fact>]
 let ReuseTVPTypeForDynamicADONET() = 

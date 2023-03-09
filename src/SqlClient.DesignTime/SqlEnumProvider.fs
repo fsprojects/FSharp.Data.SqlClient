@@ -2,17 +2,18 @@
 
 open System.Reflection
 open System.Collections.Generic
-open System.Data
-open System.Data.Common
 open System
 
 open Microsoft.FSharp.Core.CompilerServices
-open Microsoft.FSharp.Quotations
-open Microsoft.FSharp.Reflection
 
 open ProviderImplementation.ProvidedTypes
 
 open FSharp.Data.SqlClient
+
+open System.Data
+open System.Data.Common
+open Microsoft.FSharp.Reflection
+open Microsoft.FSharp.Quotations
 
 [<TypeProvider>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
@@ -42,7 +43,7 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
             parameters = [ 
                 ProvidedStaticParameter("Query", typeof<string>) 
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
-                ProvidedStaticParameter("Provider", typeof<string>, "System.Data.SqlClient") 
+                ProvidedStaticParameter("Provider", typeof<string>, "Microsoft.Data.SqlClient") 
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("Kind", typeof<SqlEnumKind>, SqlEnumKind.Default) 
             ],             
@@ -55,7 +56,7 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
 <summary>Enumeration based on SQL query.</summary> 
 <param name='Query'>SQL used to get the enumeration labels and values. A result set must have at least two columns. The first one is a label.</param>
 <param name='ConnectionString'>String used to open a data connection.</param>
-<param name='Provider'>Invariant name of a ADO.NET provider. Default is "System.Data.SqlClient".</param>
+<param name='Provider'>Invariant name of a ADO.NET provider. Default is "Microsoft.Data.SqlClient".</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
 <param name='Kind'></param>
 """
@@ -72,10 +73,10 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
             | Literal value -> value, provider
             | NameInConfig(_, value, provider) -> value, provider
 
-#if !USE_SYSTEM_DATA_COMMON_DBPROVIDERFACTORIES
-        // not supported on netstandard 20?
-        raise ("DbProviderFactories not available" |> NotImplementedException) 
-#else
+//#if !USE_SYSTEM_DATA_COMMON_DBPROVIDERFACTORIES
+//        // not supported on netstandard 20?
+//        raise ("DbProviderFactories not available" |> NotImplementedException) 
+//#else
         let adoObjectsFactory = DbProviderFactories.GetFactory( providerName: string)
         use conn = adoObjectsFactory.CreateConnection() 
         conn.ConnectionString <- connStr
@@ -266,7 +267,7 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
         tempAssembly.AddTypes [ providedEnumType ]
         providedEnumType
 
-#endif
+//#endif
 
     //Quotation factories
     

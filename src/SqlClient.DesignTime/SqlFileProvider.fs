@@ -1,10 +1,10 @@
 ﻿namespace FSharp.Data
 
 open System.IO
+open System.Text
 open Microsoft.FSharp.Core.CompilerServices
 open ProviderImplementation.ProvidedTypes
 open FSharp.Data.SqlClient
-open System.Text 
 
 [<TypeProvider>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]

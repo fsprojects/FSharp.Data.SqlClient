@@ -32,7 +32,7 @@ This conforms to familiar [ADO.NET conventions](https://msdn.microsoft.com/en-us
 *)
 
 open System
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 type CurrencyCode = 
     SqlEnumProvider<"SELECT Name, CurrencyCode FROM Sales.Currency", connectionString>

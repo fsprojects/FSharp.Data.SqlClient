@@ -3,14 +3,15 @@
 open System
 open System.Reflection
 open System.Data
-open System.Data.SqlClient
-open Microsoft.SqlServer.Server
 open System.Collections.Generic
 open System.Diagnostics
+open System.Text.RegularExpressions
+open Microsoft.Data.SqlClient
+open Microsoft.Data.SqlClient.Server
 open Microsoft.FSharp.Quotations
+
 open ProviderImplementation.ProvidedTypes
 open FSharp.Data.SqlClient.Internals
-open System.Text.RegularExpressions
 
 type internal RowType = {
     Provided: Type

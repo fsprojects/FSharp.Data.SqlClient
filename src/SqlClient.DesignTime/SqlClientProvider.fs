@@ -3,17 +3,27 @@
 open System
 open System.Collections.Generic
 open System.Data
-open System.Data.SqlClient
 open System.Diagnostics
 open System.IO
 open System.Reflection
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
 
+open Microsoft.Data.SqlClient
+
 open ProviderImplementation.ProvidedTypes
 
 open FSharp.Data.SqlClient
 open FSharp.Data.SqlClient.Internals
+open System.Data.Common
+open System.Runtime.InteropServices
+
+module Loaders =
+    let sqlClientFactoryLoader () =
+        let instance = Microsoft.Data.SqlClient.SqlClientFactory.Instance
+        if isNull instance then
+            failwith "Microsoft.Data.SqlClient.SqlClientFactory.Instance is null if the lib reference is used instead of win or unix"
+        DbProviderFactories.RegisterFactory("Microsoft.Data.SqlClient", instance)
 
 [<TypeProvider>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
@@ -27,13 +37,14 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
     let cache = new Cache<ProvidedTypeDefinition>()
     let methodsCache = new Cache<ProvidedMethod>()
     let whoIsClearing = typeof<SqlProgrammabilityProvider>.FullName + " Disposing"
+    do
+        //failwithf "Daniel! the CONFIG path is: \nReferencedAssemblies: %s\nRuntimeAssembly: %s" (String.Join(",\n", config.ReferencedAssemblies)) config.RuntimeAssembly
+        this.RegisterRuntimeAssemblyLocationAsProbingFolder(config)
 
-    do 
+        Loaders.sqlClientFactoryLoader ()
         this.Disposing.Add <| fun _ -> sqlDataTypesCache.Clear whoIsClearing
     
-    do 
-        //this.RegisterRuntimeAssemblyLocationAsProbingFolder( config) 
-
+    do
         providerType.DefineStaticParameters(
             parameters = [ 
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
@@ -59,9 +70,45 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
         this.AddNamespace(nameSpace, [ providerType ])
 
-    override this.ResolveAssembly args = 
-        config.ReferencedAssemblies 
-        |> Array.tryFind (fun x -> AssemblyName.ReferenceMatchesDefinition(AssemblyName.GetAssemblyName x, AssemblyName args.Name)) 
+    override this.ResolveAssembly args =
+        let remapRefToRuntime (x: string) =
+            // The ref assembly for microsoft.data.sqlclient was loaded but it won't work.
+            // C:\Users\<user>\.nuget\packages\microsoft.data.sqlclient\5.1.0\ref\netstandard2.1\Microsoft.Data.SqlClient.dll
+            if (not (x.Contains("/ref/"))) && (not (x.Contains("\\ref\\"))) then
+                x
+            else
+                let isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+                let windowsPath = x.Replace("/ref/", "/runtimes/win/lib/").Replace("\\ref\\", "\\runtimes\\win\\lib\\")
+                let unixPath = x.Replace("/ref/", "/runtimes/unix/lib/").Replace("\\ref\\", "\\runtimes\\unix\\lib\\")
+
+                if isWindows && File.Exists(windowsPath) then
+                    windowsPath
+                else if (not isWindows) && File.Exists(unixPath) then
+                    unixPath
+                else
+                    x.Replace("/ref/", "/lib/").Replace("\\ref\\", "\\lib\\")
+
+        config.ReferencedAssemblies
+        |> Array.filter (fun x -> AssemblyName.ReferenceMatchesDefinition(AssemblyName.GetAssemblyName x, AssemblyName args.Name)) 
+        |> Array.map (fun x ->
+            if (x.Contains("Microsoft.Data.SqlClient")) then
+                remapRefToRuntime x
+            else if (x.Contains("Microsoft.Data.SqlClient.SNI")) then
+                remapRefToRuntime x
+            else
+                x
+        )
+        |> Array.tryHead
+        |> fun x ->
+            // If we can't find SqlClient.SNI.runtime it is a dependency of SqlClient so
+            // we can try to find that instead and modify the path to find SNI
+            match x with
+            | None when args.Name.Contains("Microsoft.Data.SqlClient.SNI.runtime") ->
+                config.ReferencedAssemblies
+                |> Array.tryFind (fun x -> x.Contains("Microsoft.Data.SqlClient"))
+                |> Option.map (fun x -> x.Replace("microsoft.data.sqlclient", "microsoft.data.sqlclient.sni.runtime").Replace("Microsoft.Data.SqlClient", "Microsoft.Data.SqlClient.SNI.runtime"))
+                |> Option.map remapRefToRuntime
+            | _ -> x
         |> Option.map Assembly.LoadFrom
         |> defaultArg 
         <| base.ResolveAssembly args

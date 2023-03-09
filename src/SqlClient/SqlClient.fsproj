@@ -1,33 +1,28 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\netfx.props" />
   <PropertyGroup>
-    <TargetFrameworks>net40;netstandard2.0</TargetFrameworks>
+    <!--netstandard2.0;-->
+    <TargetFrameworks>netstandard2.1</TargetFrameworks>
     <AssemblyName>FSharp.Data.SqlClient</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <NoWarn>101</NoWarn>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <DisableImplicitSystemValueTupleReference>true</DisableImplicitSystemValueTupleReference>
-    <WithLegacyNamespaces>true</WithLegacyNamespaces>
     <DefineConstants Condition="'$(WithLegacyNamespaces)'=='true'">$(DefineConstants);WITH_LEGACY_NAMESPACE</DefineConstants>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>..\..\bin\net40\FSharp.Data.SqlClient.XML</DocumentationFile>
-  </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="FSharp.Core" Version="4.1.18" Condition="'$(TargetFramework)' == 'net40'" />
-    <PackageReference Include="FSharp.Core" Version="4.3.4" Condition="'$(TargetFramework)' != 'net40'" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" Condition="'$(TargetFramework)' != 'net40'" />
+    <PackageReference Include="FSharp.Core" Version="4.3.4" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="2.1.2" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net40'">
-    <Reference Include="System.Data" />
-    <Reference Include="System.Transactions" />
-  </ItemGroup>
+
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Extensions.fs" />
@@ -38,10 +33,11 @@
     <Compile Include="ISqlCommand.fs" />
     <Compile Include="Runtime.fs" />
   </ItemGroup>
+
   <Target Name="CopyAssemblies" AfterTargets="Build">
     <ItemGroup>
-      <RuntimeAssemblies Include="$(OutputPath)\FSharp.Data.SqlClient.*" /> 
-    </ItemGroup>    
+      <RuntimeAssemblies Include="$(OutputPath)\FSharp.Data.SqlClient.*" />
+    </ItemGroup>
     <Copy SourceFiles="@(RuntimeAssemblies)" DestinationFolder="..\..\bin\$(TargetFramework)" />
   </Target>
 </Project>

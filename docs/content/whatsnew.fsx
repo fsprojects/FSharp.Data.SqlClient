@@ -43,7 +43,7 @@ Any of these parameters can be ommited.
 #r "System.Transactions"
 
 do
-    use conn = new System.Data.SqlClient.SqlConnection( connectionString)
+    use conn = new Microsoft.Data.SqlClient.SqlConnection( connectionString)
     conn.Open()
     use tran = conn.BeginTransaction()
     use cmd = 

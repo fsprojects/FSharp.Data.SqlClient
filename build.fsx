@@ -1,6 +1,6 @@
 open Fake.DotNet
 // --------------------------------------------------------------------------------------
-// FAKE build script 
+// FAKE build script
 // --------------------------------------------------------------------------------------
 
 #r @"packages/build/FAKE/tools/FakeLib.dll"
@@ -19,10 +19,10 @@ open Fake.DotNet
 
 Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
 
-let files includes = 
+let files includes =
   { BaseDirectory = __SOURCE_DIRECTORY__
     Includes = includes
-    Excludes = [] } 
+    Excludes = [] }
 
 // Information about the project to be used at NuGet and in AssemblyInfo files
 let project = "FSharp.Data.SqlClient"
@@ -31,13 +31,13 @@ let authors = ["Dmitry Morozov, Dmitry Sevastianov"]
 let summary = "SqlClient F# type providers"
 let description = "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.\nSqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code."
 let tags = "F# fsharp data typeprovider sql"
-      
+
 let gitHome = "https://github.com/fsprojects"
 let gitName = "FSharp.Data.SqlClient"
 
 // Read release notes & version info from RELEASE_NOTES.md
-let release = 
-    File.ReadLines "RELEASE_NOTES.md" 
+let release =
+    File.ReadLines "RELEASE_NOTES.md"
     |> Fake.Core.ReleaseNotes.parse
 
 let version = release.AssemblyVersion
@@ -76,7 +76,7 @@ let testProjectsSlnPath = "TestProjects.sln"
 let testSlnPath = "Tests.sln"
 let testProjectPath = "tests/SqlClient.Tests/SqlClient.Tests.fsproj"
 let runMsBuild project =
-        Fake.DotNet.MSBuild.build 
+        Fake.DotNet.MSBuild.build
             (fun args ->
                 let toolPath =
                   [
@@ -90,13 +90,13 @@ let runMsBuild project =
                     @"C:\Program Files (x86)\MSBuild\15.0\Bin"
                     @"\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"
                     args.ToolPath
-                  ] 
+                  ]
                   |> List.map (fun p -> Path.Combine(p, "MSBuild.exe"))
                   |> List.find File.Exists
-                let properties = 
+                let properties =
                   [ yield "Configuration", "Release"
-                    for n,v in args.Properties do 
-                      if n <> "Configuration" then 
+                    for n,v in args.Properties do
+                      if n <> "Configuration" then
                         yield n,v
                   ]
                 { args
@@ -118,14 +118,14 @@ Target.create "CleanDocs" (fun _ ->
 
 Target.create "Build" (fun _ ->
     DotNet.build
-        (fun args -> 
-        { 
-            args with 
+        (fun args ->
+        {
+            args with
                 Configuration = DotNet.Release
                 //Common = { args.Common with Verbosity = Some DotNet.Verbosity.Detailed }
         } |> dnDefault)
         slnPath
-    
+
 )
 
 #r "System.Data"
@@ -134,7 +134,9 @@ Target.create "Build" (fun _ ->
 #r "System.IO.Compression"
 #r "System.IO.Compression.FileSystem"
 
-open System.Data.SqlClient
+#r "nuget: Microsoft.Data.SqlClient"
+
+open Microsoft.Data.SqlClient
 open System.Configuration
 open System.IO.Compression
 
@@ -142,8 +144,8 @@ Target.create "DeployTestDB" (fun _ ->
     let testsSourceRoot = Path.GetFullPath(@"tests\SqlClient.Tests")
     let map = ExeConfigurationFileMap()
     map.ExeConfigFilename <- testsSourceRoot @@ "app.config"
-    let connStr = 
-        let x = 
+    let connStr =
+        let x =
             ConfigurationManager
                 .OpenMappedExeConfiguration(map, ConfigurationUserLevel.None)
                 .ConnectionStrings
@@ -152,34 +154,34 @@ Target.create "DeployTestDB" (fun _ ->
         SqlConnectionStringBuilder(x)
 
     let database = connStr.InitialCatalog
-    use conn = 
+    use conn =
         connStr.InitialCatalog <- ""
         new SqlConnection(string connStr)
 
     conn.Open()
 
     do //attach
-        let dbIsMissing = 
+        let dbIsMissing =
             let query = sprintf "SELECT COUNT(*) FROM sys.databases WHERE name = '%s'" database
             use cmd = new SqlCommand(query, conn)
             cmd.ExecuteScalar() = box 0
 
         if dbIsMissing
-        then 
+        then
             let dataFileName = "AdventureWorks2012_Data"
             //unzip
             let sourceMdf = testsSourceRoot @@ (dataFileName + ".mdf")
-    
+
             if File.Exists(sourceMdf) then File.Delete(sourceMdf)
-    
+
             ZipFile.ExtractToDirectory(testsSourceRoot @@ (dataFileName + ".zip"), testsSourceRoot)
 
 
-            let dataPath = 
+            let dataPath =
                 use cmd = new SqlCommand("SELECT SERVERPROPERTY('InstanceDefaultDataPath')", conn)
                 cmd.ExecuteScalar() |> string
             do
-                let destFileName = dataPath @@ Path.GetFileName(sourceMdf) 
+                let destFileName = dataPath @@ Path.GetFileName(sourceMdf)
                 File.Copy(sourceMdf, destFileName, overwrite = true)
                 File.Delete( sourceMdf)
                 use cmd = new SqlCommand(Connection = conn)
@@ -199,15 +201,15 @@ Target.create "BuildTestProjects" (fun _ ->
 )
 
 // --------------------------------------------------------------------------------------
-// Run the unit tests 
-Target.create "RunTests" (fun _ ->   
+// Run the unit tests
+Target.create "RunTests" (fun _ ->
     // if we don't compile the targets sequentially, we get an error with the generated types:
     // System.IO.IOException: The process cannot access the file 'C:\Users\foo\AppData\Local\Temp\tmpF38.dll' because it is being used by another process.
     DotNet.restore dnDefault testSlnPath
     runMsBuild testSlnPath
-    try 
+    try
         DotNet.test (fun args -> { args with Framework = Some "net461"; Common = args.Common |> dnDefault }) testSlnPath
-        DotNet.test (fun args -> { args with Framework = Some "netcoreapp2.0"; Common = args.Common |> dnDefault }) testProjectPath   
+        DotNet.test (fun args -> { args with Framework = Some "netcoreapp3.1"; Common = args.Common |> dnDefault }) testProjectPath
     with
     | ex ->
         Trace.log (sprintf "Test exception: %A" ex)
@@ -222,9 +224,9 @@ Target.create "NuGet" (fun _ ->
     // Format the description to fit on a single line (remove \r\n and double-spaces)
     let description = description.Replace("\r", "").Replace("\n", "").Replace("  ", " ")
     let nugetPath = "packages/build/NuGet.CommandLine/tools/NuGet.exe"
-    
-    Fake.DotNet.NuGet.NuGet.NuGet (fun p -> 
-        { p with   
+
+    Fake.DotNet.NuGet.NuGet.NuGet (fun p ->
+        { p with
             Authors = authors
             Project = project
             Summary = summary
@@ -247,7 +249,7 @@ Target.create "GenerateDocs" (fun _ ->
     Fake.FSIHelper.executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"] [] |> ignore
 )
 
-Target.create "ServeDocs" (fun _ -> 
+Target.create "ServeDocs" (fun _ ->
   Fakeiisexpress.HostStaticWebsite id (__SOURCE_DIRECTORY__ @@ @"docs\output\") |> ignore
   Fakeiisexpress.OpenUrlInBrowser "http://localhost:8080"
 )
@@ -274,16 +276,16 @@ open Fake.Core.TargetOperators // for ==>
 "Clean"
   ==> "AssemblyInfo"
   ==> "Build"
-  ==> "DeployTestDB"  
-  ==> "BuildTestProjects"  
+  ==> "DeployTestDB"
+  ==> "BuildTestProjects"
   ==> "RunTests"
   ==> "All"
 
-"All" 
+"All"
   ==> "NuGet"
   ==> "Release"
 
-"All" 
+"All"
   ==> "CleanDocs"
   ==> "GenerateDocs"
   ==> "ReleaseDocs"

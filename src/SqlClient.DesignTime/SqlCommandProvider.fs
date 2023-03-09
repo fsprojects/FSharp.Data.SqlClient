@@ -3,9 +3,9 @@
 open System
 open System.Diagnostics
 open System.IO
-open System.Data.SqlClient
 open System.Reflection
 open System.Runtime.CompilerServices
+open Microsoft.Data.SqlClient
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
 
@@ -34,7 +34,7 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
 
     let cache = new Cache<ProvidedTypeDefinition>()
     let whoIsClearingCache = typeof<SqlCommandProvider>.FullName + " Disposing"
-    do 
+    do
         this.Disposing.Add <| fun _ ->
             try  
                 sqlDataTypesCache.Clear whoIsClearingCache
@@ -79,8 +79,8 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
 
         this.AddNamespace(nameSpace, [ providerType ])
 
-    override this.ResolveAssembly args = 
-        config.ReferencedAssemblies 
+    override this.ResolveAssembly args =
+        config.ReferencedAssemblies
         |> Array.tryFind (fun x -> AssemblyName.ReferenceMatchesDefinition(AssemblyName.GetAssemblyName x, AssemblyName args.Name)) 
         |> Option.map Assembly.LoadFrom
         |> defaultArg 

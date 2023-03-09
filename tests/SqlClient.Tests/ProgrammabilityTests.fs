@@ -6,7 +6,7 @@ module FSharp.Data.SqlClient.ProgrammabilityTest
 #endif
 
 open System
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 open Xunit
 
 type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksNamed>
