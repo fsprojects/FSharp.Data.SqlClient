@@ -1,9 +1,19 @@
 {
   "profiles": {
-    "SqlClient": {
+    "debug vs2022": {
       "commandName": "Executable",
-      "executablePath": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Professional\\Common7\\IDE\\devenv.exe",
-      "commandLineArgs": "..\\..\\Tests.sln"
+      "executablePath": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\devenv.exe",
+      "commandLineArgs": "..\\Tests.sln"
+    },
+    "debug vscode": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\gauth\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
+      "commandLineArgs": "..\\"
+    },
+    "debug rider": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\gauth\\AppData\\Local\\JetBrains\\Toolbox\\apps\\Rider\\ch-0\\232.10203.29\\bin\\rider64.exe",
+      "commandLineArgs": "..\\..\\..\\..\\..\\tests.sln"
     }
   }
 }
