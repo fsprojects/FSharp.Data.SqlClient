@@ -149,3 +149,4 @@ let ProductWeightAndSizeUnitsOfMeasure() =
    let bigBikes = allBikes |> List.choose ( fun x -> if x.Size = Some 52.<ProductsUnitsOfMeasure.``CM ``> then Some x.Name else None)
 
    Assert.Equal<_ list>( ["Mountain-500 Silver, 52"; "Mountain-500 Black, 52"], bigBikes)
+#endif
