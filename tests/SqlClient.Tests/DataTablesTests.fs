@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data
+﻿namespace FSharp.Data.SqlClient.Tests
 
 open System
 open System.Configuration
@@ -7,6 +7,7 @@ open System.Data.SqlClient
 open System.Data
 open FSharp.Data
 open FSharp.Data.SqlClient
+open FSharp.Data.SqlClient.Tests
 open Xunit
 
 open ProgrammabilityTest

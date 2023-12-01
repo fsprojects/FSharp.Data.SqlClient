@@ -1,8 +1,11 @@
-﻿module FSharp.Data.SynonymsTests
+﻿module FSharp.Data.SqlClient.Tests.SynonymsTests
 
 open System
 open System.Data
 open System.Data.SqlClient
+open FSharp.Data
+open FSharp.Data.SqlClient
+open FSharp.Data.SqlClient.Tests
 open ProgrammabilityTest
 open Xunit
 

@@ -1,7 +1,9 @@
-﻿module FSharp.Data.SqlClient.ConfigurationTests 
+﻿module FSharp.Data.SqlClient.Tests.ConfigurationTests 
 
 open Xunit
 open FSharp.Data
+open FSharp.Data.SqlClient
+open FSharp.Data.SqlClient.Tests
 open System.Configuration
 
 let adventureWorks = ConfigurationManager.ConnectionStrings.["AdventureWorks"].ConnectionString

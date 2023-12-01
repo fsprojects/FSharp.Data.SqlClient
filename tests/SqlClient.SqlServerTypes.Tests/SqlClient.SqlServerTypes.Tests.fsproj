@@ -10,7 +10,6 @@
     for the time necessary of the transition, this enables more coverage of the type aliases working the way expected in client code
     -->
     <NoWarn>$(NoWarn);0044</NoWarn>
-    <DefineConstants>$(DefineConstants);WITH_LEGACY_NAMESPACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <None Include="App.config" />
