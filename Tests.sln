@@ -1,11 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28010.2041
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34310.174
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{E35ED000-5A6C-49E1-82CF-55CB8C16C2AB}"
 	ProjectSection(SolutionItems) = preProject
 		paket.dependencies = paket.dependencies
+		paket.lock = paket.lock
 	EndProjectSection
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SqlClient.Tests", "tests\SqlClient.Tests\SqlClient.Tests.fsproj", "{36665EFF-56A2-46C2-852D-6D26DF492D79}"
@@ -13,6 +14,13 @@ EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SqlClient.DesignTime.Tests", "tests\SqlClient.DesignTime.Tests\SqlClient.DesignTime.Tests.fsproj", "{167862B2-5588-4DF8-A7D3-05C1A5A835CA}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SqlClient.SqlServerTypes.Tests", "tests\SqlClient.SqlServerTypes.Tests\SqlClient.SqlServerTypes.Tests.fsproj", "{CF3D9433-B20A-4E5A-9401-F6518CBAD34E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution items", "{0005CBDB-E976-46EE-89A0-CEE3F25A9365}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+		fsc.props = fsc.props
+		netfx.props = netfx.props
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
