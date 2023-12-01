@@ -1,10 +1,8 @@
-#if WITH_LEGACY_NAMESPACE
-module FSharp.Data.TypeProviderTest
-open FSharp.Data.SqlClient
-#else
-module FSharp.Data.SqlClient.TypeProviderTest
-#endif
+module FSharp.Data.SqlClient.Tests.TypeProviderTest
 
+open FSharp.Data
+open FSharp.Data.SqlClient
+open FSharp.Data.SqlClient.Tests
 open System
 open System.Data
 open System.Data.SqlClient

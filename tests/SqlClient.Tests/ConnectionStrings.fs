@@ -1,4 +1,4 @@
-﻿module FSharp.Data.ConnectionStrings 
+﻿module FSharp.Data.SqlClient.Tests.ConnectionStrings 
 
 [<Literal>]
 let server = @"."

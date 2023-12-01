@@ -1,4 +1,4 @@
-﻿module FSharp.Data.TransactionTests
+﻿module FSharp.Data.SqlClient.Tests.TransactionTests
 
 open System
 open System.Data
@@ -7,8 +7,10 @@ open System.Data.SqlClient
 
 open Xunit
 
-open FSharp.Data.TypeProviderTest
+open FSharp.Data.SqlClient.Tests.TypeProviderTest
+open FSharp.Data
 open FSharp.Data.SqlClient
+open FSharp.Data.SqlClient.Tests
 
 [<Fact>]
 let ``Closing ConnectionStrings.AdventureWorks on complete``() =

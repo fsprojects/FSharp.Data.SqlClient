@@ -1,12 +1,10 @@
-﻿#if WITH_LEGACY_NAMESPACE
-module FSharp.Data.EnumTests
-open FSharp.Data.SqlClient
-#else
-module FSharp.Data.SqlClient.EnumTests
-#endif
+﻿module FSharp.Data.SqlClient.Tests.EnumTests
+#if USE_SYSTEM_DATA_COMMON_DBPROVIDERFACTORIES
 open System
 open Xunit
-
+open FSharp.Data
+open FSharp.Data.SqlClient
+open FSharp.Data.SqlClient.Tests
 type EnumMapping = SqlEnumProvider<"SELECT * FROM (VALUES(('One'), 1), ('Two', 2)) AS T(Tag, Value)", ConnectionStrings.LocalHost, Kind = SqlEnumKind.CLI>
 
 [<Literal>]
@@ -151,3 +149,4 @@ let ProductWeightAndSizeUnitsOfMeasure() =
    let bigBikes = allBikes |> List.choose ( fun x -> if x.Size = Some 52.<ProductsUnitsOfMeasure.``CM ``> then Some x.Name else None)
 
    Assert.Equal<_ list>( ["Mountain-500 Silver, 52"; "Mountain-500 Black, 52"], bigBikes)
+#endif

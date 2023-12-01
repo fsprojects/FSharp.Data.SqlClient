@@ -1,8 +1,10 @@
-module FSharp.Data.CreateCommandTest
-
+module FSharp.Data.SqlClient.Tests.CreateCommandTest
+open FSharp.Data
+open FSharp.Data.SqlClient
+open FSharp.Data.SqlClient.Tests
 open Xunit
 
-type DB = FSharp.Data.ProgrammabilityTest.AdventureWorks
+type DB = FSharp.Data.SqlClient.Tests.ProgrammabilityTest.AdventureWorks
 
 [<Fact>]
 let getSingleRowNoParams() = 
