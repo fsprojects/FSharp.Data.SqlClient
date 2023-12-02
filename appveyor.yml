@@ -1,10 +1,10 @@
 init:
   - git config --global core.autocrlf input
   - net start MSSQL$SQL2019
-image: Visual Studio 2019 # VS2022 not yet ok with choco install dotnet sdk and appveyor not updated for dotnet 8 yet?
-before_build:
+image: Visual Studio 2022
+#before_build:
 # switch on dotnet 8 on appveyor: https://github.com/appveyor/ci/issues/3897#issuecomment-1827682384
-- choco install dotnet-sdk --version 8.0.100
+#- choco install dotnet-sdk --version 8.0.100
 build_script:
   - cmd: build.cmd GenerateDocs
 test: off
