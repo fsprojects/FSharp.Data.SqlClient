@@ -18,6 +18,13 @@ jobs:
       with:
         dotnet-version: 8.0.100
 
+    - name: Install SQL Server
+      # reference @ https://github.com/Particular/install-sql-server-action
+      uses: Particular/install-sql-server-action@v1.0.0
+      with:
+        connection-string-env-var: SQL_SERVER_CONNECTION_STRING
+        catalog: AdventureWroks
+        extra-params: ""
     - name: Build
       env:
         FSHARP_DATA_SQLCLIENT_USE_SQLLOCALDB_FOR_TESTS: 1
