@@ -6,8 +6,8 @@ open System.Data.SqlClient
 
 [<AutoOpen>]
 module Extensions =
-
-    type SqlDataReader with
+    
+    type IDataReader with
         member internal this.MapRowValues<'TItem>( rowMapping) = 
             seq {
                 use _ = this
@@ -49,7 +49,7 @@ module Extensions =
                     yield mapper cursor
             }
 
-    type SqlConnection with
+    type IDbConnection with
 
      //address an issue when regular Dispose on SqlConnection needed for async computation 
      //wipes out all properties like ConnectionString in addition to closing connection to db
@@ -63,7 +63,7 @@ module Extensions =
         
         member this.IsSqlAzure = 
             assert (this.State = ConnectionState.Open)
-            use cmd = new SqlCommand("SELECT SERVERPROPERTY('edition')", this)
+            use cmd = this.CreateCommand(CommandText = "SELECT SERVERPROPERTY('edition')")
             cmd.ExecuteScalar().Equals("SQL Azure")
 
 

@@ -639,7 +639,7 @@ type DesignTime private() =
             ]
 
             let body1 (args: _ list) = 
-                Expr.NewObject(ctorImpl, designTimeConfig :: <@@ Connection.Choice1Of3 %%args.Head @@> :: args.Tail)
+                Expr.NewObject(ctorImpl, designTimeConfig :: <@@ Connection.ConnectionString %%args.Head @@> :: args.Tail)
 
             yield ProvidedConstructor(parameters1, invokeCode = body1) :> MemberInfo
             
@@ -663,10 +663,12 @@ type DesignTime private() =
                 let connArg = 
                     <@@ 
                         if box (%%args.[1]: SqlTransaction) <> null 
-                        then Connection.Choice3Of3 %%args.[1]
+                        then Connection.SystemDataSqlClientTransaction %%args.[1]
                         elif box (%%args.[0]: SqlConnection) <> null 
-                        then Connection.Choice2Of3 %%args.Head 
-                        else Connection.Choice1Of3( %%connectionStringExpr)
+                        then Connection.SystemDataSqlClientConnection %%args.Head 
+                        elif box (%%connectionStringExpr: string) <> null
+                        then Connection.ConnectionString( %%connectionStringExpr)
+                        else failwithf "design time doesn't support IDb* constructors"
                     @@>
                 Expr.NewObject(ctorImpl, [ designTimeConfig ; connArg; args.[2] ])
                     
