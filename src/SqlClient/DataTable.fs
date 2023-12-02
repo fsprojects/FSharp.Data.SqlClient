@@ -8,7 +8,7 @@ open FSharp.Data.SqlClient.Internals
 
 [<Sealed>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
-type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionString: Lazy<string>) = 
+type DataTable<'T when 'T :> DataRow>(selectCommand: IDbCommand, ?connectionString: Lazy<string>) = 
     inherit DataTable()
 
     let rows = base.Rows
@@ -42,10 +42,12 @@ type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionStri
     
     member this.Update(?connection, ?transaction, ?batchSize, ?continueUpdateOnError, ?timeout: TimeSpan) = 
         // not supported on all DataTable instances
-        match selectCommand with
-        | null -> failwith "This command wasn't constructed from SqlProgrammabilityProvider, call to Update is not supported."
-        | _ -> ()
-
+        let selectCommand =
+          match selectCommand with
+          | null -> failwith "This command wasn't constructed from SqlProgrammabilityProvider, call to Update is not supported."
+          | :? SqlCommand as selectCommand -> selectCommand
+          | _ -> failwithf "This command has type %s, this is only supported for commands instanciated with System.Data.SqlClient db types." (selectCommand.GetType().FullName)
+        
         connection |> Option.iter selectCommand.set_Connection
         transaction |> Option.iter selectCommand.set_Transaction 
         
@@ -94,9 +96,12 @@ type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionStri
             | _, Some(t: SqlTransaction) -> t.Connection, t
             | Some c, None -> c, null
             | None, None ->
-                match selectCommand with
-                | null -> failwith "To issue BulkCopy on this table, you need to provide your own connection or transaction"
-                | _ -> ()
+                let selectCommand =
+                  match selectCommand with
+                  | null -> failwith "To issue BulkCopy on this table, you need to provide your own connection or transaction"
+                  | :? SqlCommand as selectCommand -> selectCommand
+                  | _ -> failwithf "This command has type %s, this is only supported for commands instanciated with System.Data.SqlClient db types." (selectCommand.GetType().FullName)
+
                 if this.IsDirectTable
                 then 
                     assert(connectionString.IsSome)
