@@ -1,9 +1,6 @@
-﻿#if WITH_LEGACY_NAMESPACE
-module FSharp.Data.TempTableTests
+﻿module FSharp.Data.SqlClient.Tests.TempTableTests
 open FSharp.Data.SqlClient
-#else
-module FSharp.Data.SqlClient.TempTableTests
-#endif
+open FSharp.Data.SqlClient.Tests
 
 open FSharp.Data
 open Xunit

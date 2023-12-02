@@ -1,8 +1,10 @@
-﻿module FSharp.Data.UnitsOfMeasure
+﻿module FSharp.Data.SqlClient.Tests.UnitsOfMeasure
 
 open Xunit
-
-type DB = FSharp.Data.ProgrammabilityTest.AdventureWorks
+open FSharp.Data
+open FSharp.Data.SqlClient
+open FSharp.Data.SqlClient.Tests
+type DB = FSharp.Data.SqlClient.Tests.ProgrammabilityTest.AdventureWorks
 
 type UOM = DB.Sales.``Units of Measure``
 
