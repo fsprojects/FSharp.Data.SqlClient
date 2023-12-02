@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="$(DefaultTargets);specific-fsc-version-msbuildprops-invariants">
-  <Target Name="specific-fsc-version-msbuildprops-invariants">
+<Project>
   <!-- Type providers currently can't run inside the .NET Core 2.0 hosted compiler, see https://github.com/Microsoft/visualfsharp/pull/3658#issuecomment-334773415 -->
   <PropertyGroup>
     <IsWindows Condition="'$(OS)' == 'Windows_NT'">true</IsWindows>
@@ -60,9 +59,8 @@
     <FscToolPath>/usr/bin</FscToolPath>
     <FscToolExe>fsharpc</FscToolExe>
   </PropertyGroup>
-  <!-- it doesn't do what I want.
+  <!-- it doesn't do what I want: @baronfel "Imports and property groups are part of evaluation phase, not execution phase. Errors and warnings are only fired during execution phase. Best which can be done is detect the bad state in a target that you run early in the build"  
   <Error Condition="'$(FscToolPath)' == ''" Text="FscToolPath MSBuild property could'nt be set" />
   <Error Condition="'$(FscToolPath)' == ''" Text="FscToolExe MSBuild property could'nt be set" />
   -->
-  </Target>
 </Project>
