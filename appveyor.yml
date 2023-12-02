@@ -1,6 +1,10 @@
 init:
   - git config --global core.autocrlf input
-image: Visual Studio 2017
+  - net start MSSQL$SQL2019
+image: Visual Studio 2022
+#before_build:
+# switch on dotnet 8 on appveyor: https://github.com/appveyor/ci/issues/3897#issuecomment-1827682384
+#- choco install dotnet-sdk --version 8.0.100
 build_script:
   - cmd: build.cmd GenerateDocs
 test: off
@@ -8,5 +12,3 @@ version: 0.0.1.{build}
 artifacts:
   - path: bin
     name: bin
-services:
-  - mssql2014

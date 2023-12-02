@@ -80,15 +80,14 @@ let runMsBuild project =
             (fun args ->
                 let toolPath =
                   [
+                    @"C:\Program Files\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin"
+                    @"C:\Program Files\Microsoft Visual Studio\2022\Preview\MSBuild\current\Bin"
+                    @"C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\current\Bin"
+                    @"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\current\Bin"
                     @"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin"
                     @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Preview\MSBuild\current\Bin"
                     @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\MSBuild\current\Bin"
                     @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\current\Bin"
-                    @"C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin"
-                    @"C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\15.0\Bin"
-                    @"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin"
-                    @"C:\Program Files (x86)\MSBuild\15.0\Bin"
-                    @"\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"
                     args.ToolPath
                   ] 
                   |> List.map (fun p -> Path.Combine(p, "MSBuild.exe"))
