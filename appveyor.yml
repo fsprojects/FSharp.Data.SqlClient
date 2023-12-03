@@ -1,5 +1,6 @@
 init:
   - git config --global core.autocrlf input
+  - net start MSSQL$SQL2019
 image: Visual Studio 2022
 build_script:
   - cmd: build.cmd GenerateDocs
@@ -8,5 +9,3 @@ version: 0.0.1.{build}
 artifacts:
   - path: bin
     name: bin
-services:
-  - mssql2014
