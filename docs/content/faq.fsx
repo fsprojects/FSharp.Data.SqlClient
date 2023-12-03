@@ -120,7 +120,7 @@ type SqlDataReader with
 let xs = 
     use conn = new SqlConnection(connectionString)
     conn.Open()
-    let cmd = new System.Data.SqlClient.SqlCommand(getDatesQuery, conn)
+    let cmd = conn.CreateCommand(CommandText = getDatesQuery)
     cmd.ExecuteReader().ToRecords<GetDates.Record>() 
     |> Seq.toArray
 

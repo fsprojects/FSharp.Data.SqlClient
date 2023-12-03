@@ -53,23 +53,24 @@ type internal Connection = Choice<string, SqlConnection, SqlTransaction>
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connection, commandTimeout) = 
-    let cmd = new SqlCommand(cfg.SqlStatement, CommandTimeout = commandTimeout)
-    let manageConnection = 
+    let manageConnection, cmd = 
         match connection with
         | Choice1Of3 connectionString -> 
-            cmd.Connection <- new SqlConnection(connectionString)
-            true
-        | Choice2Of3 instance -> 
-            cmd.Connection <- instance
-            false
+            let connection = new SqlConnection(connectionString)
+            let cmd = connection.CreateCommand()
+            true, cmd
+        | Choice2Of3 instance ->
+            let cmd = instance.CreateCommand()
+            false, cmd
         | Choice3Of3 tran -> 
-            cmd.Transaction <- tran 
-            cmd.Connection <- tran.Connection
-            false
+            let cmd = tran.Connection.CreateCommand(Transaction = tran)
+            false, cmd
 
     do
+        cmd.CommandTimeout <- commandTimeout
+        cmd.CommandText <- cfg.SqlStatement
         cmd.CommandType <- if cfg.IsStoredProcedure then CommandType.StoredProcedure else CommandType.Text
-        cmd.Parameters.AddRange( cfg.Parameters)
+        cmd.Parameters.AddRange(cfg.Parameters)
 
     let getReaderBehavior() = 
         seq {

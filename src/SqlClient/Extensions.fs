@@ -40,7 +40,7 @@ module Extensions =
             Async.AwaitTask(this.ExecuteNonQueryAsync())            
             #endif
 
-        static member internal DefaultTimeout = (new SqlCommand()).CommandTimeout
+        static member internal DefaultTimeout = 30 // used to be (new SqlCommand()).CommandTimeout , both System.Data.SqlClient and Microsoft.Data.SqlClient default to 30
 
         member internal this.ExecuteQuery mapper = 
             seq {
@@ -63,7 +63,7 @@ module Extensions =
         
         member this.IsSqlAzure = 
             assert (this.State = ConnectionState.Open)
-            use cmd = new SqlCommand("SELECT SERVERPROPERTY('edition')", this)
+            use cmd = this.CreateCommand(CommandText = "SELECT SERVERPROPERTY('edition')")
             cmd.ExecuteScalar().Equals("SQL Azure")
 
 
