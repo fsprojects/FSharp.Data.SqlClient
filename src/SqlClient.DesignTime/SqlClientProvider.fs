@@ -282,7 +282,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                             columns.column_id
                         "  descriptionSelector
 
-                let cmd = new SqlCommand(query, conn)
+                let cmd = conn.CreateCommand(CommandText = query)
                 cmd.Parameters.AddWithValue("@tableName", baseTableName) |> ignore
                 cmd.Parameters.AddWithValue("@schema", baseSchemaName) |> ignore
 

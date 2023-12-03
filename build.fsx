@@ -161,7 +161,7 @@ Target.create "DeployTestDB" (fun _ ->
     do //attach
         let dbIsMissing = 
             let query = sprintf "SELECT COUNT(*) FROM sys.databases WHERE name = '%s'" database
-            use cmd = new SqlCommand(query, conn)
+            use cmd = conn.CreateCommand(CommandText = query)
             cmd.ExecuteScalar() = box 0
 
         if dbIsMissing
@@ -176,20 +176,19 @@ Target.create "DeployTestDB" (fun _ ->
 
 
             let dataPath = 
-                use cmd = new SqlCommand("SELECT SERVERPROPERTY('InstanceDefaultDataPath')", conn)
+                use cmd = conn.CreateCommand(CommandText = "SELECT SERVERPROPERTY('InstanceDefaultDataPath')")
                 cmd.ExecuteScalar() |> string
             do
                 let destFileName = dataPath @@ Path.GetFileName(sourceMdf) 
                 File.Copy(sourceMdf, destFileName, overwrite = true)
                 File.Delete( sourceMdf)
-                use cmd = new SqlCommand(Connection = conn)
-                cmd.CommandText <- sprintf "CREATE DATABASE [%s] ON ( FILENAME = N'%s' ) FOR ATTACH" database destFileName
+                use cmd = conn.CreateCommand(CommandText = sprintf "CREATE DATABASE [%s] ON ( FILENAME = N'%s' ) FOR ATTACH" database destFileName)
                 cmd.ExecuteNonQuery() |> ignore
 
     do //create extra object to test corner case
         let script = File.ReadAllText(testsSourceRoot @@ "extensions.sql")
         for batch in script.Split([|"GO";"go"|], StringSplitOptions.RemoveEmptyEntries) do
-            use cmd = new SqlCommand(batch, conn)
+            use cmd = conn.CreateCommand(CommandText = batch)
             cmd.ExecuteNonQuery() |> ignore
 )
 

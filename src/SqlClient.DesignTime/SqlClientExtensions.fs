@@ -217,7 +217,7 @@ type SqlConnection with
 
     member internal this.GetUserSchemas() = 
         use __ = this.UseLocally()
-        use cmd = new SqlCommand("SELECT name FROM sys.schemas WHERE principal_id = 1", this)
+        use cmd = this.CreateCommand(CommandText = "SELECT name FROM sys.schemas WHERE principal_id = 1")
         cmd.ExecuteQuery(fun record -> record.GetString(0)) |> Seq.toList
 
     member internal this.GetRoutines( schema, isSqlAzure) = 
@@ -282,7 +282,7 @@ type SqlConnection with
 	                [Schema] = @schema            
             " descriptionSelector 
 
-        use cmd = new SqlCommand(getRoutinesQuery, this)
+        use cmd = this.CreateCommand(CommandText = getRoutinesQuery)
         cmd.Parameters.AddWithValue("@schema", schema) |> ignore
 
         cmd.ExecuteQuery(fun x ->
@@ -355,7 +355,7 @@ type SqlConnection with
                 AND OBJECT_ID('%s.%s') = object_id" descriptionSelector <|| routine.BaseObject
 
         [
-            use cmd = new SqlCommand(query, this)
+            use cmd = this.CreateCommand(CommandText = query)
             use cursor = cmd.ExecuteReader()
             while cursor.Read() do
                 let name = string cursor.["name"]
@@ -445,7 +445,7 @@ type SqlConnection with
                 OUTER APPLY %s AS XProp
             WHERE 
 	             [Schema] = '%s'" descriptionSelector schema
-        use cmd = new SqlCommand(getTablesQuery, this)
+        use cmd = this.CreateCommand(CommandText = getTablesQuery)
         cmd.ExecuteQuery(fun x -> 
             string x.["Name"], 
             string x.["BaseTableName"], 
@@ -455,7 +455,7 @@ type SqlConnection with
 
     member internal this.GetFullQualityColumnInfo commandText = 
         assert (this.State = ConnectionState.Open)
-        use cmd = new SqlCommand("sys.sp_describe_first_result_set", this, CommandType = CommandType.StoredProcedure)
+        use cmd = this.CreateCommand(CommandText = "sys.sp_describe_first_result_set", CommandType = CommandType.StoredProcedure)
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
         cmd.ExecuteQuery(fun cursor ->
             let user_type_id = cursor.TryGetValue "user_type_id"
@@ -481,7 +481,7 @@ type SqlConnection with
     member internal this.FallbackToSETFMONLY(commandText, commandType, parameters: Parameter list) = 
         assert (this.State = ConnectionState.Open)
         
-        use cmd = new SqlCommand(commandText, this, CommandType = commandType)
+        use cmd = this.CreateCommand(CommandText = commandText, CommandType = commandType)
         for p in parameters do
             cmd.Parameters.Add(p.Name, p.TypeInfo.SqlDbType) |> ignore
         use reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly)
@@ -515,7 +515,7 @@ type SqlConnection with
             assert (this.State = ConnectionState.Open)
             
             let sqlEngineTypes, tableVariableTypes = 
-              use cmd = new SqlCommand("""
+              use cmd = this.CreateCommand(CommandText = """
 select 
   t.name, t.system_type_id, t.user_type_id, t.is_table_type, s.name as schema_name, t.is_user_defined, t.[precision], t.scale
 from 
@@ -531,7 +531,7 @@ order by
 	, tt.user_type_id
 	, c.user_type_id
 """
-                , this)   
+                )
               use reader = cmd.ExecuteReader()
 
               [| while reader.Read() do

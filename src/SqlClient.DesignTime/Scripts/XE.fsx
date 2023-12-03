@@ -55,7 +55,7 @@ do
                 ALTER EVENT SESSION [%s] ON SERVER STATE = START
             END
         " xeSession xeSession targetDatabase targetDatabase targetDatabase xeSession xeSession
-    use cmd = new System.Data.SqlClient.SqlCommand(createSession, conn)
+    use cmd = conn.CreateCommand(CommandText = createSession)
     cmd.ExecuteNonQuery() |> ignore
 
 do 

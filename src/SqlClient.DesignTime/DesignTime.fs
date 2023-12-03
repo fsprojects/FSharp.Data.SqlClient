@@ -406,9 +406,9 @@ type DesignTime private() =
             unbox cursor.["suggested_scale"] |> unbox<byte>
         )        
 
-    static member internal ExtractParameters(connection, commandText: string, allParametersOptional) =  
+    static member internal ExtractParameters(connection : SqlConnection, commandText: string, allParametersOptional) =  
         
-        use cmd = new SqlCommand("sys.sp_describe_undeclared_parameters", connection, CommandType = CommandType.StoredProcedure)
+        use cmd = connection.CreateCommand(CommandText = "sys.sp_describe_undeclared_parameters", CommandType = CommandType.StoredProcedure)
         cmd.Parameters.AddWithValue("@tsql", commandText) |> ignore
 
         let parameters = 
@@ -700,7 +700,7 @@ type DesignTime private() =
         rowType
 
     // Changes any temp tables in to a global temp table (##name) then creates them on the open connection.
-    static member internal SubstituteTempTables(connection, commandText: string, tempTableDefinitions : string, connectionId, unitsOfMeasurePerSchema) =
+    static member internal SubstituteTempTables(connection : SqlConnection, commandText: string, tempTableDefinitions : string, connectionId, unitsOfMeasurePerSchema) =
         // Extract and temp tables
         let tempTableRegex = Regex("#([a-z0-9\-_]+)", RegexOptions.IgnoreCase)
         let tempTableNames =
@@ -714,13 +714,13 @@ type DesignTime private() =
         | _ ->
             // Create temp table(s), extracts the columns then drop it.
             let tableTypes =
-                use create = new SqlCommand(tempTableDefinitions, connection)
+                use create = connection.CreateCommand(CommandText = tempTableDefinitions)
                 create.ExecuteScalar() |> ignore
 
                 tempTableNames
                 |> List.map(fun name ->
                     let cols = DesignTime.GetOutputColumns(connection, "SELECT * FROM #"+name, [], isStoredProcedure = false)
-                    use drop = new SqlCommand("DROP TABLE #"+name, connection)
+                    use drop = connection.CreateCommand(CommandText = "DROP TABLE #"+name)
                     drop.ExecuteScalar() |> ignore
                     DesignTime.CreateTempTableRecord(name, cols, unitsOfMeasurePerSchema), cols)
 
@@ -758,14 +758,14 @@ type DesignTime private() =
                         cmd.Raw.Connection @@>
 
                 <@@ do
-                        use create = new SqlCommand(tempTableDefinitions, (%%connection : SqlConnection))
+                        use create = (%%connection : SqlConnection).CreateCommand(CommandText = tempTableDefinitions)
                         create.ExecuteNonQuery() |> ignore
 
                     (%%loadValues exprArgs connection)
                     ignore() @@>)
 
             // Create the temp table(s) but as a global temp table with a unique name. This can be used later down stream on the open connection.
-            use cmd = new SqlCommand(tempTableRegex.Replace(tempTableDefinitions, Prefixes.tempTable+connectionId+"$1"), connection)
+            use cmd = connection.CreateCommand(CommandText = tempTableRegex.Replace(tempTableDefinitions, Prefixes.tempTable+connectionId+"$1"))
             cmd.ExecuteScalar() |> ignore
 
             // Only replace temp tables we find in our list.
