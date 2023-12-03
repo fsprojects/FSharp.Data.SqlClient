@@ -1,11 +1,8 @@
 // https://github.com/fsharp/FAKE/blob/e1378887c41c37d425e134f83424424b76781228/src/legacy/Fake.IIS/IISExpress.fs
 // added HostStaticWebsite
-#r "System.Xml.Linq"
-open Fake
-/// Contains tasks to host webprojects in IIS Express.
-//[<System.Obsolete("This API is obsolete. There is no alternative in FAKE 5 yet. You can help by porting this module.")>]
-//module Fake.IISExpress
+module fakeiisexpress
 
+open Fake.Core
 open System.Diagnostics
 open System
 open System.IO
@@ -60,6 +57,7 @@ let createConfigFile (name, siteId : int, templateFileName, path, hostName, port
     xml.Save(uniqueConfigFile)
     uniqueConfigFile
 
+#nowarn "44" // obsolete api
 /// This task starts the given site in IISExpress with the given ConfigFile.
 /// ## Parameters
 ///
@@ -74,9 +72,9 @@ let createConfigFile (name, siteId : int, templateFileName, path, hostName, port
 let HostWebsite setParams configFileName siteId = 
     let parameters = setParams IISExpressDefaults
 
-    use __ = traceStartTaskUsing "StartWebSite" configFileName
+    use __ = Trace.traceTask "StartWebSite" configFileName
     let args = sprintf "/config:\"%s\" /siteid:%d" configFileName siteId
-    tracefn "Starting WebSite with %s %s" parameters.ToolPath args
+    Trace.tracefn "Starting WebSite with %s %s" parameters.ToolPath args
 
     let proc = 
         ProcessStartInfo(FileName = parameters.ToolPath, Arguments = args, UseShellExecute = false) 
@@ -88,9 +86,9 @@ let HostStaticWebsite setParams folder =
     // https://blogs.msdn.microsoft.com/rido/2015/09/30/serving-static-content-with-iisexpress/
     let parameters = setParams IISExpressDefaults
 
-    use __ = traceStartTaskUsing "StartWebSite" folder
+    use __ = Trace.traceTask "StartWebSite" folder
     let args = sprintf @"/path:""%s\""" folder
-    tracefn "Starting WebSite with %s %s" parameters.ToolPath args
+    Trace.tracefn "Starting WebSite with %s %s" parameters.ToolPath args
 
     let proc = 
         ProcessStartInfo(FileName = parameters.ToolPath, Arguments = args, UseShellExecute = false) 

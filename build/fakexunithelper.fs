@@ -1,12 +1,15 @@
 // taken from https://github.com/fsharp/FAKE/blob/4.64.13/src/app/FakeLib/UnitTest/XUnit/XUnitHelper.fs
 // this is not in FAKE 5
+module fakexunithelper
 open Fake
 #nowarn "44"
 
 open System
 open System.IO
 open System.Text
-
+open Fake.Core
+#if false
+open Fake.Testing.XUnit
 /// DEPRECATED.
 /// Option which allows to specify if an xUnit error should break the build.
 [<Obsolete("This type alias will be removed in a future version.")>]
@@ -52,7 +55,7 @@ let emptyTrait : (string * string) option = None
 /// DEPRECATED.
 [<Obsolete("This value will be removed in a future version. See Fake.Testing.XUnit.XUnitDefaults")>]
 let XUnitDefaults =
-    { ToolPath = findToolInSubPath "xunit.console.clr4.exe" (currentDirectory @@ "tools" @@ "xUnit")
+    { ToolPath = ProcessUtils.tryFindLocalTool "xunit.console.clr4.exe" (currentDirectory @@ "tools" @@ "xUnit")
       ConfigFile = null
       HtmlOutput = false
       NUnitXmlOutput = false
@@ -138,3 +141,4 @@ let xUnit setParams assemblies =
         |> match parameters.ErrorLevel with
             | Error | FailOnFirstError -> failwith
             | DontFailBuild -> traceImportant
+#endif            
