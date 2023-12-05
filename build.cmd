@@ -1,13 +1,13 @@
 @echo off
 
-.paket\paket.bootstrapper.exe
+dotnet tool restore
 if errorlevel 1 (
   exit /b %errorlevel%
 )
 
-.paket\paket.exe restore
+dotnet paket restore
 if errorlevel 1 (
   exit /b %errorlevel%
 )
 
-packages\build\FAKE\tools\FAKE.exe --removeLegacyFakeWarning build.fsx %*
+dotnet run --project build %*

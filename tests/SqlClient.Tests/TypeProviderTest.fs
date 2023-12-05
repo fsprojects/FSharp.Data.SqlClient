@@ -402,7 +402,7 @@ let ResultsetRuntimeVerificationDiffColumnTypes() =
 
     let err = Assert.Throws<InvalidCastException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
     
-    #if NET461
+    #if NET461_OR_GREATER
     let expectedErrorMsg = "Specified cast is not valid."
     #else
     let expectedErrorMsg = "Unable to cast object of type 'System.DateTime' to type 'System.Int32'."

@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\fsc.props" />
-  <Import Project="..\..\netfx.props" />
+  <!--<Import Project="..\..\fsc.props" />-->
+  <!--<Import Project="..\..\netfx.props" />-->
   <PropertyGroup>
-    <TargetFramework>net461</TargetFramework>
+    <TargetFramework>net462</TargetFramework>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <!-- 
     disable error FS0044: This construct is deprecated. use 'FSharp.Data.SqlClient.Internals.ISqlCommand' instead 
