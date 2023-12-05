@@ -92,6 +92,15 @@ let msBuildPaths extraPaths =
     |> List.map (fun p -> Path.Combine(p, "MSBuild.exe"))
     |> List.find File.Exists
 
+let fsiExePath =
+  [
+    @"C:\Program Files\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsiAnyCpu.exe"
+    @"C:\Program Files\Microsoft Visual Studio\2022\Preview\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsiAnyCpu.exe"
+    @"C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsiAnyCpu.exe"
+    @"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsiAnyCpu.exe"
+  ] 
+  |> List.tryFind File.Exists
+  
 
 let msbuilDisableBinLog args = { args with DisableInternalBinLog = true }
 
@@ -277,9 +286,13 @@ Target.create "NuGet" (fun _ ->
 // Generate the documentation
 
 Target.create "GenerateDocs" (fun _ ->
+    let fsiPath =
+      match fsiExePath with
+      | Some fsiExePath -> $"\"{fsiExePath}\""
+      | None -> failwith "FSIAnyCpu.exe wasn't found"
     pipeline "GenerateDocs" {
         stage "Generate Docs" {
-             run "fsianycpu docs/tools/generate.fsx --define:RELEASE" 
+             run $"{fsiPath} docs/tools/generate.fsx --define:RELEASE" 
         }
         runImmediate
     } 
