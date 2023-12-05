@@ -7,8 +7,6 @@ github fsprojects/FSharp.TypeProviders.SDK:28a24a69ada68ebd1ad25226634f4608e4875
 
 group Build
 	source https://www.nuget.org/api/v2/
-	generate_load_scripts: on
-	
 	
 	nuget Fun.Build
 	nuget FSharp.Core
@@ -24,14 +22,19 @@ group Build
 	nuget Fake.DotNet.Testing.XUnit2
 	nuget Fake.Tools.Git
 
-	nuget FSharp.Formatting #= 2.4.1
-	nuget FSharp.Compiler.Service #= 0.0.36
-	#nuget RazorEngine #= 3.3.0
-
 	nuget NuGet.CommandLine
 	nuget System.Data.SqlClient
 	
 	nuget System.Configuration.ConfigurationManager
+
+group Docs
+	source https://www.nuget.org/api/v2/
+	generate_load_scripts: on
+	storage: packages
+	nuget Fake.Lib
+	nuget FSharp.Formatting = 2.4.1
+	nuget FSharp.Compiler.Service = 0.0.36
+	nuget RazorEngine = 3.3.0
 
 group DesignTime
 	source https://www.nuget.org/api/v2/

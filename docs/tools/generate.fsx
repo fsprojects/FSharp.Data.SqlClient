@@ -14,8 +14,22 @@ let info =
     "project-github", githubLink
     "project-nuget", "http://www.nuget.org/packages/FSharp.Data.SqlClient" ]
 
-#load "../../.paket/load/net46/Build/FSharp.Formatting.fsx"
-#load "../../.paket/load/net46/Build/FAKE.Lib.fsx"
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// this whole block is for
+//#load "../../.paket/load/net46/Build/FSharp.Formatting.fsx"
+#load "../../.paket/load/net46/Docs/FSharp.Compiler.Service.fsx" 
+#load "../../.paket/load/net46/Docs/Microsoft.AspNet.Razor.fsx" 
+#load "../../.paket/load/net46/Docs/RazorEngine.fsx" 
+#r "../../packages/docs/FSharp.Formatting/lib/net40/FSharp.Markdown.dll" 
+#r "../../packages/docs/FSharp.Formatting/lib/net40/FSharp.CodeFormat.dll" 
+#r "../../packages/docs/FSharp.Formatting/lib/net40/CSharpFormat.dll" 
+#r "../../packages/docs/FSharp.Formatting/lib/net40/FSharp.MetadataFormat.dll" 
+#r "../../packages/docs/FSharp.Formatting/lib/net40/FSharp.Literate.dll" 
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+// in order to avoid following error which occurs when updating from dotnet 2 SDK to dotnet 7
+// error FS0239: An implementation of the file or module 'FSI_0002_FSharp.Formatting$fsx' has already been given
+
+#load "../../.paket/load/net46/Docs/FAKE.Lib.fsx"
 
 open Fake
 open System.IO
@@ -35,7 +49,7 @@ let content    = __SOURCE_DIRECTORY__ @@ "../content"
 let output     = __SOURCE_DIRECTORY__ @@ "../output"
 let files      = __SOURCE_DIRECTORY__ @@ "../files"
 let templates  = __SOURCE_DIRECTORY__ @@ "templates"
-let formatting = __SOURCE_DIRECTORY__ @@ "../../packages/Build/FSharp.Formatting/"
+let formatting = __SOURCE_DIRECTORY__ @@ "../../packages/Docs/FSharp.Formatting/"
 let docTemplate = formatting @@ "templates/docpage.cshtml"
 
 // Where to look for *.csproj templates (in this order)

@@ -279,7 +279,7 @@ Target.create "NuGet" (fun _ ->
 Target.create "GenerateDocs" (fun _ ->
     pipeline "GenerateDocs" {
         stage "Generate Docs" {
-             run "dotnet fsi docs/tools/generate.fsx --define:RELEASE" 
+             run "fsianycpu docs/tools/generate.fsx --define:RELEASE" 
         }
         runImmediate
     } 
