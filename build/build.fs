@@ -219,7 +219,7 @@ Target.create "DeployTestDB" (fun _ ->
                 let destFileName = dataPath @@ Path.GetFileName(sourceMdf) 
                 File.Copy(sourceMdf, destFileName, overwrite = true)
                 File.Delete( sourceMdf)
-                use cmd = conn.Value.CreateCommand(CommandText = sprintf "CREATE DATABASE [%s] ON ( FILENAME = N'%s' ) FOR ATTACH" database destFileName)
+                use cmd = conn.Value.CreateCommand(CommandText = sprintf "CREATE DATABASE [%s] ON ( FILENAME = N'%s' ) FOR ATTACH" database.Value destFileName)
                 cmd.ExecuteNonQuery() |> ignore
       )
     }
@@ -243,8 +243,6 @@ Target.create "DeployTestDB" (fun _ ->
     }
     runImmediate
   }
-
-        
 )
 
 let funBuildRestore stageName sln =
