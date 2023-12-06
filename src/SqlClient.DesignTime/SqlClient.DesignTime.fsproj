@@ -12,8 +12,9 @@
       note: TypeProvider SDK comes with few warnings
       FS0026: This rule will never be matched 
       FS3218: The argument names in the signature 'measure' and implementation 'm' do not match. The argument name from the signature file will be used. This may cause problems when debugging or profiling.
+      FS3548: Pattern discard is not allowed for union case that takes no data.
     -->
-    <WarningsNotAsErrors>$(WarningsNotAsErrors);FS0026;FS3218</WarningsNotAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);FS0026;FS3218;FS3548</WarningsNotAsErrors>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <DisableImplicitSystemValueTupleReference>true</DisableImplicitSystemValueTupleReference>
     <DefineConstants>$(DefineConstants);DESIGNTIME_CODE_ONLY;WITH_LEGACY_NAMESPACE</DefineConstants>
