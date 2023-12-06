@@ -155,45 +155,55 @@ open System.IO.Compression
 open Fake.DotNet.Testing
 
 Target.create "DeployTestDB" (fun _ ->
-    let testsSourceRoot = Path.GetFullPath(@"tests\SqlClient.Tests")
-    let map = ExeConfigurationFileMap()
-    map.ExeConfigFilename <- testsSourceRoot @@ "app.config"
-    let testConfigFile = ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None)
-    let connStr = 
-      let connStr = 
-        let gitHubActionSqlConnectionString = System.Environment.GetEnvironmentVariable "GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING"
-        if String.IsNullOrWhiteSpace gitHubActionSqlConnectionString then
-          testConfigFile
-            .ConnectionStrings
-            .ConnectionStrings.["AdventureWorks"]
-            .ConnectionString
-        else
-          // we run under Github Actions, update the test config file connection string.
-          testConfigFile
-            .ConnectionStrings
-            .ConnectionStrings.["AdventureWorks"]
-            .ConnectionString <- gitHubActionSqlConnectionString
-          
-          testConfigFile.Save()
+  let testsSourceRoot = Path.GetFullPath(@"tests\SqlClient.Tests")
+  let mutable database = None
+  let mutable testConnStr = None
+  let mutable conn = None
 
-          gitHubActionSqlConnectionString
-      SqlConnectionStringBuilder connStr
+  pipeline "DeployTestDB" {
 
-    let database = connStr.InitialCatalog
-    use conn = 
-        connStr.InitialCatalog <- ""
-        new SqlConnection(string connStr)
+    stage "adjust config file connection strings" {
+      run (fun ctx ->
+        let map = ExeConfigurationFileMap()
+        map.ExeConfigFilename <- testsSourceRoot @@ "app.config"
+        let testConfigFile = ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None)
+        let connStr =
+          let connStr =
+            let gitHubActionSqlConnectionString = System.Environment.GetEnvironmentVariable "GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING"
+            if String.IsNullOrWhiteSpace gitHubActionSqlConnectionString then
+              testConfigFile
+                .ConnectionStrings
+                .ConnectionStrings.["AdventureWorks"]
+                .ConnectionString
+            else
+              // we run under Github Actions, update the test config file connection string.
+              testConfigFile
+                .ConnectionStrings
+                .ConnectionStrings.["AdventureWorks"]
+                .ConnectionString <- gitHubActionSqlConnectionString
+              testConfigFile.Save()
+              gitHubActionSqlConnectionString
+          SqlConnectionStringBuilder connStr
+        testConnStr <- Some connStr
+        database <- Some connStr.InitialCatalog
+        conn <- 
+          connStr.InitialCatalog <- ""
+          let cnx = new SqlConnection(string connStr)
+          cnx.Open()
+          Some cnx
+      )
+    }
 
-    conn.Open()
+    stage "attach database to server" {
+      run (fun ctx ->
 
-    do //attach
+        //attach
         let dbIsMissing = 
-            let query = sprintf "SELECT COUNT(*) FROM sys.databases WHERE name = '%s'" database
-            use cmd = new SqlCommand(query, conn)
+            let query = sprintf "SELECT COUNT(*) FROM sys.databases WHERE name = '%s'" database.Value
+            use cmd = new SqlCommand(query, conn.Value)
             cmd.ExecuteScalar() = box 0
 
-        if dbIsMissing
-        then 
+        if dbIsMissing then 
             let dataFileName = "AdventureWorks2012_Data"
             //unzip
             let sourceMdf = testsSourceRoot @@ (dataFileName + ".mdf")
@@ -202,22 +212,39 @@ Target.create "DeployTestDB" (fun _ ->
     
             ZipFile.ExtractToDirectory(testsSourceRoot @@ (dataFileName + ".zip"), testsSourceRoot)
 
-
             let dataPath = 
-                use cmd = new SqlCommand("SELECT SERVERPROPERTY('InstanceDefaultDataPath')", conn)
+                use cmd = new SqlCommand("SELECT SERVERPROPERTY('InstanceDefaultDataPath')", conn.Value)
                 cmd.ExecuteScalar() |> string
             do
                 let destFileName = dataPath @@ Path.GetFileName(sourceMdf) 
                 File.Copy(sourceMdf, destFileName, overwrite = true)
                 File.Delete( sourceMdf)
-                use cmd = conn.CreateCommand(CommandText = sprintf "CREATE DATABASE [%s] ON ( FILENAME = N'%s' ) FOR ATTACH" database destFileName)
+                use cmd = conn.Value.CreateCommand(CommandText = sprintf "CREATE DATABASE [%s] ON ( FILENAME = N'%s' ) FOR ATTACH" database destFileName)
                 cmd.ExecuteNonQuery() |> ignore
+      )
+    }
 
-    do //create extra object to test corner case
+    //create extra object to test corner case
+    stage "patch adventure works" {
+      run (fun ctx ->
+        use _ = conn.Value
         let script = File.ReadAllText(testsSourceRoot @@ "extensions.sql")
         for batch in script.Split([|"GO";"go"|], StringSplitOptions.RemoveEmptyEntries) do
-            use cmd = conn.CreateCommand(CommandText = batch)
+          try
+            use cmd = conn.Value.CreateCommand(CommandText = batch)
             cmd.ExecuteNonQuery() |> ignore
+          with
+            e ->
+              let message = $"error while patching test db:\n{e.Message}\n{batch}"
+              printfn $"{message}"
+              raise (Exception(message, e))
+
+      )
+    }
+    runImmediate
+  }
+
+        
 )
 
 let funBuildRestore stageName sln =
