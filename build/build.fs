@@ -158,14 +158,26 @@ Target.create "DeployTestDB" (fun _ ->
     let testsSourceRoot = Path.GetFullPath(@"tests\SqlClient.Tests")
     let map = ExeConfigurationFileMap()
     map.ExeConfigFilename <- testsSourceRoot @@ "app.config"
+    let testConfigFile = ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None)
     let connStr = 
-        let x = 
-            ConfigurationManager
-                .OpenMappedExeConfiguration(map, ConfigurationUserLevel.None)
-                .ConnectionStrings
-                .ConnectionStrings.["AdventureWorks"]
-                .ConnectionString
-        SqlConnectionStringBuilder(x)
+      let connStr = 
+        let gitHubActionSqlConnectionString = System.Environment.GetEnvironmentVariable "GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING"
+        if String.IsNullOrWhiteSpace gitHubActionSqlConnectionString then
+          testConfigFile
+            .ConnectionStrings
+            .ConnectionStrings.["AdventureWorks"]
+            .ConnectionString
+        else
+          // we run under Github Actions, update the test config file connection string.
+          testConfigFile
+            .ConnectionStrings
+            .ConnectionStrings.["AdventureWorks"]
+            .ConnectionString <- gitHubActionSqlConnectionString
+          
+          testConfigFile.Save()
+
+          gitHubActionSqlConnectionString
+      SqlConnectionStringBuilder connStr
 
     let database = connStr.InitialCatalog
     use conn = 

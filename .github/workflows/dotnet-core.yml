@@ -12,7 +12,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v3
       with:
@@ -22,7 +22,7 @@ jobs:
       # reference @ https://github.com/Particular/install-sql-server-action
       uses: Particular/install-sql-server-action@v1.0.0
       with:
-        connection-string-env-var: SQL_SERVER_CONNECTION_STRING
+        connection-string-env-var: GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING
         catalog: AdventureWroks
         extra-params: ""
     - name: Build
