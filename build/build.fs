@@ -141,6 +141,7 @@ let dotnetBuildDisableBinLog (args: DotNet.BuildOptions) =
 let dnDefault =
   dotnetBuildDisableBinLog 
   >> DotNet.Options.withVerbosity (Some DotNet.Verbosity.Quiet)
+  >> DotNet.Options.withCustomParams (Some "--tl")
 
 Target.create "Build" (fun _ ->
     DotNet.build
@@ -209,12 +210,12 @@ Target.create "DeployTestDB" (fun _ ->
 
 let funBuildRestore stageName sln =
     stage $"dotnet restore %s{stageName} '{sln}'" {
-        run $"dotnet restore {sln}" 
+        run $"dotnet restore {sln} --tl" 
     }
 let funBuildRunMSBuild stageName sln =
     let msbuild = $"\"{msBuildPaths [] }\""
     stage $"run MsBuild %s{stageName}" {
-        run $"{msbuild} {sln} -verbosity:quiet"
+        run $"{msbuild} {sln} -verbosity:quiet --tl"
     }
 
 Target.create "BuildTestProjects" (fun _ ->
