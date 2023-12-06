@@ -23,7 +23,7 @@ jobs:
       uses: Particular/install-sql-server-action@v1.0.0
       with:
         connection-string-env-var: GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING
-        catalog: AdventureWroks
+        catalog: AdventureWorks2012
         extra-params: ""
     - name: Build
       env:
