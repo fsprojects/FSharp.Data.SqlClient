@@ -9,7 +9,22 @@ on:
 jobs:
   build:
 
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
+
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_SA_PASSWORD: YourStrong@Passw0rd
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P 'YourStrong@Passw0rd' -Q 'SELECT 1' -No"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 20s
 
     steps:
     - uses: actions/checkout@v4
@@ -19,35 +34,29 @@ jobs:
       with:
         dotnet-version: 9.0.x
 
-    - name: Install SQL Server
-      # Installs SQL Server and writes GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING
-      # with catalog=AdventureWorks2012. The database is empty at this point.
-      uses: Particular/install-sql-server-action@v1.0.0
-      with:
-        connection-string-env-var: GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING
-        catalog: AdventureWorks2012
-        extra-params: ""
-
     - name: Restore AdventureWorks2012 from backup
-      shell: pwsh
       run: |
-        $bak = "$env:TEMP\AdventureWorks2012.bak"
-        Write-Host "Downloading AdventureWorks2012.bak..."
-        Invoke-WebRequest `
-          -Uri "https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2012.bak" `
-          -OutFile $bak
+        BAK=/tmp/AdventureWorks2012.bak
+        echo "Downloading AdventureWorks2012.bak..."
+        curl -L -o "$BAK" \
+          "https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2012.bak"
 
-        # Parse server name from connection string
-        $cs = $env:GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING
-        if ($cs -match "(?i)(?:Data Source|Server)\s*=\s*([^;]+)") {
-          $server = $Matches[1].Trim()
-        } else {
-          throw "Cannot parse server from: $cs"
-        }
-        Write-Host "Restoring AdventureWorks2012 on '$server'..."
+        CONTAINER_ID=$(docker ps -q --filter "ancestor=mcr.microsoft.com/mssql/server:2022-latest")
+        echo "SQL Server container: $CONTAINER_ID"
 
-        # Restore over the empty database created by install-sql-server-action
-        sqlcmd -S "$server" -E -Q "RESTORE DATABASE [AdventureWorks2012] FROM DISK = N'$bak' WITH REPLACE, NOUNLOAD, STATS = 5"
+        echo "Copying backup into container..."
+        docker cp "$BAK" "$CONTAINER_ID:/var/opt/mssql/data/AdventureWorks2012.bak"
+
+        echo "Restoring AdventureWorks2012..."
+        docker exec "$CONTAINER_ID" \
+          /opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P 'YourStrong@Passw0rd' -No -Q \
+          "RESTORE DATABASE [AdventureWorks2012]
+           FROM DISK = N'/var/opt/mssql/data/AdventureWorks2012.bak'
+           WITH MOVE 'AdventureWorks2012'     TO '/var/opt/mssql/data/AdventureWorks2012_Data.mdf',
+                MOVE 'AdventureWorks2012_log' TO '/var/opt/mssql/data/AdventureWorks2012_Log.ldf',
+                REPLACE, NOUNLOAD, STATS = 5"
+
+        echo "GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING=Data Source=localhost,1433;Initial Catalog=AdventureWorks2012;User ID=SA;Password=YourStrong@Passw0rd;TrustServerCertificate=True;" >> "$GITHUB_ENV"
 
     - name: Build
-      run: ./build.cmd
+      run: ./build.sh
