@@ -13,21 +13,41 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.100
+        dotnet-version: 9.0.x
 
     - name: Install SQL Server
-      # reference @ https://github.com/Particular/install-sql-server-action
+      # Installs SQL Server and writes GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING
+      # with catalog=AdventureWorks2012. The database is empty at this point.
       uses: Particular/install-sql-server-action@v1.0.0
       with:
         connection-string-env-var: GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING
         catalog: AdventureWorks2012
         extra-params: ""
-    - name: Build
-      env:
-        FSHARP_DATA_SQLCLIENT_USE_SQLLOCALDB_FOR_TESTS: 1
+
+    - name: Restore AdventureWorks2012 from backup
+      shell: pwsh
       run: |
-        '"C:/Program Files/Microsoft SQL Server/130/Tools/Binn/SqlLocalDB.exe" info'
-        ./build.cmd
+        $bak = "$env:TEMP\AdventureWorks2012.bak"
+        Write-Host "Downloading AdventureWorks2012.bak..."
+        Invoke-WebRequest `
+          -Uri "https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2012.bak" `
+          -OutFile $bak
+
+        # Parse server name from connection string
+        $cs = $env:GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING
+        if ($cs -match "(?i)(?:Data Source|Server)\s*=\s*([^;]+)") {
+          $server = $Matches[1].Trim()
+        } else {
+          throw "Cannot parse server from: $cs"
+        }
+        Write-Host "Restoring AdventureWorks2012 on '$server'..."
+
+        # Restore over the empty database created by install-sql-server-action
+        sqlcmd -S "$server" -E -Q "RESTORE DATABASE [AdventureWorks2012] FROM DISK = N'$bak' WITH REPLACE, NOUNLOAD, STATS = 5"
+
+    - name: Build
+      run: ./build.cmd

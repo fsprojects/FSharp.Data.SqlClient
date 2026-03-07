@@ -185,6 +185,24 @@ Target.create "DeployTestDB" (fun _ ->
                     use cmd = new SqlCommand(query, conn.Value)
                     cmd.ExecuteScalar() = box 0
 
+                // Guard: if the DB exists but lacks the Person schema it is an empty shell
+                // (e.g. created by install-sql-server-action before a real .bak restore).
+                let dbIsEmpty =
+                    if dbIsMissing then
+                        false
+                    else
+                        let query =
+                            sprintf "SELECT COUNT(*) FROM [%s].sys.schemas WHERE name = 'Person'" database.Value
+
+                        use cmd = new SqlCommand(query, conn.Value)
+                        cmd.ExecuteScalar() = box 0
+
+                if dbIsEmpty then
+                    failwithf
+                        "Database '%s' exists but is empty (missing AdventureWorks schema). \
+Please restore AdventureWorks2012 from backup before running the tests."
+                        database.Value
+
                 if dbIsMissing then
                     let dataFileName = "AdventureWorks2012_Data"
                     //unzip
