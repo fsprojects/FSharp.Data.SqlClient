@@ -1,13 +1,13 @@
 ﻿module FSharp.Data.SqlClient.Tests.ConnectionStrings
 
 [<Literal>]
-let server = @"."
+let server = @"localhost,1433"
 
 [<Literal>]
 let AdventureWorksLiteral =
     @"Data Source="
     + server
-    + ";Initial Catalog=AdventureWorks2012;Integrated Security=True;TrustServerCertificate=true"
+    + ";Initial Catalog=AdventureWorks2012;User ID=SA;Password=YourStrong@Passw0rd;TrustServerCertificate=true"
 
 [<Literal>]
 let AdventureWorksDesignOnly = @"name=AdventureWorksDesignOnly"
@@ -26,7 +26,7 @@ let MasterDb = @"name=MasterDb"
 let LocalHost =
     @"Data Source="
     + server
-    + ";Integrated Security=True;TrustServerCertificate=true"
+    + ";User ID=SA;Password=YourStrong@Passw0rd;TrustServerCertificate=true"
 
 [<Literal>]
 let AdventureWorksAzureRedGate =

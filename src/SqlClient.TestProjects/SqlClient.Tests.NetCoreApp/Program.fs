@@ -3,7 +3,7 @@ open FSharp.Data
 
 [<Literal>]
 let Cnx =
-    "Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True;TrustServerCertificate=true"
+    "Data Source=localhost,1433;Initial Catalog=AdventureWorks2012;User ID=SA;Password=YourStrong@Passw0rd;TrustServerCertificate=true"
 
 type SingleColumnSelect = SqlEnumProvider<"SELECT Name FROM Purchasing.ShipMethod", Cnx>
 

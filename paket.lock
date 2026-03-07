@@ -573,9 +573,9 @@ NUGET
       Microsoft.NETCore.Targets (>= 1.1) - restriction: || (&& (< monoandroid) (< net45) (< netstandard1.3) (>= netstandard2.0) (< win8) (< wpa81)) (&& (< monoandroid) (< net45) (>= netstandard2.0) (< win8) (< wpa81) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos))
       System.Runtime (>= 4.3) - restriction: || (&& (< monoandroid) (< net45) (< netstandard1.3) (>= netstandard2.0) (< win8) (< wpa81)) (&& (< monoandroid) (< net45) (>= netstandard2.0) (< win8) (< wpa81) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos))
     System.ComponentModel.Annotations (5.0) - restriction: || (&& (< net462) (>= netstandard2.0) (< netstandard2.1)) (&& (< net8.0) (>= netstandard2.1))
-    System.Configuration.ConfigurationManager (9.0.4)
-      System.Diagnostics.EventLog (>= 9.0.4) - restriction: >= net8.0
-      System.Security.Cryptography.ProtectedData (>= 9.0.4) - restriction: || (&& (< net462) (>= netstandard2.0)) (>= net8.0)
+    System.Configuration.ConfigurationManager (9.0.11)
+      System.Diagnostics.EventLog (>= 9.0.11) - restriction: >= net8.0
+      System.Security.Cryptography.ProtectedData (>= 9.0.11) - restriction: || (&& (< net462) (>= netstandard2.0)) (>= net8.0)
     System.Data.Common (4.3)
       System.Collections (>= 4.3) - restriction: && (< monoandroid) (< net451) (>= netstandard2.0) (< win81) (< wpa81) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
       System.Globalization (>= 4.3) - restriction: && (< monoandroid) (< net451) (>= netstandard2.0) (< win81) (< wpa81) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)

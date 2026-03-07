@@ -42,7 +42,7 @@ group DesignTime
 	framework: >= netstandard20, net9.0
 	storage: none
 
-    nuget System.Configuration.ConfigurationManager 9.0.4
+    nuget System.Configuration.ConfigurationManager 9.0.11
 	nuget System.Data.Common
 	nuget Microsoft.Data.SqlClient
 	nuget System.Runtime.Caching

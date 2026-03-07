@@ -37,8 +37,8 @@ let WithParam () =
     let actual = cmd.Execute(2000000M<UOM.GBP>) |> Seq.toArray
 
     let expected =
-        [| DB.Commands.GetUKSales.Record(Total = Some 2772402.4754M<UOM.GBP>, Year = Some 2008)
-           DB.Commands.GetUKSales.Record(Total = Some 3873351.7965M<UOM.GBP>, Year = Some 2007) |]
+        [| DB.Commands.GetUKSales.Record(Total = Some 2331434.1072M<UOM.GBP>, Year = Some 2014)
+           DB.Commands.GetUKSales.Record(Total = Some 4068137.8707M<UOM.GBP>, Year = Some 2013) |]
 
     Assert.Equal<_[]>(expected, actual)
 
@@ -50,8 +50,8 @@ let FunctionInQuery () =
     let actual = cmd.Execute(2000000M<UOM.GBP>) |> Seq.toArray
 
     let expected =
-        [| Some 2772402.4754M<UOM.GBP>, Some 2008
-           Some 3873351.7965M<UOM.GBP>, Some 2007 |]
+        [| Some 2331434.1072M<UOM.GBP>, Some 2014
+           Some 4068137.8707M<UOM.GBP>, Some 2013 |]
 
     Assert.Equal<_[]>(expected, actual)
 
@@ -63,8 +63,8 @@ let FunctionDirect () =
         cmd.Execute(2000000M<UOM.GBP>) |> Seq.toArray |> Array.sortBy (fun x -> x.Total)
 
     let expected =
-        [| DB.Sales.GetUKSalesOrders.Record(Total = Some 2772402.4754M<UOM.GBP>, Year = Some 2008)
-           DB.Sales.GetUKSalesOrders.Record(Total = Some 3873351.7965M<UOM.GBP>, Year = Some 2007) |]
+        [| DB.Sales.GetUKSalesOrders.Record(Total = Some 2331434.1072M<UOM.GBP>, Year = Some 2014)
+           DB.Sales.GetUKSalesOrders.Record(Total = Some 4068137.8707M<UOM.GBP>, Year = Some 2013) |]
 
     Assert.Equal<_[]>(expected, actual)
 
@@ -79,7 +79,7 @@ let Datatable () =
                yield total, x.Year |]
 
     let expected =
-        [| Some 2772402.4754M<UOM.GBP>, Some 2008
-           Some 3873351.7965M<UOM.GBP>, Some 2007 |]
+        [| Some 2331434.1072M<UOM.GBP>, Some 2014
+           Some 4068137.8707M<UOM.GBP>, Some 2013 |]
 
     Assert.Equal<_[]>(expected, actual)

@@ -281,6 +281,7 @@ Target.create "RunTests" (fun _ ->
         let dnTestOptions framework (args: DotNet.TestOptions) =
             { args with
                 Framework = Some framework
+                Configuration = DotNet.Release
                 Common = args.Common
                 NoBuild = true
                 MSBuildParams =

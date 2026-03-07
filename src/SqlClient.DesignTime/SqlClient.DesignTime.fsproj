@@ -19,7 +19,7 @@
     <WarningsNotAsErrors>$(WarningsNotAsErrors);FS0026;FS3218;FS3548</WarningsNotAsErrors>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <DisableImplicitSystemValueTupleReference>true</DisableImplicitSystemValueTupleReference>
-    <DefineConstants>$(DefineConstants);DESIGNTIME_CODE_ONLY;IS_DESIGNTIME;WITH_LEGACY_NAMESPACE</DefineConstants>
+    <DefineConstants>$(DefineConstants);DESIGNTIME_CODE_ONLY;IS_DESIGNTIME;WITH_LEGACY_NAMESPACE;USE_SYSTEM_DATA_COMMON_DBPROVIDERFACTORIES</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <!--
@@ -74,7 +74,31 @@
     <None Include="Scripts\ReverseLineOrderForNotex.fsx" />
     <None Include="Scripts\XE.fsx" />
   </ItemGroup>
+  <!--
+    Type providers execute at compile-time, so the design-time output folder must
+    contain real implementation assemblies, not the portable/reference "bait" stubs.
+    Microsoft.Data.SqlClient (and a few others) ship bait-and-switch: the lib/net9.0
+    assembly throws PlatformNotSupportedException; the real code lives under
+    runtimes/{rid}/lib/net9.0/.  After build, overwrite the bait with the correct
+    RID-specific implementation so the TP host can actually open SQL connections.
+  -->
   <Target Name="CopyAssembliesToTPFolder" AfterTargets="Build">
+    <PropertyGroup>
+      <_TPRid Condition="$([MSBuild]::IsOSPlatform('Linux'))">unix</_TPRid>
+      <_TPRid Condition="$([MSBuild]::IsOSPlatform('OSX'))">unix</_TPRid>
+      <_TPRid Condition="$([MSBuild]::IsOSPlatform('Windows'))">win</_TPRid>
+      <_TPOutputDir>$(TargetDir)</_TPOutputDir>
+      <_TPRuntimeDir>$(_TPOutputDir)runtimes/$(_TPRid)/lib/$(TargetFramework)</_TPRuntimeDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_RidSpecificAssemblies Include="$(_TPRuntimeDir)/*.dll" />
+    </ItemGroup>
+    <Message Importance="high" Text="TP RID copy: $(_TPRuntimeDir) -> $(_TPOutputDir)" />
+    <Copy SourceFiles="@(_RidSpecificAssemblies)"
+          DestinationFolder="$(_TPOutputDir)"
+          OverwriteReadOnlyFiles="true"
+          SkipUnchangedFiles="false"
+          Condition="Exists('$(_TPRuntimeDir)')" />
   </Target>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
