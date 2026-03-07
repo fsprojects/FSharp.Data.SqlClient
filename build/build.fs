@@ -2,6 +2,7 @@ open Fake.DotNet
 open System
 open System.Linq
 open System.IO
+open System.Xml.Linq
 open Fun.Build
 open Fake.Core
 open Fake.Tools.Git
@@ -127,7 +128,6 @@ Target.create "Build" (fun _ ->
         slnPath)
 
 open System.Data.SqlClient
-open System.Configuration
 open System.IO.Compression
 open Fake.DotNet.Testing
 
@@ -141,29 +141,32 @@ Target.create "DeployTestDB" (fun _ ->
 
         stage "adjust config file connection strings" {
             run (fun ctx ->
-                let map = ExeConfigurationFileMap()
-                map.ExeConfigFilename <- testsSourceRoot @@ "app.config"
+                let appConfigPath = testsSourceRoot @@ "app.config"
 
-                let testConfigFile =
-                    ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None)
+                let connStrValue =
+                    let gitHubActionSqlConnectionString =
+                        System.Environment.GetEnvironmentVariable "GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING"
 
-                let connStr =
-                    let connStr =
-                        let gitHubActionSqlConnectionString =
-                            System.Environment.GetEnvironmentVariable "GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING"
+                    if String.IsNullOrWhiteSpace gitHubActionSqlConnectionString then
+                        // Read current value directly from XML
+                        let doc = XDocument.Load(appConfigPath)
 
-                        if String.IsNullOrWhiteSpace gitHubActionSqlConnectionString then
-                            testConfigFile.ConnectionStrings.ConnectionStrings.["AdventureWorks"].ConnectionString
-                        else
-                            // we run under Github Actions, update the test config file connection string.
-                            testConfigFile.ConnectionStrings.ConnectionStrings.["AdventureWorks"].ConnectionString <-
-                                gitHubActionSqlConnectionString
+                        doc.Root.Element("connectionStrings").Elements("add")
+                        |> Seq.find (fun el -> el.Attribute(XName.Get "name").Value = "AdventureWorks")
+                        |> fun el -> el.Attribute(XName.Get "connectionString").Value
+                    else
+                        // Write the new connection string directly into the XML file
+                        let doc = XDocument.Load(appConfigPath)
 
-                            testConfigFile.Save()
-                            gitHubActionSqlConnectionString
+                        let el =
+                            doc.Root.Element("connectionStrings").Elements("add")
+                            |> Seq.find (fun el -> el.Attribute(XName.Get "name").Value = "AdventureWorks")
 
-                    SqlConnectionStringBuilder connStr
+                        el.SetAttributeValue(XName.Get "connectionString", gitHubActionSqlConnectionString)
+                        doc.Save(appConfigPath)
+                        gitHubActionSqlConnectionString
 
+                let connStr = SqlConnectionStringBuilder connStrValue
                 testConnStr <- Some connStr
                 database <- Some connStr.InitialCatalog
 
