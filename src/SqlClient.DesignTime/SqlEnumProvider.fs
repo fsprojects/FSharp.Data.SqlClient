@@ -127,15 +127,17 @@ type SqlEnumProvider(config: TypeProviderConfig) as this =
         if not (DbProviderFactories.GetProviderInvariantNames() |> Seq.contains providerName) then
             DbProviderFactories.RegisterFactory(providerName, Microsoft.Data.SqlClient.SqlClientFactory.Instance)
 
-#endif
         let adoObjectsFactory = DbProviderFactories.GetFactory(providerName: string)
         use conn = adoObjectsFactory.CreateConnection()
         conn.ConnectionString <- connStr
+#else
+        use conn =
+            new Microsoft.Data.SqlClient.SqlConnection(connStr) :> System.Data.Common.DbConnection
+#endif
         conn.Open()
 
-        use cmd = adoObjectsFactory.CreateCommand()
+        use cmd = conn.CreateCommand()
         cmd.CommandText <- query
-        cmd.Connection <- conn
         cmd.CommandType <- CommandType.Text
 
         use reader = cmd.ExecuteReader()

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net9.0</TargetFrameworks>
+    <TargetFrameworks>net9.0;netstandard2.0</TargetFrameworks>
     <AssemblyName>FSharp.Data.SqlClient.DesignTime</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -19,7 +19,8 @@
     <WarningsNotAsErrors>$(WarningsNotAsErrors);FS0026;FS3218;FS3548</WarningsNotAsErrors>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <DisableImplicitSystemValueTupleReference>true</DisableImplicitSystemValueTupleReference>
-    <DefineConstants>$(DefineConstants);DESIGNTIME_CODE_ONLY;IS_DESIGNTIME;WITH_LEGACY_NAMESPACE;USE_SYSTEM_DATA_COMMON_DBPROVIDERFACTORIES</DefineConstants>
+    <DefineConstants>$(DefineConstants);DESIGNTIME_CODE_ONLY;IS_DESIGNTIME;WITH_LEGACY_NAMESPACE</DefineConstants>
+    <DefineConstants Condition="'$(TargetFramework)' == 'net9.0'">$(DefineConstants);USE_SYSTEM_DATA_COMMON_DBPROVIDERFACTORIES</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <!--
@@ -89,6 +90,9 @@
       <_TPRid Condition="$([MSBuild]::IsOSPlatform('Windows'))">win</_TPRid>
       <_TPOutputDir>$(TargetDir)</_TPOutputDir>
       <_TPRuntimeDir>$(_TPOutputDir)runtimes/$(_TPRid)/lib/$(TargetFramework)</_TPRuntimeDir>
+      <!-- For netstandard2.0, NuGet does not copy RID-specific assemblies.
+           Fall back to the net9.0 sibling output (built first). -->
+      <_TPRuntimeDir Condition="!Exists('$(_TPRuntimeDir)')">$(_TPOutputDir)../net9.0/runtimes/$(_TPRid)/lib/net9.0</_TPRuntimeDir>
     </PropertyGroup>
     <ItemGroup>
       <_RidSpecificAssemblies Include="$(_TPRuntimeDir)/*.dll" />
