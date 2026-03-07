@@ -72,7 +72,7 @@ type SqlEnumProvider(config: TypeProviderConfig) as this =
             parameters =
                 [ ProvidedStaticParameter("Query", typeof<string>)
                   ProvidedStaticParameter("ConnectionStringOrName", typeof<string>)
-                  ProvidedStaticParameter("Provider", typeof<string>, "System.Data.SqlClient")
+                  ProvidedStaticParameter("Provider", typeof<string>, "Microsoft.Data.SqlClient")
                   ProvidedStaticParameter("ConfigFile", typeof<string>, "")
                   ProvidedStaticParameter("Kind", typeof<SqlEnumKind>, SqlEnumKind.Default) ],
             instantiationFunction =
@@ -96,7 +96,7 @@ type SqlEnumProvider(config: TypeProviderConfig) as this =
 <summary>Enumeration based on SQL query.</summary> 
 <param name='Query'>SQL used to get the enumeration labels and values. A result set must have at least two columns. The first one is a label.</param>
 <param name='ConnectionString'>String used to open a data connection.</param>
-<param name='Provider'>Invariant name of a ADO.NET provider. Default is "System.Data.SqlClient".</param>
+<param name='Provider'>Invariant name of a ADO.NET provider. Default is "Microsoft.Data.SqlClient".</param>
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
 <param name='Kind'></param>
 """

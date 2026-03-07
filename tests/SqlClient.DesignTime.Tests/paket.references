@@ -1,6 +1,6 @@
 ﻿group Test
 	FSharp.Core
-	System.Data.SqlClient
+	Microsoft.Data.SqlClient
 	System.Configuration.ConfigurationManager
 	xunit
 	xunit.runner.visualstudio

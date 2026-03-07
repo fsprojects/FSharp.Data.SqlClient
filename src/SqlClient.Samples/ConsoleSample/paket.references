@@ -1,5 +1,5 @@
 group Samples
 FSharp.Core
 FSharp.Data.SqlClient
-System.Data.SqlClient
+Microsoft.Data.SqlClient
 System.Configuration.ConfigurationManager

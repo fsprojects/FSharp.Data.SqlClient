@@ -127,7 +127,7 @@ let TwoTVPParameterOfSameUDTT () =
     let expected = [ for id, name in xs @ ys -> MyFunc.Record(id, name) ]
     Assert.Equal<_ list>(expected, cmd.Execute(xs', ys') |> Seq.toList)
 
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 [<Fact>]
 let ReuseTVPTypeForDynamicADONET () =
@@ -139,7 +139,7 @@ let ReuseTVPTypeForDynamicADONET () =
     p.Value <-
         [ MyTableType(myId = 1, myName = Some "monkey")
           MyTableType(myId = 2, myName = Some "donkey") ]
-        |> Seq.cast<Microsoft.SqlServer.Server.SqlDataRecord>
+        |> Seq.cast<Microsoft.Data.SqlClient.Server.SqlDataRecord>
 
     conn.Open()
     let expected = [ 1, "monkey"; 2, "donkey" ]

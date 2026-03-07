@@ -1,6 +1,6 @@
 ﻿namespace FSharp.Data.SqlClient
 
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.",
                            101,
@@ -21,7 +21,7 @@ namespace FSharp.Data.SqlClient.Internals
 
 open System
 open System.Data
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 open System.Reflection
 open FSharp.Data.SqlClient
 open FSharp.Data.SqlClient.Internals
@@ -260,13 +260,13 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                     | SqlDbType.Structured ->
                         // TODO: Maybe make this lazy?
 
-                        //p.Value <- value |> unbox |> Seq.cast<Microsoft.SqlServer.Server.SqlDataRecord>
+                        //p.Value <- value |> unbox |> Seq.cast<Microsoft.Data.SqlClient.Server.SqlDataRecord>
 
                         //done via reflection because not implemented on Mono
 
                         let sqlDataRecordType =
                             typeof<SqlCommand>.Assembly
-                                .GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
+                                .GetType("Microsoft.Data.SqlClient.Server.SqlDataRecord", throwOnError = true)
 
                         let records =
                             typeof<Linq.Enumerable>

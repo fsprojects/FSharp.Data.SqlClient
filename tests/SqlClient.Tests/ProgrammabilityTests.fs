@@ -5,7 +5,7 @@ open FSharp.Data.SqlClient
 open FSharp.Data.SqlClient.Tests
 
 open System
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 open Xunit
 
 type AdventureWorks = SqlProgrammabilityProvider<ConnectionStrings.AdventureWorksNamed>

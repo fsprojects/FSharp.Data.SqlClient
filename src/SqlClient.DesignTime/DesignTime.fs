@@ -3,8 +3,8 @@
 open System
 open System.Reflection
 open System.Data
-open System.Data.SqlClient
-open Microsoft.SqlServer.Server
+open Microsoft.Data.SqlClient
+open Microsoft.Data.SqlClient.Server
 open System.Collections.Generic
 open System.Diagnostics
 open Microsoft.FSharp.Quotations
@@ -764,7 +764,7 @@ type DesignTime private () =
                         //done via reflection because not implemented on Mono
                         let sqlDataRecordType =
                             typeof<SqlCommand>.Assembly
-                                .GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
+                                .GetType("Microsoft.Data.SqlClient.Server.SqlDataRecord", throwOnError = true)
 
                         let record =
                             Activator.CreateInstance(

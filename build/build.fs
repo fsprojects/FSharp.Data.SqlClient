@@ -127,7 +127,7 @@ Target.create "Build" (fun _ ->
             |> dnDefault)
         slnPath)
 
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 open System.IO.Compression
 open Fake.DotNet.Testing
 

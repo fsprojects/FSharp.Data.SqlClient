@@ -219,7 +219,7 @@ let resultSetMapping () =
             ResultType.DataReader
          >()
 
-    let readToMap (reader: System.Data.SqlClient.SqlDataReader) =
+    let readToMap (reader: Microsoft.Data.SqlClient.SqlDataReader) =
         seq {
             try
                 while (reader.Read()) do
@@ -253,7 +253,7 @@ let ``Runtime column names`` () =
     use cmd = DB.CreateCommand<"exec dbo.[Get]", ResultType.DataReader>()
     Assert.False(cmd.Execute().NextResult())
 
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 type SqlDataReader with
     member this.ToRecords<'T>() =
@@ -275,7 +275,7 @@ let CreareDynamicRecords () =
     use cmd = DB.CreateCommand<getDatesQuery, TypeName="GetDatesQuery">()
     use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
     conn.Open()
-    let cmd = new System.Data.SqlClient.SqlCommand(getDatesQuery, conn)
+    let cmd = new Microsoft.Data.SqlClient.SqlCommand(getDatesQuery, conn)
 
     cmd.ExecuteReader().ToRecords<DB.Commands.GetDatesQuery.Record>()
     |> Seq.toArray

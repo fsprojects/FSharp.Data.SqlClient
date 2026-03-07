@@ -68,7 +68,7 @@ type internal DesignTimeConnectionString =
         | _, Lazy x ->
             let providerName =
                 if String.IsNullOrEmpty x.ProviderName then
-                    "System.Data.SqlClient"
+                    "Microsoft.Data.SqlClient"
                 else
                     x.ProviderName
 

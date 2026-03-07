@@ -24,7 +24,7 @@ group Build
 	nuget FSharp.Compiler.Service 43.8.301
 
 	nuget NuGet.CommandLine
-	nuget System.Data.SqlClient
+	nuget Microsoft.Data.SqlClient
 	
 	nuget System.Configuration.ConfigurationManager
 
@@ -44,7 +44,7 @@ group DesignTime
 
     nuget System.Configuration.ConfigurationManager 9.0.4
 	nuget System.Data.Common
-	nuget System.Data.SqlClient
+	nuget Microsoft.Data.SqlClient
 	nuget System.Runtime.Caching
     nuget FSharp.Core 8.0.301
 	nuget Microsoft.SqlServer.TransactSql.ScriptDom
@@ -54,7 +54,7 @@ group Test
 	source https://www.nuget.org/api/v2/
 
 	nuget FSharp.Core redirects:force
-	nuget System.Data.SqlClient
+	nuget Microsoft.Data.SqlClient
 	nuget System.Configuration.ConfigurationManager
 	
 	nuget Microsoft.SqlServer.Types ~> 12
@@ -69,7 +69,7 @@ group TestProjects
 
 	nuget FSharp.Core = 8.0.301
 
-	nuget System.Data.SqlClient
+	nuget Microsoft.Data.SqlClient
 	nuget System.Configuration.ConfigurationManager
 
 group Samples
@@ -78,6 +78,6 @@ group Samples
 	storage: none
 
 	nuget FSharp.Core = 8.0.301
-	nuget System.Data.SqlClient
+	nuget Microsoft.Data.SqlClient
 	nuget System.Configuration.ConfigurationManager
 	nuget FSharp.Data.SqlClient

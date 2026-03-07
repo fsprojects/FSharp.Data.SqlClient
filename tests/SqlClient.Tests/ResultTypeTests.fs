@@ -17,7 +17,7 @@ let command =
 type ResultTypeReader =
     SqlCommandProvider<command, ConnectionStrings.AdventureWorksNamed, ResultType=ResultType.DataReader>
 
-let ReadToMaps (reader: System.Data.SqlClient.SqlDataReader) =
+let ReadToMaps (reader: Microsoft.Data.SqlClient.SqlDataReader) =
     seq {
         try
             while (reader.Read()) do

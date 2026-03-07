@@ -2,7 +2,7 @@
 
 open System
 open System.Data
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 open FSharp.Data
 open FSharp.Data.SqlClient
 open FSharp.Data.SqlClient.Tests

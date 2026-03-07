@@ -5,7 +5,7 @@ open FSharp.Data.SqlClient
 open FSharp.Data.SqlClient.Tests
 open System
 open System.Data
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 open Xunit
 
 type GetEvenNumbers =
@@ -148,7 +148,7 @@ let ToTraceString () =
 let runScalarQuery query =
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
-    use cmd = new System.Data.SqlClient.SqlCommand()
+    use cmd = new Microsoft.Data.SqlClient.SqlCommand()
     cmd.Connection <- conn
     cmd.CommandText <- query
     cmd.ExecuteScalar()
