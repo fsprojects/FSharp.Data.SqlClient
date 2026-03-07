@@ -3,6 +3,7 @@
 open FSharp.Data.SqlClient
 open Microsoft.FSharp.Core.CompilerServices
 open System.Reflection
+open System.Runtime.InteropServices
 open System
 
 [<AbstractClass>]
@@ -16,6 +17,31 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
             assemblyReplacementMap = [ ("FSharp.Data.SqlClient.DesignTime", "FSharp.Data.SqlClient") ],
             addDefaultProbingLocation = true
         )
+
+    // On Windows, Microsoft.Data.SqlClient loads the native SNI library via P/Invoke.
+    // When the type provider runs inside the F# compiler, the native DLL search path
+    // may not include the TP output directory. Register a resolver so the runtime can
+    // find Microsoft.Data.SqlClient.SNI.dll next to the TP assembly.
+#if USE_SYSTEM_DATA_COMMON_DBPROVIDERFACTORIES
+    static do
+        if RuntimeInformation.IsOSPlatform(OSPlatform.Windows) then
+            let tpDir =
+                System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
+
+            let handler =
+                System.Runtime.InteropServices.DllImportResolver(fun libraryName assembly searchPath ->
+                    if libraryName = "Microsoft.Data.SqlClient.SNI.dll" then
+                        let candidate = System.IO.Path.Combine(tpDir, "Microsoft.Data.SqlClient.SNI.dll")
+
+                        if System.IO.File.Exists(candidate) then
+                            NativeLibrary.Load(candidate)
+                        else
+                            System.IntPtr.Zero
+                    else
+                        System.IntPtr.Zero)
+
+            NativeLibrary.SetDllImportResolver(typeof<Microsoft.Data.SqlClient.SqlConnection>.Assembly, handler)
+#endif
 
     let cache = new Cache<ProvidedTypeDefinition>()
 

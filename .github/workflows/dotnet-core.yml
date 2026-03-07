@@ -2,13 +2,12 @@ name: FSharp.Data.SqlClient 'Actions' CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, fb ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, fb ]
 
 jobs:
-  build:
-
+  build-linux:
     runs-on: ubuntu-latest
 
     services:
@@ -60,3 +59,45 @@ jobs:
 
     - name: Build
       run: ./build.sh
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Install SQL Server
+      uses: potatoqualitee/mssqlsuite@v1.7
+      with:
+        install: sqlengine
+        sa-password: YourStrong@Passw0rd
+
+    - name: Restore AdventureWorks2012 from backup
+      shell: pwsh
+      run: |
+        $BAK = "$env:TEMP\AdventureWorks2012.bak"
+        Write-Host "Downloading AdventureWorks2012.bak..."
+        Invoke-WebRequest -Uri "https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2012.bak" -OutFile $BAK
+
+        # Get the default data path from SQL Server
+        $dataPath = Invoke-Sqlcmd -ServerInstance "localhost" -Username "SA" -Password "YourStrong@Passw0rd" -TrustServerCertificate -Query "SELECT SERVERPROPERTY('InstanceDefaultDataPath') AS DataPath" | Select-Object -ExpandProperty DataPath
+
+        Write-Host "Restoring AdventureWorks2012 to $dataPath ..."
+        $restoreQuery = @"
+        RESTORE DATABASE [AdventureWorks2012]
+        FROM DISK = N'$BAK'
+        WITH MOVE 'AdventureWorks2012'     TO '${dataPath}AdventureWorks2012_Data.mdf',
+             MOVE 'AdventureWorks2012_log' TO '${dataPath}AdventureWorks2012_Log.ldf',
+             REPLACE, NOUNLOAD, STATS = 5
+        "@
+        Invoke-Sqlcmd -ServerInstance "localhost" -Username "SA" -Password "YourStrong@Passw0rd" -TrustServerCertificate -Query $restoreQuery -QueryTimeout 120
+
+        echo "GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING=Data Source=localhost,1433;Initial Catalog=AdventureWorks2012;User ID=SA;Password=YourStrong@Passw0rd;TrustServerCertificate=True;" >> $env:GITHUB_ENV
+
+    - name: Build
+      run: .\build.cmd
