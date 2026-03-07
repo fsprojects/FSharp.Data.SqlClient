@@ -14,5 +14,10 @@
     <None Include="app.config" />
     <None Include="paket.references" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="FSharp.Data.SqlClient">
+      <HintPath>..\..\..\bin\net9.0\FSharp.Data.SqlClient.dll</HintPath>
+    </Reference>
+  </ItemGroup>
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />
 </Project>

@@ -80,4 +80,3 @@ group Samples
 	nuget FSharp.Core = 8.0.301
 	nuget Microsoft.Data.SqlClient
 	nuget System.Configuration.ConfigurationManager
-	nuget FSharp.Data.SqlClient

@@ -1,11 +1,11 @@
 module ConsoleSample
 
 open System
+open System.Configuration
 open FSharp.Data
 
 [<Literal>]
-let ConnStr =
-    "Data Source=localhost,1433;Initial Catalog=AdventureWorks2012;User ID=SA;Password=YourStrong@Passw0rd;TrustServerCertificate=true"
+let ConnName = "name=AdventureWorks"
 
 // ── SqlCommandProvider ──────────────────────────────────────────────────────
 // Typed query: top N products with SellStartDate after the given date.
@@ -14,22 +14,25 @@ type QueryProducts =
         "SELECT TOP (@top) Name AS ProductName, SellStartDate
          FROM Production.Product
          WHERE SellStartDate > @SellStartDate",
-        ConnStr
+        ConnName
      >
 
 // ── SqlProgrammabilityProvider ──────────────────────────────────────────────
 // Exposes the whole AdventureWorks schema (stored procedures, TVFs, UDTs…).
-type AW = SqlProgrammabilityProvider<ConnStr>
+type AW = SqlProgrammabilityProvider<ConnName>
 
 // ── SqlEnumProvider ─────────────────────────────────────────────────────────
 // Maps a look-up table to a discriminated-union-like set of constants.
-type SalesReasons = SqlEnumProvider<"SELECT Name, SalesReasonID FROM Sales.SalesReason", ConnStr>
+type SalesReasons = SqlEnumProvider<"SELECT Name, SalesReasonID FROM Sales.SalesReason", ConnName>
 
 [<EntryPoint>]
 let main _argv =
+    let connStr =
+        ConfigurationManager.ConnectionStrings.["AdventureWorks"].ConnectionString
+
     printfn "=== SqlCommandProvider demo ==="
 
-    use cmd = new QueryProducts()
+    use cmd = new QueryProducts(connStr)
     let rows = cmd.Execute(top = 5L, SellStartDate = DateTime.Parse("2002-06-01"))
 
     for row in rows do
@@ -42,16 +45,16 @@ let main _argv =
 
     printfn ""
     printfn "=== SqlProgrammabilityProvider demo ==="
-    use aw = new AW(ConnStr)
-    let emp = aw.HumanResources.uspGetEmployeeManagers (BusinessEntityID = 2)
 
-    for row in emp do
+    use cmd2 = new AW.dbo.ufnGetContactInformation (connStr)
+    let contacts = cmd2.Execute(PersonID = 1)
+
+    for row in contacts do
         printfn
-            "  Level %d – %s %s (reports to %s %s)"
-            row.RecursionLevel
-            row.FirstName
-            row.LastName
-            row.ManagerFirstName
-            row.ManagerLastName
+            "  PersonID=%d  Name=%s  JobTitle=%s  Type=%s"
+            row.PersonID
+            row.FirstName.Value
+            row.JobTitle.Value
+            row.BusinessEntityType.Value
 
     0

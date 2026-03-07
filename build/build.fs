@@ -166,6 +166,26 @@ Target.create "DeployTestDB" (fun _ ->
                         doc.Save(appConfigPath)
                         gitHubActionSqlConnectionString
 
+                // Also patch the ConsoleSample app.config so it uses the same connection string
+                if
+                    not (
+                        String.IsNullOrWhiteSpace(
+                            System.Environment.GetEnvironmentVariable "GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING"
+                        )
+                    )
+                then
+                    let sampleAppConfigPath =
+                        Path.GetFullPath("src/SqlClient.Samples/ConsoleSample/app.config")
+
+                    let sampleDoc = XDocument.Load(sampleAppConfigPath)
+
+                    let sampleEl =
+                        sampleDoc.Root.Element("connectionStrings").Elements("add")
+                        |> Seq.find (fun el -> el.Attribute(XName.Get "name").Value = "AdventureWorks")
+
+                    sampleEl.SetAttributeValue(XName.Get "connectionString", connStrValue)
+                    sampleDoc.Save(sampleAppConfigPath)
+
                 let connStr = SqlConnectionStringBuilder connStrValue
                 testConnStr <- Some connStr
                 database <- Some connStr.InitialCatalog
@@ -255,6 +275,25 @@ Please restore AdventureWorks2012 from backup before running the tests."
                         raise (Exception(message, e))
 
             )
+        }
+
+        runImmediate
+    })
+
+let sampleProjectPath =
+    makeRootPath "src/SqlClient.Samples/ConsoleSample/ConsoleSample.fsproj"
+
+Target.create "RunSample" (fun _ ->
+    pipeline "RunSample" {
+        stage "build sample" { run $"dotnet build {sampleProjectPath} -c Release --tl" }
+
+        stage "run sample" {
+            run (fun ctx ->
+                let result =
+                    DotNet.exec id "run" $"--project {sampleProjectPath} -c Release --no-build"
+
+                if not result.OK then
+                    failwith "ConsoleSample failed to run")
         }
 
         runImmediate
@@ -377,6 +416,7 @@ open Fake.Core.TargetOperators // for ==>
 ==> "AssemblyInfo"
 ==> "Build"
 ==> "DeployTestDB"
+==> "RunSample"
 ==> "BuildTestProjects"
 ==> "RunTests"
 ==> "All"
@@ -386,4 +426,4 @@ open Fake.Core.TargetOperators // for ==>
 
 "All" ==> "CleanDocs" ==> "GenerateDocs" ==> "ReleaseDocs" |> ignore<string>
 
-Target.runOrDefault "All"
+Target.runOrDefaultWithArguments "All"
