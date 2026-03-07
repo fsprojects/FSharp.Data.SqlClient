@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-03-07T21:13:41Z",
-  "last_run_id": "22807337185",
+  "last_run": "2026-03-07T21:23:30Z",
+  "last_run_id": "22807496217",
   "labelling": {
     "cursor": "all_labelled",
     "last_batch_processed": "complete_as_of_2026_03_07",
@@ -8,18 +8,28 @@
   },
   "prs_created": [
     {
-      "branch": "repo-assist/eng-ci-actions-upgrade-2026-03",
-      "title": "ci: upgrade actions/setup-dotnet to v4, use dotnet 8.x wildcard",
-      "type": "ci-engineering",
+      "branch": "repo-assist/fix-issue-428-uselocally-null",
+      "title": "fix: guard against null SqlConnection in UseLocally and Dispose (#428)",
+      "type": "bug-fix",
       "status": "open",
-      "note": "Created in run 22807337185"
+      "temporary_id": "aw_pr428fix",
+      "note": "Created in run 22807496217 - closes #428"
+    },
+    {
+      "branch": "repo-assist/improve-temploader-exceptions",
+      "title": "improve: use NotImplementedException in TempTableLoader stub methods",
+      "type": "code-improvement",
+      "status": "open",
+      "temporary_id": "aw_prtemp",
+      "note": "Created in run 22807496217"
     }
   ],
   "monthly_activity_issue": {
     "title": "[Repo Assist] Monthly Activity 2026-03",
     "month": "2026-03",
     "status": "created",
-    "note": "Created in run 22807337185 - check GitHub for issue number"
+    "temporary_id": "aw_monthly",
+    "note": "Created in run 22807496217"
   },
   "comments_made": [
     {
@@ -35,28 +45,28 @@
       "topic": "Explained System.Runtime.Caching GAC issue, fixed in newer versions"
     },
     {
-      "issue": 428,
-      "date": "2026-03-07",
-      "run": "22807175016",
-      "topic": "Linked to fix PR for NullReferenceException in UseLocally - NOTE: PR was likely not actually created (safe-outputs may have failed in that run)"
-    },
-    {
       "pr": 441,
       "date": "2026-03-07",
       "run": "22807337185",
-      "topic": "Technical analysis of TVP/UDTT SqlDataRecord type-name fix for Microsoft.Data.SqlClient: ISqlCommand.fs line 237 and DesignTime.fs line 574 need dual-name fallback"
+      "topic": "Technical analysis of TVP/UDTT SqlDataRecord type-name fix for Microsoft.Data.SqlClient"
+    },
+    {
+      "issue": 428,
+      "date": "2026-03-07",
+      "run": "22807496217",
+      "topic": "Root cause analysis of NullReferenceException in UseLocally, linked to fix PR"
     }
   ],
   "notes": [
-    "All 29 previously-unlabelled issues have been labelled (run 22806840987)",
-    "Monthly activity issue created in run 22807337185 - check GitHub for actual issue number",
-    "CI PR created: repo-assist/eng-ci-actions-upgrade-2026-03 (setup-dotnet v3->v4, 8.0.100->8.x)",
+    "All 29 previously-unlabelled issues have been labelled",
+    "Monthly activity issue created in run 22807496217 (temporary_id: aw_monthly)",
+    "Fix PR created for #428: repo-assist/fix-issue-428-uselocally-null (aw_pr428fix)",
+    "Improvement PR created: repo-assist/improve-temploader-exceptions (aw_prtemp)",
     "Issue #374 (Microsoft.Data.SqlClient migration): commented on PR #441 with TVP type-name fix analysis",
     "DesignTime project requires .NET 4.6.2 and SQL Server - cannot build in this environment",
-    "Issue comment cursor: last commented on issues #358, #412, PR #441; next batch should explore other older bug issues",
+    "Issue comment cursor: last commented on #358, #412, PR #441, #428; next should explore #268, #272, #283",
     "Older bug issues needing investigation: #268, #272, #283, #306, #376, #377, #379, #393, #413",
-    "Stale PRs to nudge: #432, #430, #425, #417, #397, #392, #375, #347",
-    "NOTE: Prior runs (22806969163, 22807175016) may not have successfully created PRs or issues - safe-outputs may have silently failed. The DocsImprovement PR for SqlEnumKind and the UseLocally fix PR from those runs should be verified.",
+    "Stale PRs to consider nudging/closing: #432, #430, #425, #347",
     "PR #444 from dsyme: upgrade build.fsproj to net8.0 - open, needs maintainer review"
   ]
 }
