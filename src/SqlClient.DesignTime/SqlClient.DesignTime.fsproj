@@ -88,14 +88,18 @@
       <_TPRid Condition="$([MSBuild]::IsOSPlatform('Linux'))">unix</_TPRid>
       <_TPRid Condition="$([MSBuild]::IsOSPlatform('OSX'))">unix</_TPRid>
       <_TPRid Condition="$([MSBuild]::IsOSPlatform('Windows'))">win</_TPRid>
+      <_TPNativeRid Condition="$([MSBuild]::IsOSPlatform('Windows'))">win-x64</_TPNativeRid>
+      <_TPNativeRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_TPNativeRid>
       <_TPOutputDir>$(TargetDir)</_TPOutputDir>
       <_TPRuntimeDir>$(_TPOutputDir)runtimes/$(_TPRid)/lib/$(TargetFramework)</_TPRuntimeDir>
       <!-- For netstandard2.0, NuGet does not copy RID-specific assemblies.
            Fall back to the net9.0 sibling output (built first). -->
       <_TPRuntimeDir Condition="!Exists('$(_TPRuntimeDir)')">$(_TPOutputDir)../net9.0/runtimes/$(_TPRid)/lib/net9.0</_TPRuntimeDir>
+      <_TPNativeDir>$(_TPOutputDir)runtimes/$(_TPNativeRid)/native</_TPNativeDir>
     </PropertyGroup>
     <ItemGroup>
       <_RidSpecificAssemblies Include="$(_TPRuntimeDir)/*.dll" />
+      <_NativeAssemblies Include="$(_TPNativeDir)/*.dll" Condition="'$(_TPNativeRid)' != ''" />
     </ItemGroup>
     <Message Importance="high" Text="TP RID copy: $(_TPRuntimeDir) -> $(_TPOutputDir)" />
     <Copy SourceFiles="@(_RidSpecificAssemblies)"
@@ -103,6 +107,12 @@
           OverwriteReadOnlyFiles="true"
           SkipUnchangedFiles="false"
           Condition="Exists('$(_TPRuntimeDir)')" />
+    <Message Importance="high" Text="TP native copy: $(_TPNativeDir) -> $(_TPOutputDir)" Condition="'$(_TPNativeRid)' != ''" />
+    <Copy SourceFiles="@(_NativeAssemblies)"
+          DestinationFolder="$(_TPOutputDir)"
+          OverwriteReadOnlyFiles="true"
+          SkipUnchangedFiles="false"
+          Condition="'$(_TPNativeRid)' != '' and Exists('$(_TPNativeDir)')" />
   </Target>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
