@@ -1,8 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\netfx.props" />
   <PropertyGroup>
-    <TargetFrameworks>net462;netstandard2.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net9.0</TargetFrameworks>
     <AssemblyName>FSharp.Data.SqlClient</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -16,16 +15,10 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>..\..\bin\net462\FSharp.Data.SqlClient.XML</DocumentationFile>
-  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="8.0.301" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.4" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net40'">
-    <Reference Include="System.Data" />
-    <Reference Include="System.Transactions" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />

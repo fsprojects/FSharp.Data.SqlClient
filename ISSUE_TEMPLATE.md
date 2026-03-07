@@ -28,9 +28,8 @@ Please provide a description of any known workarounds.
 * Operating system
 * Branch
 * Database versions and sample databases being used
-* .NET Runtime, CoreCLR or Mono Version
+* .NET version
 * Editing Tools (e.g. Visual Studio Version)
-* Lins to F# RFCs or entries on http://fslang.uservoice.com
 
 
 

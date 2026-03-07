@@ -3,7 +3,7 @@
   <!--<Import Project="..\..\fsc.props" />-->
   <!--<Import Project="..\..\netfx.props" />-->
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net462</TargetFrameworks>
+    <TargetFrameworks>net9.0</TargetFrameworks>
     <AssemblyName>SqlClient.Tests</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -52,11 +52,8 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Reference Condition="'$(TargetFramework)' == 'net462'" Include="FSharp.Data.SqlClient">
-      <HintPath>..\..\bin\net462\FSharp.Data.SqlClient.dll</HintPath>
-    </Reference>
-    <Reference Condition="'$(TargetFramework)' == 'net8.0'" Include="FSharp.Data.SqlClient">
-      <HintPath>..\..\bin\net8.0\FSharp.Data.SqlClient.dll</HintPath>
+    <Reference Include="FSharp.Data.SqlClient">
+      <HintPath>..\..\bin\net9.0\FSharp.Data.SqlClient.dll</HintPath>
     </Reference>
     <Reference Include="System.Transactions" />
   </ItemGroup>

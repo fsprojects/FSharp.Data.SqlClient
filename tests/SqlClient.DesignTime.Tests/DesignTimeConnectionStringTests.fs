@@ -5,18 +5,21 @@ open System.IO
 open System.Configuration
 open FSharp.Data.SqlClient
 
-let adventureWorks = ConfigurationManager.ConnectionStrings.["AdventureWorks"].ConnectionString
+let adventureWorks =
+    ConfigurationManager.ConnectionStrings.["AdventureWorks"].ConnectionString
 
 [<Fact>]
-let ``Wrong config file name`` () = 
-    Assert.Throws<FileNotFoundException>(
-        fun() -> 
-            DesignTimeConnectionString.Parse("name=AdventureWorks", resolutionFolder = "", fileName = "non_existent") |> box
-    ) |> ignore
+let ``Wrong config file name`` () =
+    Assert.Throws<FileNotFoundException>(fun () ->
+        DesignTimeConnectionString.Parse("name=AdventureWorks", resolutionFolder = "", fileName = "non_existent")
+        |> box)
+    |> ignore
 
 [<Fact>]
-let ``From config file`` () = 
-    let x = DesignTimeConnectionString.Parse("name=AdventureWorks", __SOURCE_DIRECTORY__, "app.config")
+let ``From config file`` () =
+    let x =
+        DesignTimeConnectionString.Parse("name=AdventureWorks", __SOURCE_DIRECTORY__, "app.config")
+
     match x with
     | NameInConfig(name, value, _) ->
         Assert.Equal<string>("AdventureWorks", name)
@@ -24,7 +27,12 @@ let ``From config file`` () =
     | _ -> failwith "Unexpected"
 
 [<Fact>]
-let RuntimeConfig() = 
-    let x = DesignTimeConnectionString.Parse("name=AdventureWorks", __SOURCE_DIRECTORY__, "app.config")
-    let actual = Linq.RuntimeHelpers.LeafExpressionConverter.EvaluateQuotation( x.RunTimeValueExpr(isHostedExecution = false)) |> unbox
-    Assert.Equal<string>( adventureWorks, actual)
+let RuntimeConfig () =
+    let x =
+        DesignTimeConnectionString.Parse("name=AdventureWorks", __SOURCE_DIRECTORY__, "app.config")
+
+    let actual =
+        Linq.RuntimeHelpers.LeafExpressionConverter.EvaluateQuotation(x.RunTimeValueExpr(isHostedExecution = false))
+        |> unbox
+
+    Assert.Equal<string>(adventureWorks, actual)

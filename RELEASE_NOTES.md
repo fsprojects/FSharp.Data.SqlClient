@@ -1,3 +1,8 @@
+#### 3.0.0-beta-1
+
+* Update engineering for .NET 9 only
+* Contributor: Don Syme (https://github.com/dsyme)
+
 #### 2.1.3 April 30, 2024
 
 * Issue #440 Toolchain and SDK adjustments, deprecated runtime support for net40

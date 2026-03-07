@@ -3,6 +3,7 @@
 This library exposes SQL Server Database objects in a type safe manner to F# code, by the mean of [Type Providers](https://docs.microsoft.com/en-us/dotnet/fsharp/tutorials/type-providers/)
 
 You can reference it in F# Interactive that ships with Visual Studio
+
 ```fsharp
 #r "nuget: FSharp.Data.SqlClient"
 open FSharp.Data
@@ -10,11 +11,11 @@ open FSharp.Data.SqlClient
 let [<Literal>] connectionString = "Server=.;Database=AdventureWorks2012;Trusted_Connection=True;"
 type MyCommand = SqlCommandProvider<"""
 select 
-	data.a 
+ data.a 
 from 
-	(select 1 a union all select 2 union all select 3) data
+ (select 1 a union all select 2 union all select 3) data
 where
-	data.a > @data 
+ data.a > @data 
     """, connectionString>;;
 
 (new MyCommand(connectionString)).Execute(data=1) 
@@ -25,14 +26,16 @@ where
 `dotnet fsi` is not supported yet.
 
 ## Quick Links
+
 * [Documentation](http://fsprojects.github.io/FSharp.Data.SqlClient/)
 * [Release Notes](RELEASE_NOTES.md)
 * [Contribution Guide Lines](CONTRIBUTING.md)
 * [Gitter Chat Room](https://gitter.im/fsprojects/FSharp.Data.SqlClient)
 * [FSharp.Data.SqlClient on nuget.org](https://www.nuget.org/packages/FSharp.Data.SqlClient/)
+
 ## Type Providers
 
-### SqlCommandProvider 
+### SqlCommandProvider
 
 Provides statically typed access to the parameters and result set of T-SQL command in idiomatic F# way <sup>(*)</sup>.
 
@@ -54,7 +57,9 @@ do
 
     cmd.Execute(topN = 3L, regionName = "United States", salesMoreThan = 1000000M) |> printfn "%A"
 ```
+
 output
+
 ```fsharp
 seq
     [("Pamela", "Ansman-Wolfe", 1352577.1325M);
@@ -62,7 +67,7 @@ seq
      ("Tete", "Mensa-Annan", 1576562.1966M)]
 ```
 
-### SqlProgrammabilityProvider 
+### SqlProgrammabilityProvider
 
 Exposes Tables, Stored Procedures, User-Defined Types and User-Defined Functions in F# code.
 
@@ -77,7 +82,9 @@ do
             printfn "ProductAssemblyID: %i, StandardCost: %M, TotalQuantity: %M" prodAsmId cost qty
         | _ -> ()
 ```
+
 output
+
 ```fsharp
 ProductAssemblyID: 749, StandardCost: 2171.2942, TotalQuantity: 1.00
 ProductAssemblyID: 750, StandardCost: 2171.2942, TotalQuantity: 1.00
@@ -103,7 +110,9 @@ do
     //overnight orders shipped since Jan 1, 2008 
     cmd.Execute( System.DateTime( 2008, 1, 1), ShipMethod.``OVERNIGHT J-FAST``) |> printfn "%A"
 ```
+
 output
+
 ```fsharp
 Some (Some 1085)
 ```
@@ -120,15 +129,9 @@ use cmd2 = new SqlCommandProvider<SampleCommandRelative.Text, ConnectionStrings.
 
 More information can be found in the [documentation](http://fsprojects.github.io/FSharp.Data.SqlClient/).
 
-## Build Status
-
-| Windows | Linux | NuGet |
-|:-------:|:-----:|:-----:|
-|[![Build status (Windows Server 2012, AppVeyor)](https://ci.appveyor.com/api/projects/status/gxou8oe4lt5adxbq)](https://ci.appveyor.com/project/fsgit/fsharp-data-sqlclient)|[![Build Status](https://travis-ci.org/fsprojects/FSharp.Data.SqlClient.svg?branch=master)](https://travis-ci.org/fsprojects/FSharp.Data.SqlClient)|[![NuGet Status](http://img.shields.io/nuget/v/FSharp.Data.SqlClient.svg?style=flat)](https://www.nuget.org/packages/FSharp.Data.SqlClient/)|
-
 ### Maintainers
 
-- [@smoothdeveloper](https://github.com/smoothdeveloper)
+* [@smoothdeveloper](https://github.com/smoothdeveloper)
 
 The default maintainer account for projects under "fsprojects" is [@fsprojectsgit](https://github.com/fsprojectsgit) - F# Community Project Incubation Space (repo management)
 

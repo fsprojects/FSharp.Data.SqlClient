@@ -1,9 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\..\fsc.props" />
-  <Import Project="..\..\..\netfx.props" />
   <PropertyGroup>
-    <TargetFrameworks>net471;netstandard2.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net9.0</TargetFrameworks>
     <AssemblyName>Lib</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -19,15 +17,13 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="netstandard" />
-    <Reference Condition="'$(TargetFramework)' == 'net8.0'" Include="FSharp.Data.SqlClient">
-      <HintPath>..\..\..\bin\net8.0\FSharp.Data.SqlClient.dll</HintPath>
+    <Reference Condition="'$(TargetFramework)' == 'net9.0'" Include="FSharp.Data.SqlClient">
+      <HintPath>..\..\..\bin\net9.0\FSharp.Data.SqlClient.dll</HintPath>
     </Reference>
     <Reference Condition="'$(TargetFramework)' == 'netstandard2.0'" Include="FSharp.Data.SqlClient">
       <HintPath>..\..\..\bin\netstandard2.0\FSharp.Data.SqlClient.dll</HintPath>
     </Reference>
-    <Reference Condition="'$(TargetFramework)' == 'net471'" Include="FSharp.Data.SqlClient">
-      <HintPath>..\..\..\bin\net462\FSharp.Data.SqlClient.dll</HintPath>
-    </Reference>
+
   </ItemGroup>
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />
 </Project>

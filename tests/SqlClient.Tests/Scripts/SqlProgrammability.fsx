@@ -7,26 +7,30 @@ open System.Data
 open FSharp.Data
 
 
-//[<Literal>] 
+//[<Literal>]
 //let connectionString = ConnectionStrings.AdventureWorksLiteral
 //let connectionString = ConnectionStrings.AdventureWorksAzure
 
-//[<Literal>] 
+//[<Literal>]
 //let prodConnectionString = ConnectionStrings.MasterDb
 
-type AdventureWorks = SqlProgrammabilityProvider<"Data Source=.;Initial Catalog = AdventureWorks2012;Integrated Security=True;TrustServerCertificate=true">
+type AdventureWorks =
+    SqlProgrammabilityProvider<
+        "Data Source=.;Initial Catalog = AdventureWorks2012;Integrated Security=True;TrustServerCertificate=true"
+     >
+
 type dbo = AdventureWorks.dbo
 let x = 42.<AdventureWorks.Sales.``Units of Measure``.GBP>
 let y = 12.<AdventureWorks.Sales.``Units of Measure``.USD>
 x.GetType().AssemblyQualifiedName
 
 //let cmd = new SqlCommandProvider<"
-//    SELECT X.* 
+//    SELECT X.*
 //    FROM Sales.SpecialOfferProduct X
-//	    JOIN Sales.SalesOrderDetail Y ON X.ProductID = Y.ProductID 
-//    WHERE X.ProductID = @specialOfferProductProductid 
+//	    JOIN Sales.SalesOrderDetail Y ON X.ProductID = Y.ProductID
+//    WHERE X.ProductID = @specialOfferProductProductid
 //	    AND Y.ProductID = @salesOrderDetailProductid
-//	    AND (X.SpecialOfferID IS NOT NULL 
+//	    AND (X.SpecialOfferID IS NOT NULL
 //		    OR Y.SpecialOfferID IS NOT NULL)
 //	     ", "Data Source=.;Initial Catalog = AdventureWorks2012;Integrated Security=True;TrustServerCertificate=true">()
 
@@ -57,6 +61,7 @@ x.GetType().AssemblyQualifiedName
 
 //[ for c in dt2.Columns -> c.ColumnName, c.DataType.FullName ] = [ for c in dt.Columns -> c.ColumnName, c.DataType.FullName ]
 
-type Thermion = SqlProgrammabilityProvider<"Data Source=.;Initial Catalog = Thermion;Integrated Security=True;TrustServerCertificate=true">
-
-
+type Thermion =
+    SqlProgrammabilityProvider<
+        "Data Source=.;Initial Catalog = Thermion;Integrated Security=True;TrustServerCertificate=true"
+     >

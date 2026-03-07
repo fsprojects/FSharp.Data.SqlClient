@@ -3,7 +3,7 @@
   <!--<Import Project="..\..\fsc.props" />-->
   <!--<Import Project="..\..\netfx.props" />-->
   <PropertyGroup>
-    <TargetFramework>net462</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <AssemblyName>SqlClient.DesignTime.Tests</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -15,11 +15,8 @@
     <Compile Include="DesignTimeConnectionStringTests.fs" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Condition="$(TargetFramework) == 'net462'" Include="FSharp.Data.SqlClient.DesignTime">
-      <HintPath>..\..\bin\typeproviders\fsharp41\net462\FSharp.Data.SqlClient.DesignTime.dll</HintPath>
-    </Reference>
-    <Reference Condition="$(TargetFramework) == 'net8.0'" Include="FSharp.Data.SqlClient.DesignTime">
-      <HintPath>..\..\bin\typeproviders\fsharp41\net8.0\FSharp.Data.SqlClient.DesignTime.dll</HintPath>
+    <Reference Include="FSharp.Data.SqlClient.DesignTime">
+      <HintPath>..\..\bin\typeproviders\fsharp41\net9.0\FSharp.Data.SqlClient.DesignTime.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

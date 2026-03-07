@@ -39,7 +39,7 @@ group Docs
 
 group DesignTime
 	source https://www.nuget.org/api/v2/
-	framework: >= net462, >= netstandard20, net8.0
+	framework: >= netstandard20, net9.0
 	storage: none
 
     nuget System.Configuration.ConfigurationManager 9.0.4
@@ -62,16 +62,9 @@ group Test
 	nuget xunit = 2.4.1
 	nuget xunit.runner.visualstudio = 2.4.1
 
-group Net40
-	source https://www.nuget.org/api/v2/
-	framework: net462
-	storage: none
-
-	nuget FSharp.Core = 8.0.301
-
 group TestProjects
 	source https://www.nuget.org/api/v2/
-	framework: >= net462, >= netcoreapp2.0, >= netstandard2.0, net8.0
+	framework: >= netstandard2.0, net9.0
 	storage: none
 
 	nuget FSharp.Core = 8.0.301
@@ -81,17 +74,10 @@ group TestProjects
 
 group Samples
 	source https://www.nuget.org/api/v2/
-	framework: >= net462, >= netcoreapp2.0, >= netstandard2.0, net8.0
-	redirects: on
-	
-	nuget FSharp.Core = 8.0.301 redirects: force
-	
-	nuget Microsoft.AspNet.WebApi
-	nuget Microsoft.AspNet.WebApi.Client
-	nuget Microsoft.AspNet.WebApi.Core
-	nuget Microsoft.AspNet.WebApi.WebHost
-	nuget Microsoft.SqlServer.Types
+	framework: net9.0
+	storage: none
 
-	nuget Newtonsoft.Json redirects: force
+	nuget FSharp.Core = 8.0.301
+	nuget System.Data.SqlClient
+	nuget System.Configuration.ConfigurationManager
 	nuget FSharp.Data.SqlClient
-	

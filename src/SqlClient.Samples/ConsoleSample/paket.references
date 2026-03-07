@@ -1,0 +1,5 @@
+group Samples
+FSharp.Core
+FSharp.Data.SqlClient
+System.Data.SqlClient
+System.Configuration.ConfigurationManager
