@@ -58,11 +58,11 @@ safe-outputs:
   add-labels:
     allowed: [bug, enhancement, "help wanted", "good first issue", "spam", "off topic", documentation, question, duplicate, wontfix, "needs triage", "needs investigation", "breaking change", performance, security, refactor]
     max: 30
-    target: "*" 
+    target: "*"
   remove-labels:
     allowed: [bug, enhancement, "help wanted", "good first issue", "spam", "off topic", documentation, question, duplicate, wontfix, "needs triage", "needs investigation", "breaking change", performance, security, refactor]
     max: 5
-    target: "*" 
+    target: "*"
 
 tools:
   web-fetch:
@@ -150,7 +150,7 @@ steps:
           json.dump(result, f, indent=2)
       EOF
 
-source: githubnext/agentics/workflows/repo-assist.md@e9d60822329eb50a32fcfc54ebd68078e4f5133e
+source: githubnext/agentics/workflows/repo-assist.md@4ee2ca4faa30612b9ed0d207472068f5efc9ecf3
 engine: copilot
 ---
 
@@ -160,7 +160,7 @@ engine: copilot
 
 Take heed of **instructions**: "${{ steps.sanitized.outputs.text }}"
 
-If these are non-empty (not ""), then you have been triggered via `/repo-assist <instructions>`. Follow the user's instructions instead of the normal scheduled workflow. Focus exclusively on those instructions. Apply all the same guidelines (read AGENTS.md, run formatters/linters/tests, be polite, use AI disclosure). Skip the weighted task selection and Task 11 reporting, and instead directly do what the user requested. If no specific instructions were provided (empty or blank), proceed with the normal scheduled workflow below. 
+If these are non-empty (not ""), then you have been triggered via `/repo-assist <instructions>`. Follow the user's instructions instead of the normal scheduled workflow. Focus exclusively on those instructions. Apply all the same guidelines (read AGENTS.md, run formatters/linters/tests, be polite, use AI disclosure). Skip the weighted task selection and Task 11 reporting, and instead directly do what the user requested. If no specific instructions were provided (empty or blank), proceed with the normal scheduled workflow below.
 
 Then exit  -  do not run the normal workflow after completing the instructions.
 
@@ -231,7 +231,7 @@ Update memory with labels applied and cursor position.
 1. Review issues labelled `bug`, `help wanted`, or `good first issue`, plus any identified as fixable during investigation.
 2. For each fixable issue:
    a. Check memory — skip if you've already tried and the attempt is still open. Never create duplicate PRs.
-   b. Create a fresh branch off `main`: `repo-assist/fix-issue-<N>-<desc>`.
+   b. Create a fresh branch off the default branch of the repository: `repo-assist/fix-issue-<N>-<desc>`.
    c. Implement a minimal, surgical fix. Do not refactor unrelated code.
    d. **Build and test (required)**: do not create a PR if the build fails or tests fail due to your changes. If tests fail due to infrastructure, create the PR but document it.
    e. Add a test for the bug if feasible; re-run tests.
@@ -256,7 +256,7 @@ Study the codebase and make clearly beneficial, low-risk improvements. **Be high
 
 Good candidates: code clarity and readability, removing dead code, API usability, documentation gaps, reducing duplication.
 
-Check memory for already-submitted ideas; do not re-propose them. Create a fresh branch `repo-assist/improve-<desc>` off `main`, implement the improvement, build and test (same requirements as Task 3), then create a draft PR with AI disclosure, rationale, and Test Status section. If not ready to implement, file an issue instead. Update memory.
+Check memory for already-submitted ideas; do not re-propose them. Create a fresh branch `repo-assist/improve-<desc>` off the default branch of the repository, implement the improvement, build and test (same requirements as Task 3), then create a draft PR with AI disclosure, rationale, and Test Status section. If not ready to implement, file an issue instead. Update memory.
 
 ### Task 6: Maintain Repo Assist PRs
 
@@ -297,7 +297,7 @@ Maintain a single open issue titled `[Repo Assist] Monthly Activity {YYYY}-{MM}`
 
    ## Suggested Actions for Maintainer
 
-   **Comprehensive list** of all pending actions requiring maintainer attention (excludes items already actioned and checked off). 
+   **Comprehensive list** of all pending actions requiring maintainer attention (excludes items already actioned and checked off).
    - Reread the issue you're updating before you update it  -  there may be new checkbox adjustments since your last update that require you to adjust the suggested actions.
    - List **all** the comments, PRs, and issues that need attention
    - Exclude **all** items that have either
