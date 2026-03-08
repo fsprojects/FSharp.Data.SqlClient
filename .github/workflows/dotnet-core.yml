@@ -80,14 +80,14 @@ jobs:
     - name: Restore AdventureWorks2012 from backup
       shell: pwsh
       run: |
-        $BAK = "$env:TEMP\AdventureWorks2012.bak"
-        Write-Host "Downloading AdventureWorks2012.bak..."
+        # Get the default data path from SQL Server (the service account can read/write here)
+        $dataPath = Invoke-Sqlcmd -ServerInstance "localhost" -Username "SA" -Password "YourStrong@Passw0rd" -TrustServerCertificate -Query "SELECT SERVERPROPERTY('InstanceDefaultDataPath') AS DataPath" | Select-Object -ExpandProperty DataPath
+        $BAK = Join-Path $dataPath "AdventureWorks2012.bak"
+
+        Write-Host "Downloading AdventureWorks2012.bak to $BAK ..."
         Invoke-WebRequest -Uri "https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2012.bak" -OutFile $BAK
 
-        # Get the default data path from SQL Server
-        $dataPath = Invoke-Sqlcmd -ServerInstance "localhost" -Username "SA" -Password "YourStrong@Passw0rd" -TrustServerCertificate -Query "SELECT SERVERPROPERTY('InstanceDefaultDataPath') AS DataPath" | Select-Object -ExpandProperty DataPath
-
-        Write-Host "Restoring AdventureWorks2012 to $dataPath ..."
+        Write-Host "Restoring AdventureWorks2012..."
         $restoreQuery = @"
         RESTORE DATABASE [AdventureWorks2012]
         FROM DISK = N'$BAK'
