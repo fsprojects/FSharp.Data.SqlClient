@@ -8,10 +8,15 @@ open System.Data.SqlTypes
 [<Literal>]
 let connectionString = @"name=AdventureWorks"
 
-type GetEmployeeByLevel = SqlCommandProvider<"SELECT OrganizationNode FROM HumanResources.Employee WHERE OrganizationNode = @OrganizationNode", connectionString, SingleRow = true>
+type GetEmployeeByLevel =
+    SqlCommandProvider<
+        "SELECT OrganizationNode FROM HumanResources.Employee WHERE OrganizationNode = @OrganizationNode",
+        connectionString,
+        SingleRow=true
+     >
 
 [<Fact>]
-let SqlHierarchyIdParam() =    
+let SqlHierarchyIdParam () =
     let getEmployeeByLevel = new GetEmployeeByLevel()
     let p = SqlHierarchyId.Parse(SqlString("/1/1/"))
     let result = getEmployeeByLevel.Execute(p)
@@ -19,22 +24,25 @@ let SqlHierarchyIdParam() =
 
 type AdventureWorks = SqlProgrammabilityProvider<connectionString>
 type Address_GetAddressBySpatialLocation = AdventureWorks.Person.Address_GetAddressBySpatialLocation
-    
+
 [<Fact>]
-let ``GEOMETRY and GEOGRAPHY sp params``() =
+let ``GEOMETRY and GEOGRAPHY sp params`` () =
     use cmd = new Address_GetAddressBySpatialLocation()
     cmd.AsyncExecute(SqlGeography.Null) |> ignore
 
 
 [<Fact>]
-let spatialTypes() = 
-    use cmd = 
-        AdventureWorks.CreateCommand<"
+let spatialTypes () =
+    use cmd =
+        AdventureWorks.CreateCommand<
+            "
             SELECT OrganizationNode 
             FROM HumanResources.Employee 
             WHERE OrganizationNode = @OrganizationNode
-        ", SingleRow = true>()
+        ",
+            SingleRow=true
+         >()
 
     let p = SqlHierarchyId.Parse(SqlString("/1/1/"))
-    let result = cmd.Execute( p)
+    let result = cmd.Execute(p)
     Assert.Equal(Some(Some p), result)

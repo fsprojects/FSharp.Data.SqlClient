@@ -5,8 +5,8 @@
     <version>@build.number@</version>
     <authors>@authors@</authors>
     <owners>@authors@</owners>
-    <licenseUrl>http://github.com/fsprojects/FSharp.Data.SqlClient/blob/master/LICENSE.md</licenseUrl>
-    <projectUrl>http://fsprojects.github.io/FSharp.Data.SqlClient/</projectUrl>
+    <license type="expression">Apache-2.0</license>
+    <projectUrl>https://github.com/fsprojects/FSharp.Data.SqlClient</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/fsprojects/FSharp.Data.SqlClient/master/docs/files/img/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>@description@</description>
@@ -14,30 +14,26 @@
     <releaseNotes>@releaseNotes@</releaseNotes>
     <copyright>Copyright 2015</copyright>
     <tags>@tags@</tags>
-    <frameworkAssemblies>
-      <frameworkAssembly assemblyName="System.Data" targetFramework="net462" />
-      <frameworkAssembly assemblyName="System.Xml" targetFramework="net462" />
-    </frameworkAssemblies>
     <references>
       <reference file="FSharp.Data.SqlClient.dll" />
     </references>
     <dependencies>
-      <group targetFramework="net462">
-        <dependency id="FSharp.Core" version="8.0.301" />
-      </group>
       <group targetFramework="netstandard2.0">
         <dependency id="FSharp.Core" version="8.0.301" />
-        <dependency id="System.Data.SqlClient" version="4.9.0" />
-        <dependency id="System.Configuration.ConfigurationManager" version="9.0.4" />
+        <dependency id="Microsoft.Data.SqlClient" version="6.1.4" />
+        <dependency id="System.Configuration.ConfigurationManager" version="9.0.11" />
       </group>
-      <group targetFramework="net8.0">
+      <group targetFramework="net9.0">
         <dependency id="FSharp.Core" version="8.0.301" />
-        <dependency id="System.Data.SqlClient" version="4.9.0" />
-        <dependency id="System.Configuration.ConfigurationManager" version="9.0.4" />
+        <dependency id="Microsoft.Data.SqlClient" version="6.1.4" />
+        <dependency id="System.Configuration.ConfigurationManager" version="9.0.11" />
       </group>
     </dependencies>
   </metadata>
   <files>
-    <file src="..\bin\**\*.*" exclude="**\*.deps.json" target="lib" />
+    <file src="..\bin\net9.0\FSharp.Data.SqlClient.*" target="lib\net9.0" />
+    <file src="..\bin\netstandard2.0\FSharp.Data.SqlClient.*" target="lib\netstandard2.0" />
+    <file src="..\bin\typeproviders\fsharp41\net9.0\**\*.*" exclude="**\*.deps.json" target="typeproviders\fsharp41\net9.0" />
+    <file src="..\bin\typeproviders\fsharp41\netstandard2.0\**\*.*" exclude="**\*.deps.json" target="typeproviders\fsharp41\netstandard2.0" />
   </files>
 </package>

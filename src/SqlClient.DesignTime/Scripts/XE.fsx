@@ -8,17 +8,20 @@
 open Microsoft.SqlServer.XEvent.Linq
 open System.Data.SqlClient
 
-let connection = "Data Source=.;Initial Catalog=master;Integrated Security=True;TrustServerCertificate=true"
+let connection =
+    "Data Source=.;Initial Catalog=master;Integrated Security=True;TrustServerCertificate=true"
 
 let targetDatabase = "AdventureWorks2014"
 let xeSession = "XE_Alter"
 
-do 
+do
     use conn = new SqlConnection(connection)
     conn.Open()
     conn.ChangeDatabase(targetDatabase)
+
     let createSession =
-        sprintf "
+        sprintf
+            "
             IF NOT EXISTS(SELECT * FROM sys.server_event_sessions WHERE name='%s')
             BEGIN
                 CREATE EVENT SESSION [%s] 
@@ -54,27 +57,52 @@ do
             BEGIN
                 ALTER EVENT SESSION [%s] ON SERVER STATE = START
             END
-        " xeSession xeSession targetDatabase targetDatabase targetDatabase xeSession xeSession
+        "
+            xeSession
+            xeSession
+            targetDatabase
+            targetDatabase
+            targetDatabase
+            xeSession
+            xeSession
+
     use cmd = conn.CreateCommand(CommandText = createSession)
     cmd.ExecuteNonQuery() |> ignore
 
-do 
-    use events = new QueryableXEventData(connection, xeSession, EventStreamSourceOptions.EventStream, EventStreamCacheOptions.DoNotCache)
+do
+    use events =
+        new QueryableXEventData(
+            connection,
+            xeSession,
+            EventStreamSourceOptions.EventStream,
+            EventStreamCacheOptions.DoNotCache
+        )
 
     for x in events do
         //printfn "Event name: %s" x.Name
-        if x.Name = "object_altered" || x.Name = "object_created" || x.Name = "object_deleted"
+        if
+            x.Name = "object_altered"
+            || x.Name = "object_created"
+            || x.Name = "object_deleted"
         then
-            let contains, ddl_phase = x.Fields.TryGetValue("ddl_phase") 
-            if contains && string ddl_phase.Value = "Commit" 
-            then 
+            let contains, ddl_phase = x.Fields.TryGetValue("ddl_phase")
+
+            if contains && string ddl_phase.Value = "Commit" then
                 printfn "ddl_phase type: %A" ddl_phase.Type
-        
+
                 let fs = x.Fields
                 let ac = x.Actions
 
-    //            fs |> Seq.cast<PublishedEventField> |> Seq.map (fun e -> e.Name) |> String.concat ";" |> printfn "Fields: %s"
-    //            x.Actions |> Seq.cast<PublishedAction> |> Seq.map (fun e -> e.Name) |> String.concat ";" |> printfn "Actions: %s"
+                //            fs |> Seq.cast<PublishedEventField> |> Seq.map (fun e -> e.Name) |> String.concat ";" |> printfn "Fields: %s"
+                //            x.Actions |> Seq.cast<PublishedAction> |> Seq.map (fun e -> e.Name) |> String.concat ";" |> printfn "Actions: %s"
 
-                printfn "\nEvent %s.\nDDL Phase: %O.\nObject: id-%O; name-%O.\nDatabase:  id-%O; name-%O.\nSql text: %A" x.Name fs.["ddl_phase"].Value fs.["object_id"].Value fs.["object_name"].Value fs.["database_id"].Value ac.["database_name"].Value ac.["sql_text"].Value
-                //printfn "\nEvent %s.\nDDL Phase: %O.\nObject: id-%O; name-%O.\nDatabase:  id-%O; name-%O." x.Name fs.["ddl_phase"].Value fs.["object_id"].Value fs.["object_name"].Value fs.["database_id"].Value fs.["database_name"].Value 
+                printfn
+                    "\nEvent %s.\nDDL Phase: %O.\nObject: id-%O; name-%O.\nDatabase:  id-%O; name-%O.\nSql text: %A"
+                    x.Name
+                    fs.["ddl_phase"].Value
+                    fs.["object_id"].Value
+                    fs.["object_name"].Value
+                    fs.["database_id"].Value
+                    ac.["database_name"].Value
+                    ac.["sql_text"].Value
+//printfn "\nEvent %s.\nDDL Phase: %O.\nObject: id-%O; name-%O.\nDatabase:  id-%O; name-%O." x.Name fs.["ddl_phase"].Value fs.["object_id"].Value fs.["object_name"].Value fs.["database_id"].Value fs.["database_name"].Value

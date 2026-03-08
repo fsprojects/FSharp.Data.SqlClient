@@ -1,8 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\netfx.props" />
   <PropertyGroup>
-    <TargetFrameworks>net462;net8.0</TargetFrameworks>
+    <TargetFrameworks>net9.0;netstandard2.0</TargetFrameworks>
     <AssemblyName>FSharp.Data.SqlClient.DesignTime</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -21,6 +20,7 @@
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <DisableImplicitSystemValueTupleReference>true</DisableImplicitSystemValueTupleReference>
     <DefineConstants>$(DefineConstants);DESIGNTIME_CODE_ONLY;IS_DESIGNTIME;WITH_LEGACY_NAMESPACE</DefineConstants>
+    <DefineConstants Condition="'$(TargetFramework)' == 'net9.0'">$(DefineConstants);USE_SYSTEM_DATA_COMMON_DBPROVIDERFACTORIES</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <!--
@@ -44,9 +44,6 @@
     <Reference Include="System.Transactions" />
     <Reference Include="System.Xml" />
   </ItemGroup>-->
-  <ItemGroup Condition="$(TargetFramework) == 'net462'">
-    <Reference Include="System.Data" />
-  </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="..\..\paket-files\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fsi">
@@ -78,7 +75,44 @@
     <None Include="Scripts\ReverseLineOrderForNotex.fsx" />
     <None Include="Scripts\XE.fsx" />
   </ItemGroup>
+  <!--
+    Type providers execute at compile-time, so the design-time output folder must
+    contain real implementation assemblies, not the portable/reference "bait" stubs.
+    Microsoft.Data.SqlClient (and a few others) ship bait-and-switch: the lib/net9.0
+    assembly throws PlatformNotSupportedException; the real code lives under
+    runtimes/{rid}/lib/net9.0/.  After build, overwrite the bait with the correct
+    RID-specific implementation so the TP host can actually open SQL connections.
+  -->
   <Target Name="CopyAssembliesToTPFolder" AfterTargets="Build">
+    <PropertyGroup>
+      <_TPRid Condition="$([MSBuild]::IsOSPlatform('Linux'))">unix</_TPRid>
+      <_TPRid Condition="$([MSBuild]::IsOSPlatform('OSX'))">unix</_TPRid>
+      <_TPRid Condition="$([MSBuild]::IsOSPlatform('Windows'))">win</_TPRid>
+      <_TPNativeRid Condition="$([MSBuild]::IsOSPlatform('Windows'))">win-x64</_TPNativeRid>
+      <_TPNativeRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_TPNativeRid>
+      <_TPOutputDir>$(TargetDir)</_TPOutputDir>
+      <_TPRuntimeDir>$(_TPOutputDir)runtimes/$(_TPRid)/lib/$(TargetFramework)</_TPRuntimeDir>
+      <!-- For netstandard2.0, NuGet does not copy RID-specific assemblies.
+           Fall back to the net9.0 sibling output (built first). -->
+      <_TPRuntimeDir Condition="!Exists('$(_TPRuntimeDir)')">$(_TPOutputDir)../net9.0/runtimes/$(_TPRid)/lib/net9.0</_TPRuntimeDir>
+      <_TPNativeDir>$(_TPOutputDir)runtimes/$(_TPNativeRid)/native</_TPNativeDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_RidSpecificAssemblies Include="$(_TPRuntimeDir)/*.dll" />
+      <_NativeAssemblies Include="$(_TPNativeDir)/*.dll" Condition="'$(_TPNativeRid)' != ''" />
+    </ItemGroup>
+    <Message Importance="high" Text="TP RID copy: $(_TPRuntimeDir) -> $(_TPOutputDir)" />
+    <Copy SourceFiles="@(_RidSpecificAssemblies)"
+          DestinationFolder="$(_TPOutputDir)"
+          OverwriteReadOnlyFiles="true"
+          SkipUnchangedFiles="false"
+          Condition="Exists('$(_TPRuntimeDir)')" />
+    <Message Importance="high" Text="TP native copy: $(_TPNativeDir) -> $(_TPOutputDir)" Condition="'$(_TPNativeRid)' != ''" />
+    <Copy SourceFiles="@(_NativeAssemblies)"
+          DestinationFolder="$(_TPOutputDir)"
+          OverwriteReadOnlyFiles="true"
+          SkipUnchangedFiles="false"
+          Condition="'$(_TPNativeRid)' != '' and Exists('$(_TPNativeDir)')" />
   </Target>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

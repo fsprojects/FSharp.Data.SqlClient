@@ -2,16 +2,28 @@
 open FSharp.Data
 
 [<Literal>]
-let Cnx = "Data Source=.;Initial Catalog=AdventureWorks2012;Integrated Security=True;TrustServerCertificate=true"
+let Cnx =
+    "Data Source=localhost,1433;Initial Catalog=AdventureWorks2012;User ID=SA;Password=YourStrong@Passw0rd;TrustServerCertificate=true"
 
 type SingleColumnSelect = SqlEnumProvider<"SELECT Name FROM Purchasing.ShipMethod", Cnx>
-type TinyIntEnum = SqlEnumProvider<"SELECT * FROM (VALUES(('One'), CAST(1 AS tinyint)), ('Two', CAST(2 AS tinyint))) AS T(Tag, Value)", Cnx, Kind = SqlEnumKind.CLI>
-type CurrencyCodeUOM = 
-   SqlEnumProvider<"
+
+type TinyIntEnum =
+    SqlEnumProvider<
+        "SELECT * FROM (VALUES(('One'), CAST(1 AS tinyint)), ('Two', CAST(2 AS tinyint))) AS T(Tag, Value)",
+        Cnx,
+        Kind=SqlEnumKind.CLI
+     >
+
+type CurrencyCodeUOM =
+    SqlEnumProvider<
+        "
        SELECT CurrencyCode
        FROM Sales.Currency 
        WHERE CurrencyCode IN ('USD', 'EUR', 'GBP')
-   ", Cnx, Kind = SqlEnumKind.UnitsOfMeasure>
+   ",
+        Cnx,
+        Kind=SqlEnumKind.UnitsOfMeasure
+     >
 
 [<EntryPoint>]
 let main _ =

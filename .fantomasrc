@@ -1,0 +1,8 @@
+{
+  "fsharpFiles": [
+    "src/**/*.fs",
+    "src/**/*.fsi",
+    "tests/**/*.fs",
+    "build/**/*.fs"
+  ]
+}

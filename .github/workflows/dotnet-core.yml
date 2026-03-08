@@ -2,32 +2,102 @@ name: FSharp.Data.SqlClient 'Actions' CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, fb ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, fb ]
 
 jobs:
-  build:
+  build-linux:
+    runs-on: ubuntu-latest
 
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_SA_PASSWORD: YourStrong@Passw0rd
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P 'YourStrong@Passw0rd' -Q 'SELECT 1' -No"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 20s
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Restore AdventureWorks2012 from backup
+      run: |
+        BAK=/tmp/AdventureWorks2012.bak
+        echo "Downloading AdventureWorks2012.bak..."
+        curl -L -o "$BAK" \
+          "https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2012.bak"
+
+        CONTAINER_ID=$(docker ps -q --filter "ancestor=mcr.microsoft.com/mssql/server:2022-latest")
+        echo "SQL Server container: $CONTAINER_ID"
+
+        echo "Copying backup into container..."
+        docker cp "$BAK" "$CONTAINER_ID:/var/opt/mssql/data/AdventureWorks2012.bak"
+
+        echo "Restoring AdventureWorks2012..."
+        docker exec "$CONTAINER_ID" \
+          /opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P 'YourStrong@Passw0rd' -No -Q \
+          "RESTORE DATABASE [AdventureWorks2012]
+           FROM DISK = N'/var/opt/mssql/data/AdventureWorks2012.bak'
+           WITH MOVE 'AdventureWorks2012'     TO '/var/opt/mssql/data/AdventureWorks2012_Data.mdf',
+                MOVE 'AdventureWorks2012_log' TO '/var/opt/mssql/data/AdventureWorks2012_Log.ldf',
+                REPLACE, NOUNLOAD, STATS = 5"
+
+        echo "GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING=Data Source=localhost,1433;Initial Catalog=AdventureWorks2012;User ID=SA;Password=YourStrong@Passw0rd;TrustServerCertificate=True;" >> "$GITHUB_ENV"
+
+    - name: Build
+      run: ./build.sh
+
+  build-windows:
     runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v4
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.100
+        dotnet-version: 9.0.x
 
     - name: Install SQL Server
-      # reference @ https://github.com/Particular/install-sql-server-action
-      uses: Particular/install-sql-server-action@v1.0.0
+      uses: potatoqualitee/mssqlsuite@v1.7
       with:
-        connection-string-env-var: GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING
-        catalog: AdventureWorks2012
-        extra-params: ""
-    - name: Build
-      env:
-        FSHARP_DATA_SQLCLIENT_USE_SQLLOCALDB_FOR_TESTS: 1
+        install: sqlengine
+        sa-password: YourStrong@Passw0rd
+
+    - name: Restore AdventureWorks2012 from backup
+      shell: pwsh
       run: |
-        '"C:/Program Files/Microsoft SQL Server/130/Tools/Binn/SqlLocalDB.exe" info'
-        ./build.cmd
+        # Get the default data path from SQL Server (the service account can read/write here)
+        $dataPath = Invoke-Sqlcmd -ServerInstance "localhost" -Username "SA" -Password "YourStrong@Passw0rd" -TrustServerCertificate -Query "SELECT SERVERPROPERTY('InstanceDefaultDataPath') AS DataPath" | Select-Object -ExpandProperty DataPath
+        $BAK = Join-Path $dataPath "AdventureWorks2012.bak"
+
+        Write-Host "Downloading AdventureWorks2012.bak to $BAK ..."
+        Invoke-WebRequest -Uri "https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2012.bak" -OutFile $BAK
+
+        Write-Host "Restoring AdventureWorks2012..."
+        $restoreQuery = @"
+        RESTORE DATABASE [AdventureWorks2012]
+        FROM DISK = N'$BAK'
+        WITH MOVE 'AdventureWorks2012'     TO '${dataPath}AdventureWorks2012_Data.mdf',
+             MOVE 'AdventureWorks2012_log' TO '${dataPath}AdventureWorks2012_Log.ldf',
+             REPLACE, NOUNLOAD, STATS = 5
+        "@
+        Invoke-Sqlcmd -ServerInstance "localhost" -Username "SA" -Password "YourStrong@Passw0rd" -TrustServerCertificate -Query $restoreQuery -QueryTimeout 120
+
+        echo "GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING=Data Source=localhost,1433;Initial Catalog=AdventureWorks2012;User ID=SA;Password=YourStrong@Passw0rd;TrustServerCertificate=True;" >> $env:GITHUB_ENV
+
+    - name: Build
+      run: .\build.cmd

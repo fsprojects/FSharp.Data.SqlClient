@@ -17,20 +17,16 @@ Please provide a description of the behaviour you expect.
 
 ### Actual behavior
 
-Please provide a description of the actual behaviour you observe. 
+Please provide a description of the actual behaviour you observe.
 
 ### Known workarounds
 
 Please provide a description of any known workarounds.
 
-### Related information 
+### Related information
 
 * Operating system
 * Branch
 * Database versions and sample databases being used
-* .NET Runtime, CoreCLR or Mono Version
+* .NET version
 * Editing Tools (e.g. Visual Studio Version)
-* Lins to F# RFCs or entries on http://fslang.uservoice.com
-
-
-

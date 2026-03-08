@@ -15,5 +15,5 @@ Fake.Tools.Git
 FSharp.Core
 FSharp.Formatting
 NuGet.CommandLine
-System.Data.SqlClient
+Microsoft.Data.SqlClient
 System.Configuration.ConfigurationManager

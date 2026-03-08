@@ -1,8 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\netfx.props" />
   <PropertyGroup>
-    <TargetFrameworks>net462;netstandard2.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net9.0</TargetFrameworks>
     <AssemblyName>FSharp.Data.SqlClient</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -12,20 +11,59 @@
     <WithLegacyNamespaces>true</WithLegacyNamespaces>
     <DefineConstants Condition="'$(WithLegacyNamespaces)'=='true'">$(DefineConstants);WITH_LEGACY_NAMESPACE</DefineConstants>
   </PropertyGroup>
+  <!-- NuGet package metadata -->
+  <PropertyGroup>
+    <PackageId>FSharp.Data.SqlClient</PackageId>
+    <Authors>Dmitry Morozov;Dmitry Sevastianov</Authors>
+    <Description>SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way. SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/fsprojects/FSharp.Data.SqlClient</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/fsprojects/FSharp.Data.SqlClient</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>F# fsharp data typeprovider sql</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- NU5100: assemblies outside lib/ — expected for type-provider design-time content -->
+    <NoWarn>$(NoWarn);NU5100</NoWarn>
+    <!-- Register our custom target to run during pack -->
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_PackDesignTimeProvider</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+  <!--
+    Design-time provider packaging.
+
+    The DesignTime project builds separately (it's in SqlClient.sln) and outputs
+    to bin/typeproviders/fsharp41/{tfm}/.  During pack, we glob those outputs
+    into the standard typeproviders/fsharp41/{tfm}/ location in the nupkg —
+    the same layout that the F# SDK's IsFSharpDesignTimeProvider mechanism would
+    produce.
+
+    We glob directly rather than using a ProjectReference with
+    IsFSharpDesignTimeProvider because the DesignTime project uses a different
+    (Paket-managed) FSharp.Core version, and a ProjectReference would poison
+    the runtime project's compilation.
+  -->
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+  <Target Name="_PackDesignTimeProvider" BeforeTargets="GenerateNuspec">
+    <PropertyGroup>
+      <_DtBaseDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\bin\typeproviders\fsharp41'))</_DtBaseDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_DtOutputFiles Include="$(_DtBaseDir)\$(TargetFramework)\**\*"
+                      Exclude="$(_DtBaseDir)\$(TargetFramework)\**\*.deps.json;$(_DtBaseDir)\$(TargetFramework)\**\FSharp.Core.dll" />
+      <TfmSpecificPackageFile Include="@(_DtOutputFiles)">
+        <PackagePath>typeproviders/fsharp41/$(TargetFramework)/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>..\..\bin\net462\FSharp.Data.SqlClient.XML</DocumentationFile>
-  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="8.0.301" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.4" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net40'">
-    <Reference Include="System.Data" />
-    <Reference Include="System.Transactions" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.11" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.4" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />

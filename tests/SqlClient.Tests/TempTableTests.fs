@@ -1,24 +1,25 @@
 ﻿module FSharp.Data.SqlClient.Tests.TempTableTests
+
 open FSharp.Data.SqlClient
 open FSharp.Data.SqlClient.Tests
 
 open FSharp.Data
 open Xunit
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 
 type TempTable =
     SqlCommandProvider<
-        TempTableDefinitions = "
+        TempTableDefinitions="
             CREATE TABLE #Temp (
                 Id INT NOT NULL,
                 Name NVARCHAR(100) NULL)",
-        CommandText = "
+        CommandText="
             SELECT Id, Name FROM #Temp",
-        ConnectionStringOrName =
-            ConnectionStrings.AdventureWorksLiteral>
+        ConnectionStringOrName=ConnectionStrings.AdventureWorksLiteral
+     >
 
 [<Fact>]
-let usingTempTable() =
+let usingTempTable () =
     use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
     conn.Open()
 
@@ -27,26 +28,21 @@ let usingTempTable() =
     cmd.LoadTempTables(
         Temp =
             [ TempTable.Temp(Id = 1, Name = Some "monkey")
-              TempTable.Temp(Id = 2, Name = Some "donkey") ])
+              TempTable.Temp(Id = 2, Name = Some "donkey") ]
+    )
 
-    let actual =
-        cmd.Execute()
-        |> Seq.map(fun x -> x.Id, x.Name)
-        |> Seq.toList
+    let actual = cmd.Execute() |> Seq.map (fun x -> x.Id, x.Name) |> Seq.toList
 
-    let expected = [
-        1, Some "monkey"
-        2, Some "donkey"
-    ]
+    let expected = [ 1, Some "monkey"; 2, Some "donkey" ]
 
     Assert.Equal<_ list>(expected, actual)
 
 [<Fact>]
-let queryWithHash() =
+let queryWithHash () =
     // We shouldn't mangle the statement when it's run
     use cmd =
         new SqlCommandProvider<
-            CommandText = "
+            CommandText="
                 SELECT Id, Name
                 FROM
                 (
@@ -54,26 +50,23 @@ let queryWithHash() =
                     SELECT 2, 'some other value'
                 ) AS a
                 WHERE Name = '#name'",
-            ConnectionStringOrName =
-                ConnectionStrings.AdventureWorksLiteral>(ConnectionStrings.AdventureWorksLiteral)
+            ConnectionStringOrName=ConnectionStrings.AdventureWorksLiteral
+         >(
+            ConnectionStrings.AdventureWorksLiteral
+        )
 
-    let actual =
-        cmd.Execute()
-        |> Seq.map(fun x -> x.Id, x.Name)
-        |> Seq.toList
+    let actual = cmd.Execute() |> Seq.map (fun x -> x.Id, x.Name) |> Seq.toList
 
-    let expected = [
-        1, "#name"
-    ]
+    let expected = [ 1, "#name" ]
 
     Assert.Equal<_ list>(expected, actual)
 
 type TempTableHash =
     SqlCommandProvider<
-        TempTableDefinitions = "
+        TempTableDefinitions="
             CREATE TABLE #Temp (
                 Id INT NOT NULL)",
-        CommandText = "
+        CommandText="
             SELECT a.Id, a.Name
             FROM
             (
@@ -81,28 +74,21 @@ type TempTableHash =
                 SELECT 2, 'some other value'
             ) AS a
             INNER JOIN #Temp t ON t.Id = a.Id",
-        ConnectionStringOrName =
-            ConnectionStrings.AdventureWorksLiteral>
+        ConnectionStringOrName=ConnectionStrings.AdventureWorksLiteral
+     >
 
 [<Fact>]
-let queryWithHashAndTempTable() =
+let queryWithHashAndTempTable () =
     // We shouldn't mangle the statement when it's run
     use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
     conn.Open()
 
     use cmd = new TempTableHash(conn)
 
-    cmd.LoadTempTables(
-        Temp =
-            [ TempTableHash.Temp(Id = 1) ])
+    cmd.LoadTempTables(Temp = [ TempTableHash.Temp(Id = 1) ])
 
-    let actual =
-        cmd.Execute()
-        |> Seq.map(fun x -> x.Id, x.Name)
-        |> Seq.toList
+    let actual = cmd.Execute() |> Seq.map (fun x -> x.Id, x.Name) |> Seq.toList
 
-    let expected = [
-        1, "#Temp"
-    ]
+    let expected = [ 1, "#Temp" ]
 
     Assert.Equal<_ list>(expected, actual)

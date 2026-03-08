@@ -3,7 +3,7 @@
 open System
 open System.Configuration
 open System.Transactions
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 open System.Data
 open FSharp.Data
 open FSharp.Data.SqlClient

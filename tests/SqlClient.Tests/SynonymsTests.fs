@@ -2,7 +2,7 @@
 
 open System
 open System.Data
-open System.Data.SqlClient
+open Microsoft.Data.SqlClient
 open FSharp.Data
 open FSharp.Data.SqlClient
 open FSharp.Data.SqlClient.Tests
@@ -12,44 +12,46 @@ open Xunit
 type AdventureWorks = ProgrammabilityTest.AdventureWorks
 
 [<Fact>]
-let TVFSynonym() = 
+let TVFSynonym () =
     let personId = 42
-    let actual = 
-        use cmd = new AdventureWorks.HumanResources.GetContactInformation()
-        cmd.ExecuteSingle(personId)
-        |> Option.map(fun x -> x.FirstName, x.LastName)
 
-    let expected = 
+    let actual =
+        use cmd = new AdventureWorks.HumanResources.GetContactInformation()
+        cmd.ExecuteSingle(personId) |> Option.map (fun x -> x.FirstName, x.LastName)
+
+    let expected =
         use cmd = new ProgrammabilityTest.GetContactInformation()
-        cmd.ExecuteSingle(personId)
-        |> Option.map(fun x -> x.FirstName, x.LastName)
+        cmd.ExecuteSingle(personId) |> Option.map (fun x -> x.FirstName, x.LastName)
 
     Assert.Equal(expected, actual)
 
 [<Fact>]
-let SPSynonym() = 
+let SPSynonym () =
     let personId = 42
-    let actual = 
+
+    let actual =
         use cmd = new AdventureWorks.HumanResources.GetEmployeeManagers()
         [ for x in cmd.Execute(personId) -> sprintf "%A.%A" x.FirstName x.LastName ]
 
-    let expected = 
-        use cmd = new AdventureWorks.dbo.uspGetEmployeeManagers()
+    let expected =
+        use cmd = new AdventureWorks.dbo.uspGetEmployeeManagers ()
         [ for x in cmd.Execute(personId) -> sprintf "%A.%A" x.FirstName x.LastName ]
 
     Assert.Equal<_ list>(expected, actual)
 
 
 [<Fact>]
-let TableSynonym() = 
-    let adventureWorks = System.Configuration.ConfigurationManager.ConnectionStrings.["AdventureWorks"].ConnectionString
+let TableSynonym () =
+    let adventureWorks =
+        System.Configuration.ConfigurationManager.ConnectionStrings.["AdventureWorks"].ConnectionString
+
     use conn = new SqlConnection(connectionString = adventureWorks)
     conn.Open()
     use tran = conn.BeginTransaction()
 
-    use cmd = new GetRowCount(transaction = tran) 
-    Assert.Equal(Some( Some 3), cmd.Execute())
-    
+    use cmd = new GetRowCount(transaction = tran)
+    Assert.Equal(Some(Some 3), cmd.Execute())
+
     let t = new AdventureWorks.dbo.Tables.HRShift()
     let row = t.NewRow()
     row.Name <- "French coffee break"
@@ -59,5 +61,4 @@ let TableSynonym() =
     let rowsInserted = t.Update(conn, tran)
     Assert.Equal(1, rowsInserted)
 
-    Assert.Equal(Some( Some 4), cmd.Execute())
-
+    Assert.Equal(Some(Some 4), cmd.Execute())
