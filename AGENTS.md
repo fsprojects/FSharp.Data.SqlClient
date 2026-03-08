@@ -18,7 +18,7 @@ This installs **Paket 10** and **Fantomas 7**.
 
 Paket manages all NuGet dependencies. After `dotnet tool restore`, run:
 
-```
+```bash
 dotnet paket install   # re-resolves + updates paket.lock (after editing paket.dependencies)
 dotnet paket restore   # fast restore from existing paket.lock (normal dev workflow)
 ```
@@ -27,7 +27,7 @@ The paket.lock is committed and should be kept up-to-date. Do not edit `packages
 
 ## Building
 
-```
+```bash
 # Build the main library + design-time assembly
 dotnet build SqlClient.sln -c Release
 
@@ -40,7 +40,7 @@ dotnet build Tests.sln -c Release
 
 The FAKE-based build script in `build/` orchestrates everything in order:
 
-```
+```bash
 cd build
 dotnet run               # runs all: Clean → CheckFormat → AssemblyInfo → Build → …
 dotnet run -- Build      # run a single target
@@ -50,7 +50,7 @@ dotnet run -- Build      # run a single target
 
 All F# source in `src/`, `tests/`, and `build/` is formatted with Fantomas.
 
-```
+```bash
 # Format in-place
 dotnet fantomas src tests build
 
@@ -66,7 +66,7 @@ Formatting configuration is in [.fantomasrc](.fantomasrc); editor settings in [.
 
 Tests require a live SQL Server with AdventureWorks2012. The connection string is read from `tests/SqlClient.Tests/app.config` (key `AdventureWorks`) or the environment variable `GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING`.
 
-```
+```bash
 dotnet test tests/SqlClient.Tests/SqlClient.Tests.fsproj -f net9.0
 dotnet test tests/SqlClient.DesignTime.Tests/SqlClient.DesignTime.Tests.fsproj -f net9.0
 ```

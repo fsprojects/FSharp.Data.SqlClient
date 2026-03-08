@@ -101,7 +101,7 @@ type Column =
         Precision: int16
         /// Numeric precision
         [<DataMember>]
-        Scale: int16 /// Numeric scale
+        Scale: int16
     }
 
     member this.ErasedToType =

@@ -4,8 +4,8 @@ open System
 open System.Dynamic
 open System.Collections.Generic
 
-[<Sealed>]
 ///<summary>Custom implementation of <see cref='DynamicObject'/></summary>
+[<Sealed>]
 type DynamicRecord(data: IDictionary<string, obj>) =
     inherit DynamicObject()
 

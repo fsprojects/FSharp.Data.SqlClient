@@ -607,7 +607,7 @@ type DesignTime private () =
                         ))
                 |> dict
 
-            unboundVars, !errors
+            unboundVars, errors.Value
 
         let mutable tsql = cmd.Parameters.["@tsql"].Value.ToString()
         let unboundVars, parseErrors = getVariables tsql
