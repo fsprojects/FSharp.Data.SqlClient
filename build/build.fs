@@ -299,6 +299,93 @@ Target.create "RunSample" (fun _ ->
         runImmediate
     })
 
+// --------------------------------------------------------------------------------------
+// Pack the NuGet package using dotnet pack (cross-platform)
+
+let nupkgDir = makeRootPath "temp/nupkg"
+let runtimeProjectPath = makeRootPath "src/SqlClient/SqlClient.fsproj"
+
+Target.create "Pack" (fun _ ->
+    Shell.cleanDir nupkgDir
+
+    DotNet.pack
+        (fun args ->
+            { args with
+                Configuration = DotNet.Release
+                NoBuild = true
+                OutputPath = Some nupkgDir
+                MSBuildParams =
+                    { args.MSBuildParams with
+                        Properties = [ ("Version", release.NugetVersion) ]
+                        DisableInternalBinLog = true } })
+        runtimeProjectPath
+
+    Trace.logfn "Package created in %s" nupkgDir
+
+    for pkg in Directory.GetFiles(nupkgDir, "*.nupkg") do
+        Trace.logfn "  %s" (Path.GetFileName pkg))
+
+// --------------------------------------------------------------------------------------
+// Validate that the NuGet package is consumable via PackageReference
+//
+// This builds and runs a standalone project that references the package from a
+// local NuGet source (temp/nupkg), exercising all three type providers end-to-end.
+// It proves the .nupkg layout is correct independently of the repo build output.
+
+let validationProjectPath =
+    makeRootPath "tests/PackageValidation/PackageValidation.fsproj"
+
+Target.create "ValidatePackage" (fun _ ->
+
+    // If the CI connection-string override is set, also patch the validation app.config
+    let connStrOverride =
+        System.Environment.GetEnvironmentVariable "GITHUB_ACTION_SQL_SERVER_CONNECTION_STRING"
+
+    if not (String.IsNullOrWhiteSpace connStrOverride) then
+        let appConfigPath = makeRootPath "tests/PackageValidation/app.config"
+        let doc = XDocument.Load(appConfigPath)
+
+        let el =
+            doc.Root.Element("connectionStrings").Elements("add")
+            |> Seq.find (fun el -> el.Attribute(XName.Get "name").Value = "AdventureWorks")
+
+        el.SetAttributeValue(XName.Get "connectionString", connStrOverride)
+        doc.Save(appConfigPath)
+
+    pipeline "ValidatePackage" {
+        stage "clean validation caches" {
+            run (fun _ ->
+                // Clear any cached restore so we pick up the freshly-built nupkg
+                let objDir = makeRootPath "tests/PackageValidation/obj"
+                let binDir = makeRootPath "tests/PackageValidation/bin"
+
+                if Directory.Exists objDir then
+                    Directory.Delete(objDir, true)
+
+                if Directory.Exists binDir then
+                    Directory.Delete(binDir, true))
+        }
+
+        stage "build validation project" {
+            run
+                $"dotnet build {validationProjectPath} -c Release -p:FSharpDataSqlClientVersion={release.NugetVersion} --tl"
+        }
+
+        stage "run validation project" {
+            run (fun _ ->
+                let result =
+                    DotNet.exec
+                        id
+                        "run"
+                        $"--project {validationProjectPath} -c Release --no-build -p:FSharpDataSqlClientVersion={release.NugetVersion}"
+
+                if not result.OK then
+                    failwith "Package validation failed – the NuGet package is not consumable via PackageReference")
+        }
+
+        runImmediate
+    })
+
 let funBuildRestore stageName sln =
     stage $"dotnet restore %s{stageName} '{sln}'" { run $"dotnet restore {sln} --tl" }
 
@@ -415,8 +502,10 @@ open Fake.Core.TargetOperators // for ==>
 ==> "CheckFormat"
 ==> "AssemblyInfo"
 ==> "Build"
+==> "Pack"
 ==> "DeployTestDB"
 ==> "RunSample"
+==> "ValidatePackage"
 ==> "BuildTestProjects"
 ==> "RunTests"
 ==> "All"
