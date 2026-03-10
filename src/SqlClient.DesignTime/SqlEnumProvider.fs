@@ -22,8 +22,6 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
     let nameSpace = this.GetType().Namespace
     let assembly = Assembly.GetExecutingAssembly()
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlEnumProvider", Some typeof<obj>, hideObjectMethods = true, isErased = false)
-    // let tempAssembly = ProvidedAssembly()
-    // do tempAssembly.AddTypes [providerType]
 
     let cache = new Cache<ProvidedTypeDefinition>()
 
