@@ -1,6 +1,5 @@
 namespace FSharp.Data.SqlClient.Internals
 
-//this is mess. Clean up later.
 type FsharpDataSqlClientConfiguration = {
     ResultsetRuntimeVerification: bool
 }
