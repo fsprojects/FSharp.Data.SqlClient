@@ -3,7 +3,7 @@
   <!--<Import Project="..\..\fsc.props" />-->
   <!--<Import Project="..\..\netfx.props" />-->
   <PropertyGroup>
-    <TargetFramework>net462</TargetFramework>
+    <TargetFrameworks>net462;net8.0</TargetFrameworks>
     <AssemblyName>SqlClient.DesignTime.Tests</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
