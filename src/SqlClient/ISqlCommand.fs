@@ -127,6 +127,8 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
 
         | unexpected -> failwithf "Unexpected ResultType value: %O" unexpected
 
+    static let typeCache = System.Collections.Concurrent.ConcurrentDictionary<string, Type>()
+
     member this.CommandTimeout = cmd.CommandTimeout
 
     interface ISqlCommand with
@@ -262,7 +264,8 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                 invalidOp message
 
             for i = 0 to expected.Length - 1 do
-                let expectedName, expectedType = fst expected.[i], Type.GetType( snd expected.[i], throwOnError = true)
+                let expectedName, expectedTypeString = fst expected.[i], snd expected.[i]
+                let expectedType = typeCache.GetOrAdd(expectedTypeString, fun typeName -> Type.GetType(typeName, throwOnError = true))
                 let actualName, actualType = cursor.GetName( i), cursor.GetFieldType( i)
                 if actualName <> expectedName || actualType <> expectedType
                 then 
