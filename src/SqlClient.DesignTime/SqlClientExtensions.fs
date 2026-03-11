@@ -113,7 +113,7 @@ type internal Routine = {
 
     member this.IsStoredProc = this.Type = StoredProcedure 
     
-    member this.ToCommantText(parameters: Parameter list) = 
+    member this.ToCommandText(parameters: Parameter list) = 
         let twoPartNameIdentifier = sprintf "%s.%s" <|| this.TwoPartName
         match this.Type with 
         | StoredProcedure -> twoPartNameIdentifier
