@@ -61,6 +61,11 @@ type Mapper private() =
             | :? 't as v -> v
             | _ (* dbnull *) -> Unchecked.defaultof<'t>
 
+module private ClrTypeResolution =
+    let private cache = System.Collections.Concurrent.ConcurrentDictionary<string, System.Type>()
+    let resolve (fullName: string) : System.Type =
+        cache.GetOrAdd(fullName, fun n -> System.Type.GetType(n, throwOnError = true))
+
 /// Resultset or User Defined Data Table Column information
 /// Remark: This is subject to change
 type [<DataContract;CLIMutable>] Column = {
@@ -146,7 +151,7 @@ and [<DataContract;CLIMutable>] TypeInfo = {
     [<DataMember>] UdttName         : string       /// Name of the user-defined-table-type
     [<DataMember>] TableTypeColumns : Column array /// Columns of the user-defined-table-type
 }   with
-    member this.ClrType: Type = if isNull this.ClrTypeFullName then null else Type.GetType( this.ClrTypeFullName, throwOnError = true)
+    member this.ClrType: Type = if isNull this.ClrTypeFullName then null else ClrTypeResolution.resolve this.ClrTypeFullName
     member this.TableType = this.SqlDbType = SqlDbType.Structured
     member this.IsValueType = not this.TableType && this.ClrType.IsValueType
     member this.IsUnitOfMeasure = this.TypeName.StartsWith("<") && this.TypeName.EndsWith(">")
