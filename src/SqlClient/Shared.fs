@@ -146,7 +146,20 @@ and [<DataContract;CLIMutable>] TypeInfo = {
     [<DataMember>] UdttName         : string       /// Name of the user-defined-table-type
     [<DataMember>] TableTypeColumns : Column array /// Columns of the user-defined-table-type
 }   with
-    member this.ClrType: Type = if isNull this.ClrTypeFullName then null else Type.GetType( this.ClrTypeFullName, throwOnError = true)
+    member this.ClrType: Type =
+        if isNull this.ClrTypeFullName then null
+        else
+            match Type.GetType(this.ClrTypeFullName, throwOnError = false) with
+            | null ->
+                if this.ClrTypeFullName.Contains("Microsoft.SqlServer.Types") then
+                    failwithf
+                        "Could not load type '%s'. Your database uses the SQL Server spatial/hierarchy type '%s', \
+                         which requires the 'Microsoft.SqlServer.Types' NuGet package. \
+                         Add it to your project with: dotnet add package Microsoft.SqlServer.Types"
+                        this.ClrTypeFullName this.TypeName
+                else
+                    Type.GetType(this.ClrTypeFullName, throwOnError = true) // rethrow original error for other types
+            | t -> t
     member this.TableType = this.SqlDbType = SqlDbType.Structured
     member this.IsValueType = not this.TableType && this.ClrType.IsValueType
     member this.IsUnitOfMeasure = this.TypeName.StartsWith("<") && this.TypeName.EndsWith(">")
