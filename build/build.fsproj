@@ -9,5 +9,8 @@
     <Compile Include="fakexunithelper.fs" />
     <Compile Include="build.fs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="paket.references" />
+  </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>
