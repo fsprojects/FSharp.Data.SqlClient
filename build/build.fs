@@ -346,8 +346,9 @@ Target.create "GenerateDocs" (fun _ ->
 )
 
 Target.create "ServeDocs" (fun _ -> 
-  fakeiisexpress.HostStaticWebsite id (__SOURCE_DIRECTORY__ @@ @"docs\output\") |> ignore
-  fakeiisexpress.OpenUrlInBrowser "http://localhost:8080"
+  fakeiisexpress.HostStaticWebsite id (__SOURCE_DIRECTORY__ @@ @"\..\docs\output") |> ignore
+  // Process.Start doesn't work anymore with an URI (https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.start?view=net-10.0)
+  //fakeiisexpress.OpenUrlInBrowser "http://localhost:8080/index.html"
 )
 
 Target.create "ReleaseDocs" (fun _ ->
