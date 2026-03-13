@@ -295,11 +295,13 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                                 ?defaultValue = x.TryGetValue("default_constraint"), 
                                 ?description = x.TryGetValue("description")
                             ) 
-                        if c.DefaultConstraint <> "" && c.PartOfUniqueKey 
+                        if c.DefaultConstraint <> "" && c.Nullable && c.PartOfUniqueKey 
                         then 
                             { c with PartOfUniqueKey = false } 
-                            //ADO.NET doesn't allow nullable columns as part of primary key
-                            //remove from PK if default value provided by DB on insert.
+                            //ADO.NET doesn't allow null values in primary key columns.
+                            //Only remove nullable columns from PK when they have a default value,
+                            //since nullable+default columns may be omitted in NewRow() and remain null.
+                            //Non-nullable columns with defaults should stay in PK - callers must supply them.
                         else c
                     )
                     |> Seq.toList
