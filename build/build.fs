@@ -79,6 +79,10 @@ let testProjectPath = makeRootPath "tests/SqlClient.Tests/SqlClient.Tests.fsproj
 
 let msBuildPaths extraPaths =
     [
+        @"C:\Program Files\Microsoft Visual Studio\18\BuildTools\MSBuild\Current\Bin"
+        @"C:\Program Files\Microsoft Visual Studio\18\Preview\MSBuild\current\Bin"
+        @"C:\Program Files\Microsoft Visual Studio\18\Professional\MSBuild\current\Bin"
+        @"C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\current\Bin"
         @"C:\Program Files\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin"
         @"C:\Program Files\Microsoft Visual Studio\2022\Preview\MSBuild\current\Bin"
         @"C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\current\Bin"
@@ -94,6 +98,10 @@ let msBuildPaths extraPaths =
 
 let fsiExePath =
   [
+    @"C:\Program Files\Microsoft Visual Studio\18\BuildTools\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsiAnyCpu.exe"
+    @"C:\Program Files\Microsoft Visual Studio\18\Preview\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsiAnyCpu.exe"
+    @"C:\Program Files\Microsoft Visual Studio\18\Professional\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsiAnyCpu.exe"
+    @"C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsiAnyCpu.exe"
     @"C:\Program Files\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsiAnyCpu.exe"
     @"C:\Program Files\Microsoft Visual Studio\2022\Preview\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsiAnyCpu.exe"
     @"C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsiAnyCpu.exe"
