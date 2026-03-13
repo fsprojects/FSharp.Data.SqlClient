@@ -12,7 +12,9 @@ type internal DesignTimeConnectionString =
     | NameInConfig of name: string * value: string * provider: string
 
     static member Parse(s: string, resolutionFolder, fileName) =
-        match s.Trim().Split([|'='|], 2, StringSplitOptions.RemoveEmptyEntries) with
+        // Use StringSplitOptions.None so that the empty-string guard actually fires:
+        // RemoveEmptyEntries turns "" into [||] which skips the [|""|] branch.
+        match s.Trim().Split([|'='|], 2, StringSplitOptions.None) with
             | [| "" |] -> invalidArg "ConnectionStringOrName" "Value is empty!"
             | [| prefix; tail |] when prefix.Trim().ToLower() = "name" -> 
                 let name = tail.Trim()
