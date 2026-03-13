@@ -542,11 +542,15 @@ type DesignTime private() =
                         let precision = byte p.Precision
                         let scale = byte p.Scale
                         if typeInfo.IsFixedLength then
-                            match name, dbType with
-                            | "datetime2"     , SqlDbType.DateTime2
-                            | "datetimeoffset", SqlDbType.DateTimeOffset
-                            | "time"          , SqlDbType.Time ->
+                            match dbType with
+                            | SqlDbType.DateTime2
+                            | SqlDbType.DateTimeOffset
+                            | SqlDbType.Time ->
                                 // https://github.com/fsprojects/FSharp.Data.SqlClient/issues/393
+                                // These types use (name, dbType, precision, scale) but precision must be 0,
+                                // not the value from sys.columns (which is 10 for datetimeoffset etc.).
+                                // The previous match on `name` was incorrect — it compared the column name
+                                // (e.g. "CreatedAt") to the type name, so the fix never fired.
                                 <@@ SqlMetaData(name, dbType, 0uy, scale) @@>
                             | _ ->
                                 // https://github.com/fsprojects/FSharp.Data.SqlClient/issues/345
