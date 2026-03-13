@@ -127,6 +127,22 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
 
         | unexpected -> failwithf "Unexpected ResultType value: %O" unexpected
 
+    // Cached reflection for TVP (Table-Valued Parameter) handling.
+    // SetParameters is called on every command execution, so these lookups
+    // are lazily initialised once and reused across all calls.
+    static let tvpSqlDataRecordType =
+        lazy typeof<SqlCommand>.Assembly.GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
+
+    static let tvpCastMethod =
+        lazy typeof<Linq.Enumerable>.GetMethod("Cast").MakeGenericMethod(tvpSqlDataRecordType.Value)
+
+    static let tvpAnyMethod =
+        lazy (
+            typeof<Linq.Enumerable>.GetMethods(BindingFlags.Static ||| BindingFlags.Public)
+            |> Array.tryFind (fun m -> m.Name = "Any" && m.GetParameters().Length = 1)
+            |> Option.map (fun m -> m.MakeGenericMethod(tvpSqlDataRecordType.Value))
+        )
+
     member this.CommandTimeout = cmd.CommandTimeout
 
     interface ISqlCommand with
@@ -228,21 +244,12 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                 | _ ->
                     match p.SqlDbType with 
                     | SqlDbType.Structured -> 
-                        // TODO: Maybe make this lazy?
-
-                        //p.Value <- value |> unbox |> Seq.cast<Microsoft.SqlServer.Server.SqlDataRecord>
-
-                        //done via reflection because not implemented on Mono
-                        
-                        let sqlDataRecordType = typeof<SqlCommand>.Assembly.GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
-                        let records = typeof<Linq.Enumerable>.GetMethod("Cast").MakeGenericMethod(sqlDataRecordType).Invoke(null, [| value |]) 
-                        let hasAny = 
-                            let anyMeth = 
-                                typeof<Linq.Enumerable>.GetMethods(BindingFlags.Static ||| BindingFlags.Public)
-                                |> Array.tryFind(fun m -> m.Name = "Any" && m.GetParameters().Length = 1)
-                                
-                            match anyMeth with
-                            | Some x -> x.MakeGenericMethod(sqlDataRecordType).Invoke(null, [| records |]) :?> bool
+                        // Cast the sequence to IEnumerable<SqlDataRecord> via reflection.
+                        // Done via reflection because SqlDataRecord is not available on all platforms (e.g. Mono).
+                        let records = tvpCastMethod.Value.Invoke(null, [| value |])
+                        let hasAny =
+                            match tvpAnyMethod.Value with
+                            | Some anyMeth -> anyMeth.Invoke(null, [| records |]) :?> bool
                             | None -> false
                         p.Value <- if not hasAny then null else records
                     | _ -> p.Value <- value
