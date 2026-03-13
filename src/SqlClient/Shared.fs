@@ -201,6 +201,7 @@ type [<DataContract;CLIMutable>] Parameter = {
 #endif
 type TempTableLoader(fieldCount, items: obj seq) =
     let enumerator = items.GetEnumerator()
+    let mutable isClosed = false
 
     interface IDataReader with
         member this.FieldCount: int = fieldCount
@@ -210,35 +211,35 @@ type TempTableLoader(fieldCount, items: obj seq) =
             row.[i]
         member this.Dispose(): unit = ()
 
-        member __.Close(): unit = invalidOp "NotImplementedException"
-        member __.Depth: int = invalidOp "NotImplementedException"
-        member __.GetBoolean(_: int): bool = invalidOp "NotImplementedException"
-        member __.GetByte(_ : int): byte = invalidOp "NotImplementedException"
-        member __.GetBytes(_ : int, _ : int64, _ : byte [], _ : int, _ : int): int64 = invalidOp "NotImplementedException"
-        member __.GetChar(_ : int): char = invalidOp "NotImplementedException"
-        member __.GetChars(_ : int, _ : int64, _ : char [], _ : int, _ : int): int64 = invalidOp "NotImplementedException"
-        member __.GetData(_ : int): IDataReader = invalidOp "NotImplementedException"
-        member __.GetDataTypeName(_ : int): string = invalidOp "NotImplementedException"
-        member __.GetDateTime(_ : int): System.DateTime = invalidOp "NotImplementedException"
-        member __.GetDecimal(_ : int): decimal = invalidOp "NotImplementedException"
-        member __.GetDouble(_ : int): float = invalidOp "NotImplementedException"
-        member __.GetFieldType(_ : int): System.Type = invalidOp "NotImplementedException"
-        member __.GetFloat(_ : int): float32 = invalidOp "NotImplementedException"
-        member __.GetGuid(_ : int): System.Guid = invalidOp "NotImplementedException"
-        member __.GetInt16(_ : int): int16 = invalidOp "NotImplementedException"
-        member __.GetInt32(_ : int): int = invalidOp "NotImplementedException"
-        member __.GetInt64(_ : int): int64 = invalidOp "NotImplementedException"
-        member __.GetName(_ : int): string = invalidOp "NotImplementedException"
-        member __.GetOrdinal(_ : string): int = invalidOp "NotImplementedException"
-        member __.GetSchemaTable(): DataTable = invalidOp "NotImplementedException"
-        member __.GetString(_ : int): string = invalidOp "NotImplementedException"
-        member __.GetValues(_ : obj []): int = invalidOp "NotImplementedException"
-        member __.IsClosed: bool = invalidOp "NotImplementedException"
-        member __.IsDBNull(_ : int): bool = invalidOp "NotImplementedException"
-        member __.Item with get (_ : int): obj = invalidOp "NotImplementedException"
-        member __.Item with get (_ : string): obj = invalidOp "NotImplementedException"
-        member __.NextResult(): bool = invalidOp "NotImplementedException"
-        member __.RecordsAffected: int = invalidOp "NotImplementedException"
+        member __.Close(): unit = isClosed <- true
+        member __.Depth: int = raise (NotImplementedException())
+        member __.GetBoolean(_: int): bool = raise (NotImplementedException())
+        member __.GetByte(_ : int): byte = raise (NotImplementedException())
+        member __.GetBytes(_ : int, _ : int64, _ : byte [], _ : int, _ : int): int64 = raise (NotImplementedException())
+        member __.GetChar(_ : int): char = raise (NotImplementedException())
+        member __.GetChars(_ : int, _ : int64, _ : char [], _ : int, _ : int): int64 = raise (NotImplementedException())
+        member __.GetData(_ : int): IDataReader = raise (NotImplementedException())
+        member __.GetDataTypeName(_ : int): string = raise (NotImplementedException())
+        member __.GetDateTime(_ : int): System.DateTime = raise (NotImplementedException())
+        member __.GetDecimal(_ : int): decimal = raise (NotImplementedException())
+        member __.GetDouble(_ : int): float = raise (NotImplementedException())
+        member __.GetFieldType(_ : int): System.Type = raise (NotImplementedException())
+        member __.GetFloat(_ : int): float32 = raise (NotImplementedException())
+        member __.GetGuid(_ : int): System.Guid = raise (NotImplementedException())
+        member __.GetInt16(_ : int): int16 = raise (NotImplementedException())
+        member __.GetInt32(_ : int): int = raise (NotImplementedException())
+        member __.GetInt64(_ : int): int64 = raise (NotImplementedException())
+        member __.GetName(_ : int): string = raise (NotImplementedException())
+        member __.GetOrdinal(_ : string): int = raise (NotImplementedException())
+        member __.GetSchemaTable(): DataTable = raise (NotImplementedException())
+        member __.GetString(_ : int): string = raise (NotImplementedException())
+        member __.GetValues(_ : obj []): int = raise (NotImplementedException())
+        member __.IsClosed: bool = isClosed
+        member __.IsDBNull(_ : int): bool = raise (NotImplementedException())
+        member __.Item with get (_ : int): obj = raise (NotImplementedException())
+        member __.Item with get (_ : string): obj = raise (NotImplementedException())
+        member __.NextResult(): bool = raise (NotImplementedException())
+        member __.RecordsAffected: int = raise (NotImplementedException())
 
 module RuntimeInternals =
     

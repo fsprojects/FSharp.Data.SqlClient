@@ -171,7 +171,7 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
                         use __ = conn.UseLocally()
                         let parameters = conn.GetParameters( routine, isSqlAzure, useReturnValue)
 
-                        let commandText = routine.ToCommantText(parameters)
+                        let commandText = routine.ToCommandText(parameters)
                         let outputColumns = DesignTime.GetOutputColumns(conn, commandText, parameters, routine.IsStoredProc)
                         let rank = if routine.Type = ScalarValuedFunction then ResultRank.ScalarValue else ResultRank.Sequence
 
