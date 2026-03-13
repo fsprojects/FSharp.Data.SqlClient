@@ -1,7 +1,7 @@
 init:
   - git config --global core.autocrlf input
   - net start MSSQL$SQL2019
-image: Visual Studio 2022
+image: Visual Studio 2026
 build_script:
   - cmd: build.cmd --target GenerateDocs
 test: off
