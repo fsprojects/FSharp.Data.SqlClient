@@ -57,19 +57,40 @@ type internal TypeInfoPerConnectionStringCache() =
     
 let internal sqlDataTypesCache = new TypeInfoPerConnectionStringCache()  
 let internal findTypeInfoBySqlEngineTypeId (connStr, system_type_id, user_type_id : int option) = 
-    assert (sqlDataTypesCache.ContainsConnectionString connStr)
+    if not (sqlDataTypesCache.ContainsConnectionString connStr) then
+        failwithf
+            "Type info cache does not contain an entry for connection string '%s'. \
+             This may be caused by a cache invalidation race — try reloading the project. \
+             See https://github.com/fsprojects/FSharp.Data.SqlClient/issues/354"
+            connStr
 
-    sqlDataTypesCache.GetTypesForConnectionString connStr
-    |> Array.filter(fun x -> 
-        let result = 
+    let matches =
+        sqlDataTypesCache.GetTypesForConnectionString connStr
+        |> Array.filter (fun x ->
             x.SqlEngineTypeId = system_type_id &&
-            (user_type_id.IsSome && x.UserTypeId = user_type_id.Value || user_type_id.IsNone && x.UserTypeId = int system_type_id)
-        result
-    ) 
-    |> Seq.exactlyOne
+            (user_type_id.IsSome && x.UserTypeId = user_type_id.Value
+             || user_type_id.IsNone && x.UserTypeId = int system_type_id))
+
+    match matches with
+    | [| single |] -> single
+    | [||] ->
+        failwithf
+            "No SQL type found in cache for SqlEngineTypeId=%d, UserTypeId=%A. \
+             This may be caused by a cache invalidation race — try reloading the project. \
+             See https://github.com/fsprojects/FSharp.Data.SqlClient/issues/354"
+            system_type_id user_type_id
+    | multiple ->
+        failwithf
+            "Ambiguous SQL type: %d matches found for SqlEngineTypeId=%d, UserTypeId=%A: %A"
+            multiple.Length system_type_id user_type_id [| for t in multiple -> t.TypeName |]
 
 let internal findTypeInfoByProviderType(connStr, sqlDbType) =
-    assert (sqlDataTypesCache.ContainsConnectionString connStr)
+    if not (sqlDataTypesCache.ContainsConnectionString connStr) then
+        failwithf
+            "Type info cache does not contain an entry for connection string '%s'. \
+             This may be caused by a cache invalidation race — try reloading the project. \
+             See https://github.com/fsprojects/FSharp.Data.SqlClient/issues/354"
+            connStr
 
     sqlDataTypesCache.GetTypesForConnectionString connStr |> Array.find (fun x -> x.SqlDbType = sqlDbType)
 
