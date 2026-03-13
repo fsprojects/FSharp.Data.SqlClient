@@ -14,6 +14,12 @@
       "commandName": "Executable",
       "executablePath": "C:\\Users\\gauth\\AppData\\Local\\JetBrains\\Toolbox\\apps\\Rider\\ch-0\\232.10203.29\\bin\\rider64.exe",
       "commandLineArgs": "..\\..\\..\\..\\..\\tests.sln"
+    },
+    "debug vs2026": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\devenv.exe",
+      "commandLineArgs": ".\\Tests.sln",
+      "workingDirectory": "C:\\dev\\src\\github\\fsprojects\\FSharp.Data.SqlClient.testpr"
     }
   }
 }

@@ -431,11 +431,16 @@ go
 if type_id('dbo.datetimeoffset_test_tvp') is not null
 	drop type dbo.datetimeoffset_test_tvp
 go
-create type dbo.datetimeoffset_test_tvp as table(created_at datetimeoffset not null)
+create type dbo.datetimeoffset_test_tvp as table(
+	created_at        datetimeoffset not null
+	, datetime2_value datetime2      not null
+	, time_value      time           not null
+)
 go
 create procedure dbo.datetimeoffset_test (@tvp dbo.datetimeoffset_test_tvp readonly)
 as
 begin
-    select created_at from @tvp
+    select created_at, datetime2_value, time_value from @tvp
 end
 go
+

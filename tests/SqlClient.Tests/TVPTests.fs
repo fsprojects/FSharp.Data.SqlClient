@@ -201,11 +201,15 @@ let ``issue #345 decimal in TVP gets rounded`` () =
 [<Fact>]
 let ``issue #393 troubleshoot if datetimeoffset raises an exception`` () =
     // N.B, this should be tested against SQL Azure
-    let value = System.DateTimeOffset.UtcNow
-    let tvp = [AdventureWorks.dbo.``User-Defined Table Types``.datetimeoffset_test_tvp(value)]
+    let datetimeoffset_value = System.DateTimeOffset.UtcNow
+    let datetime2_value = System.DateTime.UtcNow
+    let time_value = System.DateTime.UtcNow.TimeOfDay
+    let tvp = [AdventureWorks.dbo.``User-Defined Table Types``.datetimeoffset_test_tvp(datetimeoffset_value, datetime2_value, time_value)]
     use cmd = new AdventureWorks.dbo.datetimeoffset_test(ConnectionStrings.AdventureWorksLiteral)
     let resultvalue = cmd.Execute(tvp) |> Seq.head
-    Assert.Equal(value, resultvalue)
+    Assert.Equal(datetimeoffset_value, resultvalue.created_at)
+    Assert.Equal(datetime2_value     , resultvalue.datetime2_value)
+    Assert.Equal(time_value          , resultvalue.time_value)
 
 type FixedLengthBinaryTVP = SqlCommandProvider<"EXEC [dbo].[FixedLengthBinaryTVPTestProc] @fixedLengthBinaryTests", ConnectionStrings.AdventureWorksLiteral>
 [<Fact>]
