@@ -656,7 +656,7 @@ type DesignTime private() =
                         ProvidedParameter(
                             "connection", 
                             typeof<SqlConnection>,
-                            ?optionalValue = if designTimeConnectionString.IsDefinedByLiteral then None else Some null
+                            ?optionalValue = Some null
                         )           
                         ProvidedParameter("transaction", typeof<SqlTransaction>, optionalValue = null) 
                         ProvidedParameter("commandTimeout", typeof<int>, optionalValue = SqlCommand.DefaultTimeout) 
