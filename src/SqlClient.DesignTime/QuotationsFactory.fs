@@ -17,7 +17,7 @@ type QuotationsFactory private() =
         
         let bodyFactory =   
             let mi = typeof<QuotationsFactory>.GetMethod(methodName, BindingFlags.NonPublic ||| BindingFlags.Static)
-            assert(mi <> null)
+            if isNull mi then failwithf "QuotationsFactory: method '%s' not found. This is a bug in FSharp.Data.SqlClient." methodName
             mi.MakeGenericMethod([| specialization |])
 
         fun(args : Expr list) -> 
@@ -66,7 +66,6 @@ type QuotationsFactory private() =
 
     static member internal MapArrayNullableItems(outputColumns : Column list, mapper : string) = 
         let columnTypes, isNullableColumn = outputColumns |> List.map (fun c -> c.GetTypeInfoConsideringUDDT().ClrTypeFullName, c.Nullable) |> List.unzip
-        assert(columnTypes.Length = isNullableColumn.Length)
         let arr = Var("_", typeof<obj[]>)
         let body =
             (columnTypes, isNullableColumn) 
