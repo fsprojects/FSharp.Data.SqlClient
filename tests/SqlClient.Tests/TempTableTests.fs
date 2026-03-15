@@ -18,6 +18,28 @@ type TempTable =
             ConnectionStrings.AdventureWorksLiteral>
 
 [<Fact>]
+let usingTempTableWithConnectionString() =
+    // Regression test for issue #306: LoadTempTables should auto-open the connection
+    use cmd = new TempTable(ConnectionStrings.AdventureWorksLiteral)
+
+    cmd.LoadTempTables(
+        Temp =
+            [ TempTable.Temp(Id = 1, Name = Some "cat")
+              TempTable.Temp(Id = 2, Name = Some "dog") ])
+
+    let actual =
+        cmd.Execute()
+        |> Seq.map(fun x -> x.Id, x.Name)
+        |> Seq.toList
+
+    let expected = [
+        1, Some "cat"
+        2, Some "dog"
+    ]
+
+    Assert.Equal<_ list>(expected, actual)
+
+[<Fact>]
 let usingTempTable() =
     use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
     conn.Open()
