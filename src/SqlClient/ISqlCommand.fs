@@ -72,18 +72,16 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
         cmd.CommandType <- if cfg.IsStoredProcedure then CommandType.StoredProcedure else CommandType.Text
         cmd.Parameters.AddRange(cfg.Parameters)
 
-    let getReaderBehavior() = 
-        seq {
-            yield CommandBehavior.SingleResult
+    let baseBehavior =
+        CommandBehavior.SingleResult
+        ||| (if cfg.Rank = ResultRank.SingleRow then CommandBehavior.SingleRow else CommandBehavior.Default)
 
-            if cmd.Connection.State <> ConnectionState.Open && manageConnection
-            then
-                cmd.Connection.Open() 
-                yield CommandBehavior.CloseConnection
-
-            if cfg.Rank = ResultRank.SingleRow then yield CommandBehavior.SingleRow 
-        }
-        |> Seq.reduce (|||) 
+    let getReaderBehavior() =
+        if manageConnection && cmd.Connection.State <> ConnectionState.Open then
+            cmd.Connection.Open()
+            baseBehavior ||| CommandBehavior.CloseConnection
+        else
+            baseBehavior
 
     let notImplemented _ : _ = raise <| NotImplementedException()
 
