@@ -285,7 +285,6 @@ Target.create "RunTests" (fun _ ->
         }
       try 
           DotNet.test (dnTestOptions "net462") testSlnPath
-          DotNet.test (dnTestOptions "netcoreapp3.1") testProjectPath
           DotNet.test (dnTestOptions "net8.0") testProjectPath
       with
       | ex ->
