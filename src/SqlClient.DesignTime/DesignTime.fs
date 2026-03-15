@@ -761,10 +761,9 @@ type DesignTime private() =
                     <@@ let cmd = (%%command : ISqlCommand)
                         cmd.Raw.Connection @@>
 
-                <@@ do
-                        use create = (%%connection : SqlConnection).CreateCommand(CommandText = tempTableDefinitions)
-                        create.ExecuteNonQuery() |> ignore
-
+                <@@ use openedConn = (%%connection : SqlConnection).UseLocally()
+                    use create = (%%connection : SqlConnection).CreateCommand(CommandText = tempTableDefinitions)
+                    create.ExecuteNonQuery() |> ignore
                     (%%loadValues exprArgs connection)
                     ignore() @@>)
 
