@@ -111,6 +111,13 @@ type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionStri
         bulkCopy.DestinationTableName <- this.TableName
         batchSize |> Option.iter bulkCopy.set_BatchSize
         timeout |> Option.iter (fun x -> bulkCopy.BulkCopyTimeout <- int x.TotalSeconds)
+        // Exclude computed columns (ReadOnly=true, AutoIncrement=false) because SQL Server
+        // rejects writes to computed columns.  Also exclude identity columns unless the
+        // caller explicitly opted in with KeepIdentity.
+        let keepIdentity = options.HasFlag(SqlBulkCopyOptions.KeepIdentity)
+        for col in this.Columns |> Seq.cast<DataColumn> do
+            if not col.ReadOnly || (col.AutoIncrement && keepIdentity) then
+                bulkCopy.ColumnMappings.Add(col.ColumnName, col.ColumnName) |> ignore
         bulkCopy.WriteToServer this
 
 #if WITH_LEGACY_NAMESPACE
