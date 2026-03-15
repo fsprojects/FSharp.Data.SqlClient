@@ -21,6 +21,7 @@ open System
 open System.Data
 open System.Data.SqlClient
 open System.Reflection
+open System.Text.RegularExpressions
 open FSharp.Data.SqlClient
 open FSharp.Data.SqlClient.Internals
 open System.Linq
@@ -32,6 +33,23 @@ module Seq =
         | [||] -> None
         | [| x |] -> Some x
         | _ -> invalidArg "source" "The input sequence contains more than one element."
+
+module internal TypeResolution =
+
+    // Resolves a type by its assembly-qualified name, with a version-tolerant fallback.
+    // The design-time DLL runs inside the F# compiler process and bakes the compiler's FSharp.Core
+    // version into item type names. If the user's project references a different FSharp.Core version,
+    // Type.GetType with the exact name fails with FileLoadException. Stripping version/culture/token
+    // from the assembly reference lets the runtime's binding logic find the correct assembly.
+    // See: https://github.com/fsprojects/FSharp.Data.SqlClient/issues/433
+    let resolveType (typeName: string) =
+        match Type.GetType(typeName, throwOnError = false) with
+        | null ->
+            let stripped = Regex.Replace(typeName, @",\s*Version=[^,\[\]]+", "")
+            let stripped = Regex.Replace(stripped, @",\s*Culture=[^,\[\]]+", "")
+            let stripped = Regex.Replace(stripped, @",\s*PublicKeyToken=[^,\[\]]+", "")
+            Type.GetType(stripped, throwOnError = true)
+        | t -> t
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type RowMapping = obj[] -> obj
@@ -108,7 +126,7 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                 notImplemented
             | rowMapping, itemTypeName ->
                 assert ((not(isNull rowMapping)) && (not (isNull itemTypeName)))
-                let itemType = Type.GetType( itemTypeName, throwOnError = true)
+                let itemType = TypeResolution.resolveType itemTypeName
                 
                 let executeHandle = 
                     typeof<``ISqlCommand Implementation``>
