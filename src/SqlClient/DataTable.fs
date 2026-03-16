@@ -56,19 +56,30 @@ type DataTable<'T when 'T :> DataRow>(selectCommand: SqlCommand, ?connectionStri
             selectCommand.Connection <- new SqlConnection( connectionString.Value.Value)
 
         use dataAdapter = new SqlDataAdapter(selectCommand)
-        use commandBuilder = new SqlCommandBuilder(dataAdapter) 
+        use commandBuilder = new SqlCommandBuilder(dataAdapter)
+
+        // Pre-compute per-column metadata once rather than inside the per-row event handler.
+        // AutoIncrement columns always need a server-side refresh; AllowDBNull columns need one
+        // only when the row has no explicit value.  Quoting column names is also constant.
+        let alwaysRefreshQuoted =
+            [| for c in this.Columns do
+                if c.AutoIncrement then
+                    yield "inserted." + commandBuilder.QuoteIdentifier c.ColumnName |]
+        let maybeRefreshCols =
+            [| for c in this.Columns do
+                if c.AllowDBNull && not c.AutoIncrement then
+                    yield c, "inserted." + commandBuilder.QuoteIdentifier c.ColumnName |]
+
         use __ = dataAdapter.RowUpdating.Subscribe(fun args ->
             timeout |> Option.iter (fun x -> args.Command.CommandTimeout <- int x.TotalSeconds)
 
             if  args.Errors = null && args.StatementType = StatementType.Insert
                 && defaultArg batchSize dataAdapter.UpdateBatchSize = 1
-            then 
-                let columnsToRefresh = ResizeArray()
-                for c in this.Columns do
-                    if c.AutoIncrement  
-                        || (c.AllowDBNull && args.Row.IsNull c.Ordinal)
-                    then 
-                        columnsToRefresh.Add( "inserted." + commandBuilder.QuoteIdentifier c.ColumnName)
+            then
+                let columnsToRefresh = ResizeArray(alwaysRefreshQuoted)
+                for c, quotedName in maybeRefreshCols do
+                    if args.Row.IsNull c.Ordinal then
+                        columnsToRefresh.Add quotedName
 
                 if columnsToRefresh.Count > 0
                 then                        
