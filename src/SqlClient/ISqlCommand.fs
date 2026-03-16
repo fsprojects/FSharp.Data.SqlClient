@@ -87,6 +87,11 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
 
     let notImplemented _ : _ = raise <| NotImplementedException()
 
+    // Pre-compute whether any parameters are output parameters once at construction time,
+    // avoiding repeated Seq.cast + Seq.exists traversal on every Execute call.
+    let hasOutputParameters =
+        cfg.Parameters |> Array.exists (fun p -> p.Direction.HasFlag(ParameterDirection.Output))
+
     let execute, asyncExecute, executeSingle, asyncExecuteSingle = 
         match cfg.ResultType with
         | ResultType.DataReader -> 
@@ -102,7 +107,7 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
         | ResultType.Records | ResultType.Tuples ->
             match box cfg.RowMapping, cfg.ItemTypeName with
             | null, null ->
-                ``ISqlCommand Implementation``.ExecuteNonQuery manageConnection >> box, 
+                ``ISqlCommand Implementation``.ExecuteNonQuery manageConnection hasOutputParameters >> box, 
                 ``ISqlCommand Implementation``.AsyncExecuteNonQuery manageConnection >> box,
                 notImplemented, 
                 notImplemented
@@ -120,9 +125,9 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
                         .GetMethod("AsyncExecuteSeq", BindingFlags.NonPublic ||| BindingFlags.Static)
                         .MakeGenericMethod(itemType)
                         
-                executeHandle.Invoke(null, [| cfg.Rank; cfg.RowMapping |]) |> unbox >> box, 
+                executeHandle.Invoke(null, [| cfg.Rank; cfg.RowMapping; hasOutputParameters |]) |> unbox >> box, 
                 asyncExecuteHandle.Invoke(null, [| cfg.Rank; cfg.RowMapping |]) |> unbox >> box,
-                executeHandle.Invoke(null, [| ResultRank.SingleRow; cfg.RowMapping |]) |> unbox >> box, 
+                executeHandle.Invoke(null, [| ResultRank.SingleRow; cfg.RowMapping; hasOutputParameters |]) |> unbox >> box, 
                 asyncExecuteHandle.Invoke(null, [| ResultRank.SingleRow; cfg.RowMapping |]) |> unbox >> box
 
         | unexpected -> failwithf "Unexpected ResultType value: %O" unexpected
@@ -298,9 +303,7 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
             return result
         }
 
-    static member internal ExecuteSeq<'TItem> (rank, rowMapper) = fun(cmd: SqlCommand, getReaderBehavior, parameters, expectedDataReaderColumns) -> 
-        let hasOutputParameters = cmd.Parameters |> Seq.cast<SqlParameter> |> Seq.exists (fun x -> x.Direction.HasFlag( ParameterDirection.Output))
-
+    static member internal ExecuteSeq<'TItem> (rank, rowMapper, hasOutputParameters: bool) = fun(cmd: SqlCommand, getReaderBehavior, parameters, expectedDataReaderColumns) -> 
         if not hasOutputParameters
         then 
             let xs = Seq.delay <| fun() -> 
@@ -360,16 +363,17 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
             assert (rank = ResultRank.Sequence)
             box xs 
 
-    static member internal ExecuteNonQuery manageConnection (cmd, _, parameters, _) = 
+    static member internal ExecuteNonQuery manageConnection hasOutputParameters (cmd, _, parameters, _) = 
         ``ISqlCommand Implementation``.SetParameters(cmd, parameters)  
         use openedConnection = cmd.Connection.UseLocally(manageConnection )
         let recordsAffected = cmd.ExecuteNonQuery() 
-        for i = 0 to parameters.Length - 1 do
-            let name, _ = parameters.[i]
-            let p = cmd.Parameters.[name]
-            if p.Direction.HasFlag( ParameterDirection.Output)
-            then 
-                parameters.[i] <- name, p.Value
+        if hasOutputParameters then
+            for i = 0 to parameters.Length - 1 do
+                let name, _ = parameters.[i]
+                let p = cmd.Parameters.[name]
+                if p.Direction.HasFlag( ParameterDirection.Output)
+                then 
+                    parameters.[i] <- name, p.Value
         recordsAffected
 
     static member internal AsyncExecuteNonQuery manageConnection (cmd, _, parameters, _) = 
