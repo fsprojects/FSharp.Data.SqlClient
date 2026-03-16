@@ -353,30 +353,52 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
 
             box resultset
             
-    static member internal AsyncExecuteSeq<'TItem> (rank, rowMapper) = fun(cmd, getReaderBehavior, parameters, expectedDataReaderColumns) ->
-        let xs = 
+    static member internal AsyncExecuteSeq<'TItem> (rank, rowMapper) = fun(cmd: SqlCommand, getReaderBehavior, parameters, expectedDataReaderColumns) ->
+        let hasOutputParameters = cmd.Parameters |> Seq.cast<SqlParameter> |> Seq.exists (fun x -> x.Direction.HasFlag(ParameterDirection.Output))
+
+        if not hasOutputParameters then
+            let xs = 
+                async {
+                    let! reader = ``ISqlCommand Implementation``.AsyncExecuteReader(cmd, getReaderBehavior, parameters, expectedDataReaderColumns)
+                    return reader.MapRowValues<'TItem>( rowMapper)
+                }
+
+            if rank = ResultRank.SingleRow
+            then
+                async {
+                    let! xs = xs 
+                    return xs |> Seq.toOption
+                }
+                |> box
+            elif rank = ResultRank.ScalarValue 
+            then 
+                async {
+                    let! xs = xs 
+                    return xs |> Seq.exactlyOne
+                }
+                |> box       
+            else 
+                assert (rank = ResultRank.Sequence)
+                box xs 
+        else
             async {
                 let! reader = ``ISqlCommand Implementation``.AsyncExecuteReader(cmd, getReaderBehavior, parameters, expectedDataReaderColumns)
-                return reader.MapRowValues<'TItem>( rowMapper)
-            }
-
-        if rank = ResultRank.SingleRow
-        then
-            async {
-                let! xs = xs 
-                return xs |> Seq.toOption
+                let resultset = reader.MapRowValues<'TItem>( rowMapper) |> Seq.toList
+                for i = 0 to parameters.Length - 1 do
+                    let name, _ = parameters.[i]
+                    let p = cmd.Parameters.[name]
+                    if p.Direction.HasFlag(ParameterDirection.Output) then
+                        parameters.[i] <- name, p.Value
+                return
+                    if rank = ResultRank.SingleRow then
+                        resultset |> Seq.toOption |> box
+                    elif rank = ResultRank.ScalarValue then
+                        resultset |> Seq.exactlyOne |> box
+                    else
+                        assert (rank = ResultRank.Sequence)
+                        box resultset
             }
             |> box
-        elif rank = ResultRank.ScalarValue 
-        then 
-            async {
-                let! xs = xs 
-                return xs |> Seq.exactlyOne
-            }
-            |> box       
-        else 
-            assert (rank = ResultRank.Sequence)
-            box xs 
 
     static member internal ExecuteNonQuery manageConnection (cmd, _, parameters, _) = 
         ``ISqlCommand Implementation``.SetParameters(cmd, parameters)  
@@ -394,7 +416,13 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
         ``ISqlCommand Implementation``.SetParameters(cmd, parameters)  
         async {         
             use _ = cmd.Connection.UseLocally(manageConnection )
-            return! cmd.AsyncExecuteNonQuery() 
+            let! recordsAffected = cmd.AsyncExecuteNonQuery()
+            for i = 0 to parameters.Length - 1 do
+                let name, _ = parameters.[i]
+                let p = cmd.Parameters.[name]
+                if p.Direction.HasFlag(ParameterDirection.Output) then
+                    parameters.[i] <- name, p.Value
+            return recordsAffected
         }
 
 #if WITH_LEGACY_NAMESPACE
