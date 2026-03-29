@@ -11,10 +11,13 @@ type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters
     inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("FSharp.Data.SqlClient.DesignTime", "FSharp.Data.SqlClient")], addDefaultProbingLocation=true)
 
     let cache = new Cache<ProvidedTypeDefinition>()
-    do 
+    do
+        FixReferenceAssemblies.loadSqlServerTypes.Force() |> Option.iter this.TargetContext.AddSourceAssembly
+    do
         let isErased = defaultArg isErased true
         let nameSpace = this.GetType().Namespace
         let assembly = Assembly.GetExecutingAssembly()
+        let _ = FixReferenceAssemblies.manualLoadNet8Runtime.Force()
 
         let providerType = ProvidedTypeDefinition(assembly, nameSpace, providerName, Some typeof<obj>, hideObjectMethods = true, isErased = isErased)
 

@@ -1,0 +1,6 @@
+﻿group Test
+	FSharp.Core
+	Microsoft.Data.SqlClient
+	System.Configuration.ConfigurationManager
+	xunit
+	xunit.runner.visualstudio

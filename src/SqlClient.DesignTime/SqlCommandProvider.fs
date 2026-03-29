@@ -3,7 +3,13 @@
 open System
 open System.Diagnostics
 open System.IO
+#if SYSTEM_DATA_SQLCLIENT
 open System.Data.SqlClient
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+open Microsoft.Data.SqlClient
+#endif
+
 open System.Reflection
 open System.Runtime.CompilerServices
 open Microsoft.FSharp.Core.CompilerServices
@@ -30,6 +36,8 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
 
     let nameSpace = this.GetType().Namespace
     let assembly = Assembly.GetExecutingAssembly()
+    let _ = FixReferenceAssemblies.manualLoadNet8Runtime.Force()
+    let _ = FixReferenceAssemblies.loadSqlServerTypes.Force() |> Option.iter this.TargetContext.AddSourceAssembly
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlCommandProvider", Some typeof<obj>, hideObjectMethods = true)
 
     let cache = new Cache<ProvidedTypeDefinition>()
@@ -78,14 +86,14 @@ type SqlCommandProvider(config : TypeProviderConfig) as this =
 """
 
         this.AddNamespace(nameSpace, [ providerType ])
-
+#if SYSTEM_DATA_SQLCLIENT
     override this.ResolveAssembly args = 
         config.ReferencedAssemblies 
         |> Array.tryFind (fun x -> AssemblyName.ReferenceMatchesDefinition(AssemblyName.GetAssemblyName x, AssemblyName args.Name)) 
         |> Option.map Assembly.LoadFrom
         |> defaultArg 
         <| base.ResolveAssembly args
-
+#endif
     member internal this.CreateRootType(typeName, sqlStatement, connectionStringOrName: string, resultType, singleRow, configFile, allParametersOptional, dataDirectory, tempTableDefinitions, tableVarMapping) = 
 
         if singleRow && not (resultType = ResultType.Records || resultType = ResultType.Tuples)

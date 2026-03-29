@@ -1,0 +1,10 @@
+group DesignTime
+
+System.Configuration.ConfigurationManager
+System.Data.Common
+System.Data.SqlClient
+System.Runtime.Caching
+Microsoft.SqlServer.TransactSql.ScriptDom
+Microsoft.SqlServer.Types
+
+

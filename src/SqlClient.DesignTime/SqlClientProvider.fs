@@ -3,7 +3,13 @@
 open System
 open System.Collections.Generic
 open System.Data
+#if SYSTEM_DATA_SQLCLIENT
 open System.Data.SqlClient
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+open Microsoft.Data.SqlClient
+#endif
+
 open System.Diagnostics
 open System.IO
 open System.Reflection
@@ -22,6 +28,8 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 
     let assembly = Assembly.GetExecutingAssembly()
     let nameSpace = this.GetType().Namespace
+    let _ = FixReferenceAssemblies.manualLoadNet8Runtime.Force()
+    let _ = FixReferenceAssemblies.loadSqlServerTypes.Force() |> Option.iter this.TargetContext.AddSourceAssembly
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlProgrammabilityProvider", Some typeof<obj>, hideObjectMethods = true)
 
     let cache = new Cache<ProvidedTypeDefinition>()
@@ -58,14 +66,14 @@ type SqlProgrammabilityProvider(config : TypeProviderConfig) as this =
 """
 
         this.AddNamespace(nameSpace, [ providerType ])
-
+#if SYSTEM_DATA_SQLCLIENT
     override this.ResolveAssembly args = 
         config.ReferencedAssemblies 
         |> Array.tryFind (fun x -> AssemblyName.ReferenceMatchesDefinition(AssemblyName.GetAssemblyName x, AssemblyName args.Name)) 
         |> Option.map Assembly.LoadFrom
         |> defaultArg 
         <| base.ResolveAssembly args
-
+#endif
     member internal this.CreateRootType( typeName, connectionStringOrName, configFile, dataDirectory, useReturnValue, resultType) =
         if String.IsNullOrWhiteSpace connectionStringOrName then invalidArg "ConnectionStringOrName" "Value is empty!" 
         

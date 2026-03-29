@@ -4,23 +4,22 @@
   <!--<Import Project="..\..\netfx.props" />-->
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
-    <AssemblyName>SqlClient.DesignTime.Tests</AssemblyName>
+    <AssemblyName>MicrosoftSqlClient.DesignTime.Tests</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <DefineConstants>$(DefineConstants);SYSTEM_DATA_SQLCLIENT</DefineConstants>
     <NoWarn>101</NoWarn>
+    <DefineConstants>$(DefineConstants);MICROSOFT_DATA_SQLCLIENT</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="paket.references" />
     <Compile Include="DesignTimeConnectionStringTests.fs" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Condition="$(TargetFramework) == 'net462'" Include="FSharp.Data.SqlClient.DesignTime">
-      <HintPath>..\..\bin\typeproviders\fsharp41\net462\FSharp.Data.SqlClient.DesignTime.dll</HintPath>
+    <Reference Condition="$(TargetFramework) == 'net462'" Include="FSharp.Data.MicrosoftSqlClient.DesignTime">
+      <HintPath>..\..\bin\typeproviders\fsharp41\net462\FSharp.Data.MicrosoftSqlClient.DesignTime.dll</HintPath>
     </Reference>
-    <Reference Condition="$(TargetFramework) == 'net8.0'" Include="FSharp.Data.SqlClient.DesignTime">
-      <HintPath>..\..\bin\typeproviders\fsharp41\net8.0\FSharp.Data.SqlClient.DesignTime.dll</HintPath>
+    <Reference Condition="$(TargetFramework) == 'net8.0'" Include="FSharp.Data.MicrosoftSqlClient.DesignTime">
+      <HintPath>..\..\bin\typeproviders\fsharp41\net8.0\FSharp.Data.MicrosoftSqlClient.DesignTime.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

@@ -3,7 +3,13 @@
 open System
 open System.Reflection
 open System.Data
+#if SYSTEM_DATA_SQLCLIENT
 open System.Data.SqlClient
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+open Microsoft.Data.SqlClient
+type SqlMetaData = Microsoft.Data.SqlClient.Server.SqlMetaData
+#endif
 open Microsoft.SqlServer.Server
 open System.Collections.Generic
 open System.Diagnostics
@@ -18,6 +24,29 @@ type internal RowType = {
     Mapping: Expr
 }
 
+module internal TypeNames =
+    let private isCoreAssembly (t: Type) =
+        let name = t.Assembly.GetName().Name
+        name = "mscorlib" || name = "System.Private.CoreLib" || name = "System.Runtime" || name = "netstandard"
+
+    /// Produces a cross-platform type name for Type.GetType: omits assembly info for
+    /// core library types (mscorlib/System.Private.CoreLib), and uses the short assembly
+    /// name for all other assemblies (e.g. FSharp.Core). This avoids embedding the
+    /// design-time assembly identity (System.Private.CoreLib) into names resolved at
+    /// runtime on .NET Framework (which uses mscorlib instead).
+    let rec portableTypeName (t: Type) =
+        let typeDef = if t.IsGenericType then t.GetGenericTypeDefinition() else t
+        let baseName =
+            if t.IsGenericType then
+                let args =
+                    t.GetGenericArguments()
+                    |> Array.map (fun a -> sprintf "[%s]" (portableTypeName a))
+                sprintf "%s[%s]" typeDef.FullName (String.concat "," args)
+            else
+                t.FullName
+        if isCoreAssembly typeDef then baseName
+        else sprintf "%s, %s" baseName (typeDef.Assembly.GetName().Name)
+
 type internal ReturnType = {
     Single: Type
     PerRow: RowType option
@@ -28,7 +57,7 @@ type internal ReturnType = {
         | None -> Expr.Value Unchecked.defaultof<RowMapping> 
     member this.RowTypeName = 
         match this.PerRow with
-        | Some x -> Expr.Value( x.ErasedTo.AssemblyQualifiedName)
+        | Some x -> Expr.Value( TypeNames.portableTypeName x.ErasedTo)
         | None -> <@@ null: string @@>
 
 type internal DataTableType =
@@ -71,6 +100,12 @@ type DesignTime private() =
                                 .MakeGenericMethod(param.TypeInfo.ClrType)
                                 .Invoke(null, [| box expr|])
                                 |> unbox
+                        elif param.TypeInfo.TableType then
+                            let seqAsIEnum = Expr.Coerce(expr, typeof<System.Collections.IEnumerable>)
+                            <@@
+                                let s = (%%seqAsIEnum : System.Collections.IEnumerable)
+                                if s |> Seq.cast<obj> |> Seq.isEmpty then null else (s :> obj)
+                            @@>
                         else
                             expr
                     else
@@ -360,7 +395,7 @@ type DesignTime private() =
                         | [ x ] -> x.GetProvidedType(unitsOfMeasurePerSchema)
                         | xs -> Microsoft.FSharp.Reflection.FSharpType.MakeTupleType [| for x in xs -> x.GetProvidedType(unitsOfMeasurePerSchema) |]
 
-                    let clrTypeName = erasedToTupleType.FullName
+                    let clrTypeName = TypeNames.portableTypeName erasedToTupleType
                     let mapping = <@@ Microsoft.FSharp.Reflection.FSharpValue.PreComputeTupleConstructor (Type.GetType(clrTypeName, throwOnError = true))  @@>
                     providedType, erasedToTupleType, mapping
             
@@ -804,3 +839,72 @@ type DesignTime private() =
                 | None -> m.Groups.[0].Value))
 
         (vars |> Array.map(fun (name,typ) -> sprintf "DECLARE %s%s %s = @%s" Prefixes.tableVar name typ name) |> String.concat "; ") + "; " + commandText
+
+/// Taken from SQLProvider: https://github.com/fsprojects/SQLProvider/blob/master/src/SQLProvider.DesignTime/SqlDesignTime.fs#L1262
+/// The idea of this is trying to avoid case where compile-time has loaded non-runtime assembly. (Happens in .NET 6.0+, not in .NET Framework.)
+/// So let's load compile-time (and design-time) manually the required runtime assembly.
+module internal FixReferenceAssemblies =
+    AppContext.SetSwitch("Switch.Microsoft.Data.SqlClient.UseManagedNetworkingOnWindows", true); // No Windows SNI in design-time
+
+    let manualLoadNet8Runtime =
+        lazy
+            let isWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)
+
+            let os = if isWindows then "win" else "unix"
+            let addPath tfm (libName:string) = System.IO.Path.Combine [| "runtimes"; os; "lib"; tfm; libName |]
+            // Try net8.0 (MDS 5.2.x) and net6.0 (MDS 5.1.x) runtime paths.
+            let libraries =
+                let libNames =
+                    [|
+                        "System.Diagnostics.EventLog.dll"
+                        "System.Diagnostics.EventLog.Messages.dll"
+                        "System.Runtime.Caching.dll"
+                        "System.Security.Cryptography.Pkcs.dll"
+                        "Microsoft.Data.SqlClient.dll"
+                    |]
+                [| "net8.0"; "net6.0" |]
+                |> Array.collect (fun tfm -> libNames |> Array.map (addPath tfm))
+
+            let pathsToSeek =
+                let ifNotNull (x:Assembly) =
+                    if isNull x then ""
+                    elif String.IsNullOrWhiteSpace x.Location then ""
+                    else x.Location |> System.IO.Path.GetDirectoryName
+
+                [__SOURCE_DIRECTORY__;
+    #if !INTERACITVE
+                   Assembly.GetExecutingAssembly() |> ifNotNull;
+    #endif
+                   Environment.CurrentDirectory;
+                   System.Reflection.Assembly.GetEntryAssembly() |> ifNotNull;]
+
+            let tryLoad (asmPath:string) =
+                // Path won't exist for .NET Framework targets, which don't need this fix.
+                if not (System.IO.Directory.Exists asmPath) then 
+                    ()
+                else
+                    let checkAndLoad (file:string) =
+                        let fileToSeek = asmPath + System.IO.Path.DirectorySeparatorChar.ToString() + file
+                        if System.IO.File.Exists (fileToSeek) then
+                            try
+                                Assembly.LoadFrom fileToSeek |> ignore
+                            with
+                            | e ->
+                                ()
+                        ()
+                    libraries |> Array.iter checkAndLoad
+                    ()
+            pathsToSeek |> List.iter tryLoad
+            true
+
+    let loadSqlServerTypes =
+        lazy
+            let dir =
+                let asm = Assembly.GetExecutingAssembly()
+                if isNull asm || String.IsNullOrWhiteSpace asm.Location then ""
+                else System.IO.Path.GetDirectoryName asm.Location
+            let path = System.IO.Path.Combine(dir, "Microsoft.SqlServer.Types.dll")
+            if System.IO.File.Exists(path) then
+                try Assembly.LoadFrom(path) |> Some
+                with _ -> None
+            else None

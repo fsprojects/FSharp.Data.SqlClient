@@ -3,7 +3,12 @@
 open System
 open System.Data
 open System.Transactions
+#if SYSTEM_DATA_SQLCLIENT
 open System.Data.SqlClient
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+open Microsoft.Data.SqlClient
+#endif
 
 open Xunit
 

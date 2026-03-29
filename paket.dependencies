@@ -6,7 +6,8 @@ github fsprojects/FSharp.TypeProviders.SDK:23b588d06acb8e100402523abc1d4f3f06325
 
 group Build
 	source https://www.nuget.org/api/v2/
-	
+	storage: none
+
 	nuget Fun.Build
 	nuget FSharp.Core 8.0.301
 	
@@ -42,21 +43,24 @@ group DesignTime
 	framework: >= net462, >= netstandard20, net8.0
 	storage: none
 
-    nuget System.Configuration.ConfigurationManager 9.0.4
+	nuget System.Configuration.ConfigurationManager 9.0.4
 	nuget System.Data.Common
 	nuget System.Data.SqlClient
 	nuget System.Runtime.Caching
-    nuget FSharp.Core 8.0.301
+	nuget FSharp.Core 8.0.301
+	nuget Microsoft.Data.SqlClient
 	nuget Microsoft.SqlServer.TransactSql.ScriptDom
 	nuget Microsoft.SqlServer.Types
 	
 group Test
 	source https://www.nuget.org/api/v2/
+	storage: none
 
 	nuget FSharp.Core redirects:force
 	nuget System.Data.SqlClient
 	nuget System.Configuration.ConfigurationManager
 	
+	nuget Microsoft.Data.SqlClient
 	nuget Microsoft.SqlServer.Types ~> 12
 	nuget Newtonsoft.Json
 	nuget xunit = 2.4.1
@@ -83,7 +87,8 @@ group Samples
 	source https://www.nuget.org/api/v2/
 	framework: >= net462, >= netcoreapp2.0, >= netstandard2.0, net8.0
 	redirects: on
-	
+	storage: none
+
 	nuget FSharp.Core = 8.0.301 redirects: force
 	
 	nuget Microsoft.AspNet.WebApi

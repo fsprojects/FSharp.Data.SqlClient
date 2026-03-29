@@ -47,7 +47,16 @@ type internal DesignTimeConnectionString =
         match configSection, lazy configSection.[name] with
         | null, _ | _, Lazy null -> raise <| KeyNotFoundException(message = sprintf "Cannot find name %s in <connectionStrings> section of %s file." name configFilename)
         | _, Lazy x -> 
-            let providerName = if String.IsNullOrEmpty x.ProviderName then "System.Data.SqlClient" else x.ProviderName
+            let providerName = 
+              if String.IsNullOrEmpty x.ProviderName then 
+                #if SYSTEM_DATA_SQLCLIENT
+                "System.Data.SqlClient"
+                #endif
+                #if MICROSOFT_DATA_SQLCLIENT
+                "Microsoft.Data.SqlClient"
+                #endif
+              else 
+                x.ProviderName
             x.ConnectionString, providerName
 
     member this.Value = 

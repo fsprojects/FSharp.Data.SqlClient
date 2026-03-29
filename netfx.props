@@ -44,8 +44,4 @@
     <DefineConstants>$(DefineConstants);USE_SQL_SERVER_TYPES_ASSEMBLY;USE_SYSTEM_DATA_COMMON_DBPROVIDERFACTORIES</DefineConstants>
   </PropertyGroup>
 
-  <ItemGroup>
-      <PackageReference Include="System.Data.SqlClient" Version="4.9.0" Condition="'$(TargetFramework)' != 'net462'" />
-  </ItemGroup>
-
 </Project>

@@ -21,6 +21,8 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
 
     let nameSpace = this.GetType().Namespace
     let assembly = Assembly.GetExecutingAssembly()
+    let _ = FixReferenceAssemblies.manualLoadNet8Runtime.Force()
+    let _ = FixReferenceAssemblies.loadSqlServerTypes.Force() |> Option.iter this.TargetContext.AddSourceAssembly
     let providerType = ProvidedTypeDefinition(assembly, nameSpace, "SqlEnumProvider", Some typeof<obj>, hideObjectMethods = true, isErased = false)
 
     let cache = new Cache<ProvidedTypeDefinition>()
@@ -40,7 +42,12 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
             parameters = [ 
                 ProvidedStaticParameter("Query", typeof<string>) 
                 ProvidedStaticParameter("ConnectionStringOrName", typeof<string>) 
+#if SYSTEM_DATA_SQLCLIENT
                 ProvidedStaticParameter("Provider", typeof<string>, "System.Data.SqlClient") 
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+                ProvidedStaticParameter("Provider", typeof<string>, "Microsoft.Data.SqlClient") 
+#endif
                 ProvidedStaticParameter("ConfigFile", typeof<string>, "") 
                 ProvidedStaticParameter("Kind", typeof<SqlEnumKind>, SqlEnumKind.Default) 
             ],             
@@ -53,7 +60,12 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
 <summary>Enumeration based on SQL query.</summary> 
 <param name='Query'>SQL used to get the enumeration labels and values. A result set must have at least two columns. The first one is a label.</param>
 <param name='ConnectionString'>String used to open a data connection.</param>
+#if SYSTEM_DATA_SQLCLIENT
 <param name='Provider'>Invariant name of a ADO.NET provider. Default is "System.Data.SqlClient".</param>
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+<param name='Provider'>Invariant name of a ADO.NET provider. Default is "Microsoft.Data.SqlClient".</param>
+#endif
 <param name='ConfigFile'>The name of the configuration file that’s used for connection strings at DESIGN-TIME. The default value is app.config or web.config.</param>
 <param name='Kind'></param>
 """
@@ -71,10 +83,26 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
             | NameInConfig(_, value, provider) -> value, provider
 
 #if !USE_SYSTEM_DATA_COMMON_DBPROVIDERFACTORIES
+#if SYSTEM_DATA_SQLCLIENT
+        let adoObjectsFactory : System.Data.Common.DbProviderFactory = Unchecked.defaultof<_>
         // not supported on netstandard 20?
         raise ("DbProviderFactories not available" |> NotImplementedException) 
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+        let adoObjectsFactory = Microsoft.Data.SqlClient.SqlClientFactory.Instance
+#endif
 #else
+#if SYSTEM_DATA_SQLCLIENT
         let adoObjectsFactory = DbProviderFactories.GetFactory( providerName: string)
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+        let adoObjectsFactory =
+            try
+                DbProviderFactories.GetFactory( providerName: string)
+            with
+            | _ -> Microsoft.Data.SqlClient.SqlClientFactory.Instance
+#endif
+#endif
         use conn = adoObjectsFactory.CreateConnection() 
         conn.ConnectionString <- connStr
         conn.Open()
@@ -264,7 +292,7 @@ type SqlEnumProvider(config : TypeProviderConfig) as this =
         tempAssembly.AddTypes [ providedEnumType ]
         providedEnumType
 
-#endif
+//#endif
 
     //Quotation factories
     

@@ -3,12 +3,12 @@
   <Import Project="..\..\netfx.props" />
   <PropertyGroup>
     <TargetFrameworks>net462;net8.0</TargetFrameworks>
-    <AssemblyName>FSharp.Data.SqlClient.DesignTime</AssemblyName>
+    <AssemblyName>FSharp.Data.MicrosoftSqlClient.DesignTime</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <NoWarn>$(NoWarn);101</NoWarn>
+    <NoWarn>$(NoWarn);101;44</NoWarn>
     <OutputPath>..\..\bin\typeproviders\fsharp41</OutputPath>
 
     <!--
@@ -20,7 +20,7 @@
     <WarningsNotAsErrors>$(WarningsNotAsErrors);FS0026;FS3218;FS3548</WarningsNotAsErrors>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <DisableImplicitSystemValueTupleReference>true</DisableImplicitSystemValueTupleReference>
-    <DefineConstants>$(DefineConstants);SYSTEM_DATA_SQLCLIENT</DefineConstants>
+    <DefineConstants>$(DefineConstants);MICROSOFT_DATA_SQLCLIENT</DefineConstants>
     <DefineConstants>$(DefineConstants);DESIGNTIME_CODE_ONLY;IS_DESIGNTIME;WITH_LEGACY_NAMESPACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
@@ -74,7 +74,6 @@
     <Compile Include="SqlCommandProvider.fs" />
     <Compile Include="SqlEnumProvider.fs" />
     <Compile Include="SqlFileProvider.fs" />
-    <Content Include="paket.references" />
     <None Include="Scripts\Scratchpad.fsx" />
     <None Include="Scripts\ReverseLineOrderForNotex.fsx" />
     <None Include="Scripts\XE.fsx" />

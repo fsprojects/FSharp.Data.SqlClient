@@ -22,7 +22,12 @@ open System
 open System.Text
 open System.Data
 open System.Collections.Generic
+#if SYSTEM_DATA_SQLCLIENT
 open System.Data.SqlClient
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+open Microsoft.Data.SqlClient
+#endif
 open System.Runtime.Serialization
 open System.Runtime.Serialization.Json
 open System.IO
