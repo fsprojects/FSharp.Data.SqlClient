@@ -1,6 +1,11 @@
 ﻿namespace FSharp.Data.SqlClient
 
+#if SYSTEM_DATA_SQLCLIENT
 open System.Data.SqlClient
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+open Microsoft.Data.SqlClient
+#endif
 
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type ISqlCommand = 
@@ -19,7 +24,12 @@ namespace FSharp.Data.SqlClient.Internals
 
 open System
 open System.Data
+#if SYSTEM_DATA_SQLCLIENT
 open System.Data.SqlClient
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+open Microsoft.Data.SqlClient
+#endif
 open System.Reflection
 open System.Text.RegularExpressions
 open FSharp.Data.SqlClient
@@ -238,11 +248,13 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
         for name, value in parameters do
             let p = cmd.Parameters.[name]            
 
-            if p.Direction.HasFlag(ParameterDirection.Input)
-            then 
+            if p.Direction.HasFlag(ParameterDirection.Input) then
                 match value with
                 | null ->
-                    p.Value <- DBNull.Value 
+                  if p.SqlDbType = SqlDbType.Structured then
+                    p.Value <- null // TVP with no rows requires null, not DBNull
+                  else
+                    p.Value <- DBNull.Value
                 | _ ->
                     match p.SqlDbType with 
                     | SqlDbType.Structured -> 

@@ -3,14 +3,14 @@
   <Import Project="..\..\netfx.props" />
   <PropertyGroup>
     <TargetFrameworks>net462;netstandard2.0;net8.0</TargetFrameworks>
-    <AssemblyName>FSharp.Data.SqlClient</AssemblyName>
+    <AssemblyName>FSharp.Data.MicrosoftSqlClient</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <NoWarn>101</NoWarn>
+    <NoWarn>101;44</NoWarn>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <DisableImplicitSystemValueTupleReference>true</DisableImplicitSystemValueTupleReference>
     <WithLegacyNamespaces>true</WithLegacyNamespaces>
-    <DefineConstants>$(DefineConstants);SYSTEM_DATA_SQLCLIENT</DefineConstants>
+    <DefineConstants>$(DefineConstants);MICROSOFT_DATA_SQLCLIENT</DefineConstants>
     <DefineConstants Condition="'$(WithLegacyNamespaces)'=='true'">$(DefineConstants);WITH_LEGACY_NAMESPACE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -18,12 +18,12 @@
     <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>..\..\bin\net462\FSharp.Data.SqlClient.XML</DocumentationFile>
+    <DocumentationFile>..\..\bin\$(TargetFramework)\FSharp.Data.MicrosoftSqlClient.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="8.0.301" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.4" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.4" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.9.1" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
     <Reference Include="System.Data" />
@@ -41,8 +41,8 @@
   </ItemGroup>
   <Target Name="CopyAssemblies" AfterTargets="Build">
     <ItemGroup>
-      <RuntimeAssemblies Include="$(OutputPath)\FSharp.Data.SqlClient.*" /> 
-    </ItemGroup>    
+      <RuntimeAssemblies Include="$(OutputPath)\FSharp.Data.MicrosoftSqlClient.*" /> 
+    </ItemGroup>
     <Copy SourceFiles="@(RuntimeAssemblies)" DestinationFolder="..\..\bin\$(TargetFramework)" />
   </Target>
 </Project>

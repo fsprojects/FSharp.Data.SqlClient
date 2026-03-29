@@ -5,7 +5,13 @@ open FSharp.Data.SqlClient
 open FSharp.Data.SqlClient.Tests
 open System
 open System.Data
+#if SYSTEM_DATA_SQLCLIENT
 open System.Data.SqlClient
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+open Microsoft.Data.SqlClient
+#endif
+
 open Xunit
 
 type GetEvenNumbers = SqlCommandProvider<"select * from (values (2), (4), (8), (24)) as T(value)", ConnectionStrings.AdventureWorksNamed>

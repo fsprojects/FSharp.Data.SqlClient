@@ -2,7 +2,12 @@
 
 open System
 open System.Data
+#if SYSTEM_DATA_SQLCLIENT
 open System.Data.SqlClient
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+open Microsoft.Data.SqlClient
+#endif
 open System.Collections.Generic
 open FSharp.Data.SqlClient.Internals
 

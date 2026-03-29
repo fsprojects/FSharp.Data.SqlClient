@@ -6,7 +6,12 @@ open System.Data
 open System.Collections.Generic
 open System.IO
 open System.Threading.Tasks
+#if SYSTEM_DATA_SQLCLIENT
 open System.Data.SqlClient
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+open Microsoft.Data.SqlClient
+#endif
 open FSharp.Data.SqlClient.Internals
 open System.Diagnostics
 

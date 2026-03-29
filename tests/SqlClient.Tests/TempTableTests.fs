@@ -4,7 +4,12 @@ open FSharp.Data.SqlClient.Tests
 
 open FSharp.Data
 open Xunit
+#if SYSTEM_DATA_SQLCLIENT
 open System.Data.SqlClient
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+open Microsoft.Data.SqlClient
+#endif
 
 type TempTable =
     SqlCommandProvider<
