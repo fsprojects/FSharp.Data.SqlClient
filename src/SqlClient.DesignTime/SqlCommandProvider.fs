@@ -21,7 +21,12 @@ open FSharp.Data.SqlClient.Internals
 open ProviderImplementation.ProvidedTypes
 
 [<assembly:TypeProviderAssembly()>]
+#if SYSTEM_DATA_SQLCLIENT
 [<assembly:InternalsVisibleTo("SqlClient.DesignTime.Tests")>]
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+[<assembly:InternalsVisibleTo("MicrosoftSqlClient.DesignTime.Tests")>]
+#endif
 do()
 
 #if USE_SQL_SERVER_TYPES_ASSEMBLY
