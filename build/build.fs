@@ -50,6 +50,7 @@ let releaseNotes = release.Notes |> String.concat "\n"
 // Generate assembly info files with the right version & up-to-date information
 
 Target.create "AssemblyInfo" (fun _ ->
+
     [ makeRootPath "src/SqlClient/AssemblyInfo.fs", "SqlClient", project, summary ]
     |> Seq.iter (fun (fileName, title, project, summary) ->
         AssemblyInfoFile.createFSharp fileName
@@ -69,6 +70,26 @@ Target.create "AssemblyInfo" (fun _ ->
              AssemblyInfo.Version            version
              AssemblyInfo.FileVersion        version
              AssemblyInfo.InternalsVisibleTo "SqlClient.Tests" ] )
+
+    [ makeRootPath "src/SqlClient/MicrosoftAssemblyInfo.fs", "MicrosoftSqlClient", project, summary ]
+    |> Seq.iter (fun (fileName, title, project, summary) ->
+        AssemblyInfoFile.createFSharp fileName
+           [ AssemblyInfo.Title              title
+             AssemblyInfo.Product            project
+             AssemblyInfo.Description        summary
+             AssemblyInfo.Version            version
+             AssemblyInfo.FileVersion        version
+             AssemblyInfo.InternalsVisibleTo "MicrosoftSqlClient.Tests" ] )
+
+    [ makeRootPath "src/SqlClient.DesignTime/MicrosoftAssemblyInfo.fs", "MicrosoftSqlClient.DesignTime", designTimeProject, summary ]
+    |> Seq.iter (fun (fileName, title, project, summary) ->
+        AssemblyInfoFile.createFSharp fileName
+           [ AssemblyInfo.Title              title
+             AssemblyInfo.Product            project
+             AssemblyInfo.Description        summary
+             AssemblyInfo.Version            version
+             AssemblyInfo.FileVersion        version
+             AssemblyInfo.InternalsVisibleTo "MicrosoftSqlClient.Tests" ] )
 )
 
 let slnPath = makeRootPath "SqlClient.sln"

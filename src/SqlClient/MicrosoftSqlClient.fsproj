@@ -30,7 +30,7 @@
     <Reference Include="System.Transactions" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="MicrosoftAssemblyInfo.fs" />
     <Compile Include="Extensions.fs" />
     <Compile Include="Shared.fs" />
     <Compile Include="Configuration.fs" />
