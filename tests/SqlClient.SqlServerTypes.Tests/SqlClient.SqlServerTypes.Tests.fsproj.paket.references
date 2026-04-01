@@ -2,7 +2,7 @@
 	FSharp.Core
 	System.Data.SqlClient
 	System.Configuration.ConfigurationManager
-    Microsoft.SqlServer.Types redirects: force
+	Microsoft.SqlServer.Types redirects: force
 	Newtonsoft.Json
 	xunit
 	xunit.runner.visualstudio
