@@ -4,7 +4,7 @@ open System.Reflection
 open System.Runtime.CompilerServices
 
 [<assembly: AssemblyTitleAttribute("MicrosoftSqlClient")>]
-[<assembly: AssemblyProductAttribute("FSharp.Data.SqlClient")>]
+[<assembly: AssemblyProductAttribute("FSharp.Data.MicrosoftSqlClient")>]
 [<assembly: AssemblyDescriptionAttribute("SqlClient F# type providers")>]
 [<assembly: AssemblyVersionAttribute("2.1.3")>]
 [<assembly: AssemblyFileVersionAttribute("2.1.3")>]
@@ -13,7 +13,7 @@ do ()
 
 module internal AssemblyVersionInformation =
     let [<Literal>] AssemblyTitle = "MicrosoftSqlClient"
-    let [<Literal>] AssemblyProduct = "FSharp.Data.SqlClient"
+    let [<Literal>] AssemblyProduct = "FSharp.Data.MicrosoftSqlClient"
     let [<Literal>] AssemblyDescription = "SqlClient F# type providers"
     let [<Literal>] AssemblyVersion = "2.1.3"
     let [<Literal>] AssemblyFileVersion = "2.1.3"
