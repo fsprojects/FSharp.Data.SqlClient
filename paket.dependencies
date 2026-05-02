@@ -1,8 +1,8 @@
 source https://www.nuget.org/api/v2/
 generate_load_scripts: on
 storage: none
-github fsprojects/FSharp.TypeProviders.SDK:23b588d06acb8e100402523abc1d4f3f06325b8a src/ProvidedTypes.fsi
-github fsprojects/FSharp.TypeProviders.SDK:23b588d06acb8e100402523abc1d4f3f06325b8a src/ProvidedTypes.fs
+github fsprojects/FSharp.TypeProviders.SDK:e70ad1008e5e2ff54ad286c24bd1eef915551180 src/ProvidedTypes.fsi
+github fsprojects/FSharp.TypeProviders.SDK:e70ad1008e5e2ff54ad286c24bd1eef915551180 src/ProvidedTypes.fs
 
 group Build
 	source https://www.nuget.org/api/v2/

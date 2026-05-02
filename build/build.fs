@@ -27,8 +27,14 @@ let files includes =
     Excludes = [] } 
 
 // Information about the project to be used at NuGet and in AssemblyInfo files
-let project = "FSharp.Data.SqlClient"
-let designTimeProject = "FSharp.Data.SqlClient.DesignTime"
+let systemSqlProject = {|
+  runtime="FSharp.Data.SqlClient"
+  designTime="FSharp.Data.SqlClient.DesignTime"
+|}
+let microsoftSqlProject = {|
+  runtime="FSharp.Data.MicrosoftSqlClient"
+  designTime="FSharp.Data.MicrosoftSqlClient.DesignTime"
+|}
 let authors = ["Dmitry Morozov, Dmitry Sevastianov"]
 let summary = "SqlClient F# type providers"
 let description = "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.\nSqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code."
@@ -51,7 +57,7 @@ let releaseNotes = release.Notes |> String.concat "\n"
 
 Target.create "AssemblyInfo" (fun _ ->
 
-    [ makeRootPath "src/SqlClient/AssemblyInfo.fs", "SqlClient", project, summary ]
+    [ makeRootPath "src/SqlClient/AssemblyInfo.fs", "SqlClient", systemSqlProject.runtime, summary ]
     |> Seq.iter (fun (fileName, title, project, summary) ->
         AssemblyInfoFile.createFSharp fileName
            [ AssemblyInfo.Title              title
@@ -61,7 +67,7 @@ Target.create "AssemblyInfo" (fun _ ->
              AssemblyInfo.FileVersion        version
              AssemblyInfo.InternalsVisibleTo "SqlClient.Tests" ] )
 
-    [ makeRootPath "src/SqlClient.DesignTime/AssemblyInfo.fs", "SqlClient.DesignTime", designTimeProject, summary ]
+    [ makeRootPath "src/SqlClient.DesignTime/AssemblyInfo.fs", "SqlClient.DesignTime", systemSqlProject.designTime, summary ]
     |> Seq.iter (fun (fileName, title, project, summary) ->
         AssemblyInfoFile.createFSharp fileName
            [ AssemblyInfo.Title              title
@@ -71,7 +77,7 @@ Target.create "AssemblyInfo" (fun _ ->
              AssemblyInfo.FileVersion        version
              AssemblyInfo.InternalsVisibleTo "SqlClient.Tests" ] )
 
-    [ makeRootPath "src/SqlClient/MicrosoftAssemblyInfo.fs", "MicrosoftSqlClient", project, summary ]
+    [ makeRootPath "src/SqlClient/MicrosoftAssemblyInfo.fs", "MicrosoftSqlClient", microsoftSqlProject.runtime, summary ]
     |> Seq.iter (fun (fileName, title, project, summary) ->
         AssemblyInfoFile.createFSharp fileName
            [ AssemblyInfo.Title              title
@@ -81,7 +87,7 @@ Target.create "AssemblyInfo" (fun _ ->
              AssemblyInfo.FileVersion        version
              AssemblyInfo.InternalsVisibleTo "MicrosoftSqlClient.Tests" ] )
 
-    [ makeRootPath "src/SqlClient.DesignTime/MicrosoftAssemblyInfo.fs", "MicrosoftSqlClient.DesignTime", designTimeProject, summary ]
+    [ makeRootPath "src/SqlClient.DesignTime/MicrosoftAssemblyInfo.fs", "MicrosoftSqlClient.DesignTime", microsoftSqlProject.designTime, summary ]
     |> Seq.iter (fun (fileName, title, project, summary) ->
         AssemblyInfoFile.createFSharp fileName
            [ AssemblyInfo.Title              title
@@ -333,9 +339,9 @@ Target.create "NuGet" (fun _ ->
     let nugetPath = "packages/build/NuGet.CommandLine/tools/NuGet.exe"
     
     Fake.DotNet.NuGet.NuGet.NuGet (fun p -> 
-        { p with   
+        { p with
             Authors = authors
-            Project = project
+            Project = systemSqlProject.runtime
             Summary = summary
             Description = description
             Version = version

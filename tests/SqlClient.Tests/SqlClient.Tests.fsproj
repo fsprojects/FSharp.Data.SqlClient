@@ -44,7 +44,7 @@
     <None Include="Scripts\SqlCommand.fsx" />
     <None Include="Scripts\SqlProgrammability.fsx" />
     <None Include="Scripts\CreateCommand.fsx" />
-    <None Include="paket.references" />
+    <None Include="SqlClient.Tests.fsproj.paket.references" />
     <None Include="app.config" />
     <Content Include="appWithInclude.config" />
     <Content Include="connectionStrings.config" />
