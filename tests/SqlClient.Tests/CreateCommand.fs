@@ -141,11 +141,18 @@ module TraceTests =
         let expected = sprintf "exec sp_executesql N'SELECT CAST(@Value AS NVARCHAR(20))',N'@Value NVarChar(20)',@Value=NULL"
         Assert.Equal<string>(expected, actual = DB.CreateCommand<"SELECT CAST(@Value AS NVARCHAR(20))">().ToTraceString(Unchecked.defaultof<string>))
 
+#if SYSTEM_DATA_SQLCLIENT
+open System.Data.SqlClient
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+open Microsoft.Data.SqlClient
+#endif
+
 [<Fact>]
 let resultSetMapping() =
     let cmd = DB.CreateCommand<"SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003), ('foo bar',NULL))  AS T(lang, DOB)", ResultType.DataReader>()
 
-    let readToMap(reader : System.Data.SqlClient.SqlDataReader) = 
+    let readToMap(reader : SqlDataReader) = 
         seq {
             try 
                 while(reader.Read()) do
@@ -182,7 +189,6 @@ let ``Runtime column names``() =
     use cmd = DB.CreateCommand<"exec dbo.[Get]", ResultType.DataReader>()
     Assert.False( cmd.Execute().NextResult())
 
-open System.Data.SqlClient
 type SqlDataReader with
     member this.ToRecords<'T>() = 
         seq {
@@ -199,7 +205,7 @@ let CreareDynamicRecords() =
     use cmd = DB.CreateCommand<getDatesQuery, TypeName = "GetDatesQuery">()
     use conn = new SqlConnection(ConnectionStrings.AdventureWorksLiteral)
     conn.Open()
-    let cmd = new System.Data.SqlClient.SqlCommand(getDatesQuery, conn)
+    let cmd = new SqlCommand(getDatesQuery, conn)
 
     cmd.ExecuteReader().ToRecords<DB.Commands.GetDatesQuery.Record>() 
     |> Seq.toArray
