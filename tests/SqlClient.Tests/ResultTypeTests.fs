@@ -14,7 +14,14 @@ let command = "SELECT * FROM (VALUES ('F#', 2005), ('Scala', 2003), ('foo bar',N
 
 type ResultTypeReader = SqlCommandProvider<command, ConnectionStrings.AdventureWorksNamed, ResultType = ResultType.DataReader>
 
-let ReadToMaps(reader : System.Data.SqlClient.SqlDataReader) = 
+#if SYSTEM_DATA_SQLCLIENT
+open System.Data.SqlClient
+#endif
+#if MICROSOFT_DATA_SQLCLIENT
+open Microsoft.Data.SqlClient
+#endif
+
+let ReadToMaps(reader : SqlDataReader) = 
     seq {
         try 
             while(reader.Read()) do
