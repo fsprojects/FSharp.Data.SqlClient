@@ -110,7 +110,7 @@ let ToTraceString() =
 let runScalarQuery query = 
     use conn = new SqlConnection(ConnectionStrings.AdventureWorks)
     conn.Open()
-    use cmd = new System.Data.SqlClient.SqlCommand()
+    use cmd = new SqlCommand()
     cmd.Connection <- conn  
     cmd.CommandText <- query
     cmd.ExecuteScalar()
