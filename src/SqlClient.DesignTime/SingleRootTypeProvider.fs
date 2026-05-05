@@ -8,7 +8,16 @@ open System
 [<AbstractClass>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type SingleRootTypeProvider(config: TypeProviderConfig, providerName, parameters, ?isErased) as this = 
-    inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("FSharp.Data.SqlClient.DesignTime", "FSharp.Data.SqlClient")], addDefaultProbingLocation=true)
+    inherit TypeProviderForNamespaces (
+      config
+      #if MICROSOFT_DATA_SQLCLIENT
+      , assemblyReplacementMap=[("FSharp.Data.MicrosoftSqlClient.DesignTime", "FSharp.Data.MicrosoftSqlClient")]
+      #endif
+      #if SYSTEM_DATA_SQLCLIENT
+      , assemblyReplacementMap=[("FSharp.Data.SqlClient.DesignTime", "FSharp.Data.SqlClient")]
+      #endif
+      , addDefaultProbingLocation=true
+    )
 
     let cache = new Cache<ProvidedTypeDefinition>()
     do

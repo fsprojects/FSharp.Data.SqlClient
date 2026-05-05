@@ -24,7 +24,16 @@ open FSharp.Data.SqlClient.Internals
 [<TypeProvider>]
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type SqlProgrammabilityProvider(config : TypeProviderConfig) as this = 
-    inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("FSharp.Data.SqlClient.DesignTime", "FSharp.Data.SqlClient")], addDefaultProbingLocation=true)
+    inherit TypeProviderForNamespaces (
+      config
+      #if MICROSOFT_DATA_SQLCLIENT
+      , assemblyReplacementMap=[("FSharp.Data.MicrosoftSqlClient.DesignTime", "FSharp.Data.MicrosoftSqlClient")]
+      #endif
+      #if SYSTEM_DATA_SQLCLIENT
+      , assemblyReplacementMap=[("FSharp.Data.SqlClient.DesignTime", "FSharp.Data.SqlClient")]
+      #endif
+      , addDefaultProbingLocation=true
+    )
 
     let assembly = Assembly.GetExecutingAssembly()
     let nameSpace = this.GetType().Namespace
