@@ -109,9 +109,11 @@ let TwoTVPParameterOfSameUDTT() =
 
 #if SYSTEM_DATA_SQLCLIENT
 open System.Data.SqlClient
+type SqlDataRecord = Microsoft.SqlServer.Server.SqlDataRecord
 #endif
 #if MICROSOFT_DATA_SQLCLIENT
 open Microsoft.Data.SqlClient
+type SqlDataRecord = Microsoft.Data.SqlClient.Server.SqlDataRecord
 #endif
 
 [<Fact>]
@@ -123,7 +125,7 @@ let ReuseTVPTypeForDynamicADONET() =
     p.Value <- [
         MyTableType(myId = 1, myName = Some "monkey")
         MyTableType(myId = 2, myName = Some "donkey")
-    ] |> Seq.cast<Microsoft.SqlServer.Server.SqlDataRecord>
+    ] |> Seq.cast<SqlDataRecord>
     conn.Open()
     let expected = [ 1, "monkey"; 2, "donkey" ]
     let actual = [
