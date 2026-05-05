@@ -5,12 +5,13 @@ open System.Reflection
 open System.Data
 #if SYSTEM_DATA_SQLCLIENT
 open System.Data.SqlClient
+type SqlMetaData = Microsoft.SqlServer.Server.SqlMetaData
 #endif
 #if MICROSOFT_DATA_SQLCLIENT
 open Microsoft.Data.SqlClient
 type SqlMetaData = Microsoft.Data.SqlClient.Server.SqlMetaData
 #endif
-open Microsoft.SqlServer.Server
+
 open System.Collections.Generic
 open System.Diagnostics
 open Microsoft.FSharp.Quotations
