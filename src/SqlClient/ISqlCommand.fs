@@ -61,6 +61,16 @@ module internal TypeResolution =
             Type.GetType(stripped, throwOnError = true)
         | t -> t
 
+    let sqlDataRecordType =
+        typeof<SqlCommand>
+          .Assembly
+          #if SYSTEM_DATA_SQLCLIENT
+          .GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
+          #endif
+          #if MICROSOFT_DATA_SQLCLIENT
+          .GetType("Microsoft.Data.SqlClient.Server.SqlDataRecord", throwOnError = true)
+          #endif
+
 [<CompilerMessageAttribute("This API supports the FSharp.Data.SqlClient infrastructure and is not intended to be used directly from your code.", 101, IsHidden = true)>]
 type RowMapping = obj[] -> obj
 
@@ -264,7 +274,7 @@ type ``ISqlCommand Implementation``(cfg: DesignTimeConfig, connection: Connectio
 
                         //done via reflection because not implemented on Mono
                         
-                        let sqlDataRecordType = typeof<SqlCommand>.Assembly.GetType("Microsoft.SqlServer.Server.SqlDataRecord", throwOnError = true)
+                        let sqlDataRecordType = TypeResolution.sqlDataRecordType
                         let records = typeof<Linq.Enumerable>.GetMethod("Cast").MakeGenericMethod(sqlDataRecordType).Invoke(null, [| value |]) 
                         let hasAny = 
                             let anyMeth = 
