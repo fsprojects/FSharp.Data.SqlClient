@@ -28,18 +28,31 @@ let files includes =
 
 // Information about the project to be used at NuGet and in AssemblyInfo files
 let systemSqlProject = {|
-  runtime="FSharp.Data.SqlClient"
-  designTime="FSharp.Data.SqlClient.DesignTime"
+  runtime             = "FSharp.Data.SqlClient"
+  designTime          = "FSharp.Data.SqlClient.DesignTime"
+  slnPath             = makeRootPath "SqlClient.sln"
+  testProjectsSlnPath = makeRootPath "TestProjects.sln"
+  testSlnPath         = makeRootPath "Tests.sln"
+  testProjectPath     = makeRootPath "tests/SqlClient.Tests/SqlClient.Tests.fsproj"
+
 |}
 let microsoftSqlProject = {|
-  runtime="FSharp.Data.MicrosoftSqlClient"
-  designTime="FSharp.Data.MicrosoftSqlClient.DesignTime"
+  runtime             = "FSharp.Data.MicrosoftSqlClient"
+  designTime          = "FSharp.Data.MicrosoftSqlClient.DesignTime"
+  slnPath             = makeRootPath "MicrosoftSqlClient.sln"
+  testProjectsSlnPath = makeRootPath "MicrosoftTestProjects.sln"
+  testSlnPath         = makeRootPath "MicrosoftTests.sln"
+  testProjectPath     = makeRootPath "tests/SqlClient.Tests/MicrosoftSqlClient.Tests.fsproj"
 |}
+
+let projects = [systemSqlProject;microsoftSqlProject]
 let authors = ["Dmitry Morozov, Dmitry Sevastianov"]
 let summary = "SqlClient F# type providers"
-let description = "SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.\nSqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code."
+let description = """SqlCommandProvider provides statically typed access to input parameters and result set of T-SQL command in idiomatic F# way.
+SqlProgrammabilityProvider exposes Stored Procedures, User-Defined Types and User-Defined Functions in F# code.
+"""
 let tags = "F# fsharp data typeprovider sql"
-      
+
 let gitHome = "https://github.com/fsprojects"
 let gitName = "FSharp.Data.SqlClient"
 
@@ -98,11 +111,7 @@ Target.create "AssemblyInfo" (fun _ ->
              AssemblyInfo.InternalsVisibleTo "MicrosoftSqlClient.Tests" ] )
 )
 
-let slnPath = makeRootPath "SqlClient.sln"
-let testProjectsSlnPath = makeRootPath "TestProjects.sln"
-let testSlnPath = makeRootPath "Tests.sln"
 let testDir = makeRootPath "tests"
-let testProjectPath = makeRootPath "tests/SqlClient.Tests/SqlClient.Tests.fsproj"
 
 let msBuildPaths extraPaths =
     [
@@ -158,10 +167,10 @@ let runMsBuild project =
 Target.create "Clean" (fun _ ->
     Shell.cleanDirs ["bin"; "temp"]
     let dnDefault (args: DotNet.Options) = { args with Verbosity = Some DotNet.Verbosity.Quiet }
-    DotNet.exec dnDefault "clean" slnPath |> ignore
-    DotNet.exec dnDefault "clean" testProjectsSlnPath |> ignore
-    DotNet.exec dnDefault "clean" testSlnPath |> ignore
-    ()
+    for entry in projects do
+      DotNet.exec dnDefault "clean" entry.slnPath |> ignore
+      DotNet.exec dnDefault "clean" entry.testProjectsSlnPath |> ignore
+      DotNet.exec dnDefault "clean" entry.testSlnPath |> ignore
 )
 
 Target.create "CleanDocs" (fun _ ->
@@ -179,9 +188,10 @@ let dnDefault =
   >> DotNet.Options.withCustomParams (Some "--tl")
 
 Target.create "Build" (fun _ ->
+  for entry in projects do
     DotNet.build
-        (fun args -> { args with Configuration = DotNet.Release } |> dnDefault)
-        slnPath
+      (fun args -> { args with Configuration = DotNet.Release } |> dnDefault)
+      entry.slnPath
 )
 
 open System.Data.SqlClient
@@ -291,18 +301,20 @@ let funBuildRunMSBuild stageName sln =
     }
 
 Target.create "BuildTestProjects" (fun _ ->
-    pipeline "BuildTestProjects" {
-        funBuildRestore    "test projects sln" testProjectsSlnPath
-        funBuildRunMSBuild "test projects sln" testProjectsSlnPath
+  for entry in projects do
+    if File.Exists entry.testProjectsSlnPath then
+      pipeline $"BuildTestProjects {entry.runtime}" {
+        funBuildRestore    "test projects sln" entry.testProjectsSlnPath
+        funBuildRunMSBuild "test projects sln" entry.testProjectsSlnPath
         runImmediate
-    }
+      }
 )
 
 // --------------------------------------------------------------------------------------
 // Run the unit tests 
 Target.create "RunTests" (fun _ -> 
     
-    let runTests () =
+    let runTests (entry: {|testSlnPath: string; testProjectPath: string|}) =
       let dnTestOptions framework (args: DotNet.TestOptions) = 
         { args with 
             Framework = Some framework
@@ -310,23 +322,24 @@ Target.create "RunTests" (fun _ ->
             NoBuild = true
             MSBuildParams = { args.MSBuildParams with DisableInternalBinLog = true } 
         }
-      try 
-          DotNet.test (dnTestOptions "net462") testSlnPath
-          DotNet.test (dnTestOptions "net8.0") testProjectPath
+
+      try
+          DotNet.test (dnTestOptions "net462") entry.testSlnPath
+          DotNet.test (dnTestOptions "net8.0") entry.testProjectPath
       with
       | ex ->
           Trace.log (sprintf "Test exception: %A" ex)
           raise ex
-    
-    pipeline "RunTests" {
-        funBuildRestore    "test sln" testSlnPath
-        funBuildRunMSBuild "test sln" testSlnPath
-
-        stage "run tests" { 
-          run (fun ctx -> runTests())
-        }
-        runImmediate
-    }
+    for entry in projects do
+      pipeline $"RunTests {entry.runtime}" {
+          funBuildRestore    "test sln" entry.testSlnPath
+          funBuildRunMSBuild "test sln" entry.testSlnPath
+      
+          stage "run tests" { 
+            run (fun ctx -> runTests {|testSlnPath=entry.testSlnPath; testProjectPath=entry.testProjectPath|})
+          }
+          runImmediate
+      }
 )
 
 // --------------------------------------------------------------------------------------
