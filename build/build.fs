@@ -34,7 +34,7 @@ let systemSqlProject = {|
   testProjectsSlnPath = makeRootPath "TestProjects.sln"
   testSlnPath         = makeRootPath "Tests.sln"
   testProjectPath     = makeRootPath "tests/SqlClient.Tests/SqlClient.Tests.fsproj"
-
+  nugetSpec           = "nuget/SqlClient.nuspec"
 |}
 let microsoftSqlProject = {|
   runtime             = "FSharp.Data.MicrosoftSqlClient"
@@ -43,6 +43,7 @@ let microsoftSqlProject = {|
   testProjectsSlnPath = makeRootPath "MicrosoftTestProjects.sln"
   testSlnPath         = makeRootPath "MicrosoftTests.sln"
   testProjectPath     = makeRootPath "tests/SqlClient.Tests/MicrosoftSqlClient.Tests.fsproj"
+  nugetSpec           = "nuget/MicrosoftSqlClient.nuspec"
 |}
 
 let projects = [systemSqlProject;microsoftSqlProject]
@@ -351,21 +352,22 @@ Target.create "NuGet" (fun _ ->
     let description = description.Replace("\r", "").Replace("\n", "").Replace("  ", " ")
     let nugetPath = "packages/build/NuGet.CommandLine/tools/NuGet.exe"
     
-    Fake.DotNet.NuGet.NuGet.NuGet (fun p -> 
-        { p with
-            Authors = authors
-            Project = systemSqlProject.runtime
-            Summary = summary
-            Description = description
-            Version = version
-            ReleaseNotes = releaseNotes
-            Tags = tags
-            OutputPath = "nuget"
-            ToolPath = nugetPath
-            AccessKey = Fake.Core.Environment.environVarOrDefault "nugetkey" ""
-            Publish = Fake.Core.Environment.hasEnvironVar "nugetkey"
-            Dependencies = [] })
-        "nuget/SqlClient.nuspec"
+    for entry in projects do
+      Fake.DotNet.NuGet.NuGet.NuGet (fun p -> 
+          { p with
+              Authors = authors
+              Project = entry.runtime
+              Summary = summary
+              Description = description
+              Version = version
+              ReleaseNotes = releaseNotes
+              Tags = tags
+              OutputPath = "nuget"
+              ToolPath = nugetPath
+              AccessKey = Fake.Core.Environment.environVarOrDefault "nugetkey" ""
+              Publish = Fake.Core.Environment.hasEnvironVar "nugetkey"
+              Dependencies = [] })
+          entry.nugetSpec
 )
 
 // --------------------------------------------------------------------------------------

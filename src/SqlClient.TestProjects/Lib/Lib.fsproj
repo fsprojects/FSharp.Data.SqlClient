@@ -20,13 +20,13 @@
   <ItemGroup>
     <Reference Include="netstandard" />
     <Reference Condition="'$(TargetFramework)' == 'net8.0'" Include="FSharp.Data.SqlClient">
-      <HintPath>..\..\..\bin\net8.0\FSharp.Data.SqlClient.dll</HintPath>
+      <HintPath>..\..\..\bin\sqlclient\net8.0\FSharp.Data.SqlClient.dll</HintPath>
     </Reference>
     <Reference Condition="'$(TargetFramework)' == 'netstandard2.0'" Include="FSharp.Data.SqlClient">
-      <HintPath>..\..\..\bin\netstandard2.0\FSharp.Data.SqlClient.dll</HintPath>
+      <HintPath>..\..\..\bin\sqlclient\netstandard2.0\FSharp.Data.SqlClient.dll</HintPath>
     </Reference>
     <Reference Condition="'$(TargetFramework)' == 'net471'" Include="FSharp.Data.SqlClient">
-      <HintPath>..\..\..\bin\net462\FSharp.Data.SqlClient.dll</HintPath>
+      <HintPath>..\..\..\bin\sqlclient\net462\FSharp.Data.SqlClient.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />

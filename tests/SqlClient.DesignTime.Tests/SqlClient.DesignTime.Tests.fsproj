@@ -17,10 +17,10 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Condition="$(TargetFramework) == 'net462'" Include="FSharp.Data.SqlClient.DesignTime">
-      <HintPath>..\..\bin\typeproviders\fsharp41\net462\FSharp.Data.SqlClient.DesignTime.dll</HintPath>
+      <HintPath>..\..\bin\sqlclient\typeproviders\fsharp41\net462\FSharp.Data.SqlClient.DesignTime.dll</HintPath>
     </Reference>
     <Reference Condition="$(TargetFramework) == 'net8.0'" Include="FSharp.Data.SqlClient.DesignTime">
-      <HintPath>..\..\bin\typeproviders\fsharp41\net8.0\FSharp.Data.SqlClient.DesignTime.dll</HintPath>
+      <HintPath>..\..\bin\sqlclient\typeproviders\fsharp41\net8.0\FSharp.Data.SqlClient.DesignTime.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
