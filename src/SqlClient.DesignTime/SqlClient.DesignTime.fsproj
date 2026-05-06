@@ -9,7 +9,7 @@
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <NoWarn>$(NoWarn);101</NoWarn>
-    <OutputPath>..\..\bin\typeproviders\fsharp41</OutputPath>
+    <OutputPath>..\..\bin\sqlclient\typeproviders\fsharp41</OutputPath>
 
     <!--
       note: TypeProvider SDK comes with few warnings

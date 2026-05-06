@@ -53,10 +53,10 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Condition="'$(TargetFramework)' == 'net462'" Include="FSharp.Data.MicrosoftSqlClient">
-      <HintPath>..\..\bin\net462\FSharp.Data.MicrosoftSqlClient.dll</HintPath>
+      <HintPath>..\..\bin\microsoftsqlclient\net462\FSharp.Data.MicrosoftSqlClient.dll</HintPath>
     </Reference>
     <Reference Condition="'$(TargetFramework)' == 'net8.0'" Include="FSharp.Data.MicrosoftSqlClient">
-      <HintPath>..\..\bin\net8.0\FSharp.Data.MicrosoftSqlClient.dll</HintPath>
+      <HintPath>..\..\bin\microsoftsqlclient\net8.0\FSharp.Data.MicrosoftSqlClient.dll</HintPath>
     </Reference>
     <Reference Include="System.Transactions" />
   </ItemGroup>

@@ -18,7 +18,7 @@
     <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>..\..\bin\net462\FSharp.Data.SqlClient.XML</DocumentationFile>
+    <DocumentationFile>..\..\bin\sqlclient\$(TargetFramework)\FSharp.Data.SqlClient.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="8.0.301" />
@@ -43,6 +43,6 @@
     <ItemGroup>
       <RuntimeAssemblies Include="$(OutputPath)\FSharp.Data.SqlClient.*" /> 
     </ItemGroup>    
-    <Copy SourceFiles="@(RuntimeAssemblies)" DestinationFolder="..\..\bin\$(TargetFramework)" />
+    <Copy SourceFiles="@(RuntimeAssemblies)" DestinationFolder="..\..\bin\sqlclient\$(TargetFramework)" />
   </Target>
 </Project>
