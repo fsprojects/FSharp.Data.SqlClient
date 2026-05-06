@@ -188,7 +188,7 @@ NUGET
       System.Memory (>= 4.6) - restriction: && (< net8.0) (>= netstandard2.0)
       System.Runtime.CompilerServices.Unsafe (>= 6.1) - restriction: && (< net8.0) (>= netstandard2.0)
     Newtonsoft.Json (13.0.4) - restriction: >= netstandard2.0
-    NuGet.CommandLine (7.3.1)
+    NuGet.CommandLine (7.3.1) - storage: packages
     NuGet.Common (7.3.1) - restriction: || (>= net472) (>= net8.0)
       NuGet.Frameworks (>= 7.3.1) - restriction: || (>= net472) (>= net8.0)
       System.Collections.Immutable (>= 8.0) - restriction: >= net472

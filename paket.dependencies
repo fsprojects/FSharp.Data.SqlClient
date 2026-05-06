@@ -24,7 +24,7 @@ group Build
 	nuget FSharp.Formatting
 	nuget FSharp.Compiler.Service 43.8.301
 
-	nuget NuGet.CommandLine
+	nuget NuGet.CommandLine storage: packages
 	nuget System.Data.SqlClient
 	
 	nuget System.Configuration.ConfigurationManager
