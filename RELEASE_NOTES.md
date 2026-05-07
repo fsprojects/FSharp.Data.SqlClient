@@ -1,3 +1,8 @@
+#### 2.9.99-alpha April 30, 2024
+
+* Issue #482 Support for Microsoft.Data.SqlClient in FSharp.Data.MicrosoftSqlClient package
+* Contributor: Daniel Little (https://github.com/daniellittledev), Gauthier Segay (https://github.com/smoothdeveloper)
+
 #### 2.1.3 April 30, 2024
 
 * Issue #440 Toolchain and SDK adjustments, deprecated runtime support for net40

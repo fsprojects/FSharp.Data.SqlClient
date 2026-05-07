@@ -269,26 +269,3 @@ module RuntimeInternals =
 [<AutoOpen>]
 module Shared =    
     let DbNull = box DBNull.Value
-
-
-#if WITH_LEGACY_NAMESPACE
-namespace FSharp.Data
-open System
-[<Obsolete("use open 'FSharp.Data.SqlClient' namespace instead")>]
-type ResultType  = FSharp.Data.SqlClient.ResultType
-[<Obsolete("use open 'FSharp.Data.SqlClient' namespace instead")>]
-type SqlEnumKind = FSharp.Data.SqlClient.SqlEnumKind
-[<Obsolete("use open 'FSharp.Data.SqlClient.Internals' namespace instead");AutoOpen>]
-module Obsolete = 
-
-  //module Encoding         = FSharp.Data.SqlClient.Internals.Encoding
-  //module RuntimeInternals = FSharp.Data.SqlClient.Internals.RuntimeInternals
-  //module Shared           = FSharp.Data.SqlClient.Internals.Shared
-
-  type ResultRank         = FSharp.Data.SqlClient.Internals.ResultRank
-  type Mapper             = FSharp.Data.SqlClient.Internals.Mapper
-  type Column             = FSharp.Data.SqlClient.Internals.Column
-  type TypeInfo           = FSharp.Data.SqlClient.Internals.TypeInfo
-  type Parameter          = FSharp.Data.SqlClient.Internals.Parameter
-  type TempTableLoader    = FSharp.Data.SqlClient.Internals.TempTableLoader
-#endif

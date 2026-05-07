@@ -3,6 +3,7 @@ module FSharp.Data.SqlClient.Tests.TypeProviderTest
 open FSharp.Data
 open FSharp.Data.SqlClient
 open FSharp.Data.SqlClient.Tests
+open FSharp.Data.SqlClient.Internals
 open System
 open System.Data
 #if SYSTEM_DATA_SQLCLIENT
@@ -348,17 +349,17 @@ let ResultsetRuntimeVerificationLessThanExpectedColumns() =
         SELECT * FROM XS
     "
 
-    Assert.False(SqlClient.Configuration.Current.ResultsetRuntimeVerification)
+    Assert.False(FsharpDataSqlClientConfiguration.Current.ResultsetRuntimeVerification)
 
     try
-        SqlClient.Configuration.Current <- { ResultsetRuntimeVerification = true }
+        FsharpDataSqlClientConfiguration.Current <- { ResultsetRuntimeVerification = true }
         let err = Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
         Assert.Equal<string>(
             "Expected at least 3 columns in result set but received only 2.",
             err.Message
         )
     finally 
-        SqlClient.Configuration.Current <- { ResultsetRuntimeVerification = false}
+        FsharpDataSqlClientConfiguration.Current <- { ResultsetRuntimeVerification = false}
 
     let err = Assert.Throws<IndexOutOfRangeException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
     Assert.Equal<string>(
@@ -393,10 +394,10 @@ let ResultsetRuntimeVerificationDiffColumnTypes() =
         SELECT * FROM XS
     "
 
-    Assert.False(Configuration.Current.ResultsetRuntimeVerification)
+    Assert.False(FsharpDataSqlClientConfiguration.Current.ResultsetRuntimeVerification)
 
     try
-        Configuration.Current <- { ResultsetRuntimeVerification = true }
+        FsharpDataSqlClientConfiguration.Current <- { ResultsetRuntimeVerification = true }
 
         let err = Assert.Throws<InvalidOperationException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
         Assert.Equal<string>(
@@ -404,7 +405,7 @@ let ResultsetRuntimeVerificationDiffColumnTypes() =
             err.Message
         )
     finally 
-        Configuration.Current <- { ResultsetRuntimeVerification = false}
+        FsharpDataSqlClientConfiguration.Current <- { ResultsetRuntimeVerification = false}
 
     let err = Assert.Throws<InvalidCastException>(fun() -> cmd.Execute() |> Seq.toArray |> ignore)    
     

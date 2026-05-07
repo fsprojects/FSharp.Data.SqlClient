@@ -7,7 +7,6 @@
     <AssemblyName>MicrosoftSqlClient.Tests</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <DefineConstants>$(DefineConstants);WITH_LEGACY_NAMESPACE</DefineConstants>
     <DefineConstants>$(DefineConstants);MICROSOFT_DATA_SQLCLIENT</DefineConstants>
     <NoWarn>$(NoWarn);101</NoWarn>
     <!-- 
