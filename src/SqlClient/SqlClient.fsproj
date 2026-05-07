@@ -9,9 +9,8 @@
     <NoWarn>101</NoWarn>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <DisableImplicitSystemValueTupleReference>true</DisableImplicitSystemValueTupleReference>
-    <WithLegacyNamespaces>true</WithLegacyNamespaces>
     <DefineConstants>$(DefineConstants);SYSTEM_DATA_SQLCLIENT</DefineConstants>
-    <DefineConstants Condition="'$(WithLegacyNamespaces)'=='true'">$(DefineConstants);WITH_LEGACY_NAMESPACE</DefineConstants>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
