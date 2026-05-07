@@ -1,6 +1,6 @@
 ﻿module FSharp.Data.SqlClient.Tests.SpatialTypesTests
 
-open FSharp.Data
+open FSharp.Data.SqlClient
 open Xunit
 open Microsoft.SqlServer.Types
 open System.Data.SqlTypes

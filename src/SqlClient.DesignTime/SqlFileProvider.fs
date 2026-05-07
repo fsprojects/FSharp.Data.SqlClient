@@ -1,4 +1,4 @@
-﻿namespace FSharp.Data
+﻿namespace FSharp.Data.SqlClient
 
 open System.IO
 open Microsoft.FSharp.Core.CompilerServices
