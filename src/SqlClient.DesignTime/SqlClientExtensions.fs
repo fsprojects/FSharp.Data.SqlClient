@@ -162,6 +162,9 @@ let internal providerTypes =
         "ntext", (SqlDbType.NText, "System.String", false)
         "nvarchar", (SqlDbType.NVarChar, "System.String", false)
         "sysname", (SqlDbType.NVarChar, "System.String", false)
+        // SQL Server 2025 native json type. Microsoft.Data.SqlClient below 6.0 has no JSON TDS
+        // support, so the server sends these columns as nvarchar(max) over the wire.
+        "json", (SqlDbType.NVarChar, "System.String", false)
 
         // binary
         "binary", (SqlDbType.Binary, "System.Byte[]", false)
