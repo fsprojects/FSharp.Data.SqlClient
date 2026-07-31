@@ -130,59 +130,60 @@ type internal Routine = {
 let internal providerTypes = 
     dict [
         // exact numerics
-        "bigint", (SqlDbType.BigInt, "System.Int64", true)
-        "bit", (SqlDbType.Bit, "System.Boolean", true) 
-        "decimal", (SqlDbType.Decimal, "System.Decimal", true) 
-        "int", (SqlDbType.Int, "System.Int32", true)
-        "money", (SqlDbType.Money, "System.Decimal", true) 
-        "numeric", (SqlDbType.Decimal, "System.Decimal", true) 
-        "smallint", (SqlDbType.SmallInt, "System.Int16", true)
-        "smallmoney", (SqlDbType.SmallMoney, "System.Decimal", true) 
-        "tinyint", (SqlDbType.TinyInt, "System.Byte", true)
+        "bigint"    , (SqlDbType.BigInt                , "System.Int64"                 , true)
+        "bit"       , (SqlDbType.Bit                   , "System.Boolean"               , true)
+        "decimal"   , (SqlDbType.Decimal               , "System.Decimal"               , true)
+        "int"       , (SqlDbType.Int                   , "System.Int32"                 , true)
+        "money"     , (SqlDbType.Money                 , "System.Decimal"               , true)
+        "numeric"   , (SqlDbType.Decimal               , "System.Decimal"               , true)
+        "smallint"  , (SqlDbType.SmallInt              , "System.Int16"                 , true)
+        "smallmoney", (SqlDbType.SmallMoney            , "System.Decimal"               , true)
+        "tinyint"   , (SqlDbType.TinyInt               , "System.Byte"                  , true)
 
         // approximate numerics
-        "float", (SqlDbType.Float, "System.Double", true) // This is correct. SQL Server 'float' type maps to double
-        "real", (SqlDbType.Real, "System.Single", true)
+        "float"     , (SqlDbType.Float                 , "System.Double"                , true) // This is correct. SQL Server 'float' type maps to double
+        "real"      , (SqlDbType.Real                  , "System.Single"                , true)
 
         // date and time
-        "date", (SqlDbType.Date, "System.DateTime", true)
-        "datetime", (SqlDbType.DateTime, "System.DateTime", true)
-        "datetime2", (SqlDbType.DateTime2, "System.DateTime", true)
-        "datetimeoffset", (SqlDbType.DateTimeOffset, "System.DateTimeOffset", true)
-        "smalldatetime", (SqlDbType.SmallDateTime,  "System.DateTime", true)
-        "time", (SqlDbType.Time, "System.TimeSpan", true)
+        "date"          , (SqlDbType.Date              , "System.DateTime"              , true)
+        "datetime"      , (SqlDbType.DateTime          , "System.DateTime"              , true)
+        "datetime2"     , (SqlDbType.DateTime2         , "System.DateTime"              , true)
+        "datetimeoffset", (SqlDbType.DateTimeOffset    , "System.DateTimeOffset"        , true)
+        "smalldatetime" , (SqlDbType.SmallDateTime     , "System.DateTime"              , true)
+        "time"          , (SqlDbType.Time              , "System.TimeSpan"              , true)
 
         // character strings
-        "char", (SqlDbType.Char, "System.String", false)
-        "text", (SqlDbType.Text, "System.String", false)
-        "varchar", (SqlDbType.VarChar, "System.String", false)
+        "char"          , (SqlDbType.Char              , "System.String"                , false)
+        "text"          , (SqlDbType.Text              , "System.String"                , false)
+        "varchar"       , (SqlDbType.VarChar           , "System.String"                , false)
 
         // unicode character strings
-        "nchar", (SqlDbType.NChar, "System.String", false)
-        "ntext", (SqlDbType.NText, "System.String", false)
-        "nvarchar", (SqlDbType.NVarChar, "System.String", false)
-        "sysname", (SqlDbType.NVarChar, "System.String", false)
+        "nchar"         , (SqlDbType.NChar             , "System.String"                , false)
+        "ntext"         , (SqlDbType.NText             , "System.String"                , false)
+        "nvarchar"      , (SqlDbType.NVarChar          , "System.String"                , false)
+        "sysname"       , (SqlDbType.NVarChar          , "System.String"                , false)
 
         // binary
-        "binary", (SqlDbType.Binary, "System.Byte[]", false)
-        "image", (SqlDbType.Image, "System.Byte[]", false)
-        "varbinary", (SqlDbType.VarBinary, "System.Byte[]", false)
+        "binary"        , (SqlDbType.Binary            , "System.Byte[]"                , false)
+        "image"         , (SqlDbType.Image             , "System.Byte[]"                , false)
+        "varbinary"     , (SqlDbType.VarBinary         , "System.Byte[]"                , false)
 
         //spatial
-        "geography", (SqlDbType.Udt, "Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types", false)
-        "geometry", (SqlDbType.Udt, "Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types", false)
+        "geography"      , (SqlDbType.Udt              , "Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types", false)
+        "geometry"       , (SqlDbType.Udt              , "Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types" , false)
 
         //other
-        "hierarchyid", (SqlDbType.Udt, "Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types", false)
-        "sql_variant", (SqlDbType.Variant, "System.Object", false)
+        "hierarchyid"    , (SqlDbType.Udt              , "Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types", false)
+        "sql_variant"    , (SqlDbType.Variant          , "System.Object"                                                      , false)
 
-        "timestamp", (SqlDbType.Timestamp, "System.Byte[]", true)  // note: rowversion is a synonym but SQL Server stores the data type as 'timestamp'
-        "uniqueidentifier", (SqlDbType.UniqueIdentifier, "System.Guid", true)
-        "xml", (SqlDbType.Xml, "System.String", false)
+        "timestamp"       , (SqlDbType.Timestamp       , "System.Byte[]"                , true)  // note: rowversion is a synonym but SQL Server stores the data type as 'timestamp'
+        "uniqueidentifier", (SqlDbType.UniqueIdentifier, "System.Guid"                  , true)
+        "xml"             , (SqlDbType.Xml             , "System.String"                , false)
 
         //TODO 
         //"cursor", typeof<TODO>
         //"table", typeof<TODO>
+        //"json"           , (SqlDbType.Json            , "System.String"                 , false)
     ]
 
 
@@ -591,7 +592,7 @@ order by
                     | true, item -> Some item
                 | false, _ when is_table_type -> 
                     Some (SqlDbType.Structured, null, false)
-                | _ -> failwith ("Unexpected type: " + name)
+                | _ -> None
 
             let getProvidedTypeForSqlTypeEntry (x:SqlTypeEntry) = getProvidedType x.name x.is_user_defined x.is_table_type x.system_type_id x.user_type_id
 

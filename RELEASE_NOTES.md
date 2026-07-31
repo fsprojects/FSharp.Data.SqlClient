@@ -1,4 +1,9 @@
-#### 2.9.99-alpha April 30, 2024
+#### 2.9.100-alpha July 30, 2026
+
+* Issue #484 bypass sql types that are not yet mapped to provider types rather than design time failure
+* Contributor: Gauthier Segay (https://github.com/smoothdeveloper)
+
+#### 2.9.99-alpha April 30, 2026
 
 * Issue #482 Support for Microsoft.Data.SqlClient in FSharp.Data.MicrosoftSqlClient package
 * Contributor: Daniel Little (https://github.com/daniellittledev), Gauthier Segay (https://github.com/smoothdeveloper)
