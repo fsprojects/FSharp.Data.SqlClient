@@ -44,7 +44,7 @@ module Seq =
         | [| x |] -> Some x
         | _ -> invalidArg "source" "The input sequence contains more than one element."
 
-module internal TypeResolution =
+module TypeResolution =
 
     // Resolves a type by its assembly-qualified name, with a version-tolerant fallback.
     // The design-time DLL runs inside the F# compiler process and bakes the compiler's FSharp.Core
