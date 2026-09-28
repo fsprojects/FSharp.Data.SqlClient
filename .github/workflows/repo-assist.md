@@ -52,7 +52,6 @@ permissions:
   code-quality: read
   contents: read
   deployments: read
-  id-token: write
   issues: read
   discussions: read
   packages: read
@@ -61,6 +60,7 @@ permissions:
   security-events: read
   statuses: read
   vulnerability-alerts: read
+  copilot-requests: none # change to 'write' to use org-based billing
 
 network:
   allowed:
@@ -314,7 +314,7 @@ steps:
           json.dump(result, f, indent=2)
       EOF
 
-source: githubnext/agentics/workflows/repo-assist.md@2e8c060a20085f9e9a4fc0a9adc33374fab1cec5
+source: githubnext/agentics/workflows/repo-assist.md@5d11aa2a05ce2c943c085acb7b12b583f83ed375
 ---
 
 # Repo Assist
